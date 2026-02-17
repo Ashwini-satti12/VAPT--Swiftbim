@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import Landing from '../pages/Landing';
+import Landing from '../pages/ProjectManager/Landing';
 
 export default function LandingOrRedirect() {
   const { user, loading } = useAuth();

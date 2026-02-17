@@ -6,7 +6,7 @@ import os
 from flask import Flask
 from flask_cors import CORS
 from config import Config
-from db import close_db
+from db import mysql
 
 # Blueprints
 from blueprints.auth import bp as auth_bp
@@ -35,6 +35,8 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
     CORS(app, origins=["*"], supports_credentials=True)
+
+    mysql.init_app(app)
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -65,7 +67,6 @@ def create_app(config_class=Config):
     def health():
         return {"status": "ok"}
 
-    app.teardown_appcontext(close_db)
     return app
 
 
