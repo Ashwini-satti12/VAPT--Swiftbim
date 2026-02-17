@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-import SwifterzLogo from '../assets/SwifterzLogo.png';
+import SwifterzLogo from '../../assets/ProductNavbarIcons/swifterzlogo.png';
 
 type Step = 'login' | 'forgot' | 'otp' | 'reset';
 

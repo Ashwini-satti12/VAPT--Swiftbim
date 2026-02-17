@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import SwifterzLogo from '../assets/SwifterzLogo.png';
+import SwifterzLogo from '../../assets/ProductNavbarIcons/swifterzlogo.png';
 
 export default function ClientLogin() {
   const [email, setEmail] = useState('');

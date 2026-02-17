@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import BgImage from '../assets/Bg.png';
-import SwifterzLogo from '../assets/SwifterzLogo.png';
+import SwifterzLogo from '../assets/ProductNavbarIcons/swifterzlogo.png';
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 px-4 py-3 rounded-[12px] transition-all duration-200 ${isActive
