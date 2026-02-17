@@ -9,7 +9,7 @@ class Config:
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
-    MYSQL_DB = os.getenv("MYSQL_DB", "swiftproject")
+    MYSQL_DB = os.getenv("MYSQL_DB", "swiftmanagement")
     MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400 * 30))  # 30 days
