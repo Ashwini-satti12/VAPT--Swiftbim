@@ -14,7 +14,7 @@ interface Project {
   budget?: string;
   module_name?: string;
   client_name?: string;
-  project_manager?: string;
+  project_manager?: string; 
   start_date?: string;
   end_date?: string;
   total_hours?: string;

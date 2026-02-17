@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import BgImage from '../assets/Bg.png';
-import SwifterzLogo from '../assets/SwifterzLogo.png';
+import SwifterzLogo from '../assets/ProductNavbarIcons/swifterzlogo.png';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function AppLayout() {

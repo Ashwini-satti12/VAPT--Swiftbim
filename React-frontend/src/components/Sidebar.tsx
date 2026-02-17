@@ -2,16 +2,16 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 // Import Icons
-import dashboardIcon from '../assets/Icons/sidebaricons/dashboard.svg';
-import consultantIcon from '../assets/Icons/sidebaricons/consultant.svg';
-import clientIcon from '../assets/Icons/sidebaricons/client.svg';
-import projectIcon from '../assets/Icons/sidebaricons/projecticon.svg';
-import myTaskIcon from '../assets/Icons/sidebaricons/mytask.svg';
-import teamTaskIcon from '../assets/Icons/sidebaricons/teamtask.svg';
-import createTeamIcon from '../assets/Icons/sidebaricons/createteam.svg';
-import trackerIcon from '../assets/Icons/sidebaricons/tracker.svg';
-import teamReportIcon from '../assets/Icons/sidebaricons/teamreport 1.svg';
-import chatIcon from '../assets/Icons/sidebaricons/chat.svg';
+import dashboardIcon from '../assets/SidebarIcons/PMSidebarIcons/dashboard.svg';
+import consultantIcon from '../assets/SidebarIcons/PMSidebarIcons/consultant.svg';
+import clientIcon from '../assets/SidebarIcons/PMSidebarIcons/client.svg';
+import projectIcon from '../assets/SidebarIcons/PMSidebarIcons/projecticon.svg';
+import myTaskIcon from '../assets/SidebarIcons/PMSidebarIcons/mytask.svg';
+import teamTaskIcon from '../assets/SidebarIcons/PMSidebarIcons/teamtask.svg';
+import createTeamIcon from '../assets/SidebarIcons/PMSidebarIcons/createteam.svg';
+import trackerIcon from '../assets/SidebarIcons/PMSidebarIcons/tracker.svg';
+import teamReportIcon from '../assets/SidebarIcons/PMSidebarIcons/teamreport 1.svg';
+import chatIcon from '../assets/SidebarIcons/PMSidebarIcons/chat.svg';
 
 const HIDE_CLIENTS_ROLES = ['BIM Lead', 'BIM Coordinator'];
 
