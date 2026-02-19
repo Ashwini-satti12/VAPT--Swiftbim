@@ -4,7 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ClientProtectedRoute } from './components/ClientProtectedRoute';
 import LandingOrRedirect from './components/LandingOrRedirect';
 import AppLayout from './components/AppLayout';
-import ClientLayout from './components/ClientLayout';
+
 import Login from './pages/Login/Login';
 import ClientLogin from './pages/Client/ClientLogin';
 import Dashboard from './pages/ProjectManager/Dashboard';
@@ -38,7 +38,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/welcome" element={<Welcome />} />
-          <Route element={<ClientProtectedRoute><ClientLayout /></ClientProtectedRoute>}>
+          <Route element={<ClientProtectedRoute><AppLayout /></ClientProtectedRoute>}>
             <Route path="client" element={<Navigate to="/client/dashboard" replace />} />
             <Route path="client/dashboard" element={<ClientDashboard />} />
             <Route path="client/projects/:id" element={<ClientProjectDetail />} />
