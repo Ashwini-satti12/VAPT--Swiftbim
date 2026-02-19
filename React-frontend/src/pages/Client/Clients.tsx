@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import cardBg from '../../assets/cardbg.jpg';
 
 interface Client {
   id: number;
@@ -216,83 +217,84 @@ export default function Clients() {
             </div>
           ) : (
             list.map((c, idx) => (
-              <div key={c.id} className="bg-white rounded-[20px] shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col group">
-                {/* Card Cover */}
-                <div className="relative h-32 w-full overflow-hidden">
-                  <div className="absolute inset-0 bg-[#1a1a1a]">
-                    <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-600 via-slate-800 to-black" />
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-30" />
-                  </div>
+              <div key={c.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col group">
+                {/* Header Background */}
+                <div className="relative h-44 w-full">
+                  <img src={cardBg} alt="banner" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/20" />
 
                   {/* Status Badge */}
-                  <div className="absolute top-3 right-3">
-                    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md border ${idx % 3 === 0 ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${idx % 3 === 0 ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {idx % 3 === 0 ? 'Online' : 'Offline'}
+                  <div className="absolute top-4 right-4">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E6F4EA]/90 backdrop-blur-sm text-[#1E7E34] border border-[#1E7E34]/20">
+                      <span className="w-2 h-2 rounded-full bg-[#1E7E34]" />
+                      Online
+                    </div>
+                  </div>
+
+                  {/* Profile info inside header */}
+                  <div className="absolute bottom-6 left-6 flex items-center gap-4 text-white">
+                    <div className="w-20 h-20 rounded-full border-4 border-white/30 shadow-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName(c))}&background=random&size=128`}
+                        alt={displayName(c)}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold leading-tight drop-shadow-md line-clamp-1">{displayName(c)}</h3>
+                      <p className="text-sm text-white/90 font-medium drop-shadow-sm">{displayLocation(c)}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Card Body */}
-                <div className="relative pt-12 pb-6 px-6 flex-1 flex flex-col items-center">
-                  {/* Profile Image Overlay */}
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
-                    <img
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName(c))}&background=random&size=128`}
-                      alt={displayName(c)}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="text-center mb-6">
-                    <h3 className="text-lg font-bold text-slate-800 line-clamp-1">{displayName(c)}</h3>
-                    <p className="text-sm text-slate-500 flex items-center justify-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <div className="p-6 space-y-6 flex-1 flex flex-col">
+                  {/* Quick Action Block Buttons */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#EBF3FE] text-[#1E7E34] hover:bg-[#dce9fd] transition-colors" title="Mail">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
                       </svg>
-                      {displayLocation(c)}
-                    </p>
-                  </div>
-
-                  {/* Quick Actions (Mail, Message, Call) */}
-                  <div className="flex gap-4 mb-8">
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-[#3d3399] hover:text-white transition shadow-sm border border-slate-100" title="Mail">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
+                      <span className="text-sm font-bold text-[#424242]">Mail</span>
                     </button>
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-[#3d3399] hover:text-white transition shadow-sm border border-slate-100" title="Message">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#EBF3FE] text-[#1E7E34] hover:bg-[#dce9fd] transition-colors" title="Message">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
                       </svg>
+                      <span className="text-sm font-bold text-[#424242]">Message</span>
                     </button>
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-50 text-slate-600 hover:bg-[#3d3399] hover:text-white transition shadow-sm border border-slate-100" title="Call">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#EBF3FE] text-[#1E7E34] hover:bg-[#dce9fd] transition-colors" title="Call">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
                       </svg>
+                      <span className="text-sm font-bold text-[#424242]">Call</span>
                     </button>
                   </div>
 
-                  {/* Bottom Actions */}
-                  <div className="w-full flex gap-3 mt-auto">
+                  <div className="h-px bg-gray-100" />
+
+                  {/* Primary Actions */}
+                  <div className="grid grid-cols-2 gap-3 mt-auto">
                     <button
                       type="button"
                       onClick={() => openView(c.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[12px] bg-[#E14B4B] text-white font-bold text-sm hover:bg-[#c93d3d] transition shadow-sm shadow-red-100"
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-sm hover:bg-[#c43a39] transition shadow-sm"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                       </svg>
                       View
                     </button>
                     <button
                       type="button"
                       onClick={() => openEdit(c.id)}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[12px] bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200 transition border border-slate-200"
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#F3F4F6] text-[#616161] font-bold text-sm hover:bg-gray-200 transition border border-transparent"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.242 3.758a2.121 2.121 0 013.03 3.03L9 16.5 4.5 17.5l1-4.5 10.742-10.742z" />
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                       Edit
                     </button>
