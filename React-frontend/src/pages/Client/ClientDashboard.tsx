@@ -18,7 +18,7 @@ export default function ClientDashboard() {
   const s = stats || { total_projects: 0, total_tasks: 0, completed_tasks: 0, total_budget: 0, total_paid: 0, total_pending: 0, payment_progress: 0 };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 ">
       <h2 className="text-xl font-semibold text-slate-800">Dashboard</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border p-4"><p className="text-sm text-slate-500">Projects</p><p className="text-2xl font-bold text-[#3d3399]">{s.total_projects}</p></div>
