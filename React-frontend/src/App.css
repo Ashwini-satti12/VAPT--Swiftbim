@@ -1,0 +1,31 @@
+/* Custom scrollbar for a premium look */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 20px; 
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #fdfdfd; 
+  border-radius: 20px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #C1C1C1;
+  border-radius: 20px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 4px solid transparent;
+  border-right: 12px solid transparent; 
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+  background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-button {
+  height: 15px;
+  display: block;
+  background: transparent;
+}
+

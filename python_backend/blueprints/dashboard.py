@@ -42,16 +42,21 @@ def stats():
         row = cur.fetchone()
         return (row or {}).get("total_tasks") or 0
 
-    def get_total_projects(uid):
-        cur.execute(
-            "SELECT COUNT(*) AS total_projects FROM projects WHERE FIND_IN_SET(%s, REPLACE(members, ' ', '')) AND Company_id = %s",
-            (uid, company_id),
-        )
+    def get_total_projects(uid, status=None):
+        sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE FIND_IN_SET(%s, REPLACE(members, ' ', '')) AND Company_id = %s"
+        params = [uid, company_id]
+        if status == "Completed":
+            sql += " AND progress = 100"
+        elif status:
+            # Fallback if we ever have other statuses, though 'status' col doesn't exist. 
+            pass 
+        cur.execute(sql, tuple(params))
         row = cur.fetchone()
         return (row or {}).get("total_projects") or 0
 
     from datetime import date
     today = date.today().isoformat()
+    # keeping totaltoday as is
     cur.execute(
         "SELECT COUNT(*) AS total_tasks FROM tasks WHERE (status IN ('Todo','InProgress','Pause')) AND assigned_to = %s AND DATE(due_date) = %s AND Company_id = %s",
         (user_id, today, company_id),
@@ -60,14 +65,17 @@ def stats():
     total_today = (row or {}).get("total_tasks") or 0
 
     total_projects = get_total_projects(user_id)
-    new_tasks = get_total_tasks("Todo", user_id)
+    completed_projects = get_total_projects(user_id, "Completed")
     in_progress_tasks = get_total_tasks("InProgress", user_id)
+    completed_tasks = get_total_tasks("Completed", user_id)
+    new_tasks = get_total_tasks("Todo", user_id)
 
     return jsonify({
-        "newTasks": new_tasks,
-        "newTask": new_tasks,
+        "totalProjects": total_projects,
+        "completedProjects": completed_projects,
         "inProgressTasks": in_progress_tasks,
-        "completedTasks": total_projects,
+        "completedTasks": completed_tasks,
+        "newTasks": new_tasks, # keeping for backward comp if needed
         "totaltoday": total_today,
     })
 

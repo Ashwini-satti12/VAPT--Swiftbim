@@ -26,9 +26,10 @@ export interface AuthState {
 }
 
 export interface DashboardStats {
-  newTasks: number;
-  newTask: number;
+  totalProjects: number;
+  completedProjects: number;
   inProgressTasks: number;
   completedTasks: number;
+  newTasks: number;
   totaltoday: number;
 }
