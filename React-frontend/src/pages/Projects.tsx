@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import viewIcon from '../assets/project/viewicon.png';
+import viewIcon from '../assets/project/viewicon.svg';
 import tabler_edit from '../assets/project/tabler_edit.png';
 import deleteIcon from '../assets/project/deleteIcon.png';
 import paymentsmilestone from '../assets/project/paymentsmilestone.png';
@@ -14,7 +14,7 @@ interface Project {
   budget?: string;
   module_name?: string;
   client_name?: string;
-  project_manager?: string; 
+  project_manager?: string;
   start_date?: string;
   end_date?: string;
   total_hours?: string;
@@ -65,14 +65,14 @@ export default function Projects() {
   const [selectedProjectForView, setSelectedProjectForView] = useState<Project | null>(null);
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const [selectedProjectForMilestones, setSelectedProjectForMilestones] = useState<Project | null>(null);
-  
+
   // Add Milestone Modal State
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
   const [milestoneName, setMilestoneName] = useState('');
   const [milestoneAmount, setMilestoneAmount] = useState('');
   const [milestoneDueDate, setMilestoneDueDate] = useState('');
   const [milestoneNotes, setMilestoneNotes] = useState('');
-  
+
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
@@ -171,7 +171,7 @@ export default function Projects() {
                   const status = i % 3 === 0 ? 'Review' : i % 2 === 0 ? 'Pending' : 'Approved';
                   const statusColor = i % 3 === 0 ? '#DD4342' : i % 2 === 0 ? '#FF9F00' : '#0A9344';
                   const statusBg = i % 3 === 0 ? 'bg-[#FFEBEC]' : i % 2 === 0 ? 'bg-[#FFF4E5]' : 'bg-[#E7F6ED]';
-                  
+
                   return (
                     <div key={i} className="bg-white border border-slate-100 rounded-[1.5rem] p-6">
                       <div className="flex justify-between items-start mb-4">
@@ -335,7 +335,7 @@ export default function Projects() {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddMilestoneModal(true)}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
                 title="Add Milestone"
@@ -375,7 +375,7 @@ export default function Projects() {
                 <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-10 max-w-sm">
                   Add your First Payment to get started with payment tracking
                 </p>
-                <button 
+                <button
                   onClick={() => setShowAddMilestoneModal(true)}
                   className="flex items-center gap-2 px-10 py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
                 >
@@ -418,7 +418,7 @@ export default function Projects() {
                     const total = p.total_tasks ?? 0;
                     const completed = p.completed_tasks ?? 0;
                     const progress = Math.round(p.progress ?? 0);
-                    
+
                     const radius = 28;
                     const circumference = 2 * Math.PI * radius;
                     const offset = circumference - (progress / 100) * circumference;
@@ -434,7 +434,7 @@ export default function Projects() {
                               <p className="text-[16px] font-Gantari font-semibold text-[#353535]">Tower 1 to 09</p>
                             </div>
                             <div className="relative group">
-                              <button type="button"  className="rounded-full text-[#8B8B8B]">
+                              <button type="button" className="rounded-full text-[#8B8B8B]">
                                 <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                                   <path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                                 </svg>
@@ -466,7 +466,7 @@ export default function Projects() {
                                     onClick={() => {
                                       setSelectedProjectForEdit(p);
                                       setCreateName(p.project_name ?? '');
-                                      setCreateBudget(p.budget ?? ''); 
+                                      setCreateBudget(p.budget ?? '');
                                       setCreateModuleName(p.module_name ?? '');
                                       setCreateClientName(p.client_name ?? '');
                                       setCreateProjectManager(p.project_manager ?? '');
@@ -492,8 +492,8 @@ export default function Projects() {
                                   </button>
                                 )}
                                 {canDelete && (
-                                  <button 
-                                    onClick={() => setDeleteId(p.id)} 
+                                  <button
+                                    onClick={() => setDeleteId(p.id)}
                                     className="w-full flex items-center gap-4 px-6 py-2.5 hover:bg-slate-50 transition-colors font-Gantari text-left"
                                   >
                                     <img src={deleteIcon} alt="Delete" className="w-7 h-7" />
@@ -543,7 +543,7 @@ export default function Projects() {
                               +4
                             </div>
                           </div>
-                          
+
                           <Link to={`/projects/${p.id}`} className="flex items-center gap-1.5 text-sm font-extrabold text-slate-400 hover:text-[#e54d45] transition-colors group">
                             Details
                             <svg className="w-5 h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -585,7 +585,7 @@ export default function Projects() {
                 {createError && (
                   <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{createError}</p>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   {/* Project Name & Budget */}
                   <div className="space-y-2">

@@ -92,18 +92,6 @@ export default function Timesheet() {
       {/* Header Section */}
       <div className="flex items-center justify-between flex-shrink-0 px-2">
         <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
-        <button
-          onClick={handleDownload}
-          disabled={filteredList.length === 0}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-lg font-medium hover:bg-[#c43a39] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 11V17L14 15M12 17L10 15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 10V15C22 19 20 21 16 21H8C4 21 2 19 2 15V9C2 5 4 3 8 3H11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Download
-        </button>
       </div>
 
       {/* Filter Row */}
@@ -191,6 +179,18 @@ export default function Timesheet() {
               </svg>
             </div>
           </div>
+
+          {/* Download Button */}
+          <button
+            onClick={handleDownload}
+            disabled={filteredList.length === 0}
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="text-[16px]">Download</span>
+          </button>
         </div>
       </div>
 

@@ -114,48 +114,25 @@ export default function Tracker() {
   }
 
   return (
-    <div className="p-1 md:p-4 space-y-6 flex flex-col h-full">
+    <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
-        <div className="flex items-center justify-between w-full md:w-auto gap-4">
-          <h2 className="text-xl font-bold text-gray-900">Employee Tracking</h2>
-          <button
-            onClick={handleDownload}
-            disabled={filteredList.length === 0}
-            className="flex md:hidden items-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-lg font-medium hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 11V17L11 15M9 17L7 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M22 10V15C22 19 20 21 16 21H8C4 21 2 19 2 15V9C2 5 4 3 8 3H11" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Download
-          </button>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <h2 className="text-2xl font-bold text-gray-900">Employee Tracking</h2>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Download Button Desktop */}
-          <button
-            onClick={handleDownload}
-            disabled={filteredList.length === 0}
-            className="hidden md:flex items-center gap-2 px-5 py-2 bg-[#DD4342] text-white rounded-lg font-medium hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 11V17L11 15M9 17L7 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M22 10V15C22 19 20 21 16 21H8C4 21 2 19 2 15V9C2 5 4 3 8 3H11" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {filteredList.length === 0 ? 'No data' : 'Download'}
-          </button>
-
           {/* Select Date Filter */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#F3F4F6] border border-transparent rounded-lg hover:bg-gray-200 transition-colors cursor-pointer min-w-[150px]">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
             <span className="text-[#616161] text-sm font-medium">
               {formatDate(selectedDate)}
             </span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 2V5M16 2V5M3.5 9.09H20.5M21 8.5V17C21 20 19.5 22 16 22H8C4.5 22 3 20 3 17V8.5C3 5.5 4.5 3.5 8 3.5H16C19.5 3.5 21 5.5 21 8.5Z" stroke="#616161" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M11.9955 13.7H12.0045M8.29551 13.7H8.30449M8.29551 16.7H8.30449M11.9955 16.7H12.0045M15.6955 13.7H15.7045M15.6955 16.7H15.7045" stroke="#616161" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
             </svg>
             <input
               type="date"
@@ -167,7 +144,7 @@ export default function Tracker() {
           </div>
 
           {/* Status Dropdown */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#F3F4F6] border border-transparent rounded-lg hover:bg-gray-200 transition-colors cursor-pointer min-w-[120px]">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[120px]">
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
@@ -177,28 +154,40 @@ export default function Tracker() {
               <option value="Online">Online</option>
               <option value="Offline">Offline</option>
             </select>
-            <div className="absolute right-4 pointer-events-none">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19.92 8.95L13.4 15.47C12.63 16.24 11.37 16.24 10.6 15.47L4.08 8.95" stroke="#616161" strokeWidth="2.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" />
+            <div className="absolute right-3 pointer-events-none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9l6 6 6-6" />
               </svg>
             </div>
           </div>
+
+          {/* Download Button */}
+          <button
+            onClick={handleDownload}
+            disabled={filteredList.length === 0}
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="text-[16px]">Download</span>
+          </button>
         </div>
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
           <table className="min-w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-white">
-              <tr className="border-b border-gray-100 shadow-sm bg-white">
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Date</th>
-                <th className="px-6 py-5 text-left text-sm font-bold text-gray-700 bg-white">Employee Name</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Time In</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Time Out</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Total Hours</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700 bg-white">Status</th>
+              <tr className="border-b border-gray-100 bg-white">
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Date</th>
+                <th className="px-6 py-6 text-left text-sm font-bold text-gray-700 bg-white">Employee Name</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time In</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time Out</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Total Hours</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -222,13 +211,13 @@ export default function Tracker() {
 
                   return (
                     <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F9FAFB]' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600 font-medium">{slNo}</td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedDate}</td>
-                      <td className="px-6 py-4 text-left text-sm text-gray-900 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedTime}</td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedTime}</td>
-                      <td className="px-6 py-4 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-5 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedDate}</td>
+                      <td className="px-6 py-5 text-left text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
+                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
+                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
+                      <td className="px-6 py-5 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
+                      <td className="px-6 py-5 text-center">
                         <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                           {loc.status}
                         </span>
@@ -246,20 +235,25 @@ export default function Tracker() {
         .smooth-scroll {
           scroll-behavior: smooth;
         }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #8c8c8c #f3f3f3;
+        }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
+          width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
+          background: #f3f3f3;
+          border-radius: 20px;
+          margin: 10px 0;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 10px;
+          background: #8c8c8c;
+          border-radius: 20px;
+          border: 2px solid #f3f3f3;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
+          background: #666666;
         }
       `}</style>
     </div>
