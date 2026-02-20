@@ -708,10 +708,10 @@ export default function Chat() {
               <button
                 type="button"
                 onClick={sendMessage}
-                className="flex items-center justify-center w-20 h-10 rounded-xl bg-[#F2F2F2] cursor-pointer transition-colors gap-2"
+                className="flex items-center justify-center w-20 h-10 rounded-lg bg-[#F2F2F2] cursor-pointer transition-colors gap-1"
                 aria-label="Send"
               >
-                <span className="text-xs text-black">Send</span>{" "}
+                <span className="text-xs text-black">Send</span>
                 <img src={sendIcon} alt="send" className="w-5 h-5" />
               </button>
             </div>
