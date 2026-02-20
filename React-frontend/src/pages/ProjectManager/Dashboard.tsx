@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import api from '../../lib/api';
-import type { DashboardStats } from '../../types';
 
 interface PriorityTask {
   id: number;
@@ -12,47 +10,23 @@ interface PriorityTask {
   project_name?: string;
 }
 
-interface DashboardEvent {
-  id?: number;
-  title?: string;
-  details?: string;
-  date?: string;
-  start_time?: string;
-  end_time?: string;
-  location?: string;
-}
-
-interface Announcement {
-  id?: number;
-  title?: string;
-  content?: string;
-  date?: string;
-}
-
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
-  const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
 
   useEffect(() => {
     Promise.all([
-      api.get<DashboardStats>('/api/dashboard/stats'),
       api.get<{ tasks: PriorityTask[] }>('/api/dashboard/priority-tasks'),
-      api.get<{ events: DashboardEvent[] }>('/api/dashboard/events'),
     ])
-      .then(([s, p, e]) => {
-        setStats(s.data);
+      .then(([p]) => {
         setPriorityTasks(p.data.tasks ?? []);
-        setEvents(e.data.events ?? []);
       })
       .catch(() => {
         console.error("Failed to load dashboard data");
       })
       .finally(() => setLoading(false));
   }, []);
-
-  const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-');
 
   // Calendar Logic
   const today = new Date();
@@ -187,47 +161,80 @@ export default function Dashboard() {
 
         {/* Calendar & Celebrations */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-100 p-5">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-base font-bold text-slate-800 leading-tight">"{currentMonth}</h3>
-                <p className="text-base font-bold text-slate-800">{currentYear}</p>
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+            {/* Calendar Header */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-black leading-tight">“{currentMonth}</span>
+                <span className="text-xl font-bold text-black">{currentYear}</span>
               </div>
-              <div className="text-right">
-                <h2 className="text-5xl font-extrabold text-slate-900 leading-none">{currentDay}</h2>
-                <p className="text-xs font-bold text-slate-800 uppercase tracking-widest mt-1">{currentDayName}</p>
+              <div className="flex-1 flex justify-center">
+                <span className="text-[64px] font-bold text-black leading-none">{currentDay}</span>
               </div>
+              <div className="flex flex-col items-end">
+                <span className="text-lg font-bold text-black tracking-wider">{currentDayName}</span>
+              </div>
+            </div>
+
+            {/* Collapse/Expand Toggle */}
+            <div className="flex justify-center mb-4">
+              <button
+                onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                className="p-1 hover:bg-slate-50 rounded-full transition-colors"
+              >
+                {isCalendarExpanded ? (
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* Calendar Grid */}
-            <div className="mb-6">
-              <div className="grid grid-cols-7 gap-y-2 text-center text-[12px] font-bold text-slate-800 mb-2">
-                <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+            {isCalendarExpanded && (
+              <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="grid grid-cols-7 gap-y-3 text-center text-sm font-bold text-black mb-3">
+                  <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+                </div>
+                <div className="grid grid-cols-7 gap-y-4 text-center text-base font-semibold">
+                  {/* Previous month days (mocked as grey) */}
+                  <div className="text-slate-300 py-1">29</div>
+                  <div className="text-slate-300 py-1">30</div>
+
+                  {/* Actual days mapped from month logic could go here, but match image for now */}
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(d => (
+                    <div key={d} className="text-black py-1">{d}</div>
+                  ))}
+                  <div className="text-[#E00100] py-1 font-bold">13</div>
+                  {[14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31].map(d => (
+                    <div key={d} className="text-black py-1">{d}</div>
+                  ))}
+
+                  {/* Next month days (mocked as grey) */}
+                  <div className="text-slate-300 py-1">1</div>
+                  <div className="text-slate-300 py-1">2</div>
+                </div>
               </div>
-              <div className="grid grid-cols-7 gap-y-2 text-center text-[13px] font-medium">
-                {calendarDays.map((day, idx) => (
-                  <div key={idx} className={`py-0.5 rounded-md ${day === currentDay ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
-                    {day}
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-center mt-3">
-                <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-              </div>
-            </div>
+            )}
 
             {/* Celebrations Section */}
-            <div className="space-y-3 pt-3 border-t border-slate-50">
-              <div className="bg-[#F8FDF9] p-4 rounded-xl relative">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="font-bold text-slate-800 text-[13px]">Malfoe</h4>
-                  <span className="bg-[#E7F6EA] text-[#2D8A39] text-[9px] px-2 py-0.5 rounded-md font-bold uppercase">Celebrations</span>
+            <div className="space-y-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="bg-[#F8F9F9] p-4 rounded-xl border border-transparent hover:border-slate-100 transition-all">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-bold text-black text-sm">Malfoe</h4>
+                    <span className="bg-[#E7F6EA] text-[#2D8A39] text-[10px] px-2.5 py-1 rounded-md font-bold">Celebrations</span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-700 mb-1">Congratulations</p>
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    You have completed 2 years in our company. Marking another year of excellence,
+                  </p>
                 </div>
-                <p className="text-[11px] font-bold text-slate-600 mb-1">Congratulations</p>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
-                  You have completed 2 years in our company. Marking another year of excellence.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
         </div>

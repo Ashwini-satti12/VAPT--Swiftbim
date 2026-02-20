@@ -126,7 +126,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   return (
     <div className="w-64 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
       {/* Navigation Items Container */}
-      <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] shadow-lg overflow-hidden">
+      <nav className="flex-1 flex flex-col bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
           {navItems.map((item) => {
             const active = isActive(item.path);
@@ -139,8 +139,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
                   onMenuClick?.();
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${active
-                  ? "bg-[#DD4342] text-white shadow-md active-scale-95"
-                  : "text-slate-600 hover:bg-white/40 hover:text-black"
+                  ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
+                  : "text-slate-700 hover:bg-white/20 hover:text-black"
                   }`}
               >
                 {item.iconSrc && (
@@ -151,7 +151,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
                       }`}
                   />
                 )}
-                <span className={`text-[15px] whitespace-nowrap overflow-hidden text-ellipsis ${active ? "text-white" : "text-slate-700 font-semibold"}`}>
+                <span className={`text-[15px] whitespace-nowrap overflow-hidden text-ellipsis ${active ? "text-white font-bold" : "text-slate-800 font-semibold"}`}>
                   {item.name}
                 </span>
               </button>
@@ -161,11 +161,11 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       </nav>
 
       {/* Log Out Button Container */}
-      <div>
+      <div className="mt-auto">
         <button
           type="button"
           onClick={handleLogout}
-          className="flex w-full bg-[#FFFAFA] items-center font-bold justify-center gap-3 px-4 py-4 rounded-xl border border-[rgba(89,89,89,0.2)] text-[#E00100] transition-colors shadow-sm hover:bg-red-50/50"
+          className="flex w-full bg-white/10 backdrop-blur-md items-center font-bold justify-center gap-3 px-4 py-4 rounded-xl border border-white/20 text-[#E00100] transition-all shadow-lg hover:bg-red-50/20 active:scale-95"
         >
           <ArrowRightOnRectangleIcon className="w-6 h-6 text-[#E00100]" />
           <span>Log Out</span>

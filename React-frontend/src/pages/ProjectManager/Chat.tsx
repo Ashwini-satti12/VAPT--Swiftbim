@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
-import alertIcon from "../../assets/Chat/icon.svg";
-import sendIcon from "../../assets/Chat/sendicon.svg";
+import alertIcon from "../../assets/ProjectManager/Chat/icon.svg";
+import sendIcon from "../../assets/ProjectManager/Chat/sendicon.svg";
 
 interface Contact {
   id: string;
@@ -189,25 +189,25 @@ const MOCK_MESSAGES: {
   sender: "user" | "contact";
   time: string;
 }[] = [
-  {
-    id: "1",
-    text: "Lorem Ipsum has been the industry's standard",
-    sender: "contact",
-    time: "8:00 PM",
-  },
-  {
-    id: "2",
-    text: "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
-    sender: "contact",
-    time: "8:00 PM",
-  },
-  {
-    id: "3",
-    text: "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
-    sender: "user",
-    time: "8:00 PM",
-  },
-];
+    {
+      id: "1",
+      text: "Lorem Ipsum has been the industry's standard",
+      sender: "contact",
+      time: "8:00 PM",
+    },
+    {
+      id: "2",
+      text: "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
+      sender: "contact",
+      time: "8:00 PM",
+    },
+    {
+      id: "3",
+      text: "Lorem Ipsum has been the industry's standard dummy text ever since the 1500s,",
+      sender: "user",
+      time: "8:00 PM",
+    },
+  ];
 
 function Avatar({
   name,
@@ -329,11 +329,10 @@ export default function Chat() {
                 key={contact.id}
                 type="button"
                 onClick={() => setSelectedContact(contact)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                  selectedContact.id === contact.id
-                    ? "bg-slate-200/80"
-                    : "hover:bg-slate-100/80"
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${selectedContact.id === contact.id
+                  ? "bg-slate-200/80"
+                  : "hover:bg-slate-100/80"
+                  }`}
               >
                 <Avatar name={contact.name} />
                 <div className="flex-1 min-w-0">
@@ -413,11 +412,10 @@ export default function Chat() {
                 className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`relative max-w-[75%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${
-                    msg.sender === "user"
-                      ? "bg-slate-200 text-slate-900"
-                      : "bg-slate-100 text-slate-900"
-                  }`}
+                  className={`relative max-w-[75%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${msg.sender === "user"
+                    ? "bg-slate-200 text-slate-900"
+                    : "bg-slate-100 text-slate-900"
+                    }`}
                   onContextMenu={(e) => handleContextMenu(e, msg.id)}
                 >
                   <p className="text-sm">{msg.text}</p>
