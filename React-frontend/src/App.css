@@ -1,26 +1,29 @@
 /* Custom scrollbar for a premium look */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 20px; 
+  width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #fdfdfd; 
-  border-radius: 20px;
+  background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #C1C1C1;
-  border-radius: 20px;
-  border-top: 8px solid transparent;
-  border-bottom: 8px solid transparent;
-  border-left: 4px solid transparent;
-  border-right: 12px solid transparent; 
-  background-clip: padding-box;
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
-  background-clip: padding-box;
+}
+
+/* Utility to hide scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar-button {
@@ -28,4 +31,3 @@
   display: block;
   background: transparent;
 }
-

@@ -24,15 +24,15 @@ export default function AppLayout() {
         />
 
         <div
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 shrink-0 transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-60 shrink-0 transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             }`}
         >
           <Sidebar onMenuClick={() => setSidebarOpen(false)} />
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto px-4 pb-4 min-w-0">
-          <div className="h-full rounded-lg bg-white shadow-sm border border-slate-100 p-8 overflow-y-auto">
+        <main className="flex-1 px-4 pb-4 min-w-0">
+          <div className="h-full rounded-2xl bg-white shadow-sm border border-[#AEACAC52] p-8 overflow-y-auto lg:overflow-hidden custom-scrollbar">
             <Outlet />
           </div>
         </main>
