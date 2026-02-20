@@ -31,7 +31,7 @@ from blueprints.timeline import bp as timeline_bp
 from blueprints.client_panel import bp as client_panel_bp
 
 
-def create_app(config_class=Config):
+def create_app(config_class=Config): 
     app = Flask(__name__)
     app.config.from_object(config_class)
     CORS(app, origins=["*"], supports_credentials=True)

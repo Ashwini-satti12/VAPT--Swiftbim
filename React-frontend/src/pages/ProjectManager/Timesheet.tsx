@@ -4,19 +4,20 @@ interface TimesheetEntry {
   id: number;
   project_name?: string;
   task_name?: string;
-  start_date?: string;
-  end_date?: string;
+  start_date?: string; // Format: DD/MM/YYYY
+  end_date?: string;   // Format: DD/MM/YYYY
   duration?: string;
   assignee_name?: string;
+  team?: string;
 }
 
 const DUMMY_DATA: TimesheetEntry[] = [
-  { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
-  { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
-  { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
-  { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
-  { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
-  { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: 'dd/mm/yyyy', end_date: 'dd/mm/yyyy', duration: 'hh:mm:ss' },
+  { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', team: 'Team A' },
+  { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', team: 'Team B' },
+  { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', team: 'Team A' },
+  { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', team: 'Team C' },
+  { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', team: 'Team B' },
+  { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', team: 'Team A' },
 ];
 
 export default function Timesheet() {
@@ -24,48 +25,98 @@ export default function Timesheet() {
   const [endDate, setEndDate] = useState('');
   const [employee, setEmployee] = useState('All');
   const [team, setTeam] = useState('All');
-  const [list, setList] = useState<TimesheetEntry[]>([]);
+  const [list] = useState<TimesheetEntry[]>(DUMMY_DATA);
 
-  // Fetch data (using dummy as fallback)
-  useMemo(() => {
-    if (list.length === 0) {
-      setList(DUMMY_DATA);
-    }
-  }, [list]);
+  const filteredList = useMemo(() => {
+    return list.filter(item => {
+      // Date Range Filter Logic
+      if (startDate || endDate) {
+        const [d, m, y] = (item.start_date || '').split('/');
+        const itemDate = new Date(`${y}-${m}-${d}`);
+
+        if (startDate) {
+          const start = new Date(startDate);
+          if (itemDate < start) return false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          if (itemDate > end) return false;
+        }
+      }
+
+      // Employee Filter
+      if (employee !== 'All' && item.assignee_name !== employee) {
+        return false;
+      }
+
+      // Team Filter
+      if (team !== 'All' && item.team !== team) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [list, startDate, endDate, employee, team]);
 
   const handleDownload = () => {
-    // Logic for download report
+    if (filteredList.length === 0) return;
+
+    const headers = ['Sl.No', 'Project Name', 'Task', 'Start Date', 'End Date', 'Task Duration'];
+    const csvData = filteredList.map((row, index) => {
+      const slNo = (index + 1).toString().padStart(2, '0');
+      return [
+        slNo,
+        row.project_name || '-',
+        row.task_name || '-',
+        row.start_date || '-',
+        row.end_date || '-',
+        row.duration || 'hh:mm:ss'
+      ].map(val => `"${val}"`).join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getFullYear()}`;
+    link.setAttribute('href', url);
+    link.setAttribute('download', `team-report-${dateStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
-    <div className="p-1 md:p-4 space-y-6 flex flex-col h-full">
+    <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
       {/* Header Section */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <h2 className="text-xl font-bold text-gray-900">Time-Sheet</h2>
+      <div className="flex items-center justify-between flex-shrink-0 px-2">
+        <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
         <button
           onClick={handleDownload}
-          className="flex items-center gap-2 px-5 py-2 bg-[#DD4342] text-white rounded-lg font-medium hover:bg-[#c43a39] transition-all shadow-sm"
+          disabled={filteredList.length === 0}
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-lg font-medium hover:bg-[#c43a39] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 11V17L11 15M9 17L7 15" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 10V15C22 19 20 21 16 21H8C4 21 2 19 2 15V9C2 5 4 3 8 3H11" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 11V17L14 15M12 17L10 15" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 10V15C22 19 20 21 16 21H8C4 21 2 19 2 15V9C2 5 4 3 8 3H11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 10H18C15 10 14 9 14 6V2L22 10Z" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Download
         </button>
       </div>
 
       {/* Filter Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
-        <h3 className="text-lg font-bold text-gray-800">Month Report</h3>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+        <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Start Date */}
-          <div className="relative flex items-center justify-between gap-8 px-5 py-2.5 bg-[#EAEAEA] rounded-2xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[160px]">
-            <span className="text-[#424242] text-sm font-semibold">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+            <span className="text-[#616161] text-sm font-medium">
               {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
             </span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
               <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -82,11 +133,11 @@ export default function Timesheet() {
           </div>
 
           {/* End Date */}
-          <div className="relative flex items-center justify-between gap-8 px-5 py-2.5 bg-[#EAEAEA] rounded-2xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[160px]">
-            <span className="text-[#424242] text-sm font-semibold">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+            <span className="text-[#616161] text-sm font-medium">
               {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
             </span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
               <line x1="16" y1="2" x2="16" y2="6"></line>
               <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -103,36 +154,39 @@ export default function Timesheet() {
           </div>
 
           {/* Employee Dropdown */}
-          <div className="relative flex items-center justify-between gap-2 px-3 py-2 bg-[#F3F4F6] border border-transparent rounded-lg hover:bg-gray-200 transition-colors">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[130px]">
             <select
               value={employee}
               onChange={(e) => setEmployee(e.target.value)}
-              className="bg-transparent border-none outline-none text-[#616161] text-xs font-medium cursor-pointer appearance-none pr-4"
+              className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
             >
               <option value="All">Employee</option>
-              <option value="Binghatti">Binghatti</option>
-              <option value="Suo01">Suo01</option>
+              <option value="John Doe">John Doe</option>
+              <option value="Jane Smith">Jane Smith</option>
+              <option value="Alice Brown">Alice Brown</option>
+              <option value="Bob Wilson">Bob Wilson</option>
             </select>
-            <div className="absolute right-2 pointer-events-none">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <div className="absolute right-3 pointer-events-none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </div>
           </div>
 
           {/* Team Dropdown */}
-          <div className="relative flex items-center justify-between gap-2 px-3 py-2 bg-[#F3F4F6] border border-transparent rounded-lg hover:bg-gray-200 transition-colors">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[100px]">
             <select
               value={team}
               onChange={(e) => setTeam(e.target.value)}
-              className="bg-transparent border-none outline-none text-[#616161] text-xs font-medium cursor-pointer appearance-none pr-4"
+              className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
             >
               <option value="All">Team</option>
-              <option value="A">Team A</option>
-              <option value="B">Team B</option>
+              <option value="Team A">Team A</option>
+              <option value="Team B">Team B</option>
+              <option value="Team C">Team C</option>
             </select>
-            <div className="absolute right-2 pointer-events-none">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <div className="absolute right-3 pointer-events-none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </div>
@@ -141,33 +195,33 @@ export default function Timesheet() {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
-        <div className="overflow-auto custom-scrollbar flex-1" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
           <table className="min-w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-100 bg-white">
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700">Sl.No</th>
-                <th className="px-6 py-5 text-left text-sm font-bold text-gray-700">Project Name</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700">Task</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700">Start Date</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700">End Date</th>
-                <th className="px-6 py-5 text-center text-sm font-bold text-gray-700">Task Duration</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
+                <th className="px-6 py-6 text-left text-sm font-bold text-gray-700 bg-white">Project Name</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Task</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Start Date</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">End Date</th>
+                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Task Duration</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
-                    No report data available.
+                    No records found
                   </td>
                 </tr>
               ) : (
-                list.map((row, index) => {
+                filteredList.map((row, index) => {
                   const slNo = (index + 1).toString().padStart(2, '0');
                   return (
                     <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F9FAFB]' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                      <td className="px-6 py-5 text-center text-sm text-gray-600 font-medium">{slNo}</td>
-                      <td className="px-6 py-5 text-left text-sm text-gray-900 font-semibold">{row.project_name ?? '-'}</td>
+                      <td className="px-6 py-5 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                      <td className="px-6 py-5 text-left text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
                       <td className="px-6 py-5 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
                       <td className="px-6 py-5 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
                       <td className="px-6 py-5 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
@@ -182,23 +236,30 @@ export default function Timesheet() {
       </div>
 
       <style>{`
+        .smooth-scroll {
+          scroll-behavior: smooth;
+        }
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #8c8c8c #f3f3f3;
+        }
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
+          width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
+          background: #f3f3f3;
+          border-radius: 20px;
+          margin: 10px 0;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 10px;
+          background: #8c8c8c;
+          border-radius: 20px;
+          border: 2px solid #f3f3f3;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
+          background: #666666;
         }
       `}</style>
     </div>
   );
 }
-

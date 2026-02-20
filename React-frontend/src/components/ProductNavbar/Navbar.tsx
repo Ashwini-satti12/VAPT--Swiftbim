@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { BellIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { BellIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline/index.js";
 import api from "../../lib/api";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
