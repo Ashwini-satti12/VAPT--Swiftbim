@@ -84,67 +84,79 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      <h1 className="text-xl font-bold text-slate-800 mb-4 px-1">Dashboard</h1>
       {/* Top Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Projects - Red Card */}
-        <div className="bg-[#E44D4D] rounded-xl p-6 text-white shadow-sm relative overflow-hidden">
-
-          <h3 className="font-medium text-lg opacity-90">Total Projects</h3>
-          <p className="text-4xl font-bold mt-2">{stats?.totalProjects ?? 0}</p>
+        <div className="bg-[#E44D4D] rounded-xl p-4 text-white shadow-sm relative overflow-hidden flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-[12px] font-bold opacity-90 uppercase tracking-tight">Total Projects</h3>
+              <p className="text-[10px] mt-0.5 opacity-70">Total Projects</p>
+            </div>
+            <p className="text-4xl font-bold">115</p>
+          </div>
           <div className="mt-6">
-            <div className="h-1.5 bg-white/30 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
               <div className="h-full bg-white rounded-full" style={{ width: '45%' }}></div>
             </div>
-            <p className="text-xs mt-1 opacity-80">Total Projects</p>
           </div>
         </div>
 
         {/* Completed Projects */}
-        <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-medium text-slate-600 text-lg">Completed Projects</h3>
-
+              <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-tight">Completed Projects</h3>
+              <p className="text-[9px] text-slate-400 mt-0.5">Total Completed Projects</p>
             </div>
-            <p className="text-4xl font-bold text-slate-800">{stats?.completedProjects ?? 0}</p>
+            <p className="text-3xl font-bold text-slate-800">24</p>
           </div>
-          <div className="mt-8">
-            <p className="text-xs text-slate-500 mb-1">Total Completed Projects <span className="float-right text-slate-400">12%</span></p>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500 rounded-full" style={{ width: '12%' }}></div>
+          <div className="mt-6">
+            <div className="flex justify-between items-end mb-1">
+              <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden mr-2">
+                <div className="h-full bg-green-500 rounded-full" style={{ width: '12%' }}></div>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400">12%</span>
             </div>
           </div>
         </div>
 
         {/* In-Progress Tasks */}
-        <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-medium text-slate-600 text-lg">In-Progress Task</h3>
+              <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-tight">In-Progress Task</h3>
+              <p className="text-[9px] text-slate-400 mt-0.5">Total In-Progress Task</p>
             </div>
-            <p className="text-4xl font-bold text-slate-800">{stats?.inProgressTasks ?? 0}</p>
+            <p className="text-3xl font-bold text-slate-800">24</p>
           </div>
-          <div className="mt-8">
-            <p className="text-xs text-slate-500 mb-1">Total In-Progress Task <span className="float-right text-slate-400">12%</span></p>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-orange-500 rounded-full" style={{ width: '12%' }}></div>
+          <div className="mt-6">
+            <div className="flex justify-between items-end mb-1">
+              <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden mr-2">
+                <div className="h-full bg-orange-500 rounded-full" style={{ width: '12%' }}></div>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400">12%</span>
             </div>
           </div>
         </div>
 
         {/* Completed Tasks */}
-        <div className="bg-white rounded-xl p-6 border border-slate-100 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-medium text-slate-600 text-lg">Completed Task</h3>
+              <h3 className="text-[12px] font-bold text-slate-700 uppercase tracking-tight">Completed Task</h3>
+              <p className="text-[9px] text-slate-400 mt-0.5">Total Completed Task</p>
             </div>
-            <p className="text-4xl font-bold text-slate-800">{stats?.completedTasks ?? 0}</p>
+            <p className="text-3xl font-bold text-slate-800">24</p>
           </div>
-          <div className="mt-8">
-            <p className="text-xs text-slate-500 mb-1">Total Completed Task <span className="float-right text-slate-400">12%</span></p>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500 rounded-full" style={{ width: '12%' }}></div>
+          <div className="mt-6">
+            <div className="flex justify-between items-end mb-1">
+              <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden mr-2">
+                <div className="h-full bg-green-500 rounded-full" style={{ width: '12%' }}></div>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400">12%</span>
             </div>
           </div>
         </div>
@@ -152,122 +164,70 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Today's Priority */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-xl border border-slate-100 p-5 h-full min-h-[350px]">
+            <h2 className="text-lg font-bold text-slate-800 mb-5">Today's Priority</h2>
 
-          <div className="bg-white rounded-xl border border-slate-100 p-6 min-h-[400px]">
-            <h2 className="text-lg font-semibold text-slate-700 mb-6">Today's Priority</h2>
-
-            <div className="space-y-4">
-              {priorityTasks.length === 0 ? (
-                <p className="text-slate-400 text-center py-8">No specific priority tasks for today.</p>
-              ) : (
-                priorityTasks.map((task) => (
-                  <Link
-                    to={`/tasks/${task.id}`}
-                    key={task.id}
-                    className="flex flex-col sm:flex-row items-center gap-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100 hover:shadow-sm transition-shadow block"
-                  >
-                    {/* Circular Progress Placeholder */}
-                    <div className="relative w-16 h-16 shrink-0">
-                      <svg className="w-full h-full transform -rotate-90">
-                        <circle cx="32" cy="32" r="28" stroke="#e2e8f0" strokeWidth="4" fill="transparent" />
-                        <circle cx="32" cy="32" r="28" stroke="#10b981" strokeWidth="4" fill="transparent" strokeDasharray="175.84" strokeDashoffset="40" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-medium text-slate-600">
-                        hh:mm:ss
-                      </div>
-                    </div>
-
-                    <div className="flex-1 text-center sm:text-left">
-                      <h4 className="font-medium text-slate-800 text-lg">{task.task_name}</h4>
-                      <p className="text-slate-500 text-sm mt-1">{formatDate(task.due_date)} - 10:00 AM</p>
-                    </div>
-
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
-                        Task
-                      </span>
-                      {/* Toggle visually */}
-                      <div className="w-10 h-5 bg-slate-200 rounded-full relative cursor-pointer">
-                        <div className="w-5 h-5 bg-white rounded-full shadow-sm absolute left-0 top-0 border border-slate-200"></div>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-lg group hover:bg-slate-50 transition-colors">
+                <span className="text-slate-700 font-medium text-sm">New Task</span>
+                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-md text-[9px] font-bold">Need Attention</span>
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg">
+                <span className="text-slate-700 font-medium text-sm">Malfoe</span>
+              </div>
+              {priorityTasks.length > 0 && priorityTasks.slice(0, 3).map((task) => (
+                <div key={task.id} className="flex items-center justify-between p-3 rounded-lg border-b border-slate-50">
+                  <span className="text-slate-700 font-medium text-sm">{task.task_name}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Calendar & Celebrations */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-100 p-6">
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-slate-100 p-5">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-800">"{currentMonth}</h3>
-                <p className="text-lg font-semibold text-slate-800">{currentYear}</p>
+                <h3 className="text-base font-bold text-slate-800 leading-tight">"{currentMonth}</h3>
+                <p className="text-base font-bold text-slate-800">{currentYear}</p>
               </div>
               <div className="text-right">
-                <h2 className="text-5xl font-bold text-slate-900">{currentDay}</h2>
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">{currentDayName}</p>
+                <h2 className="text-5xl font-extrabold text-slate-900 leading-none">{currentDay}</h2>
+                <p className="text-xs font-bold text-slate-800 uppercase tracking-widest mt-1">{currentDayName}</p>
               </div>
             </div>
 
             {/* Calendar Grid */}
             <div className="mb-6">
-              <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-slate-400 mb-2">
+              <div className="grid grid-cols-7 gap-y-2 text-center text-[12px] font-bold text-slate-800 mb-2">
                 <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
               </div>
-              <div className="grid grid-cols-7 gap-1 text-center text-sm">
+              <div className="grid grid-cols-7 gap-y-2 text-center text-[13px] font-medium">
                 {calendarDays.map((day, idx) => (
-                  <div key={idx} className={`p-1.5 rounded-full ${day === currentDay ? 'text-red-500 font-bold' : 'text-slate-600'}`}>
+                  <div key={idx} className={`py-0.5 rounded-md ${day === currentDay ? 'text-red-500 font-bold' : 'text-slate-400'}`}>
                     {day}
                   </div>
                 ))}
               </div>
-              <div className="flex justify-center mt-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              <div className="flex justify-center mt-3">
+                <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
               </div>
             </div>
 
-            {/* Celebrations / Announcements */}
-            <div className="space-y-3">
-              {/* Malfoe Placeholder - Dynamic if events exist */}
-              {events.length > 0 ? events.slice(0, 2).map((ev, i) => (
-                <div key={i} className="bg-slate-50 p-3 rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <h4 className="font-bold text-slate-800 text-sm">Event</h4>
-                    <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-medium">Celebrations</span>
-                  </div>
-                  <p className="text-xs text-slate-600 mt-1 font-medium">{ev.title}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-                    {ev.details || 'No details provided.'}
-                  </p>
+            {/* Celebrations Section */}
+            <div className="space-y-3 pt-3 border-t border-slate-50">
+              <div className="bg-[#F8FDF9] p-4 rounded-xl relative">
+                <div className="flex justify-between items-start mb-1">
+                  <h4 className="font-bold text-slate-800 text-[13px]">Malfoe</h4>
+                  <span className="bg-[#E7F6EA] text-[#2D8A39] text-[9px] px-2 py-0.5 rounded-md font-bold uppercase">Celebrations</span>
                 </div>
-              )) : (
-                <>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-800 text-sm">Malfoe</h4>
-                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-medium">Celebrations</span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-1 font-medium">Congratulations</p>
-                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-                      You have completed 2 years in our company. Marking another year of excellence.
-                    </p>
-                  </div>
-                  <div className="bg-slate-50 p-3 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <h4 className="font-bold text-slate-800 text-sm">Malfoe</h4>
-                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-medium">Celebrations</span>
-                    </div>
-                    <p className="text-xs text-slate-600 mt-1 font-medium">Congratulations</p>
-                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">
-                      You have completed 2 years in our company. Marking another year of excellence.
-                    </p>
-                  </div>
-                </>
-              )}
+                <p className="text-[11px] font-bold text-slate-600 mb-1">Congratulations</p>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  You have completed 2 years in our company. Marking another year of excellence.
+                </p>
+              </div>
             </div>
           </div>
         </div>

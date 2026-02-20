@@ -9,13 +9,13 @@ export default function AppLayout() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      className="h-screen flex flex-col bg-cover bg-center bg-no-repeat overflow-hidden"
       style={{ backgroundImage: `url(${BgImage})` }}
     >
-      {/* Navbar — renders itself full width */}
+      {/* Navbar — fixed height */}
       <ProductNavbar onMenuClick={() => setSidebarOpen(true)} />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Mobile overlay */}
         <div
           className={`fixed inset-0 z-40 bg-black/40 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}
@@ -23,17 +23,16 @@ export default function AppLayout() {
           aria-hidden="true"
         />
 
-        {/* Sidebar — renders itself */}
         <div
-          className={`fixed lg:static inset-y-0 left-0 z-50 w-[185px] shrink-0 p-3 pt-0 transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          className={`fixed lg:static inset-y-0 left-0 z-50 w-64 shrink-0 transform transition-transform duration-300 lg:transform-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
             }`}
         >
           <Sidebar onMenuClick={() => setSidebarOpen(false)} />
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto px-4 pb-4 min-w-0">
-          <div className="mt-4 min-h-screen rounded-2xl bg-white/85 backdrop-blur-sm shadow-sm p-6">
+        <main className="flex-1 overflow-y-auto px-4 pb-4 min-w-0">
+          <div className="h-full rounded-lg bg-white shadow-sm border border-slate-100 p-8 overflow-y-auto">
             <Outlet />
           </div>
         </main>
