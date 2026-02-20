@@ -25,15 +25,16 @@ def list_employees():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT id, full_name, empid, email, phone_number, user_type, user_role, profile_picture, address, doj, department, active, status, Allpannel FROM employee WHERE Company_id = %s ORDER BY full_name",
+        "SELECT id, full_name, empid, email, phone_number, user_type, user_role, profile_picture, address, doj, dob, department, active, status, Allpannel FROM employee WHERE Company_id = %s ORDER BY full_name",
         (g.company_id,),
     )
     rows = cur.fetchall()
     employees = []
     for r in rows:
         d = dict(r)
-        if d.get("doj") and hasattr(d["doj"], "isoformat"):
-            d["doj"] = d["doj"].isoformat()
+        for k in ["doj", "dob"]:
+            if d.get(k) and hasattr(d[k], "isoformat"):
+                d[k] = d[k].isoformat()
         employees.append(d)
     return jsonify({"employees": employees})
 
