@@ -1,5 +1,8 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import {
+  ArrowRightOnRectangleIcon,
+} from "@heroicons/react/24/outline";
 
 // Import Icons
 import dashboardIcon from '../../assets/SidebarIcons/PMSidebarIcons/dashboard.svg';
@@ -15,13 +18,22 @@ import chatIcon from '../../assets/SidebarIcons/PMSidebarIcons/chat.svg';
 
 const HIDE_CLIENTS_ROLES = ['BIM Lead', 'BIM Coordinator'];
 
+export interface NavItem {
+  name: string;
+  path: string;
+  iconSrc?: string;
+  isCustom?: boolean;
+  isVisible?: boolean;
+}
+
 interface SidebarProps {
   onMenuClick?: () => void;
 }
 
-export default function Sidebar({ onMenuClick }: SidebarProps) {
+export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const panelType = user?.panel_type ?? 3;
   const userRole = user?.user_role || '';
@@ -29,114 +41,133 @@ export default function Sidebar({ onMenuClick }: SidebarProps) {
   const isTeamLeader = panelType === 2;
   const showClients = isManagement && !HIDE_CLIENTS_ROLES.includes(userRole);
 
+  const navItems: NavItem[] = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      iconSrc: dashboardIcon,
+      isVisible: true,
+    },
+    {
+      name: "Consultant",
+      path: "/employees",
+      iconSrc: consultantIcon,
+      isVisible: isManagement,
+    },
+    {
+      name: "Clients",
+      path: "/clients",
+      iconSrc: clientIcon,
+      isVisible: isManagement && showClients,
+    },
+    {
+      name: "Projects",
+      path: "/projects",
+      iconSrc: projectIcon,
+      isVisible: isManagement || isTeamLeader,
+    },
+    {
+      name: "My Task",
+      path: "/tasks",
+      iconSrc: myTaskIcon,
+      isVisible: true,
+    },
+    {
+      name: "Team Task",
+      path: "/tasks/team",
+      iconSrc: teamTaskIcon,
+      isVisible: isManagement || isTeamLeader,
+    },
+    {
+      name: "Create Team",
+      path: "/team",
+      iconSrc: createTeamIcon,
+      isVisible: isManagement,
+    },
+    {
+      name: "Tracker",
+      path: "/tracker",
+      iconSrc: trackerIcon,
+      isVisible: isManagement,
+    },
+    {
+      name: "Team Report",
+      path: "/timesheet",
+      iconSrc: teamReportIcon,
+      isVisible: isManagement || isTeamLeader,
+    },
+    {
+      name: "Report",
+      path: "/timesheet",
+      iconSrc: teamReportIcon,
+      isVisible: panelType === 3,
+    },
+    {
+      name: "Chat",
+      path: "/chat",
+      iconSrc: chatIcon,
+      isVisible: isManagement,
+    },
+  ].filter(item => item.isVisible);
+
   const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+    if (window.confirm("Are you sure you want to log out?")) {
+      await logout();
+      navigate('/login');
+    }
   };
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition-all duration-150 text-[13.5px] font-medium w-full ${isActive
-      ? 'bg-[#DD4342] text-white'
-      : 'text-slate-600 hover:bg-slate-100 hover:text-[#DD4342]'
-    }`;
-
-  const Icon = ({ src, isActive }: { src: string; isActive: boolean }) => (
-    <img
-      src={src}
-      alt=""
-      className="w-5 h-5 shrink-0 object-contain"
-      style={isActive ? { filter: 'brightness(0) invert(1)' } : {}}
-    />
-  );
+  const isActive = (path: string) => {
+    if (location.pathname === path) return true;
+    if (path !== '/' && location.pathname.startsWith(path)) return true;
+    return false;
+  };
 
   return (
-    <div
-      className="flex flex-col mt-4 w-44 rounded-2xl overflow-hidden"
-      style={{
-        background: 'rgba(255,255,255,0.95)',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.08)',
-      }}
-    >
-      {/* Nav links */}
-      <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-        <NavLink to="/dashboard" onClick={onMenuClick} className={linkClass}>
-          {({ isActive }) => <><Icon src={dashboardIcon} isActive={isActive} /><span>Dashboard</span></>}
-        </NavLink>
+    <div className="w-64 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
+      {/* Navigation Items Container */}
+      <nav className="flex-1 flex flex-col bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+          {navItems.map((item) => {
+            const active = isActive(item.path);
 
-        {isManagement && (
-          <NavLink to="/employees" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={consultantIcon} isActive={isActive} /><span>Consultant</span></>}
-          </NavLink>
-        )}
-
-        {isManagement && showClients && (
-          <NavLink to="/clients" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={clientIcon} isActive={isActive} /><span>Clients</span></>}
-          </NavLink>
-        )}
-
-        {(isManagement || isTeamLeader) && (
-          <NavLink to="/projects" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={projectIcon} isActive={isActive} /><span>Projects</span></>}
-          </NavLink>
-        )}
-
-        <NavLink to="/tasks" onClick={onMenuClick} className={linkClass}>
-          {({ isActive }) => <><Icon src={myTaskIcon} isActive={isActive} /><span>My Task</span></>}
-        </NavLink>
-
-        {(isManagement || isTeamLeader) && (
-          <NavLink to="/tasks/team" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={teamTaskIcon} isActive={isActive} /><span>Team Task</span></>}
-          </NavLink>
-        )}
-
-        {isManagement && (
-          <NavLink to="/team" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={createTeamIcon} isActive={isActive} /><span>Create Team</span></>}
-          </NavLink>
-        )}
-
-        {isManagement && (
-          <NavLink to="/tracker" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={trackerIcon} isActive={isActive} /><span>Tracker</span></>}
-          </NavLink>
-        )}
-
-        {(isManagement || isTeamLeader) && (
-          <NavLink to="/timesheet" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={teamReportIcon} isActive={isActive} /><span>Team Report</span></>}
-          </NavLink>
-        )}
-
-        {panelType === 3 && (
-          <NavLink to="/timesheet" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={teamReportIcon} isActive={isActive} /><span>Report</span></>}
-          </NavLink>
-        )}
-
-        {isManagement && (
-          <NavLink to="/chat" onClick={onMenuClick} className={linkClass}>
-            {({ isActive }) => <><Icon src={chatIcon} isActive={isActive} /><span>Chat</span></>}
-          </NavLink>
-        )}
+            return (
+              <button
+                key={item.path}
+                onClick={() => {
+                  navigate(item.path);
+                  onMenuClick?.();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${active
+                  ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
+                  : "text-slate-700 hover:bg-white/20 hover:text-black"
+                  }`}
+              >
+                {item.iconSrc && (
+                  <img
+                    src={item.iconSrc}
+                    alt={item.name}
+                    className={`w-5 h-5 flex-shrink-0 object-contain transition-all duration-200 ${active ? "brightness-0 invert" : ""
+                      }`}
+                  />
+                )}
+                <span className={`text-[15px] whitespace-nowrap overflow-hidden text-ellipsis ${active ? "text-white font-bold" : "text-slate-800 font-semibold"}`}>
+                  {item.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Divider */}
-      <div className="mx-3 border-t border-slate-100" />
-
-      {/* Log Out */}
-      <div className="p-2">
+      {/* Log Out Button Container */}
+      <div className="mt-auto">
         <button
+          type="button"
           onClick={handleLogout}
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl w-full text-[13.5px] font-medium text-[#DD4342] hover:bg-red-50 transition-all duration-150"
+          className="flex w-full bg-white/10 backdrop-blur-md items-center font-bold justify-center gap-3 px-4 py-4 rounded-xl border border-white/20 text-[#E00100] transition-all shadow-lg hover:bg-red-50/20 active:scale-95"
         >
-          {/* Logout icon — matches reference exactly */}
-          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="#DD4342" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
+          <ArrowRightOnRectangleIcon className="w-6 h-6 text-[#E00100]" />
           <span>Log Out</span>
         </button>
       </div>

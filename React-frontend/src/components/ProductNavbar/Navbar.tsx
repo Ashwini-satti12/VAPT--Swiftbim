@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { BellIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline/index.js";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
@@ -170,27 +170,27 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     return (
         <>
             {/* ── Navbar bar ── */}
-            <header className="flex items-center justify-between h-16 w-full shrink-0 px-6">
+            <header className="flex items-center justify-between h-20 w-full shrink-0 px-8 bg-transparent">
                 {/* LEFT: Logo */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-4 shrink-0">
                     {/* Mobile hamburger */}
                     <button
-                        className="lg:hidden p-1 mr-2 text-slate-500"
+                        className="lg:hidden p-1 text-slate-500"
                         onClick={onMenuClick}
                     >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <img src={swifterzLogo} alt="SWIFTERZ" className="h-10 w-auto object-contain" />
+                    <img src={swifterzLogo} alt="SWIFTERZ" className="h-14 w-auto object-contain" />
                 </div>
 
                 {/* CENTER: Search */}
-                <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-center px-8">
+                <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-end max-w-md px-4">
                     <div
-                        className="flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200 bg-white w-full max-w-[220px] focus-within:border-slate-400 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-300 bg-white w-full max-w-[200px] focus-within:border-slate-400 transition-colors shadow-sm"
                     >
-                        <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                        <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 shrink-0" />
                         <input
                             type="text"
                             value={localSearch}
@@ -202,17 +202,18 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                 </form>
 
                 {/* RIGHT: Bell + Greeting + Avatar */}
-                <div className="flex items-center gap-4 shrink-0">
+                <div className="flex items-center gap-6 shrink-0 ml-4">
                     {/* Bell */}
                     <div ref={notificationRef} className="relative">
                         <button
                             onClick={() => setShowNotifications((p) => !p)}
-                            className="relative p-1 text-slate-500 hover:text-slate-700 transition-colors"
+                            className="relative p-1 text-slate-800 hover:text-black transition-colors"
                         >
-                            <BellIcon className="w-6 h-6" />
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 015.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
                             {unreadCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                                    {unreadCount}
+                                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white">
                                 </span>
                             )}
                         </button>
@@ -238,21 +239,21 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                     {/* Greeting + Avatar */}
                     <div
                         ref={profileRef}
-                        className="relative flex items-center gap-2.5 cursor-pointer select-none"
+                        className="relative flex items-center gap-4 cursor-pointer select-none"
                         onClick={() => setIsProfileOpen((p) => !p)}
                     >
-                        <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
+                        <span className="text-base font-medium text-slate-800 whitespace-nowrap">
                             Hello, {firstName}!
                         </span>
                         {profilePicture ? (
                             <img
                                 src={profilePicture}
                                 alt="avatar"
-                                className="w-9 h-9 rounded-full object-cover border-2 border-slate-200"
+                                className="w-10 h-10 rounded-full object-cover shadow-sm bg-blue-100"
                             />
                         ) : (
-                            <div className="w-9 h-9 rounded-full bg-slate-400 flex items-center justify-center text-white text-sm font-semibold border-2 border-slate-200">
-                                {initials}
+                            <div className="w-10 h-10 rounded-full bg-[#87B2D2] flex items-center justify-center text-white text-sm font-semibold shadow-sm">
+                                <svg className="w-7 h-7 text-white/90" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
                             </div>
                         )}
 
