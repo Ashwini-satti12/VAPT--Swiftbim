@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useSearchParams, useLocation } from "react-router-dom";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { VscEye } from "react-icons/vsc";
+import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
+import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -49,7 +52,9 @@ function FormDropdown({
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={value ? "text-black" : "text-[#8B8B8B]"}>{displayLabel}</span>
+        <span className={value ? "text-black" : "text-[#8B8B8B]"}>
+          {displayLabel}
+        </span>
         <svg
           className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
           fill="none"
@@ -178,6 +183,58 @@ interface Task {
   project_name?: string;
   start_date?: string;
   progress?: number;
+  module?: string;
+  type?: string;
+  start_time?: string;
+  due_time?: string;
+  assign_to?: string;
+  description?: string;
+  checklist?: string;
+  assigned_full_name?: string;
+  uploader_full_name?: string;
+}
+
+/** Map task (local or API shape) to form values so every detail shows in edit. */
+function taskToFormValues(task: Task | Record<string, unknown>): {
+  projectName: string;
+  module: string;
+  taskName: string;
+  type: string;
+  actualStartDate: string;
+  actualEndDate: string;
+  startTime: string;
+  dueTime: string;
+  assignTo: string;
+  description: string;
+  checklist: string;
+} {
+  const t = task as Record<string, unknown>;
+  const str = (v: unknown) => (v != null ? String(v) : "");
+  const dateOnly = (v: unknown) => {
+    if (v == null) return "";
+    const s = str(v);
+    if (s.length >= 10) return s.slice(0, 10);
+    return s;
+  };
+  const timeOnly = (v: unknown) => {
+    if (v == null) return "";
+    const s = str(v);
+    const match = s.match(/(\d{1,2}):(\d{2})/);
+    return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
+  };
+  return {
+    projectName: str(t.project_name ?? t.projectName ?? ""),
+    module: str(t.module ?? t.modules_name ?? ""),
+    taskName: str(t.task_name ?? t.taskName ?? ""),
+    type: str(t.type ?? t.category ?? ""),
+    actualStartDate: dateOnly(t.start_date ?? t.startDate ?? t.Actual_start_time ?? ""),
+    actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+    startTime: timeOnly(t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
+    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+    description: str(t.description ?? ""),
+    checklist: str(t.checklist ?? ""),
+  };
 }
 
 function formatDateRange(start?: string, end?: string): string {
@@ -211,23 +268,65 @@ const STATUS_STYLE: Record<
   "todo" | "in_progress" | "completed",
   { label: string; dot: string; bg: string }
 > = {
-  todo: { label: "To Do", dot: "bg-orange-500", bg: "bg-orange-100 text-orange-800 rounded-full" },
-  in_progress: { label: "In Progress", dot: "bg-sky-500", bg: "bg-sky-100 text-sky-800" },
-  completed: { label: "Completed", dot: "bg-emerald-500", bg: "bg-emerald-100 text-emerald-800" },
+  todo: {
+    label: "To Do",
+    dot: "bg-orange-500",
+    bg: "bg-orange-100 text-orange-800 rounded-full",
+  },
+  in_progress: {
+    label: "In Progress",
+    dot: "bg-sky-500",
+    bg: "bg-sky-100 text-sky-800",
+  },
+  completed: {
+    label: "Completed",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-100 text-emerald-800",
+  },
 };
 
 function TaskCard({
   task,
   status,
+  onViewTask,
+  onEditTask,
+  onDeleteTask,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed";
+  onViewTask?: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }) {
   const style = STATUS_STYLE[status];
   const progress = task.progress ?? 0;
   const dateRange = formatDateRange(task.start_date, task.due_date);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("taskId", String(task.id));
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", task.task_name || "Task");
+  };
+
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <span
           className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
@@ -235,17 +334,64 @@ function TaskCard({
           <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
           {style.label}
         </span>
-        <button
-          type="button"
-          className="p-0.5 text-slate-400 hover:text-slate-600"
-          aria-label="More options"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <circle cx="12" cy="5" r="1.5" />
-            <circle cx="12" cy="12" r="1.5" />
-            <circle cx="12" cy="19" r="1.5" />
-          </svg>
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            draggable={false}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
+            className="p-0.5 rounded hover:bg-slate-100"
+            aria-label="More options"
+            aria-expanded={menuOpen}
+          >
+            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+          </button>
+          {menuOpen && (
+            <div
+              className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980]"
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onViewTask?.(task);
+                }}
+              >
+                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+                <span>View</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onEditTask?.(task);
+                }}
+              >
+                <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDeleteTask?.(task);
+                }}
+              >
+                <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                <span>Delete</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <h4 className="font-semibold text-slate-900 text-sm mb-1">
         {task.task_name || "Task Name"}
@@ -276,12 +422,10 @@ function TaskCard({
         </div>
         <Link
           to={`/tasks/${task.id}`}
+          draggable={false}
           className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
         >
           Details
-          {/* <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg> */}
           <img src={Arrow} alt="Arrow" className="w-2 h-2" />
         </Link>
       </div>
@@ -330,7 +474,34 @@ export default function Tasks() {
     }
   });
   const [loading, setLoading] = useState(true);
-  const allTasks = [...localTasks, ...list];
+  const allTasks = [
+    ...localTasks,
+    ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
+  ];
+
+  const statusToLabel = (
+    s: "todo" | "in_progress" | "completed"
+  ): string => {
+    return s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Completed";
+  };
+
+  const handleMoveTask = (
+    taskId: number,
+    newStatus: "todo" | "in_progress" | "completed"
+  ) => {
+    const label = statusToLabel(newStatus);
+    setLocalTasks((prev) => {
+      const idx = prev.findIndex((t) => t.id === taskId);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], status: label };
+        return next;
+      }
+      const fromList = list.find((t) => t.id === taskId);
+      if (fromList) return [{ ...fromList, status: label }, ...prev];
+      return prev;
+    });
+  };
 
   useEffect(() => {
     try {
@@ -346,6 +517,9 @@ export default function Tasks() {
   const [selectedShow, setSelectedShow] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const navigate = useNavigate();
   const [addTaskForm, setAddTaskForm] = useState({
     projectName: "",
     module: "",
@@ -360,6 +534,45 @@ export default function Tasks() {
     checklist: "",
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const openEditTask = (task: Task) => {
+    setAddTaskForm(taskToFormValues(task));
+    setEditingTaskId(task.id);
+    setAddTaskModalOpen(true);
+  };
+
+  const openDeleteTask = (task: Task) => {
+    setDeleteTaskId(task.id);
+  };
+
+  const openViewTask = (task: Task) => {
+    navigate("/tasks/taskview", { state: { task } });
+  };
+
+  const confirmDeleteTask = () => {
+    if (deleteTaskId === null) return;
+    setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+    setDeleteTaskId(null);
+  };
+
+  const resetTaskFormAndClose = () => {
+    setAddTaskModalOpen(false);
+    setEditingTaskId(null);
+    setAttachmentFiles([]);
+    setAddTaskForm({
+      projectName: "",
+      module: "",
+      taskName: "",
+      type: "",
+      actualStartDate: "",
+      actualEndDate: "",
+      startTime: "",
+      dueTime: "",
+      assignTo: "",
+      description: "",
+      checklist: "",
+    });
+  };
   const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
   const [openFormDropdown, setOpenFormDropdown] =
     useState<FormDropdownId>(null);
@@ -440,9 +653,8 @@ export default function Tasks() {
     in_progress: allTasks.filter(
       (t) => normalizeStatus(t.status) === "in_progress",
     ).length,
-    completed: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "completed",
-    ).length,
+    completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
+      .length,
   };
   const tasksByStatus = {
     todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
@@ -463,7 +675,7 @@ export default function Tasks() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-auto min-h-screen">
       {/* Top row: title + dropdowns + Add task */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-slate-800">
@@ -529,7 +741,23 @@ export default function Tasks() {
           />
           <button
             type="button"
-            onClick={() => setAddTaskModalOpen(true)}
+            onClick={() => {
+              setEditingTaskId(null);
+              setAddTaskForm({
+                projectName: "",
+                module: "",
+                taskName: "",
+                type: "",
+                actualStartDate: "",
+                actualEndDate: "",
+                startTime: "",
+                dueTime: "",
+                assignTo: "",
+                description: "",
+                checklist: "",
+              });
+              setAddTaskModalOpen(true);
+            }}
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
             <svg
@@ -557,19 +785,6 @@ export default function Tasks() {
           className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
         >
           <div className="absolute top-4 right-4 flex items-center justify-center">
-            {/* <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-              />
-            </svg> */}
             <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
           </div>
           <p className="text-sm font-medium text-slate-500">To Do Task</p>
@@ -587,25 +802,6 @@ export default function Tasks() {
           className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
         >
           <div className="absolute top-4 right-4 flex items-center justify-center">
-            {/* <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg> */}
             <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
           </div>
           <p className="text-sm font-medium text-slate-500">In Progress Task</p>
@@ -623,19 +819,6 @@ export default function Tasks() {
           className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
         >
           <div className="absolute top-4 right-4 flex items-center justify-center">
-            {/* <svg
-              className="w-5 h-5 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg> */}
             <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
           </div>
           <p className="text-sm font-medium text-slate-500">Completed Task</p>
@@ -645,24 +828,133 @@ export default function Tasks() {
         </Link>
       </div>
 
-      {/* Task cards under each status - cards only, no header inside box */}
+      {/* Task cards under each status - drag and drop columns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-3">
+        <div
+          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const taskId = Number(e.dataTransfer.getData("taskId"));
+            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+          }}
+        >
           {tasksByStatus.todo.map((task) => (
-            <TaskCard key={task.id} task={task} status="todo" />
+            <TaskCard
+              key={task.id}
+              task={task}
+              status="todo"
+              onViewTask={openViewTask}
+              onEditTask={openEditTask}
+              onDeleteTask={openDeleteTask}
+            />
           ))}
         </div>
-        <div className="space-y-3">
+        <div
+          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const taskId = Number(e.dataTransfer.getData("taskId"));
+            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+          }}
+        >
           {tasksByStatus.in_progress.map((task) => (
-            <TaskCard key={task.id} task={task} status="in_progress" />
+            <TaskCard
+              key={task.id}
+              task={task}
+              status="in_progress"
+              onViewTask={openViewTask}
+              onEditTask={openEditTask}
+              onDeleteTask={openDeleteTask}
+            />
           ))}
         </div>
-        <div className="space-y-3">
+        <div
+          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const taskId = Number(e.dataTransfer.getData("taskId"));
+            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+          }}
+        >
           {tasksByStatus.completed.map((task) => (
-            <TaskCard key={task.id} task={task} status="completed" />
+            <TaskCard
+              key={task.id}
+              task={task}
+              status="completed"
+              onViewTask={openViewTask}
+              onEditTask={openEditTask}
+              onDeleteTask={openDeleteTask}
+            />
           ))}
         </div>
       </div>
+
+      {/* Delete Task confirmation modal */}
+      {deleteTaskId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setDeleteTaskId(null)}
+                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+                Delete Task
+              </h3>
+              <div className="w-9" />
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-black text-center">
+                Are you sure, you want to Delete this Task?
+              </p>
+            </div>
+            <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => setDeleteTaskId(null)}
+                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+              >
+                Discard
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTask}
+                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add New Task modal */}
       {addTaskModalOpen && (
@@ -671,10 +963,7 @@ export default function Tasks() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <button
                 type="button"
-                onClick={() => {
-                  setAddTaskModalOpen(false);
-                  setAttachmentFiles([]);
-                }}
+                onClick={resetTaskFormAndClose}
                 className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Close"
               >
@@ -693,7 +982,7 @@ export default function Tasks() {
                 </svg>
               </button>
               <h3 className="text-lg font-semibold text-black">
-                Add New Task
+                {editingTaskId !== null ? "Edit Task" : "Add New Task"}
               </h3>
               <div className="w-9" />
             </div>
@@ -701,31 +990,40 @@ export default function Tasks() {
               className="flex-1 overflow-y-auto p-6"
               onSubmit={(e) => {
                 e.preventDefault();
+                const isEditing = editingTaskId !== null;
+                const existing = isEditing
+                  ? localTasks.find((t) => t.id === editingTaskId)
+                  : null;
                 const newTask: Task = {
-                  id: Date.now(),
+                  id: isEditing ? editingTaskId : Date.now(),
                   task_name: addTaskForm.taskName || "Task Name",
-                  status: "To Do",
+                  status: existing?.status ?? "To Do",
                   start_date: addTaskForm.actualStartDate || undefined,
                   due_date: addTaskForm.actualEndDate || undefined,
                   project_name: addTaskForm.projectName || undefined,
-                  progress: 0,
+                  progress: existing?.progress ?? 0,
+                  module: addTaskForm.module || undefined,
+                  type: addTaskForm.type || undefined,
+                  start_time: addTaskForm.startTime || undefined,
+                  due_time: addTaskForm.dueTime || undefined,
+                  assign_to: addTaskForm.assignTo || undefined,
+                  description: addTaskForm.description || undefined,
+                  checklist: addTaskForm.checklist || undefined,
                 };
-                setLocalTasks((prev) => [newTask, ...prev]);
-                setAddTaskModalOpen(false);
-                setAttachmentFiles([]);
-                setAddTaskForm({
-                  projectName: "",
-                  module: "",
-                  taskName: "",
-                  type: "",
-                  actualStartDate: "",
-                  actualEndDate: "",
-                  startTime: "",
-                  dueTime: "",
-                  assignTo: "",
-                  description: "",
-                  checklist: "",
-                });
+                if (isEditing) {
+                  setLocalTasks((prev) => {
+                    const idx = prev.findIndex((t) => t.id === editingTaskId);
+                    if (idx >= 0) {
+                      const next = [...prev];
+                      next[idx] = newTask;
+                      return next;
+                    }
+                    return [...prev, newTask];
+                  });
+                } else {
+                  setLocalTasks((prev) => [newTask, ...prev]);
+                }
+                resetTaskFormAndClose();
               }}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -797,14 +1095,18 @@ export default function Tasks() {
                         }))
                       }
                       placeholder="Enter Task / Select Task"
-                      className="flex-1 rounded-l-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${
+                        editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                      }`}
                     />
-                    <button
-                      type="button"
-                      className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                    >
-                      Tasklist
-                    </button>
+                    {editingTaskId === null && (
+                      <button
+                        type="button"
+                        className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                      >
+                        Tasklist
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -992,7 +1294,11 @@ export default function Tasks() {
                         }
                         placeholder="Upload Files"
                         className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
-                        title={attachmentFiles.length > 0 ? attachmentFiles.map((f) => f.name).join(", ") : undefined}
+                        title={
+                          attachmentFiles.length > 0
+                            ? attachmentFiles.map((f) => f.name).join(", ")
+                            : undefined
+                        }
                       />
                       <label
                         htmlFor="add-task-file-input"
@@ -1018,8 +1324,18 @@ export default function Tasks() {
                             className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
                             aria-label={`Remove ${file.name}`}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             </svg>
                           </button>
                         </li>
@@ -1031,10 +1347,7 @@ export default function Tasks() {
               <div className="flex justify-center gap-3 mt-6 pt-4 ">
                 <button
                   type="button"
-                  onClick={() => {
-                    setAddTaskModalOpen(false);
-                    setAttachmentFiles([]);
-                  }}
+                  onClick={resetTaskFormAndClose}
                   className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
                 >
                   Discard

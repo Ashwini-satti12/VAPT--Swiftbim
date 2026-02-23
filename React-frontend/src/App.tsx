@@ -12,6 +12,7 @@ import Employees from './pages/ProjectManager/Employees';
 import Clients from './pages/Client/Clients';
 import Projects from './pages/ProjectManager/Projects';
 import Tasks from './pages/ProjectManager/Tasks';
+import TaskView from './pages/ProjectManager/TaskView';
 import Team from './pages/ProjectManager/Team';
 import Tracker from './pages/ProjectManager/Tracker';
 import Timesheet from './pages/ProjectManager/Timesheet';
@@ -54,6 +55,7 @@ function App() {
             <Route path="projects" element={<Projects />} />
             <Route path="projects/:id" element={<ProjectDetail />} />
             <Route path="tasks" element={<Tasks />} />
+            <Route path="tasks/taskview" element={<TaskView />} />
             <Route path="tasks/team" element={<Tasks />} />
             <Route path="tasks/:id" element={<TaskDetail />} />
             <Route path="team" element={<Team />} />
