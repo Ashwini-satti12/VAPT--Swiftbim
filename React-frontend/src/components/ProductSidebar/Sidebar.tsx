@@ -56,85 +56,396 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isTeamLeader = panelType === 2;
   const showClients = isManagement && !HIDE_CLIENTS_ROLES.includes(userRole);
 
-  const navItems: NavItem[] = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      iconSrc: dashboardIcon,
-      activeIconSrc: whiteDashboardIcon,
-      isVisible: true,
-    },
-    {
-      name: "Consultant",
-      path: "/employees",
-      iconSrc: consultantIcon,
-      activeIconSrc: whiteConsultantIcon,
-      isVisible: isManagement,
-    },
-    {
-      name: "Clients",
-      path: "/clients",
-      iconSrc: clientIcon,
-      activeIconSrc: whiteClientIcon,
-      isVisible: isManagement && showClients,
-    },
-    {
-      name: "Projects",
-      path: "/projects",
-      iconSrc: projectIcon,
-      activeIconSrc: whiteProjectIcon,
-      isVisible: isManagement || isTeamLeader,
-    },
-    {
-      name: "My Task",
-      path: "/tasks",
-      iconSrc: myTaskIcon,
-      activeIconSrc: whiteMyTaskIcon,
-      isVisible: true,
-    },
-    {
-      name: "Team Task",
-      path: "/tasks/team",
-      iconSrc: teamTaskIcon,
-      activeIconSrc: whiteTeamTaskIcon,
-      isVisible: isManagement || isTeamLeader,
-    },
-    {
-      name: "Create Team",
-      path: "/team",
-      iconSrc: createTeamIcon,
-      activeIconSrc: whiteCreateTeamIcon,
-      isVisible: isManagement,
-    },
-    {
-      name: "Tracker",
-      path: "/tracker",
-      iconSrc: trackerIcon,
-      activeIconSrc: whiteTrackerIcon,
-      isVisible: isManagement,
-    },
-    {
-      name: "Team Report",
-      path: "/timesheet",
-      iconSrc: teamReportIcon,
-      activeIconSrc: whiteTeamReportIcon,
-      isVisible: isManagement || isTeamLeader,
-    },
-    {
-      name: "Report",
-      path: "/timesheet",
-      iconSrc: teamReportIcon,
-      activeIconSrc: whiteTeamReportIcon,
-      isVisible: panelType === 3,
-    },
-    {
-      name: "Chat",
-      path: "/chat",
-      iconSrc: chatIcon,
-      activeIconSrc: whiteChatIcon,
-      isVisible: isManagement,
-    },
-  ].filter(item => item.isVisible);
+  const isTechnicalDirector = userRole === 'Technical Director';
+  const isBimLead = userRole === 'BIM Lead';
+  const isBimCoordinator = userRole === 'BIM Coordinator';
+  const isBimModeler = userRole === 'BIM Modeler';
+  const isVendor = userRole === 'Vendor';
+
+  const getNavItems = (): NavItem[] => {
+    if (isTechnicalDirector || isBimLead) {
+      const prefix = isTechnicalDirector ? 'td' : 'bl';
+      return [
+        {
+          name: "Dashboard",
+          path: `/${prefix}/dashboard`,
+          iconSrc: dashboardIcon,
+          activeIconSrc: whiteDashboardIcon,
+          isVisible: true,
+        },
+        {
+          name: "Consultant",
+          path: `/${prefix}/consultants`,
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        {
+          name: "Clients",
+          path: `/${prefix}/clients`,
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
+          name: "Projects",
+          path: `/${prefix}/projects`,
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "My Task",
+          path: `/${prefix}/mytasks`,
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: `/${prefix}/teamtasks`,
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: `/${prefix}/createteam`,
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Tracker",
+          path: `/${prefix}/tracker`,
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Report",
+          path: `/${prefix}/teamreport`,
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
+          name: "Chat",
+          path: `/${prefix}/chat`,
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+      ];
+    }
+
+    if (isBimCoordinator) {
+      return [
+        {
+          name: "Dashboard",
+          path: "/bc/dashboard",
+          iconSrc: dashboardIcon,
+          activeIconSrc: whiteDashboardIcon,
+          isVisible: true,
+        },
+        {
+          name: "Consultant",
+          path: "/bc/consultants",
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        {
+          name: "Clients",
+          path: "/bc/clients",
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
+          name: "Projects",
+          path: "/bc/projects",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "My Task",
+          path: "/bc/mytasks",
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: "/bc/teamtasks",
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: "/bc/createteam",
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Tracker",
+          path: "/bc/tracker",
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Report",
+          path: "/bc/teamreport",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
+          name: "Chat",
+          path: "/bc/chat",
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+      ];
+    }
+
+    if (isVendor) {
+      return [
+        {
+          name: "Dashboard",
+          path: "/v/dashboard",
+          iconSrc: dashboardIcon,
+          activeIconSrc: whiteDashboardIcon,
+          isVisible: true,
+        },
+        {
+          name: "Consultant",
+          path: "/v/consultants",
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        {
+          name: "Clients",
+          path: "/v/clients",
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
+          name: "Projects",
+          path: "/v/projects",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "My Task",
+          path: "/v/mytasks",
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: "/v/teamtasks",
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: "/v/createteam",
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Tracker",
+          path: "/v/tracker",
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Report",
+          path: "/v/teamreport",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
+          name: "Chat",
+          path: "/v/chat",
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+      ];
+    }
+
+    if (isBimModeler) {
+      return [
+        {
+          name: "Dashboard",
+          path: "/bm/dashboard",
+          iconSrc: dashboardIcon,
+          activeIconSrc: whiteDashboardIcon,
+          isVisible: true,
+        },
+        {
+          name: "Consultant",
+          path: "/bm/consultants",
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        {
+          name: "Clients",
+          path: "/bm/clients",
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
+          name: "Projects",
+          path: "/bm/projects",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "My Task",
+          path: "/bm/mytasks",
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: "/bm/teamtasks",
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: "/bm/createteam",
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Tracker",
+          path: "/bm/tracker",
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Report",
+          path: "/bm/teamreport",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
+          name: "Chat",
+          path: "/bm/chat",
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+      ];
+    }
+
+    return [
+      {
+        name: "Dashboard",
+        path: "/dashboard",
+        iconSrc: dashboardIcon,
+        activeIconSrc: whiteDashboardIcon,
+        isVisible: true,
+      },
+      {
+        name: "Consultant",
+        path: "/employees",
+        iconSrc: consultantIcon,
+        activeIconSrc: whiteConsultantIcon,
+        isVisible: isManagement,
+      },
+      {
+        name: "Clients",
+        path: "/clients",
+        iconSrc: clientIcon,
+        activeIconSrc: whiteClientIcon,
+        isVisible: isManagement && showClients,
+      },
+      {
+        name: "Projects",
+        path: "/projects",
+        iconSrc: projectIcon,
+        activeIconSrc: whiteProjectIcon,
+        isVisible: isManagement || isTeamLeader,
+      },
+      {
+        name: "My Task",
+        path: "/tasks",
+        iconSrc: myTaskIcon,
+        activeIconSrc: whiteMyTaskIcon,
+        isVisible: true,
+      },
+      {
+        name: "Team Task",
+        path: "/tasks/team",
+        iconSrc: teamTaskIcon,
+        activeIconSrc: whiteTeamTaskIcon,
+        isVisible: isManagement || isTeamLeader,
+      },
+      {
+        name: "Create Team",
+        path: "/team",
+        iconSrc: createTeamIcon,
+        activeIconSrc: whiteCreateTeamIcon,
+        isVisible: isManagement,
+      },
+      {
+        name: "Tracker",
+        path: "/tracker",
+        iconSrc: trackerIcon,
+        activeIconSrc: whiteTrackerIcon,
+        isVisible: isManagement,
+      },
+      {
+        name: "Team Report",
+        path: "/timesheet",
+        iconSrc: teamReportIcon,
+        activeIconSrc: whiteTeamReportIcon,
+        isVisible: isManagement || isTeamLeader,
+      },
+      {
+        name: "Report",
+        path: "/timesheet",
+        iconSrc: teamReportIcon,
+        activeIconSrc: whiteTeamReportIcon,
+        isVisible: panelType === 3,
+      },
+      {
+        name: "Chat",
+        path: "/chat",
+        iconSrc: chatIcon,
+        activeIconSrc: whiteChatIcon,
+        isVisible: isManagement,
+      },
+    ].filter(item => item.isVisible);
+  };
+
+  const navItems = getNavItems();
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
