@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+node_modules/
+python_backend/node_modules/
 
 # Editor directories and files
 .vscode/*
@@ -26,3 +28,6 @@ dist-ssr
 # Python
 __pycache__/
 *.pyc
+
+# macOS
+.DS_Store

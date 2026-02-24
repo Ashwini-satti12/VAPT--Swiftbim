@@ -316,16 +316,19 @@ function TaskCard({
   }, [menuOpen]);
 
   const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("taskId", String(task.id));
+    const idStr = String(task.id);
+    e.dataTransfer.setData("taskId", idStr);
+    e.dataTransfer.setData("text/plain", idStr);
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", task.task_name || "Task");
   };
+
+  const isCompleted = status === "completed";
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+      draggable={!isCompleted}
+      onDragStart={isCompleted ? undefined : handleDragStart}
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <span
@@ -350,7 +353,7 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980]"
+              className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980] ${isCompleted ? "right-full mr-1" : "left-full ml-1"}`}
               role="menu"
             >
               <button
@@ -365,18 +368,20 @@ function TaskCard({
                 <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
                 <span>View</span>
               </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEditTask?.(task);
-                }}
-              >
-                <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                <span>Edit</span>
-              </button>
+              {!isCompleted && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEditTask?.(task);
+                  }}
+                >
+                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                  <span>Edit</span>
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"
@@ -461,18 +466,27 @@ export default function Tasks() {
     searchParams.get("condition") === "1" || pathname.endsWith("/team");
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
-  const STORAGE_KEY = "myTask_localTasks";
-  const [list, setList] = useState<Task[]>([]);
-  const [localTasks, setLocalTasks] = useState<Task[]>(() => {
+  const STORAGE_KEY_MY = "myTask_localTasks";
+  const STORAGE_KEY_TEAM = "teamTask_localTasks";
+  const loadFromStorage = (key: string): Task[] => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(key);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as Task[];
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
-  });
+  };
+  const [list, setList] = useState<Task[]>([]);
+  const [myLocalTasks, setMyLocalTasks] = useState<Task[]>(() =>
+    loadFromStorage(STORAGE_KEY_MY)
+  );
+  const [teamLocalTasks, setTeamLocalTasks] = useState<Task[]>(() =>
+    loadFromStorage(STORAGE_KEY_TEAM)
+  );
+  const localTasks = isTeam ? teamLocalTasks : myLocalTasks;
+  const setLocalTasks = isTeam ? setTeamLocalTasks : setMyLocalTasks;
   const [loading, setLoading] = useState(true);
   const allTasks = [
     ...localTasks,
@@ -505,11 +519,18 @@ export default function Tasks() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
+      localStorage.setItem(STORAGE_KEY_MY, JSON.stringify(myLocalTasks));
     } catch {
       // ignore quota or parse errors
     }
-  }, [localTasks]);
+  }, [myLocalTasks]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_TEAM, JSON.stringify(teamLocalTasks));
+    } catch {
+      // ignore quota or parse errors
+    }
+  }, [teamLocalTasks]);
 
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -838,7 +859,9 @@ export default function Tasks() {
           }}
           onDrop={(e) => {
             e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
+            e.stopPropagation();
+            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
           }}
         >
@@ -861,7 +884,9 @@ export default function Tasks() {
           }}
           onDrop={(e) => {
             e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
+            e.stopPropagation();
+            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
           }}
         >
@@ -884,7 +909,9 @@ export default function Tasks() {
           }}
           onDrop={(e) => {
             e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
+            e.stopPropagation();
+            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
           }}
         >
