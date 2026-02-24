@@ -1,5 +1,0 @@
-{
-  "dependencies": {
-    "pymysql": "^1.0.0"
-  }
-}
