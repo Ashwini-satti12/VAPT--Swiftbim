@@ -30,6 +30,19 @@ import ClientMilestones from './pages/Client/ClientMilestones';
 import ClientChat from './pages/Client/ClientChat';
 
 /*Technical Director */
+import DashboardTD from './pages/TechnicalDirector/DashboardTD';
+import ConsultantTD from './pages/TechnicalDirector/ConsultantTD';
+import ConsultantdetailsTD from './pages/TechnicalDirector/ConsultantdetailsTD';
+import ClientTD from './pages/TechnicalDirector/ClientTD';
+import ProjectsTD from './pages/TechnicalDirector/ProjectsTD';
+import MytaskTD from './pages/TechnicalDirector/MytaskTD';
+import TeamtaskTD from './pages/TechnicalDirector/TeamtaskTD';
+import CreateteamTD from './pages/TechnicalDirector/CreateteamTD';
+import TrackerTD from './pages/TechnicalDirector/TrackerTD';
+import TeamReportTD from './pages/TechnicalDirector/TeamReportTD';
+import ChatTD from './pages/TechnicalDirector/ChatTD';
+import MytaskViewTD from './pages/TechnicalDirector/MytaskViewTD';
+
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
 import ConsultantBL from './pages/BimLead/ConsultantBL';
@@ -112,7 +125,7 @@ function App() {
             <Route path="projects" element={<ProjectsPM />} />
             <Route path="projects/:id" element={<ProjectDetailPM />} />
             <Route path="tasks" element={<MyTasksPM />} />
-            <Route path="tasks/taskview" element={<TaskViewPM />} />
+            <Route path="tasks/taskview" element={<MytaskViewPM />} />
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
             <Route path="team" element={<TeamPM />} />
@@ -122,6 +135,19 @@ function App() {
             <Route path="leave" element={<LeavePM />} />
             <Route path="profile" element={<ProfilePM />} />
 
+            {/* Technical Director Routes */}
+            <Route path="td/dashboard" element={<DashboardTD />} />
+            <Route path="td/consultants" element={<ConsultantTD />} />
+            <Route path="td/consultants/:id" element={<ConsultantdetailsTD />} />
+            <Route path="td/clients" element={<ClientTD />} />
+            <Route path="td/projects" element={<ProjectsTD />} />
+            <Route path="td/mytasks" element={<MytaskTD />} />
+            <Route path="td/teamtasks" element={<TeamtaskTD />} />
+            <Route path="td/createteam" element={<CreateteamTD />} />
+            <Route path="td/tracker" element={<TrackerTD />} />
+            <Route path="td/teamreport" element={<TeamReportTD />} />
+            <Route path="td/chat" element={<ChatTD />} />
+            <Route path="td/mytasks/view" element={<MytaskViewTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
