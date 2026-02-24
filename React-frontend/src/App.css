@@ -1,4 +1,4 @@
-/* Custom scrollbar for a premium look */
+Custom scrollbar for a premium look
 .custom-scrollbar::-webkit-scrollbar {
   width: 12px;
 }

@@ -11,8 +11,8 @@ def md5_hash(text):
 
 host = os.getenv("MYSQL_HOST", "localhost")
 user = os.getenv("MYSQL_USER", "root")
-password = os.getenv("MYSQL_PASSWORD", "")
-db = os.getenv("MYSQL_DB", "swiftproject")
+password = os.getenv("MYSQL_PASSWORD", "root@123")
+db = os.getenv("MYSQL_DB", "snh6_swiftproject")
 port = int(os.getenv("MYSQL_PORT", "3306"))
 
 print(f"Testing login logic with db={db}...")
