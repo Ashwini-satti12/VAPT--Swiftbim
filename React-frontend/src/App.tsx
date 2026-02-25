@@ -13,7 +13,8 @@ import Clients from './pages/Client/Clients';
 import ProjectsPM from './pages/ProjectManager/ProjectsPM';
 import MyTasksPM from './pages/ProjectManager/MyTasksPM';
 import MytaskViewPM from './pages/ProjectManager/MytaskViewPM';
-import TeamPM from './pages/ProjectManager/TeamtaskPM';
+import CreateTeamPM from './pages/ProjectManager/CreateTeamPM';
+import TeamtaskPM from './pages/ProjectManager/TeamtaskPM';
 import TrackerPM from './pages/ProjectManager/TrackerPM';
 import TimesheetPM from './pages/ProjectManager/TeamreportPM';
 import ChatPM from './pages/ProjectManager/ChatPM';
@@ -128,7 +129,8 @@ function App() {
             <Route path="tasks/taskview" element={<MytaskViewPM />} />
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
-            <Route path="team" element={<TeamPM />} />
+            <Route path="teamtask" element={<TeamtaskPM />} />
+            <Route path="create-team" element={<CreateTeamPM />} />
             <Route path="tracker" element={<TrackerPM />} />
             <Route path="timesheet" element={<TimesheetPM />} />
             <Route path="chat" element={<ChatPM />} />

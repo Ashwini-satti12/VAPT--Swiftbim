@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
+import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 
 interface UserProfile {
     name: string;
@@ -27,7 +29,6 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [localSearch, setLocalSearch] = useState("");
 
     const notificationRef = useRef<HTMLDivElement>(null);
-    const profileRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [profileData, setProfileData] = useState<UserProfile>({
@@ -40,7 +41,6 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [editData, setEditData] = useState<UserProfile>({ ...profileData });
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -49,6 +49,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [isLoading, setIsLoading] = useState(false);
     const [phoneError, setPhoneError] = useState("");
     const [tempPassword, setTempPassword] = useState("");
+    const [isEditingActual, setIsEditingActual] = useState(false);
 
     // Fetch profile on mount
     useEffect(() => {
@@ -75,13 +76,11 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         if (saved) setProfilePicture(saved);
     }, []);
 
-    // Close dropdowns on outside click
+    // Close notification dropdown on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (notificationRef.current && !notificationRef.current.contains(e.target as Node))
                 setShowNotifications(false);
-            if (profileRef.current && !profileRef.current.contains(e.target as Node))
-                setIsProfileOpen(false);
         };
         document.addEventListener("mousedown", handler);
         return () => document.removeEventListener("mousedown", handler);
@@ -153,26 +152,21 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
     const handleLogout = async () => {
         setShowLogoutConfirm(false);
-        setIsProfileOpen(false);
         const userType = user?.user_type;
         await logout();
         navigate(userType === "client" ? "/client-login" : "/login");
     };
 
     const firstName = (profileData.name || "User").split(" ")[0];
-    const initials = (profileData.name || "U")
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
 
     return (
         <>
             {/* ── Navbar bar ── */}
-            <header className="flex items-center justify-between h-20 w-full shrink-0 px-8 bg-transparent">
-                {/* LEFT: Logo */}
-                <div className="flex items-center gap-4 shrink-0">
+            <header
+                className="flex items-center justify-between h-16 sm:h-20 w-full shrink-0 px-4 sm:px-6 lg:px-8"
+            >
+                {/* LEFT: Hamburger + Logo */}
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                     {/* Mobile hamburger */}
                     <button
                         className="lg:hidden p-1 text-slate-500"
@@ -182,36 +176,35 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <img src={swifterzLogo} alt="SWIFTERZ" className="h-14 w-auto object-contain" />
+                    <img src={swifterzLogo} alt="SWIFTERZ" className="h-10 sm:h-14 w-auto object-contain" />
                 </div>
 
-                {/* CENTER: Search */}
-                <form onSubmit={handleSearchSubmit} className="flex-1 flex justify-end max-w-md px-4">
-                    <div
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-300 bg-white w-full max-w-[200px] focus-within:border-slate-400 transition-colors shadow-sm"
-                    >
-                        <MagnifyingGlassIcon className="w-5 h-5 text-slate-400 shrink-0" />
-                        <input
-                            type="text"
-                            value={localSearch}
-                            onChange={(e) => setLocalSearch(e.target.value)}
-                            placeholder="Search"
-                            className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none min-w-0"
-                        />
-                    </div>
-                </form>
+                {/* RIGHT: Search + Bell + Greeting + Avatar */}
+                <div className="flex items-center gap-3 sm:gap-5 shrink-0">
 
-                {/* RIGHT: Bell + Greeting + Avatar */}
-                <div className="flex items-center gap-6 shrink-0 ml-4">
+                    {/* Search — hidden on xs, visible on sm+ */}
+                    <form onSubmit={handleSearchSubmit} className="hidden sm:flex items-center">
+                        <div
+                            className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl border border-[#8B8B8B] bg-[#FFFFFF] w-[160px] sm:w-[200px] focus-within:border-slate-400 transition-colors shadow-sm"
+                        >
+                            <MagnifyingGlassIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 shrink-0" />
+                            <input
+                                type="text"
+                                value={localSearch}
+                                onChange={(e) => setLocalSearch(e.target.value)}
+                                placeholder="Search"
+                                className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none min-w-0"
+                            />
+                        </div>
+                    </form>
+
                     {/* Bell */}
                     <div ref={notificationRef} className="relative">
                         <button
                             onClick={() => setShowNotifications((p) => !p)}
                             className="relative p-1 text-slate-800 hover:text-black transition-colors"
                         >
-                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 015.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-                            </svg>
+                            <img src={BellIcon} alt="Notifications" className="w-5 h-5 sm:w-6 sm:h-6" />
                             {unreadCount > 0 && (
                                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white">
                                 </span>
@@ -219,7 +212,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         </button>
 
                         {showNotifications && (
-                            <div className="absolute right-0 top-10 w-72 bg-white rounded-xl shadow-xl border border-slate-100 z-50">
+                            <div className="absolute right-0 top-10 w-64 sm:w-72 bg-white rounded-xl shadow-xl border border-slate-100 z-50">
                                 <div className="px-4 py-3 border-b border-slate-100">
                                     <p className="font-semibold text-slate-800 text-sm">Notifications</p>
                                 </div>
@@ -238,147 +231,215 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
                     {/* Greeting + Avatar */}
                     <div
-                        ref={profileRef}
-                        className="relative flex items-center gap-4 cursor-pointer select-none"
-                        onClick={() => setIsProfileOpen((p) => !p)}
+                        className="flex items-center gap-2 sm:gap-4 cursor-pointer select-none"
+                        onClick={() => { setIsEditMode(true); setIsEditingActual(false); }}
                     >
-                        <span className="text-base font-medium text-slate-800 whitespace-nowrap">
+                        <span className="hidden sm:block text-sm sm:text-base font-medium text-slate-800 whitespace-nowrap">
                             Hello, {firstName}!
                         </span>
                         {profilePicture ? (
                             <img
                                 src={profilePicture}
                                 alt="avatar"
-                                className="w-10 h-10 rounded-full object-cover shadow-sm bg-blue-100"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover shadow-sm bg-blue-100"
                             />
                         ) : (
-                            <div className="w-10 h-10 rounded-full bg-[#87B2D2] flex items-center justify-center text-white text-sm font-semibold shadow-sm">
-                                <svg className="w-7 h-7 text-white/90" fill="currentColor" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" /></svg>
-                            </div>
-                        )}
-
-                        {/* Profile dropdown */}
-                        {isProfileOpen && (
-                            <div
-                                className="absolute right-0 top-12 w-72 bg-white rounded-xl shadow-xl border border-slate-100 z-50 overflow-hidden"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {/* Profile header */}
-                                <div className="flex items-center gap-3 px-4 py-4 bg-slate-50 border-b border-slate-100">
-                                    <div
-                                        className="relative cursor-pointer group shrink-0"
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        {profilePicture ? (
-                                            <img src={profilePicture} alt="avatar" className="w-12 h-12 rounded-full object-cover border-2 border-white shadow" />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-slate-400 flex items-center justify-center text-white font-semibold text-lg border-2 border-white shadow">
-                                                {initials}
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <span className="text-white text-[10px] font-medium">Edit</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-semibold text-slate-800 text-sm truncate">{profileData.name}</p>
-                                        <p className="text-xs text-slate-500 truncate">{profileData.designation}</p>
-                                        <p className="text-xs text-slate-400 truncate">{profileData.email}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => { setIsEditMode(true); setIsProfileOpen(false); }}
-                                        className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors shrink-0"
-                                    >
-                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H9v-2a2 2 0 01.586-1.414z" />
-                                        </svg>
-                                    </button>
-                                </div>
-
-                                {/* Logout */}
-                                <div className="p-2">
-                                    <button
-                                        onClick={() => { setShowLogoutConfirm(true); setIsProfileOpen(false); }}
-                                        className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-[#DD4342] hover:bg-red-50 text-sm font-medium transition-colors"
-                                    >
-                                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                                        </svg>
-                                        Log Out
-                                    </button>
-                                </div>
-                            </div>
+                            <img src={ProfileIcon} alt="profile" className="w-8 h-8 sm:w-10 sm:h-10" />
                         )}
                     </div>
+
                 </div>
             </header>
 
             {/* Hidden file input */}
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
 
-            {/* ── Edit Profile Modal ── */}
+            {/* ── Profile Modal (View & Edit) ── */}
             {isEditMode && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                            <h3 className="font-semibold text-slate-800 text-lg">Edit Profile</h3>
-                            <button onClick={() => setIsEditMode(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            {[
-                                { label: "Full Name", key: "name", type: "text" },
-                                { label: "Designation", key: "designation", type: "text" },
-                                { label: "Email", key: "email", type: "email", disabled: true },
-                                { label: "Phone", key: "phone", type: "text" },
-                                { label: "Address", key: "address", type: "text" },
-                            ].map(({ label, key, type, disabled }) => (
-                                <div key={key}>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
-                                    <input
-                                        type={type}
-                                        value={editData[key as keyof UserProfile]}
-                                        onChange={(e) => setEditData((p) => ({ ...p, [key]: e.target.value }))}
-                                        disabled={disabled}
-                                        className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#DD4342] transition-colors disabled:bg-slate-50 disabled:text-slate-400"
-                                    />
-                                    {key === "phone" && phoneError && <p className="text-xs text-red-500 mt-1">{phoneError}</p>}
-                                </div>
-                            ))}
+                <div className="fixed inset-0 z-[2000] flex items-center justify-end bg-black/40 backdrop-blur-sm p-4 sm:p-8"
+                    onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}>
+                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-[490px] relative p-8 transition-all animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
+                        {/* Close button at top-left */}
+                        <button
+                            onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}
+                            className="absolute top-6 left-6 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] hover:bg-slate-200 transition-colors"
+                        >
+                            <XMarkIcon className="w-5 h-5 stroke-[2.5px]" />
+                        </button>
 
-                            <div>
-                                <label className="block text-xs font-medium text-slate-500 mb-1">New Password</label>
-                                <input
-                                    type="password"
-                                    value={tempPassword}
-                                    onChange={(e) => setTempPassword(e.target.value)}
-                                    placeholder="Leave blank to keep current"
-                                    className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-[#DD4342] transition-colors"
-                                />
-                                {tempPassword && (
-                                    <button onClick={handlePasswordSave} className="mt-1.5 text-xs text-[#DD4342] font-medium hover:underline">
-                                        Save Password
-                                    </button>
+                        <div className="flex flex-col items-center">
+                            {/* Avatar Section */}
+                            <div className="relative group mb-4">
+                                <div
+                                    className={`w-28 h-28 rounded-full overflow-hidden bg-[#87B2D2] flex flex-col items-center justify-center shadow-sm relative ${isEditingActual ? 'cursor-pointer' : ''}`}
+                                    onClick={() => isEditingActual && fileInputRef.current?.click()}
+                                >
+                                    {profilePicture ? (
+                                        <img src={profilePicture} alt="avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        isEditingActual ? (
+                                            <div className="flex flex-col items-center text-white">
+                                                <svg className="w-10 h-10 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                </svg>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Edit</span>
+                                            </div>
+                                        ) : (
+                                            <svg className="w-20 h-20 text-white/90" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                            </svg>
+                                        )
+                                    )}
+                                    {isEditingActual && profilePicture && (
+                                        <div className="absolute inset-0 bg-black/20 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg className="w-8 h-8 text-white mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                            </svg>
+                                            <span className="text-[10px] text-white font-bold uppercase">Edit</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Name and Designation */}
+                            <div className="text-center mb-8 w-full px-4">
+                                {isEditingActual ? (
+                                    <div className="space-y-2">
+                                        <input
+                                            type="text"
+                                            value={editData.name}
+                                            onChange={(e) => setEditData(p => ({ ...p, name: e.target.value }))}
+                                            placeholder="Type Name..."
+                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[10px] py-2 px-3 text-center text-[20px] font-bold text-[#020202] focus:ring-0 outline-none placeholder:text-[#AEACAC] font-gantari"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={editData.designation}
+                                            onChange={(e) => setEditData(p => ({ ...p, designation: e.target.value }))}
+                                            placeholder="Enter Designation"
+                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[8px] py-1.5 px-3 text-center text-[15px] font-medium text-[#353535] focus:ring-0 outline-none placeholder:text-[#AEACAC] font-gantari"
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h3 className="text-[26px] font-bold text-[#020202] font-gantari leading-tight uppercase">
+                                            Hello, {profileData.name}!
+                                        </h3>
+                                        <p className="text-[18px] text-[#353535] font-medium mt-1">
+                                            {profileData.designation}
+                                        </p>
+                                    </>
                                 )}
                             </div>
 
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    onClick={() => setIsEditMode(false)}
-                                    className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg font-medium transition-colors border border-slate-200"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleProfileSave}
-                                    disabled={isLoading}
-                                    className="px-4 py-2 text-sm bg-[#DD4342] text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-60"
-                                >
-                                    {isLoading ? "Saving..." : "Save Changes"}
-                                </button>
+                            {/* Details Card */}
+                            <div className="w-full bg-white rounded-2xl border border-[#AEACAC52] p-6 space-y-4 mb-8">
+                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari">Email ID</label>
+                                    <span className="text-[#353535] font-bold">:</span>
+                                    {isEditingActual ? (
+                                        <input
+                                            type="email"
+                                            value={editData.email}
+                                            readOnly
+                                            placeholder="Enter email id"
+                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
+                                        />
+                                    ) : (
+                                        <span className="text-[#353535] font-medium truncate">{profileData.email}</span>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari">Phone Num</label>
+                                    <span className="text-[#353535] font-bold">:</span>
+                                    {isEditingActual ? (
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={editData.phone}
+                                                onChange={(e) => setEditData(p => ({ ...p, phone: e.target.value }))}
+                                                placeholder="Enter Phone Num"
+                                                className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
+                                            />
+                                            {phoneError && <p className="text-[10px] text-red-500 absolute -bottom-4 left-0">{phoneError}</p>}
+                                        </div>
+                                    ) : (
+                                        <span className="text-[#353535] font-medium">{profileData.phone}</span>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-[100px_20px_1fr] items-start text-[15px]">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5">Address</label>
+                                    <span className="text-[#353535] font-bold pt-0.5">:</span>
+                                    {isEditingActual ? (
+                                        <textarea
+                                            rows={2}
+                                            value={editData.address}
+                                            onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))}
+                                            placeholder="Enter Address"
+                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC] resize-none leading-relaxed"
+                                        />
+                                    ) : (
+                                        <span className={`font-medium ${profileData.address ? 'text-[#353535]' : 'text-slate-300'}`}>
+                                            {profileData.address || 'Enter Address'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <hr className="border-[#AEACAC33]" />
+
+                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari">Password</label>
+                                    <span className="text-[#353535] font-bold">:</span>
+                                    {isEditingActual ? (
+                                        <input
+                                            type="password"
+                                            value={tempPassword}
+                                            onChange={(e) => setTempPassword(e.target.value)}
+                                            placeholder="********"
+                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
+                                        />
+                                    ) : (
+                                        <span className="text-[#353535] font-medium tracking-widest">********</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-center gap-6 w-full">
+                                {isEditingActual ? (
+                                    <>
+                                        <button
+                                            onClick={() => setIsEditingActual(false)}
+                                            className="px-10 py-2.5 bg-[#EAEAEA] text-[#020202] rounded-[10px] font-bold text-[15px] transition-all hover:bg-gray-200"
+                                        >
+                                            Discard
+                                        </button>
+                                        <button
+                                            onClick={handleProfileSave}
+                                            disabled={isLoading}
+                                            className="px-10 py-2.5 bg-[#DBE9FE] text-[#101827] rounded-[10px] font-bold text-[15px] transition-all hover:bg-[#c6dbff] disabled:opacity-50"
+                                        >
+                                            {isLoading ? "Updating..." : "Update"}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => { setShowLogoutConfirm(true); setIsEditMode(false); }}
+                                            className="px-10 py-2.5 bg-[#FFD9D9] text-[#E00100] rounded-[10px] font-bold text-[15px] transition-all hover:bg-rose-200"
+                                        >
+                                            Logout
+                                        </button>
+                                        <button
+                                            onClick={() => setIsEditingActual(true)}
+                                            className="px-10 py-2.5 bg-[#DBE9FE] text-[#101827] rounded-[10px] font-bold text-[15px] transition-all hover:bg-[#c6dbff]"
+                                        >
+                                            Update
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

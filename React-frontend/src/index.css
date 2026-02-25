@@ -1,7 +1,1 @@
 @import "tailwindcss";
-
-@layer utilities {
-    .bg-app-bg {
-        background-image: url('./assets/Bg.png');
-    }
-}

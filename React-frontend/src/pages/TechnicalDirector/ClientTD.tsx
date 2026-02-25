@@ -3,12 +3,14 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import cardBg from '../../assets/cardbg.jpg';
-import viewIcon from '../../assets/project/view icon.png';
-import callIcon from '../../assets/project/call icon.png';
-import messageIcon from '../../assets/project/message.png';
-import mailIcon from '../../assets/project/mail icon.png';
-import closeIcon from '../../assets/project/close button.png';
-import colonIcon from '../../assets/project/colon.png';
+import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import callIcon from '../../assets/ProjectManager/Client/callicon.svg';
+import messageIcon from '../../assets/ProjectManager/Client/message.svg';
+import mailIcon from '../../assets/ProjectManager/Client/mailicon.svg';
+import closeIcon from '../../assets/ProjectManager/Client/closebuttonicon.svg';
+import colonIcon from '../../assets/ProjectManager/Client/colonicon.svg';
+import editIcon from '../../assets/ProjectManager/Client/Editicon.svg';
+import plusIcon from '../../assets/ProjectManager/Client/plusicon.svg';
 import profileImg from '../../assets/ProjectManager/Chat/clientcardprofile image.png';
 
 interface Client {
@@ -208,9 +210,7 @@ export default function ClientTD() {
                         onClick={() => setShowAddModal(true)}
                         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[12px] bg-[#E14B4B] text-white font-semibold hover:bg-[#c93d3d] transition shadow-md shadow-red-100"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                        </svg>
+                        <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
                         Add Client
                     </button>
                 )}
@@ -289,10 +289,7 @@ export default function ClientTD() {
                                             onClick={() => openEdit(c.id)}
                                             className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#F2F2F2] text-[#353535] font-gantari text-sm hover:bg-gray-200 transition border border-transparent"
                                         >
-                                            <svg width="26" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                                <path d="M18.5 2.5a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                            </svg>
+                                            <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
                                             Edit
                                         </button>
                                     </div>

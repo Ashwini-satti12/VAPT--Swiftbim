@@ -454,7 +454,7 @@ const PERIOD_OPTIONS = [
     "Custom",
 ];
 
-export default function TasksPM() {
+export default function TeamtaskPM() {
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const isTeam =

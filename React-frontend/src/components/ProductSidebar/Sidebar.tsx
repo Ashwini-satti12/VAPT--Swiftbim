@@ -409,7 +409,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       },
       {
         name: "Create Team",
-        path: "/team",
+        path: "/create-team",
         iconSrc: createTeamIcon,
         activeIconSrc: whiteCreateTeamIcon,
         isVisible: isManagement,
