@@ -4,12 +4,14 @@ import Sidebar from './ProductSidebar/Sidebar';
 import ProductNavbar from './ProductNavbar/Navbar';
 import BgImage from '../assets/Bg.png';
 
+
+
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div
-      className="h-screen flex flex-col bg-cover bg-center bg-no-repeat overflow-hidden"
+      className="h-screen flex flex-col overflow-hidden bg-cover bg-top bg-no-repeat"
       style={{ backgroundImage: `url(${BgImage})` }}
     >
       {/* Navbar — fixed height */}
@@ -31,7 +33,7 @@ export default function AppLayout() {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 px-4 pb-4 min-w-0">
+        <main className="flex-1 px-4 pb-6 min-w-0">
           <div className="h-full min-h-0 rounded-2xl bg-white shadow-sm border border-[#AEACAC52] p-8 overflow-y-auto  custom-scrollbar">
             <Outlet />
           </div>
