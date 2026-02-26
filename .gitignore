@@ -28,6 +28,8 @@ python_backend/node_modules/
 # Python
 __pycache__/
 *.pyc
+venv/
+python_backend/venv/
 
 # macOS
 .DS_Store
