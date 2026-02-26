@@ -5,30 +5,106 @@ export default function DashboardPM() {
   const [loading, setLoading] = useState(true);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
 
+  // Calendar navigation state
+  const today = new Date();
+  const [displayMonth, setDisplayMonth] = useState(today.getMonth());
+  const [displayYear, setDisplayYear] = useState(today.getFullYear());
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
+
   useEffect(() => {
     setLoading(false);
   }, []);
 
-  // Calendar Logic
-  const today = new Date();
-  const currentMonth = today.toLocaleString('default', { month: 'long' });
-  const currentYear = today.getFullYear();
+  // Calendar Logic — derived from displayMonth/displayYear
+  const displayDate = new Date(displayYear, displayMonth, 1);
+  const displayMonthName = displayDate.toLocaleString('default', { month: 'long' });
+
   const currentDay = today.getDate();
-  const currentDayName = today.toLocaleString('default', { weekday: 'long' }).toUpperCase();
+
+  // Selected date display values for the header
+  const headerDay = selectedDate.getDate();
+  const headerDayName = selectedDate.toLocaleString('default', { weekday: 'long' }).toUpperCase();
+  const headerMonth = selectedDate.toLocaleString('default', { month: 'long' });
+  const headerYear = selectedDate.getFullYear();
+
+  const isCurrentMonth =
+    displayMonth === today.getMonth() && displayYear === today.getFullYear();
 
   const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
   const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
 
-  const daysInMonth = getDaysInMonth(currentYear, today.getMonth());
-  const firstDay = getFirstDayOfMonth(currentYear, today.getMonth());
+  const daysInMonth = getDaysInMonth(displayYear, displayMonth);
+  const firstDay = getFirstDayOfMonth(displayYear, displayMonth);
 
-  const calendarDays = [];
-  for (let i = 0; i < firstDay; i++) {
-    calendarDays.push(null);
+  // Previous month trailing days
+  const prevMonthDays = getDaysInMonth(
+    displayMonth === 0 ? displayYear - 1 : displayYear,
+    displayMonth === 0 ? 11 : displayMonth - 1
+  );
+
+  const calendarDays: { day: number; type: 'prev' | 'current' | 'next' }[] = [];
+  for (let i = firstDay - 1; i >= 0; i--) {
+    calendarDays.push({ day: prevMonthDays - i, type: 'prev' });
   }
   for (let i = 1; i <= daysInMonth; i++) {
-    calendarDays.push(i);
+    calendarDays.push({ day: i, type: 'current' });
   }
+  // Fill remaining cells to complete the last week row
+  const remaining = 7 - (calendarDays.length % 7);
+  if (remaining < 7) {
+    for (let i = 1; i <= remaining; i++) {
+      calendarDays.push({ day: i, type: 'next' });
+    }
+  }
+
+  // Navigation handlers
+  const goToPrevMonth = () => {
+    setDisplayMonth((prev) => {
+      if (prev === 0) {
+        setDisplayYear((y) => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  };
+
+  const goToNextMonth = () => {
+    setDisplayMonth((prev) => {
+      if (prev === 11) {
+        setDisplayYear((y) => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  };
+
+  const goToToday = () => {
+    setDisplayMonth(today.getMonth());
+    setDisplayYear(today.getFullYear());
+    setSelectedDate(today);
+  };
+
+  // Date click handler
+  const handleDateClick = (cell: { day: number; type: 'prev' | 'current' | 'next' }) => {
+    if (cell.type === 'prev') {
+      // Navigate to previous month and select the day
+      const prevMonth = displayMonth === 0 ? 11 : displayMonth - 1;
+      const prevYear = displayMonth === 0 ? displayYear - 1 : displayYear;
+      setDisplayMonth(prevMonth);
+      setDisplayYear(prevYear);
+      setSelectedDate(new Date(prevYear, prevMonth, cell.day));
+    } else if (cell.type === 'next') {
+      // Navigate to next month and select the day
+      const nextMonth = displayMonth === 11 ? 0 : displayMonth + 1;
+      const nextYear = displayMonth === 11 ? displayYear + 1 : displayYear;
+      setDisplayMonth(nextMonth);
+      setDisplayYear(nextYear);
+      setSelectedDate(new Date(nextYear, nextMonth, cell.day));
+    } else {
+      // Current month day
+      setSelectedDate(new Date(displayYear, displayMonth, cell.day));
+    }
+  };
 
   if (loading) {
     return (
@@ -204,19 +280,19 @@ export default function DashboardPM() {
         <div className="lg:col-span-1 flex flex-col h-[500px] sm:h-[560px] lg:h-full overflow-hidden">
           <div className="bg-white rounded-2xl border border-[#AEACAC52] pt-4 pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full overflow-hidden">
 
-            {/* Calendar Header */}
+            {/* Calendar Header — shows selected date info */}
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-12 mb-4 sm:mb-6 shrink-0 pt-2 px-2">
               <div className="flex flex-col items-start min-w-[70px] sm:min-w-[80px]">
                 <span className="text-[16px] sm:text-[18px] lg:text-[20px] font-bold text-[#020202] font-gantari leading-tight">
-                  "{currentMonth}
+                  {headerMonth}
                 </span>
-                <span className="text-[16px] sm:text-[18px] lg:text-[20px] font-bold text-[#020202] font-gantari leading-tight">{currentYear}</span>
+                <span className="text-[16px] sm:text-[18px] lg:text-[20px] font-bold text-[#020202] font-gantari leading-tight">{headerYear}</span>
               </div>
               <div className="flex flex-col items-center">
-                <span className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold text-black leading-none tracking-tighter">{currentDay}</span>
+                <span className="text-[28px] sm:text-[32px] lg:text-[40px] font-bold text-black leading-none tracking-tighter">{headerDay}</span>
               </div>
               <div className="flex flex-col items-start min-w-[70px] sm:min-w-[80px]">
-                <span className="text-[14px] sm:text-[16px] lg:text-[20px] font-bold text-black font-gantari tracking-wide">{currentDayName}</span>
+                <span className="text-[14px] sm:text-[16px] lg:text-[20px] font-bold text-black font-gantari tracking-wide">{headerDayName}</span>
               </div>
             </div>
 
@@ -226,15 +302,88 @@ export default function DashboardPM() {
               {/* Calendar Grid */}
               {isCalendarExpanded && (
                 <div className="mb-2 py-2 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
+
+                  {/* Month Navigation */}
+                  <div className="flex items-center justify-between mb-3 pr-3">
+                    <button
+                      onClick={goToPrevMonth}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F2F2F2] transition-colors text-[#353535] hover:text-[#DE3D3A]"
+                      aria-label="Previous month"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14px] sm:text-[16px] font-bold text-[#353535] font-gantari">
+                        {displayMonthName} {displayYear}
+                      </span>
+                      {!isCurrentMonth && (
+                        <button
+                          onClick={goToToday}
+                          className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md bg-[#DE3D3A] text-white font-semibold font-gantari hover:bg-[#c43432] transition-colors"
+                        >
+                          Today
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={goToNextMonth}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F2F2F2] transition-colors text-[#353535] hover:text-[#DE3D3A]"
+                      aria-label="Next month"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Day-of-week headers */}
                   <div className="grid grid-cols-7 gap-y-1 text-center text-[11px] sm:text-[13px] font-bold text-slate-400 font-gantari mb-2">
                     <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
                   </div>
+
+                  {/* Day cells */}
                   <div className="grid grid-cols-7 gap-y-1 sm:gap-y-2 text-center text-[13px] sm:text-[15px] font-semibold font-gantari">
-                    {calendarDays.map((d, i) => (
-                      <div key={i} className={`py-1 ${d === currentDay ? 'text-[#E00100] font-bold' : 'text-[#020202]'} ${d === null ? '' : ''}`}>
-                        {d ?? ''}
-                      </div>
-                    ))}
+                    {calendarDays.map((cell, i) => {
+                      const isTodayCell = isCurrentMonth && cell.type === 'current' && cell.day === currentDay;
+                      const isSelectedCell =
+                        cell.type === 'current' &&
+                        selectedDate.getDate() === cell.day &&
+                        selectedDate.getMonth() === displayMonth &&
+                        selectedDate.getFullYear() === displayYear;
+                      const isBothTodayAndSelected = isTodayCell && isSelectedCell;
+
+                      let cellClass = 'py-1 w-8 h-8 sm:w-9 sm:h-9 mx-auto flex items-center justify-center rounded-full transition-all cursor-pointer ';
+
+                      if (cell.type !== 'current') {
+                        cellClass += 'text-[#CFCFCF] hover:text-[#999] hover:bg-[#F8F8F8]';
+                      } else if (isBothTodayAndSelected) {
+                        cellClass += 'bg-[#DE3D3A] text-white font-bold ring-2 ring-[#3B82F6] ring-offset-1';
+                      } else if (isTodayCell) {
+                        cellClass += 'bg-[#DE3D3A] text-white font-bold hover:bg-[#c43432]';
+                      } else if (isSelectedCell) {
+                        cellClass += 'bg-[#3B82F6] text-white font-bold hover:bg-[#2563EB]';
+                      } else {
+                        cellClass += 'text-[#020202] hover:bg-[#F2F2F2]';
+                      }
+
+                      return (
+                        <div
+                          key={i}
+                          className={cellClass}
+                          onClick={() => handleDateClick(cell)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDateClick(cell); }}
+                          aria-label={`${cell.type === 'current' ? '' : cell.type + ' month '}${cell.day}`}
+                        >
+                          {cell.day}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

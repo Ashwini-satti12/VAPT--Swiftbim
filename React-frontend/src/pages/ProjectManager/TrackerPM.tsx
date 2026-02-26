@@ -25,6 +25,12 @@ export default function TrackerPM() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [statusOpen, setStatusOpen] = useState(false);
+  const statusOptions = ['', 'Online', 'Offline'];
+  const [pageSize, setPageSize] = useState(10);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [showSizeOpen, setShowSizeOpen] = useState(false);
+  const pageSizeOptions = [10, 20, 50, 100];
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Select Date';
@@ -65,6 +71,15 @@ export default function TrackerPM() {
 
     return matchesDate && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredList.length / pageSize);
+  const paginatedList = filteredList.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(0);
+    setShowSizeOpen(false);
+  };
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -123,8 +138,8 @@ export default function TrackerPM() {
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Select Date Filter */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
-            <span className="text-[#616161] text-sm font-medium">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+            <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
               {formatDate(selectedDate)}
             </span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -143,29 +158,71 @@ export default function TrackerPM() {
             />
           </div>
 
-          {/* Status Dropdown */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[120px]">
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
+          {/* Status Custom Dropdown */}
+          <div className="relative min-w-[120px]" onBlur={() => setTimeout(() => setStatusOpen(false), 150)}>
+            <button
+              type="button"
+              onClick={() => setStatusOpen(o => !o)}
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
             >
-              <option value="">Status</option>
-              <option value="Online">Online</option>
-              <option value="Offline">Offline</option>
-            </select>
-            <div className="absolute right-3 pointer-events-none">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                {selectedStatus || 'Status'}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: statusOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                 <path d="M6 9l6 6 6-6" />
               </svg>
-            </div>
+            </button>
+            {statusOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                {statusOptions.map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt
+                      ? 'text-[#353535]'
+                      : 'text-[#616161] hover:text-[#353535]'
+                      }`}
+                  >
+                    {opt === '' ? 'Status' : opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Show Entries */}
+          <div className="relative flex items-center gap-2" onBlur={() => setTimeout(() => setShowSizeOpen(false), 150)}>
+            <span className="text-sm text-[#616161] font-medium">Show:</span>
+            <button
+              type="button"
+              onClick={() => setShowSizeOpen(o => !o)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+            >
+              <span className="text-sm font-medium text-[#353535]">{pageSize}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: showSizeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {showSizeOpen && (
+              <div className="absolute top-full left-8 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[80px]">
+                {pageSizeOptions.map(size => (
+                  <button key={size} type="button" onClick={() => handlePageSizeChange(size)}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${pageSize === size ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                    {size}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Download Button */}
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -177,29 +234,29 @@ export default function TrackerPM() {
 
       {/* Table Section */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
           <table className="min-w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-100 bg-white">
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Date</th>
-                <th className="px-6 py-6 text-left text-sm font-bold text-gray-700 bg-white">Employee Name</th>
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time In</th>
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time Out</th>
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Total Hours</th>
-                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Status</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Sl.No</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Date</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Employee Name</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Time In</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Time Out</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Total Hours</th>
+                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredList.length === 0 ? (
+              {paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium bg-white">
                     No records found
                   </td>
                 </tr>
               ) : (
-                filteredList.map((loc, index) => {
-                  const slNo = (index + 1).toString().padStart(2, '0');
+                paginatedList.map((loc, index) => {
+                  const slNo = (currentPage * pageSize + index + 1).toString().padStart(2, '0');
                   const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
                   const formattedDate = dateObj.toLocaleDateString('en-GB').replace(/\//g, '/');
                   const formattedTime = dateObj.toLocaleTimeString('en-US', {
@@ -210,14 +267,14 @@ export default function TrackerPM() {
                   });
 
                   return (
-                    <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F9FAFB]' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                      <td className="px-6 py-5 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedDate}</td>
-                      <td className="px-6 py-5 text-left text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
-                      <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
-                      <td className="px-6 py-5 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
-                      <td className="px-6 py-5 text-center">
+                    <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
+                      <td className="px-6 py-4 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedDate}</td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedTime}</td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600">{formattedTime}</td>
+                      <td className="px-6 py-4 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
+                      <td className="px-6 py-4 text-center">
                         <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                           {loc.status}
                         </span>
@@ -229,6 +286,45 @@ export default function TrackerPM() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100">
+            <span className="text-sm text-[#616161] font-medium mr-1">Showing:</span>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              className="flex items-center gap-1 px-2 py-1 text-sm text-[#616161] hover:text-[#353535] disabled:opacity-40 transition-colors"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => {
+              const start = i * pageSize + 1;
+              const end = Math.min((i + 1) * pageSize, filteredList.length);
+              return (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === i
+                    ? 'bg-[#DD4342] text-white'
+                    : 'text-[#616161] hover:text-[#353535]'
+                    }`}
+                >
+                  {start}-{end}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={currentPage === totalPages - 1}
+              className="flex items-center gap-1 px-2 py-1 text-sm text-[#616161] hover:text-[#353535] disabled:opacity-40 transition-colors"
+            >
+              Next
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
+        )}
       </div>
 
       <style>{`

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import CloseIcon from "../../assets/ProductNavbarIcons/Closeicon.svg";
 
 interface UserProfile {
     name: string;
@@ -42,7 +43,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
     const [isEditMode, setIsEditMode] = useState(false);
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications] = useState<any[]>([]);
     const [unreadCount] = useState(0);
@@ -127,26 +128,22 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                 phone_number: editData.phone,
                 company_details: editData.address,
             });
+            // If password was filled in, save it too
+            if (tempPassword) {
+                if (tempPassword.length < 6) {
+                    alert("Password must be at least 6 characters.");
+                    setIsLoading(false);
+                    return;
+                }
+                await api.patch("/api/users/profile/password", { password: tempPassword });
+                setTempPassword("");
+            }
             setProfileData({ ...editData });
-            setIsEditMode(false);
+            setIsEditingActual(false);
         } catch {
             alert("Failed to update profile. Please try again.");
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const handlePasswordSave = async () => {
-        if (!tempPassword || tempPassword.length < 6) {
-            alert("Password must be at least 6 characters.");
-            return;
-        }
-        try {
-            await api.patch("/api/users/profile/password", { password: tempPassword });
-            alert("Password updated successfully.");
-            setTempPassword("");
-        } catch {
-            alert("Failed to update password.");
         }
     };
 
@@ -262,9 +259,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         {/* Close button at top-left */}
                         <button
                             onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}
-                            className="absolute top-6 left-6 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] hover:bg-slate-200 transition-colors"
+                            className="absolute top-6 left-6 p-2 rounded-lg bg-[#F4F4F4] hover:bg-slate-200 transition-colors"
                         >
-                            <XMarkIcon className="w-5 h-5 stroke-[2.5px]" />
+                            <img src={CloseIcon} alt="Close" className="w-4 h-4" />
                         </button>
 
                         <div className="flex flex-col items-center">
@@ -427,7 +424,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                 ) : (
                                     <>
                                         <button
-                                            onClick={() => { setShowLogoutConfirm(true); setIsEditMode(false); }}
+                                            onClick={(e) => { e.stopPropagation(); setIsEditMode(false); setTimeout(() => setShowLogoutConfirm(true), 150); }}
                                             className="px-10 py-2.5 bg-[#FFD9D9] text-[#E00100] rounded-[10px] font-bold text-[15px] transition-all hover:bg-rose-200"
                                         >
                                             Logout
@@ -448,20 +445,35 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
             {/* ── Logout Confirm (inline) ── */}
             {showLogoutConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-                        <h3 className="text-lg font-semibold text-slate-800 mb-2">Log Out</h3>
-                        <p className="text-sm text-slate-500 mb-6">Are you sure you want to log out?</p>
-                        <div className="flex justify-end gap-3">
+                <div
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+                    onClick={() => setShowLogoutConfirm(false)}
+                >
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative" onClick={(e) => e.stopPropagation()}>
+                        {/* X Close Button - top left */}
+                        <button
+                            onClick={() => setShowLogoutConfirm(false)}
+                            className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center bg-[#F2F2F2] rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                            <img src={CloseIcon} alt="Close" className="w-4 h-4" />
+                        </button>
+
+                        {/* Centered message */}
+                        <p className="text-center text-[17px] font-bold text-[#1A1A1A] font-gantari mt-6 mb-10">
+                            Are you sure you want to log out?
+                        </p>
+
+                        {/* Centered buttons */}
+                        <div className="flex justify-center gap-4">
                             <button
                                 onClick={() => setShowLogoutConfirm(false)}
-                                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg font-medium border border-slate-200 transition-colors"
+                                className="px-8 py-2.5 text-[15px] text-[#353535] rounded-lg font-semibold bg-[#F0F0F0] transition-colors min-w-[110px]"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleLogout}
-                                className="px-4 py-2 text-sm bg-[#DD4342] text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                                className="px-8 py-2.5 text-[15px] bg-[#FFE5E5] text-[#E00100] rounded-lg font-semibold transition-colors min-w-[110px]"
                             >
                                 Log Out
                             </button>

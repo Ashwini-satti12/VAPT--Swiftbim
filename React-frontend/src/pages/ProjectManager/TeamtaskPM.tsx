@@ -782,7 +782,7 @@ export default function TeamtaskPM() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
@@ -799,7 +799,7 @@ export default function TeamtaskPM() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
@@ -816,7 +816,7 @@ export default function TeamtaskPM() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />

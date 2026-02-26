@@ -48,7 +48,6 @@ import MytaskViewTD from './pages/TechnicalDirector/MytaskViewTD';
 import DashboardBL from './pages/BimLead/DashboardBL';
 import ConsultantBL from './pages/BimLead/ConsultantBL';
 import ConsultantdetailsBL from './pages/BimLead/ConsultantdetailsBL';
-import ClientBL from './pages/BimLead/ClientBL';
 import ProjectsBL from './pages/BimLead/ProjectsBL';
 import MytaskBL from './pages/BimLead/MytaskBL';
 import TeamtaskBL from './pages/BimLead/TeamtaskBL';
@@ -62,7 +61,6 @@ import MytaskViewBL from './pages/BimLead/MytaskViewBL';
 import DashboardBC from './pages/BimCoordinator/DashboardBC';
 import ConsultantBC from './pages/BimCoordinator/ConsultantBC';
 import ConsultantdetailsBC from './pages/BimCoordinator/ConsultantdetailsBC';
-import ClientBC from './pages/BimCoordinator/ClientBC';
 import ProjectsBC from './pages/BimCoordinator/ProjectsBC';
 import MytaskBC from './pages/BimCoordinator/MytaskBC';
 import TeamtaskBC from './pages/BimCoordinator/TeamtaskBC';
@@ -74,17 +72,9 @@ import MytaskViewBC from './pages/BimCoordinator/MytaskViewBC';
 
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
-import ConsultantBM from './pages/BimModeler/ConsultantBM';
-import ConsultantdetailsBM from './pages/BimModeler/ConsultantdetailsBM';
-import ClientBM from './pages/BimModeler/ClientBM';
-import ProjectsBM from './pages/BimModeler/ProjectsBM';
 import MytaskBM from './pages/BimModeler/MytaskBM';
-import TeamtaskBM from './pages/BimModeler/TeamtaskBM';
-import CreateteamBM from './pages/BimModeler/CreateteamBM';
-import TrackerBM from './pages/BimModeler/TrackerBM';
 import TeamReportBM from './pages/BimModeler/TeamReportBM';
-import ChatBM from './pages/BimModeler/ChatBM';
-import MytaskViewBM from './pages/BimModeler/MytaskViewBM';
+
 
 /* Vendor */
 import DashboardV from './pages/Vendor/DashboardV';
@@ -154,7 +144,6 @@ function App() {
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
             <Route path="bl/consultants/:id" element={<ConsultantdetailsBL />} />
-            <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
@@ -168,7 +157,6 @@ function App() {
             <Route path="bc/dashboard" element={<DashboardBC />} />
             <Route path="bc/consultants" element={<ConsultantBC />} />
             <Route path="bc/consultants/:id" element={<ConsultantdetailsBC />} />
-            <Route path="bc/clients" element={<ClientBC />} />
             <Route path="bc/projects" element={<ProjectsBC />} />
             <Route path="bc/mytasks" element={<MytaskBC />} />
             <Route path="bc/teamtasks" element={<TeamtaskBC />} />
@@ -180,17 +168,9 @@ function App() {
 
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
-            <Route path="bm/consultants" element={<ConsultantBM />} />
-            <Route path="bm/consultants/:id" element={<ConsultantdetailsBM />} />
-            <Route path="bm/clients" element={<ClientBM />} />
-            <Route path="bm/projects" element={<ProjectsBM />} />
             <Route path="bm/mytasks" element={<MytaskBM />} />
-            <Route path="bm/teamtasks" element={<TeamtaskBM />} />
-            <Route path="bm/createteam" element={<CreateteamBM />} />
-            <Route path="bm/tracker" element={<TrackerBM />} />
             <Route path="bm/teamreport" element={<TeamReportBM />} />
-            <Route path="bm/chat" element={<ChatBM />} />
-            <Route path="bm/mytasks/view" element={<MytaskViewBM />} />
+
 
             {/* Vendor Routes */}
             <Route path="v/dashboard" element={<DashboardV />} />

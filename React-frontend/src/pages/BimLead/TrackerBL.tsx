@@ -25,6 +25,8 @@ export default function TrackerBL() {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
+    const [statusOpen, setStatusOpen] = useState(false);
+    const statusOptions = ['', 'Online', 'Offline'];
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -123,8 +125,8 @@ export default function TrackerBL() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Select Date Filter */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
-                        <span className="text-[#616161] text-sm font-medium">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                        <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {formatDate(selectedDate)}
                         </span>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -143,29 +145,35 @@ export default function TrackerBL() {
                         />
                     </div>
 
-                    {/* Status Dropdown */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[120px]">
-                        <select
-                            value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value)}
-                            className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
-                        >
-                            <option value="">Status</option>
-                            <option value="Online">Online</option>
-                            <option value="Offline">Offline</option>
-                        </select>
-                        <div className="absolute right-3 pointer-events-none">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {/* Status Custom Dropdown */}
+                    <div className="relative min-w-[120px]" onBlur={() => setTimeout(() => setStatusOpen(false), 150)}>
+                        <button type="button" onClick={() => setStatusOpen(o => !o)}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                                {selectedStatus || 'Status'}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: statusOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                 <path d="M6 9l6 6 6-6" />
                             </svg>
-                        </div>
+                        </button>
+                        {statusOpen && (
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                                {statusOptions.map(opt => (
+                                    <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        {opt === '' ? 'Status' : opt}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -181,13 +189,13 @@ export default function TrackerBL() {
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Date</th>
-                                <th className="px-6 py-6 text-left text-sm font-bold text-gray-700 bg-white">Employee Name</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time In</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Time Out</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Total Hours</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Status</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Sl.No</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Date</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Employee Name</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Time In</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Time Out</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Total Hours</th>
+                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -210,14 +218,14 @@ export default function TrackerBL() {
                                     });
 
                                     return (
-                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F9FAFB]' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedDate}</td>
-                                            <td className="px-6 py-5 text-left text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
-                                            <td className="px-6 py-5 text-center">
+                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedDate}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
+                                            <td className="px-6 py-3 text-center">
                                                 <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                                                     {loc.status}
                                                 </span>
