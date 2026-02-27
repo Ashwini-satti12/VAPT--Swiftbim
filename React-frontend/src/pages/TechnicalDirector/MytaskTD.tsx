@@ -12,6 +12,16 @@ import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
+interface Employee {
+    id: number;
+    full_name: string;
+}
+
+interface Project {
+    id: number;
+    project_name: string;
+}
+
 interface FormDropdownProps {
     label: string;
     options: { value: string; label: string }[];
@@ -178,6 +188,8 @@ function TaskDropdown({
 interface Task {
     id: number;
     task_name?: string;
+    projectid?: number;
+    project_id?: number;
     status?: string;
     due_date?: string;
     project_name?: string;
@@ -433,18 +445,6 @@ function TaskCard({
     );
 }
 
-const EMPLOYEE_OPTIONS = [
-    "Select Employee",
-    "Employee 1",
-    "Employee 2",
-    "Employee 3",
-];
-const PROJECT_OPTIONS = [
-    "Select Projects",
-    "Project A",
-    "Project B",
-    "Project C",
-];
 const SHOW_OPTIONS = ["Show", "All", "To Do", "In Progress", "Completed"];
 const PERIOD_OPTIONS = [
     "Period",
@@ -461,23 +461,11 @@ export default function MytaskTD() {
         searchParams.get("condition") === "1" || pathname.endsWith("/team");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "myTask_localTasks";
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
     const [loading, setLoading] = useState(true);
-    const allTasks = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const allTasks = [...list];
 
     const statusToLabel = (
         s: "todo" | "in_progress" | "completed"
@@ -489,27 +477,23 @@ export default function MytaskTD() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
-        const label = statusToLabel(newStatus);
-        setLocalTasks((prev) => {
-            const idx = prev.findIndex((t) => t.id === taskId);
-            if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = { ...next[idx], status: label };
-                return next;
-            }
-            const fromList = list.find((t) => t.id === taskId);
-            if (fromList) return [{ ...fromList, status: label }, ...prev];
-            return prev;
-        });
-    };
+        const statusMap = {
+            todo: "Todo",
+            in_progress: "InProgress",
+            completed: "Completed"
+        };
+        const task = list.find(t => t.id === taskId);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
-        } catch {
-            // ignore quota or parse errors
-        }
-    }, [localTasks]);
+        // Optimistic update
+        setList((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
+        );
+
+        api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus], projectId: task?.projectid || task?.project_id })
+            .catch(() => {
+                // Ignore silent fail, in real app we might revert list here
+            });
+    };
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -551,8 +535,16 @@ export default function MytaskTD() {
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-        setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setDeleteTaskId(null);
+
+        api.delete(`/api/tasks/${deleteTaskId}`)
+            .then(() => {
+                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                setDeleteTaskId(null);
+            })
+            .catch(() => {
+                // handle error implicitly
+                setDeleteTaskId(null);
+            });
     };
 
     const resetTaskFormAndClose = () => {
@@ -641,12 +633,33 @@ export default function MytaskTD() {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) params.condition = "1";
-        api
-            .get<{ tasks?: Task[] }>("/api/tasks", { params })
-            .then(({ data }) => setList(data.tasks ?? []))
-            .catch(() => setList([]))
+
+        Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ employees?: Employee[] }>("/api/employees"),
+            api.get<{ projects?: Project[] }>("/api/projects")
+        ])
+            .then(([tasksRes, empRes, projRes]) => {
+                setList(tasksRes.data.tasks ?? []);
+                setEmployees(empRes.data.employees ?? []);
+                setProjects(projRes.data.projects ?? []);
+            })
+            .catch(() => {
+                setList([]);
+            })
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
+
+    // Data maps for dropdowns
+    const employeeOptions = [
+        "Select Employee",
+        ...employees.map(e => e.full_name)
+    ];
+
+    const projectOptions = [
+        "Select Projects",
+        ...projects.map(p => p.project_name)
+    ];
 
     const counts = {
         todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
@@ -687,7 +700,7 @@ export default function MytaskTD() {
                 >
                     <TaskDropdown
                         label="Select Employee"
-                        options={EMPLOYEE_OPTIONS}
+                        options={employeeOptions}
                         selected={selectedEmployee}
                         onSelect={setSelectedEmployee}
                         isOpen={openDropdown === "employee"}
@@ -700,7 +713,7 @@ export default function MytaskTD() {
                     />
                     <TaskDropdown
                         label="Select Projects"
-                        options={PROJECT_OPTIONS}
+                        options={projectOptions}
                         selected={selectedProject}
                         onSelect={setSelectedProject}
                         isOpen={openDropdown === "projects"}
@@ -992,36 +1005,56 @@ export default function MytaskTD() {
                                 e.preventDefault();
                                 const isEditing = editingTaskId !== null;
                                 const existing = isEditing
-                                    ? localTasks.find((t) => t.id === editingTaskId)
+                                    ? list.find((t) => t.id === editingTaskId)
                                     : null;
-                                const newTask: Task = {
-                                    id: isEditing ? editingTaskId : Date.now(),
-                                    task_name: addTaskForm.taskName || "Task Name",
-                                    status: existing?.status ?? "To Do",
-                                    start_date: addTaskForm.actualStartDate || undefined,
-                                    due_date: addTaskForm.actualEndDate || undefined,
-                                    project_name: addTaskForm.projectName || undefined,
-                                    progress: existing?.progress ?? 0,
-                                    module: addTaskForm.module || undefined,
-                                    type: addTaskForm.type || undefined,
-                                    start_time: addTaskForm.startTime || undefined,
-                                    due_time: addTaskForm.dueTime || undefined,
-                                    assign_to: addTaskForm.assignTo || undefined,
-                                    description: addTaskForm.description || undefined,
-                                    checklist: addTaskForm.checklist || undefined,
+
+                                const payload = {
+                                    projectid: projects.find(p => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+                                    taskName: addTaskForm.taskName,
+                                    category: addTaskForm.type,
+                                    startdate: addTaskForm.actualStartDate,
+                                    dueDate: addTaskForm.actualEndDate,
+                                    startTime: addTaskForm.startTime,
+                                    dueTime: addTaskForm.dueTime,
+                                    assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                                    description: addTaskForm.description,
+                                    checklist: addTaskForm.checklist,
+                                    modules: addTaskForm.module
                                 };
-                                if (isEditing) {
-                                    setLocalTasks((prev) => {
-                                        const idx = prev.findIndex((t) => t.id === editingTaskId);
-                                        if (idx >= 0) {
-                                            const next = [...prev];
-                                            next[idx] = newTask;
-                                            return next;
-                                        }
-                                        return [...prev, newTask];
+
+                                const handleFiles = (taskId: number | string) => {
+                                    if (attachmentFiles.length > 0) {
+                                        const formData = new FormData();
+                                        attachmentFiles.forEach(f => formData.append("image", f));
+                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                                            headers: { 'Content-Type': 'multipart/form-data' }
+                                        });
+                                    }
+                                };
+
+                                if (isEditing && existing) {
+                                    api.patch(`/api/tasks/${existing.id}`, {
+                                        task_name: payload.taskName,
+                                        assigned_to: payload.assignedTo,
+                                        due_date: payload.dueDate,
+                                        category: payload.category,
+                                        description: payload.description,
+                                        checklist: payload.checklist,
+                                        modules_name: payload.modules,
+                                        Actual_start_time: payload.startdate,
+                                        start_time: payload.startTime,
+                                        due_time: payload.dueTime
+                                    }).then(() => {
+                                        handleFiles(existing.id);
+                                        api.get<{ tasks?: Task[] }>("/api/tasks").then(res => setList(res.data.tasks ?? []));
                                     });
                                 } else {
-                                    setLocalTasks((prev) => [newTask, ...prev]);
+                                    api.post('/api/tasks', payload).then(res => {
+                                        if (res.data.success && res.data.task_id) {
+                                            handleFiles(res.data.task_id);
+                                            api.get<{ tasks?: Task[] }>("/api/tasks").then(r => setList(r.data.tasks ?? []));
+                                        }
+                                    });
                                 }
                                 resetTaskFormAndClose();
                             }}
@@ -1035,8 +1068,7 @@ export default function MytaskTD() {
                                         label="Select Project name"
                                         options={[
                                             { value: "", label: "Select Project name" },
-                                            { value: "project-a", label: "Project A" },
-                                            { value: "project-b", label: "Project B" },
+                                            ...projects.map(p => ({ value: p.project_name, label: p.project_name }))
                                         ]}
                                         value={addTaskForm.projectName}
                                         onChange={(v) =>
@@ -1215,8 +1247,7 @@ export default function MytaskTD() {
                                             label="Select Assign To"
                                             options={[
                                                 { value: "", label: "Select Assign To" },
-                                                { value: "user-1", label: "User 1" },
-                                                { value: "user-2", label: "User 2" },
+                                                ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
                                             ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>

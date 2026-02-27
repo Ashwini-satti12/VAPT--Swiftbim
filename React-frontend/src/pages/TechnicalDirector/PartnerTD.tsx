@@ -8,7 +8,7 @@ export default function PartnerTD() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.get<{ vendors?: Vendor[] } | Vendor[]>('/api/vendors')
+        api.get<{ vendors?: Vendor[] } | Vendor[]>('/api/vendors?status=approved')
             .then(({ data }) => {
                 const vendors = Array.isArray(data) ? data : (data as { vendors?: Vendor[] }).vendors ?? [];
                 setList(vendors);
@@ -18,13 +18,7 @@ export default function PartnerTD() {
     }, []);
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
-    const statusColor = (status: string) => {
-        switch (status?.toLowerCase()) {
-            case 'approved': return 'bg-green-100 text-green-800';
-            case 'rejected': return 'bg-red-100 text-red-800';
-            default: return 'bg-amber-100 text-amber-800';
-        }
-    };
+
 
     if (loading) {
         return (
@@ -52,36 +46,28 @@ export default function PartnerTD() {
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col"
                             >
-                                <div className="p-6 flex-1 flex flex-col">
-                                    <div className="flex items-start justify-between gap-3 mb-3">
-                                        <h3 className="text-lg font-semibold text-slate-800 line-clamp-2">
-                                            {displayName(partner)}
-                                        </h3>
-                                        <span
-                                            className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${statusColor(partner.status)}`}
-                                        >
-                                            {partner.status || 'pending'}
-                                        </span>
+                                <div className="p-6 flex-1 flex flex-col pt-7">
+                                    <h3 className="text-[17px] font-bold text-slate-800 font-sora line-clamp-2">
+                                        {displayName(partner)}
+                                    </h3>
+
+                                    <div className="mt-4 flex flex-col gap-1.5 flex-1">
+                                        {partner.contact_name && (
+                                            <p className="text-[14px] text-slate-600 font-medium">
+                                                Contact: {partner.contact_name}
+                                            </p>
+                                        )}
+                                        {partner.city && (
+                                            <p className="text-[13px] text-slate-500">
+                                                {[partner.city, partner.state, partner.country].filter(Boolean).join(', ')}
+                                            </p>
+                                        )}
                                     </div>
-                                    {partner.contact_name && (
-                                        <p className="text-sm text-slate-600 mb-1">
-                                            Contact: {partner.contact_name}
-                                        </p>
-                                    )}
-                                    {partner.email && (
-                                        <p className="text-sm text-slate-500 truncate" title={partner.email}>
-                                            {partner.email}
-                                        </p>
-                                    )}
-                                    {partner.city && (
-                                        <p className="text-sm text-slate-500 mt-1">
-                                            {[partner.city, partner.state, partner.country].filter(Boolean).join(', ')}
-                                        </p>
-                                    )}
-                                    <div className="mt-4 pt-4 border-t border-gray-100">
+
+                                    <div className="mt-6 border-t border-gray-100/80 pt-5">
                                         <Link
                                             to={`/td/partner/${partner.id}`}
-                                            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#DD4342] text-white font-medium text-sm hover:bg-[#c93d3d] transition"
+                                            className="flex items-center justify-center w-full py-2.5 rounded-lg bg-[#DD4342] text-white font-medium text-[14px] hover:bg-[#c93d3d] transition-colors"
                                         >
                                             View details
                                         </Link>
