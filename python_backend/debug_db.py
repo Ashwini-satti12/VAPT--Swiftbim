@@ -7,7 +7,11 @@ load_dotenv()
 
 host = os.getenv("MYSQL_HOST", "localhost")
 user = os.getenv("MYSQL_USER", "root")
+<<<<<<< HEAD
+password = os.getenv("MYSQL_PASSWORD", "")
+=======
 password = os.getenv("MYSQL_PASSWORD", "root")
+>>>>>>> 91ac4306dc9738d6bbd3c5f36b1f175b5ecdc9a1
 db = os.getenv("MYSQL_DB", "snh6_swiftproject")
 port = int(os.getenv("MYSQL_PORT", "3306"))
 

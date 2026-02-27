@@ -461,11 +461,36 @@ export default function MytaskTD() {
         searchParams.get("condition") === "1" || pathname.endsWith("/team");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
+    const STORAGE_KEY = "td_myTask_localTasks";
+    const DELETED_IDS_KEY = "td_myTask_deletedIds";
+    const loadDeletedIds = (): number[] => {
+        try {
+            const raw = localStorage.getItem(DELETED_IDS_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.map(Number).filter((n) => !Number.isNaN(n)) : [];
+        } catch {
+            return [];
+        }
+    };
     const [list, setList] = useState<Task[]>([]);
+    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw) as Task[];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    });
+    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const allTasks = [...list];
+    const merged = [
+        ...localTasks,
+        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
+    ];
+    const allTasks = merged.filter((t) => !deletedIds.includes(t.id));
 
     const statusToLabel = (
         s: "todo" | "in_progress" | "completed"
@@ -494,6 +519,14 @@ export default function MytaskTD() {
                 // Ignore silent fail, in real app we might revert list here
             });
     };
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
+        } catch {
+            // ignore
+        }
+    }, [deletedIds]);
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
