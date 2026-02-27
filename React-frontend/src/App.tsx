@@ -43,6 +43,8 @@ import TrackerTD from './pages/TechnicalDirector/TrackerTD';
 import TeamReportTD from './pages/TechnicalDirector/TeamReportTD';
 import ChatTD from './pages/TechnicalDirector/ChatTD';
 import MytaskViewTD from './pages/TechnicalDirector/MytaskViewTD';
+import PartnerTD from './pages/TechnicalDirector/PartnerTD';
+import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
 
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
@@ -140,6 +142,8 @@ function App() {
             <Route path="td/teamreport" element={<TeamReportTD />} />
             <Route path="td/chat" element={<ChatTD />} />
             <Route path="td/mytasks/view" element={<MytaskViewTD />} />
+            <Route path="td/partner" element={<PartnerTD />} />
+            <Route path="td/partner/:id" element={<PartnerView />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
