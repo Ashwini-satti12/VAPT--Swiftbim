@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -11,6 +11,8 @@ import messageIcon from '../../assets/consultant/messageIcon.svg';
 import callIcon from '../../assets/consultant/callIcon.svg';
 import eyeIcon from '../../assets/consultant/eyeIcon.svg';
 import editIcon from '../../assets/consultant/editIcon.svg';
+const apiBase = (api.defaults.baseURL as string) || '';
+
 interface Employee {
     id: number;
     full_name: string;
@@ -48,6 +50,7 @@ const ROLE_OPTIONS = [
 
 export default function ConsultantTD() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
@@ -97,11 +100,51 @@ export default function ConsultantTD() {
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+    const [departmentOptions, setDepartmentOptions] = useState<string[]>(['BIM', 'Architecture', 'Engineering']);
+    const [roleOptions, setRoleOptions] = useState<string[]>(ROLE_OPTIONS);
+
+    const getProfileImage = (emp: { email?: string; profile_picture?: string }) => {
+        if (emp.profile_picture) {
+            return `${apiBase}/uploads/${emp.profile_picture}`;
+        }
+        if (emp.email) {
+            return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(emp.email)}`;
+        }
+        return undefined;
+    };
 
     const canAdd = user?.panel_type === 1;
 
     useEffect(() => {
-        api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
+        api
+            .get<{ employees?: Employee[] }>('/api/employees')
+            .then(({ data }) => setList(data.employees ?? []))
+            .catch(() => setList([]))
+            .finally(() => setLoading(false));
+
+        // Load department names from backend `department` table (name column)
+        api
+            .get<{ departments?: string[] }>('/api/departments')
+            .then(({ data }) => {
+                if (data.departments && data.departments.length) {
+                    setDepartmentOptions(data.departments);
+                }
+            })
+            .catch(() => {
+                // keep default options on error
+            });
+
+        // Load role names from backend `roles` table (name column)
+        api
+            .get<{ roles?: string[] }>('/api/employees/roles')
+            .then(({ data }) => {
+                if (data.roles && data.roles.length) {
+                    setRoleOptions(data.roles);
+                }
+            })
+            .catch(() => {
+                // keep ROLE_OPTIONS on error
+            });
     }, []);
 
     const editParam = searchParams.get('edit');
@@ -229,15 +272,24 @@ export default function ConsultantTD() {
             return;
         }
         setAddSubmitting(true);
+
+        // Use FormData so we can send optional profile picture
+        const formData = new FormData();
+        formData.append('full_name', form.full_name.trim());
+        formData.append('email', form.email.trim());
+        formData.append('password', form.password);
+        if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+        formData.append('user_role', form.user_role);
+        if (form.department.trim()) formData.append('department', form.department.trim());
+        if (form.address.trim()) formData.append('address', form.address.trim());
+        if (form.dob) formData.append('dob', form.dob);
+        if (form.joining_date) formData.append('doj', form.joining_date);
+        if (form.type) formData.append('user_type', form.type);
+        if (form.profile_picture) formData.append('profile_picture', form.profile_picture);
+
         api
-            .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
-                full_name: form.full_name.trim(),
-                email: form.email.trim(),
-                password: form.password,
-                phone_number: form.phone_number.trim() || undefined,
-                user_role: form.user_role,
-                department: form.department.trim() || undefined,
-                address: form.address.trim() || undefined,
+            .post<{ success: boolean; id?: number; message?: string; profile_picture?: string }>('/api/employees', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             })
             .then(({ data }) => {
                 if (data.success) {
@@ -255,7 +307,19 @@ export default function ConsultantTD() {
                         joining_date: '',
                         profile_picture: null
                     });
-                    setList((prev) => [...prev, { id: data.id!, full_name: form.full_name, email: form.email, user_role: form.user_role, active: 'active' }]);
+                    setList((prev) => [
+                        ...prev,
+                        {
+                            id: data.id!,
+                            full_name: form.full_name,
+                            email: form.email,
+                            user_role: form.user_role,
+                            department: form.department,
+                            address: form.address,
+                            profile_picture: data.profile_picture,
+                            active: 'active',
+                        },
+                    ]);
                 } else {
                     setAddError(data.message || 'Failed to add consultant.');
                 }
@@ -386,7 +450,7 @@ export default function ConsultantTD() {
                                         <div className="absolute inset-x-0 bottom-0 p-5 flex items-center gap-4 z-10">
                                             <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0">
                                                 <img
-                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
+                                                    src={getProfileImage(emp)}
                                                     alt={emp.full_name}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -402,13 +466,33 @@ export default function ConsultantTD() {
                                     <div className="p-5 space-y-5">
                                         {/* Contact Buttons */}
                                         <div className="flex items-center gap-5">
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (emp.email) {
+                                                        window.location.href = `mailto:${emp.email}`;
+                                                    }
+                                                }}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all"
+                                            >
                                                 <img src={mailIcon} alt="Mail" className="text-xl" /> Mail
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate('/td/chat')}
+                                                className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all"
+                                            >
                                                 <img src={messageIcon} alt="Message" className="text-xl" /> Message
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (emp.phone_number) {
+                                                        window.location.href = `tel:${emp.phone_number}`;
+                                                    }
+                                                }}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all"
+                                            >
                                                 <img src={callIcon} alt="Call" className="text-xl" /> Call
                                             </button>
                                         </div>
@@ -486,7 +570,7 @@ export default function ConsultantTD() {
                                                         <div className="relative">
                                                             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200">
                                                                 <img
-                                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
+                                                                    src={getProfileImage(emp)}
                                                                     alt={emp.full_name}
                                                                     className="w-full h-full object-cover"
                                                                 />
@@ -641,7 +725,7 @@ export default function ConsultantTD() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {roleOptions.map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -657,9 +741,9 @@ export default function ConsultantTD() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="Architecture">Architecture</option>
-                                                <option value="Engineering">Engineering</option>
+                                                {departmentOptions.map((d) => (
+                                                    <option key={d} value={d}>{d}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -983,7 +1067,7 @@ export default function ConsultantTD() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {roleOptions.map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -1000,9 +1084,9 @@ export default function ConsultantTD() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="HR">HR</option>
-                                                <option value="Sales">Sales</option>
+                                                {departmentOptions.map((d) => (
+                                                    <option key={d} value={d}>{d}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
                                         </div>
@@ -1185,7 +1269,7 @@ export default function ConsultantTD() {
                         <div className="flex items-center gap-6 px-4">
                             <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
                                 <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
+                                    src={getProfileImage(selectedEmployee)}
                                     alt={selectedEmployee.full_name}
                                     className="w-full h-full object-cover"
                                 />
