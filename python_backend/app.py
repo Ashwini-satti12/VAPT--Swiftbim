@@ -19,6 +19,7 @@ from blueprints.clients import bp as clients_bp
 from blueprints.messages import bp as messages_bp
 from blueprints.location import bp as location_bp
 from blueprints.timesheet import bp as timesheet_bp
+from blueprints.attendance import bp as attendance_bp
 from blueprints.leave import bp as leave_bp
 from blueprints.community import bp as community_bp
 from blueprints.profile import bp as profile_bp
@@ -29,11 +30,7 @@ from blueprints.calendar import bp as calendar_bp
 from blueprints.reports import bp as reports_bp
 from blueprints.timeline import bp as timeline_bp
 from blueprints.client_panel import bp as client_panel_bp
-<<<<<<< HEAD
 from blueprints.departments import bp as departments_bp
-=======
-from blueprints.vendor import bp as vendor_bp
->>>>>>> 91ac4306dc9738d6bbd3c5f36b1f175b5ecdc9a1
 
 
 def create_app(config_class=Config): 
@@ -64,6 +61,7 @@ def create_app(config_class=Config):
     app.register_blueprint(messages_bp)
     app.register_blueprint(location_bp)
     app.register_blueprint(timesheet_bp)
+    app.register_blueprint(attendance_bp)
     app.register_blueprint(leave_bp)
     app.register_blueprint(community_bp)
     app.register_blueprint(profile_bp)
@@ -74,11 +72,7 @@ def create_app(config_class=Config):
     app.register_blueprint(reports_bp)
     app.register_blueprint(timeline_bp)
     app.register_blueprint(client_panel_bp)
-<<<<<<< HEAD
     app.register_blueprint(departments_bp)
-=======
-    app.register_blueprint(vendor_bp)
->>>>>>> 91ac4306dc9738d6bbd3c5f36b1f175b5ecdc9a1
 
     @app.route("/")
     def index():

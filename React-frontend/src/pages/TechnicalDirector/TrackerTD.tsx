@@ -1,23 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
 
 interface LocationEntry {
     id: number;
     full_name?: string;
-    latitude?: number;
-    longitude?: number;
-    updated_at?: string;
-    status?: 'Online' | 'Offline';
+    /** Original attendance date string (d-m-Y or Y-m-d) */
+    date?: string | null;
+    /** Normalised ISO date from backend (YYYY-MM-DD) */
+    date_iso?: string | null;
+    /** Time in from attendance table (HH:MM:SS format) */
+    time_in?: string | null;
+    /** Time out from attendance table, if available (HH:MM:SS format) */
+    time_out?: string | null;
+    /** Calculated total hours (HH:MM:SS format), if available */
+    total_hours?: string | null;
+    /** Derived status (Online / Offline) */
+    status?: 'Online' | 'Offline' | string | null;
 }
 
+// Fallback demo data if API has no locations or fails
 const DUMMY_DATA: LocationEntry[] = [
-    { id: 1001, full_name: 'Binghatti', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1002, full_name: 'Suo01', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1003, full_name: 'Disu so', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1004, full_name: 'Tshingin', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1005, full_name: 'Ajay Srinivasan', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1006, full_name: 'V L LOKESH', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1007, full_name: 'BASAVARAJ DÂ E', updated_at: new Date().toISOString(), status: 'Online' },
+    { id: 1001, full_name: 'Binghatti', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
+    { id: 1002, full_name: 'Suo01', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
+    { id: 1003, full_name: 'Disu so', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
+    { id: 1004, full_name: 'Tshingin', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
+    { id: 1005, full_name: 'Ajay Srinivasan', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
+    { id: 1006, full_name: 'V L LOKESH', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
+    { id: 1007, full_name: 'BASAVARAJ DÂ E', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
 ];
 
 export default function TrackerTD() {
@@ -27,6 +36,7 @@ export default function TrackerTD() {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Online', 'Offline'];
+    const statusDropdownRef = useRef<HTMLDivElement>(null);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -34,17 +44,43 @@ export default function TrackerTD() {
         return `${day}/${month}/${year}`;
     };
 
+    // Convert a date string into YYYY-MM-DD for filtering.
+    // Prefer ISO date from backend (date_iso); fall back to parsing the raw date string.
+    const toLocalDateKey = (date_iso?: string | null, rawDate?: string | null): string => {
+        if (date_iso) return date_iso;
+        const value = rawDate || '';
+        if (!value) return '';
+        // Try d-m-Y then Y-m-d
+        const partsDash = value.split('-');
+        if (partsDash.length === 3) {
+            if (partsDash[0].length === 2) {
+                // d-m-Y -> Y-m-d
+                const [d, m, y] = partsDash;
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+            if (partsDash[0].length === 4) {
+                // already Y-m-d
+                const [y, m, d] = partsDash;
+                return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+        }
+        return '';
+    };
+
     useEffect(() => {
         api
-            .get<{ locations?: LocationEntry[] }>('/api/location/employees')
+            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker')
             .then(({ data }) => {
-                // Ensure dummy data or API data has status for filtering demo
-                const baseData = data.locations?.length ? data.locations : DUMMY_DATA;
-                const dataWithStatus = baseData.map((item, idx) => ({
-                    ...item,
-                    status: item.status || (idx % 2 === 0 ? 'Online' : 'Offline')
-                }));
-                setList(dataWithStatus);
+                const records = (data.records ?? []).map((item) => {
+                    const statusValue = (item.status || '').toString().toLowerCase() === 'online' ? 'Online' : 'Offline';
+                    return { ...item, status: statusValue };
+                });
+
+                if (records.length) {
+                    setList(records);
+                } else {
+                    setList(DUMMY_DATA);
+                }
             })
             .catch(() => {
                 setList(DUMMY_DATA);
@@ -52,12 +88,29 @@ export default function TrackerTD() {
             .finally(() => setLoading(false));
     }, []);
 
+    // Close status dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+                setStatusOpen(false);
+            }
+        };
+        if (statusOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [statusOpen]);
+
     const filteredList = list.filter((item) => {
         let matchesDate = true;
         let matchesStatus = true;
 
         if (selectedDate) {
-            const itemDate = item.updated_at ? new Date(item.updated_at).toISOString().split('T')[0] : '';
+            // selectedDate is already in YYYY-MM-DD format from the date input
+            const itemDate = toLocalDateKey(item.date_iso, item.date ?? null);
+            // Compare date strings directly
             matchesDate = itemDate === selectedDate;
         }
 
@@ -74,24 +127,23 @@ export default function TrackerTD() {
         const headers = ['Sl.No', 'Date', 'Employee Name', 'Time In', 'Time Out', 'Total Hours', 'Status'];
         const csvData = filteredList.map((loc, index) => {
             const slNo = (index + 1).toString().padStart(2, '0');
-            const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
-            const formattedDate = dateObj.toLocaleDateString('en-GB');
-            const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
+            const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
+            const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
+            const formattedDate = dateKey ? `${d}/${m}/${y}` : '';
+
+            const rawTimeIn = loc.time_in || '';
+            const rawTimeOut = loc.time_out || '';
+            const totalHours = loc.total_hours || '';
 
             return [
                 slNo,
                 formattedDate,
                 loc.full_name || 'N/A',
-                formattedTime,
-                formattedTime,
-                'hh:mm:ss',
+                rawTimeIn,
+                rawTimeOut,
+                totalHours,
                 loc.status || '-'
-            ].map(val => `"${val}"`).join(',');
+            ].map(val => `"${val || ''}"`).join(',');
         });
 
         const csvContent = [headers.join(','), ...csvData].join('\n');
@@ -125,10 +177,26 @@ export default function TrackerTD() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Select Date Filter */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
-                        <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                    <div className="relative flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[130px]">
+                        <span className={`text-sm font-medium flex-1 ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {formatDate(selectedDate)}
                         </span>
+                        {selectedDate && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedDate('');
+                                }}
+                                className="text-[#616161] hover:text-[#353535] transition-colors"
+                                title="Clear date filter"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        )}
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -146,9 +214,15 @@ export default function TrackerTD() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" onBlur={() => setTimeout(() => setStatusOpen(false), 150)}>
-                        <button type="button" onClick={() => setStatusOpen(o => !o)}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                        <button 
+                            type="button" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setStatusOpen(o => !o);
+                            }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+                        >
                             <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
@@ -158,11 +232,22 @@ export default function TrackerTD() {
                             </svg>
                         </button>
                         {statusOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                            <div 
+                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
                                 {statusOptions.map(opt => (
-                                    <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
-                                        {opt === '' ? 'Status' : opt}
+                                    <button 
+                                        key={opt} 
+                                        type="button" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedStatus(opt);
+                                            setStatusOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt === '' ? 'All Status' : opt}
                                     </button>
                                 ))}
                             </div>
@@ -208,26 +293,25 @@ export default function TrackerTD() {
                             ) : (
                                 filteredList.map((loc, index) => {
                                     const slNo = (index + 1).toString().padStart(2, '0');
-                                    const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
-                                    const formattedDate = dateObj.toLocaleDateString('en-GB').replace(/\//g, '/');
-                                    const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: true
-                                    });
+                                    const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
+                                    const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
+                                    const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
+
+                                    const timeIn = loc.time_in || '-';
+                                    const timeOut = loc.time_out || '-';
+                                    const totalHours = loc.total_hours || '-';
 
                                     return (
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedDate}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeIn}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeOut}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{totalHours}</td>
                                             <td className="px-6 py-3 text-center">
                                                 <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
-                                                    {loc.status}
+                                                    {loc.status || 'Offline'}
                                                 </span>
                                             </td>
                                         </tr>

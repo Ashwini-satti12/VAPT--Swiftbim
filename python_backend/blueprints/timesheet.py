@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, g
 from db import get_db
 from auth_middleware import project_app_required
@@ -10,14 +10,21 @@ bp = Blueprint("timesheet", __name__, url_prefix="/api/timesheet")
 @project_app_required
 def completed_tasks():
     data = request.get_json() or request.form
-    start_date = (data.get("startDate") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-    end_date = (data.get("endDate") or "").strip() or datetime.now().strftime("%Y-%m-%d")
-    employee_id = data.get("selectmembers") or g.user_id
+    # Allow wide date range if not specified
+    raw_start = (data.get("startDate") or "").strip()
+    raw_end = (data.get("endDate") or "").strip()
+    start_date = raw_start or "1970-01-01"
+    end_date = raw_end or "2999-12-31"
+    employee_id = data.get("selectmembers")
     team_id = data.get("selectteam")
 
     conn = get_db()
     cur = conn.cursor()
 
+    start_dt = start_date + " 00:00:00"
+    end_dt = end_date + " 23:59:59"
+
+    # If team_id is provided, get all employee IDs in that team
     if team_id:
         cur.execute("SELECT employee FROM team WHERE team_id = %s AND Company_id = %s", (team_id, g.company_id))
         rows = cur.fetchall()
@@ -26,35 +33,67 @@ def completed_tasks():
             emp = (r.get("employee") or "").strip()
             if emp:
                 employee_ids.extend([x.strip() for x in emp.split(",") if x.strip()])
-        employee_id = ",".join(employee_ids) if employee_ids else g.user_id
-
-    start_dt = start_date + " 00:00:00"
-    end_dt = end_date + " 23:59:59"
+        if employee_ids:
+            employee_id = ",".join(employee_ids)
+        else:
+            employee_id = None
 
     if isinstance(employee_id, list):
         employee_id = ",".join(str(x) for x in employee_id)
-    emp_list = [x.strip() for x in str(employee_id).split(",") if x.strip()]
-    if not emp_list:
-        emp_list = [g.user_id]
-    placeholders = ",".join(["%s"] * len(emp_list))
+    
+    # Build WHERE clause for employee filter
+    emp_where = ""
+    emp_params = []
+    if employee_id:
+        emp_list = [x.strip() for x in str(employee_id).split(",") if x.strip()]
+        if emp_list:
+            placeholders = ",".join(["%s"] * len(emp_list))
+            emp_where = f"tasks.assigned_to IN ({placeholders})"
+            emp_params = emp_list
+    
+    # Build full WHERE clause
+    where_parts = ["tasks.Company_id = %s"]
+    where_params = [g.company_id]
+    
+    if emp_where:
+        where_parts.append(emp_where)
+        where_params.extend(emp_params)
+    
+    # Filter by due_date (or start_time if due_date is NULL) within date range
+    where_parts.append("((tasks.due_date BETWEEN %s AND %s) OR (tasks.due_date IS NULL AND tasks.start_time BETWEEN %s AND %s))")
+    where_params.extend([start_dt, end_dt, start_dt, end_dt])
+    
+    where_clause = " AND ".join(where_parts)
+    
     cur.execute(
-        """SELECT tasks.id, tasks.start_time, tasks.end_time, tasks.Pause, tasks.restart, tasks.due_date,
+        f"""SELECT tasks.id, tasks.start_time, tasks.end_time, tasks.Pause, tasks.restart, tasks.due_date,
                   tasks.task_name, tasks.perferstart_time, tasks.perferend_time, tasks.Actual_start_time,
                   employee.full_name AS assigned_name,
-                  CASE WHEN tasks.projectid = 0 THEN 'Others' ELSE projects.project_name END AS project_name
+                  CASE 
+                      WHEN tasks.projectid IS NULL OR tasks.projectid = 0 THEN 'Others'
+                      WHEN projects.project_name IS NULL THEN 'Others'
+                      ELSE projects.project_name
+                  END AS project_name,
+                  t.teamname AS teamname
            FROM tasks
            JOIN employee ON tasks.assigned_to = employee.id
-           LEFT JOIN projects ON tasks.projectid = projects.id
-           WHERE tasks.assigned_to IN (%s) AND tasks.end_time BETWEEN %%s AND %%s AND tasks.status = 'Completed'
-           ORDER BY tasks.id DESC""" % placeholders,
-        emp_list + [start_dt, end_dt],
+           LEFT JOIN projects ON tasks.projectid = projects.id AND projects.Company_id = %s
+           LEFT JOIN team t ON FIND_IN_SET(employee.id, REPLACE(CONCAT(',', t.employee, ','), ' ', '')) > 0 
+               AND t.Company_id = %s
+           WHERE {where_clause}
+           ORDER BY tasks.id DESC""",
+        [g.company_id, g.company_id] + where_params,
     )
     rows = cur.fetchall()
     tasks = []
     for r in rows:
         d = dict(r)
-        for k in ("start_time", "end_time", "Pause", "restart", "due_date"):
-            if d.get(k) and hasattr(d[k], "isoformat"):
-                d[k] = d[k].isoformat()
+        for k, v in d.items():
+            if v is not None:
+                if isinstance(v, datetime):
+                    d[k] = v.isoformat()
+                elif isinstance(v, timedelta):
+                    # Convert timedelta to total seconds (as integer)
+                    d[k] = int(v.total_seconds())
         tasks.append(d)
     return jsonify({"completed_tasks": tasks})
