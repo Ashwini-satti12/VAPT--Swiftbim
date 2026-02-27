@@ -46,7 +46,7 @@ const ROLE_OPTIONS = [
     'CTO',
 ];
 
-export default function ConsultantV() {
+export default function ConsultantBM() {
     const { user } = useAuth();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);

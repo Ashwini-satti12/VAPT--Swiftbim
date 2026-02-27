@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+<<<<<<< HEAD
 import pmprofilebg from '../../assets/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/consultant/exportIcon.svg';
 import mailIcon from '../../assets/consultant/mailIcon.svg';
@@ -13,6 +14,15 @@ import eyeIcon from '../../assets/consultant/eyeIcon.svg';
 import editIcon from '../../assets/consultant/editIcon.svg';
 const apiBase = (api.defaults.baseURL as string) || '';
 
+=======
+import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
+import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
+import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
+import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg';
+import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
+import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
+import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
+>>>>>>> 91ac4306dc9738d6bbd3c5f36b1f175b5ecdc9a1
 interface Employee {
     id: number;
     full_name: string;

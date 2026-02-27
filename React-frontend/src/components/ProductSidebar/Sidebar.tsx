@@ -88,6 +88,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Partner",
+          path: `/${prefix}/partner`,
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
           name: "Projects",
           path: `/${prefix}/projects`,
           iconSrc: projectIcon,
@@ -394,7 +401,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         activeIconSrc: whiteChatIcon,
         isVisible: isManagement,
       },
-    ].filter(item => item.isVisible);
+    ].filter((item) => item.isVisible);
   };
 
   const navItems = getNavItems();
@@ -464,7 +471,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       </div>
 
       {showLogoutModal && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-10 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button
