@@ -357,48 +357,49 @@ function TaskCard({
           >
             <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
-          <div
-            aria-hidden={!menuOpen}
-            role="menu"
-            className={`absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-white/70 backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] origin-top-right transform-gpu transition-all duration-200 ease-out ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                onViewTask?.(task);
-              }}
+          {menuOpen && (
+            <div
+              className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980]"
+              role="menu"
             >
-              <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-              <span>View</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                onEditTask?.(task);
-              }}
-            >
-              <HiOutlinePencil className="w-4 h-4 shrink-0" />
-              <span>Edit</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                onDeleteTask?.(task);
-              }}
-            >
-              <HiOutlineTrash className="w-4 h-4 shrink-0" />
-              <span>Delete</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onViewTask?.(task);
+                }}
+              >
+                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+                <span>View</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onEditTask?.(task);
+                }}
+              >
+                <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                <span>Edit</span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDeleteTask?.(task);
+                }}
+              >
+                <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                <span>Delete</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <h4 className="font-semibold text-slate-900 text-sm mb-1">

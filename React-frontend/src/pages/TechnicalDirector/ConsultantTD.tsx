@@ -4,7 +4,10 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+<<<<<<< HEAD
 // NOTE: assets live under assets/ProjectManager/consultant, not assets/consultant
+=======
+>>>>>>> 438f1a16c36fffeb1de9263bef830be5637d3d11
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';

@@ -11,7 +11,6 @@ import SectorServiceSoftware from './components/SectorServiceSoftware';
 import Resources from './components/Resources';
 import PortfolioProject from './components/PortfolioProject';
 import Certificates from './components/Certificates';
-import AcceptRejectModal from './components/AcceptRejectModal';
 import type { Vendor } from './types';
 
 const PartnerView = () => {
@@ -23,9 +22,6 @@ const PartnerView = () => {
     const [vendor, setVendor] = useState<Vendor | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'accept' | 'reject'>('accept');
-    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         const fetchVendor = async () => {
@@ -44,57 +40,6 @@ const PartnerView = () => {
             fetchVendor();
         }
     }, [id]);
-
-    const handleAccept = () => {
-        setModalType('accept');
-        setIsModalOpen(true);
-    };
-
-    const handleReject = () => {
-        setModalType('reject');
-        setIsModalOpen(true);
-    };
-
-    const handleConfirmAction = async (reason?: string) => {
-        if (!id) return;
-
-        setIsProcessing(true);
-        try {
-            const endpoint = modalType === 'accept'
-                ? `/api/vendors/${id}/approve`
-                : `/api/vendors/${id}/reject`;
-
-            const payload = modalType === 'reject' ? { reason } : {};
-
-            await api.post(endpoint, payload);
-
-            // Show success toast notification
-            toast.success(
-                `Partner ${modalType === 'accept' ? 'accepted' : 'rejected'} successfully!`,
-                {
-                    position: 'top-center',
-                    duration: 3000,
-                }
-            );
-
-            // Refresh vendor data
-            const response = await api.get(`/api/vendors/${id}`);
-            setVendor(response.data);
-
-            setIsModalOpen(false);
-        } catch (err: any) {
-            console.error(`Error ${modalType}ing vendor:`, err);
-            const errorMessage = err.response?.data?.error || `Failed to ${modalType} partner`;
-
-            // Show error toast notification
-            toast.error(errorMessage, {
-                position: 'top-center',
-                duration: 4000,
-            });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
 
     const renderContent = () => {
         if (!vendor) return null;
@@ -123,10 +68,6 @@ const PartnerView = () => {
     if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
     if (!vendor) return <div className="p-8 text-center">Partner not found</div>;
 
-    const isPending = vendor.status === 'pending';
-    const isApproved = vendor.status === 'approved';
-    const isRejected = vendor.status === 'rejected';
-
     return (
         <div className="bg-white font-inter">
             {/* Toast Notifications Container */}
@@ -142,7 +83,7 @@ const PartnerView = () => {
                             className="flex items-center text-gray-600 hover:text-gray-900 font-medium text-lg"
                             style={{ fontFamily: 'Montserrat, sans-serif' }}
                         >
-                            <img src="/src/assets/lets-icons_back.svg" alt="Back" className="mr-2 w-6 h-6" />
+                            <img src="/src/assets/Vector.svg" alt="Back" className="mr-2 w-5 h-5" />
                             Back to list
                         </button>
 
@@ -151,35 +92,8 @@ const PartnerView = () => {
                             View Partner Details
                         </h3>
 
-                        {/* Right: Action Buttons */}
-                        <div className="flex gap-3 justify-end">
-                            {isPending && (
-                                <>
-                                    <button
-                                        onClick={handleReject}
-                                        className="px-4 py-1 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors font-medium"
-                                    >
-                                        Reject
-                                    </button>
-                                    <button
-                                        onClick={handleAccept}
-                                        className="px-4 py-1 bg-[#DD4342] text-white rounded-md hover:bg-red-700 transition-colors font-medium"
-                                    >
-                                        Accept
-                                    </button>
-                                </>
-                            )}
-                            {isApproved && (
-                                <span className="px-4 py-1 bg-green-100 text-green-800 rounded-md font-medium">
-                                    ✓ Approved
-                                </span>
-                            )}
-                            {isRejected && (
-                                <span className="px-4 py-1 bg-red-100 text-red-800 rounded-md font-medium">
-                                    ✗ Rejected
-                                </span>
-                            )}
-                        </div>
+                        {/* Right: Empty spacer for flex alignment */}
+                        <div className="flex gap-3 justify-end"></div>
                     </div>
 
                     <div className="item-end flex gap-8">
@@ -195,16 +109,6 @@ const PartnerView = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Accept/Reject Modal */}
-            <AcceptRejectModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onConfirm={handleConfirmAction}
-                type={modalType}
-                companyName={vendor.company_name}
-                isLoading={isProcessing}
-            />
         </div>
     );
 };
