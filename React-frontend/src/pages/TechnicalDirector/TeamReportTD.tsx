@@ -26,6 +26,10 @@ export default function TeamReportTD() {
     const [employee, setEmployee] = useState('All');
     const [team, setTeam] = useState('All');
     const [list] = useState<TimesheetEntry[]>(DUMMY_DATA);
+    const [employeeOpen, setEmployeeOpen] = useState(false);
+    const [teamOpen, setTeamOpen] = useState(false);
+    const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
+    const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
 
     const filteredList = useMemo(() => {
         return list.filter(item => {
@@ -92,6 +96,16 @@ export default function TeamReportTD() {
             {/* Header Section */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
                 <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+                <button
+                    onClick={handleDownload}
+                    disabled={filteredList.length === 0}
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[16px]">Download</span>
+                </button>
             </div>
 
             {/* Filter Row */}
@@ -100,8 +114,8 @@ export default function TeamReportTD() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
-                        <span className="text-[#616161] text-sm font-medium">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                        <span className={`text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -121,8 +135,8 @@ export default function TeamReportTD() {
                     </div>
 
                     {/* End Date */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
-                        <span className="text-[#616161] text-sm font-medium">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                        <span className={`text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
                         </span>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -141,56 +155,54 @@ export default function TeamReportTD() {
                         />
                     </div>
 
-                    {/* Employee Dropdown */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[130px]">
-                        <select
-                            value={employee}
-                            onChange={(e) => setEmployee(e.target.value)}
-                            className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
-                        >
-                            <option value="All">Employee</option>
-                            <option value="John Doe">John Doe</option>
-                            <option value="Jane Smith">Jane Smith</option>
-                            <option value="Alice Brown">Alice Brown</option>
-                            <option value="Bob Wilson">Bob Wilson</option>
-                        </select>
-                        <div className="absolute right-3 pointer-events-none">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {/* Employee Custom Dropdown */}
+                    <div className="relative min-w-[130px]" onBlur={() => setTimeout(() => setEmployeeOpen(false), 150)}>
+                        <button type="button" onClick={() => { setEmployeeOpen(o => !o); setTeamOpen(false); }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            <span className={`text-sm font-medium ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                                {employee === 'All' ? 'Employee' : employee}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: employeeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                 <path d="M6 9l6 6 6-6" />
                             </svg>
-                        </div>
+                        </button>
+                        {employeeOpen && (
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1">
+                                {employeeOptions.map(opt => (
+                                    <button key={opt} type="button" onClick={() => { setEmployee(opt); setEmployeeOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        {opt === 'All' ? 'Employee' : opt}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Team Dropdown */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-xl hover:bg-gray-200 transition-all cursor-pointer min-w-[100px]">
-                        <select
-                            value={team}
-                            onChange={(e) => setTeam(e.target.value)}
-                            className="bg-transparent border-none outline-none text-[#616161] text-sm font-medium cursor-pointer appearance-none w-full pr-6"
-                        >
-                            <option value="All">Team</option>
-                            <option value="Team A">Team A</option>
-                            <option value="Team B">Team B</option>
-                            <option value="Team C">Team C</option>
-                        </select>
-                        <div className="absolute right-3 pointer-events-none">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {/* Team Custom Dropdown */}
+                    <div className="relative min-w-[100px]" onBlur={() => setTimeout(() => setTeamOpen(false), 150)}>
+                        <button type="button" onClick={() => { setTeamOpen(o => !o); setEmployeeOpen(false); }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                                {team === 'All' ? 'Team' : team}
+                            </span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: teamOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                                 <path d="M6 9l6 6 6-6" />
                             </svg>
-                        </div>
+                        </button>
+                        {teamOpen && (
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                                {teamOptions.map(opt => (
+                                    <button key={opt} type="button" onClick={() => { setTeam(opt); setTeamOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        {opt === 'All' ? 'Team' : opt}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Download Button */}
-                    <button
-                        onClick={handleDownload}
-                        disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-[16px]">Download</span>
-                    </button>
                 </div>
             </div>
 
@@ -200,12 +212,12 @@ export default function TeamReportTD() {
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Sl.No</th>
-                                <th className="px-6 py-6 text-left text-sm font-bold text-gray-700 bg-white">Project Name</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Task</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Start Date</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">End Date</th>
-                                <th className="px-6 py-6 text-center text-sm font-bold text-gray-700 bg-white">Task Duration</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Sl.No</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Project Name</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Start Date</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">End Date</th>
+                                <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task Duration</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -219,13 +231,13 @@ export default function TeamReportTD() {
                                 filteredList.map((row, index) => {
                                     const slNo = (index + 1).toString().padStart(2, '0');
                                     return (
-                                        <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F9FAFB]' : 'bg-white'} hover:bg-gray-50 transition-colors`}>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                            <td className="px-6 py-5 text-left text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
-                                            <td className="px-6 py-5 text-center text-sm text-gray-600 font-medium">{row.duration ?? 'hh:mm:ss'}</td>
+                                        <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{row.duration ?? 'hh:mm:ss'}</td>
                                         </tr>
                                     );
                                 })

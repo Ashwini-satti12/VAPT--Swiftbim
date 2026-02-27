@@ -29,6 +29,7 @@ from blueprints.calendar import bp as calendar_bp
 from blueprints.reports import bp as reports_bp
 from blueprints.timeline import bp as timeline_bp
 from blueprints.client_panel import bp as client_panel_bp
+from blueprints.vendor import bp as vendor_bp
 
 
 def create_app(config_class=Config): 
@@ -37,6 +38,17 @@ def create_app(config_class=Config):
     CORS(app, origins=["*"], supports_credentials=True)
 
     mysql.init_app(app)
+
+    @app.teardown_appcontext
+    def close_vendor_db(exception):
+        """Close the vendor DB (new_swiftbim) connection at end of each request."""
+        from flask import g
+        conn = g.pop("vendor_db", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -58,6 +70,7 @@ def create_app(config_class=Config):
     app.register_blueprint(reports_bp)
     app.register_blueprint(timeline_bp)
     app.register_blueprint(client_panel_bp)
+    app.register_blueprint(vendor_bp)
 
     @app.route("/")
     def index():

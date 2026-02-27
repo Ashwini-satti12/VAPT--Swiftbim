@@ -434,10 +434,10 @@ export default function ChatPM() {
     // New code
     <div>
       <h2 className="text-2xl text-black mb-4">Chat</h2>
-      <div className="flex gap-4 h-[calc(100vh-8rem)] min-h-[500px] p-4 bg-transparent">
+      <div className="flex gap-4 h-[calc(100vh-8rem)] min-h-[500px] bg-transparent">
         {/* Left panel: People - separate box */}
-        <div className="w-[300px] shrink-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-200 bg-white">
+        <div className="w-[300px] shrink-0 flex flex-col rounded-xl border border-[#AEACAC52] bg-[#FFFFFF] shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-200 bg-[#FFFFFF]">
             <h3 className="text-lg  text-black mt-3">People</h3>
             <p className="text-sm text-slate-500 mt-0.5">
               Direct Conversations in your workplace
@@ -453,16 +453,17 @@ export default function ChatPM() {
               />
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto p-2">
             {filteredContacts.map((contact) => (
               <button
                 key={contact.id}
                 type="button"
                 onClick={() => setSelectedContact(contact)}
-                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${selectedContact.id === contact.id
-                  ? "bg-slate-200/80"
-                  : "hover:bg-slate-100/80"
-                  }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors border border-[#AEACAC] rounded-lg mt-2 ${
+                  selectedContact.id === contact.id
+                    ? "bg-[#F2F2F2]"
+                    : "hover:bg-slate-100/80"
+                }`}
               >
                 <Avatar name={contact.name} />
                 <div className="flex-1 min-w-0">
@@ -487,9 +488,9 @@ export default function ChatPM() {
         </div>
 
         {/* Right panel: Chat conversation - separate box */}
-        <div className="flex-1 flex flex-col min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 rounded-xl border border-[#AEACAC52] bg-[#FFFFFF] overflow-hidden">
           {/* Conversation header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+          <div className="flex items-center justify-between px-4 py-3 border border-[#AEACAC52] bg-[#FFFFFF] ">
             <div className="flex items-center gap-3 min-w-0">
               <Avatar name={selectedContact.name} className="w-11 h-11" />
               <div>
@@ -543,10 +544,11 @@ export default function ChatPM() {
                 className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`relative max-w-[75%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${msg.sender === "user"
-                    ? "bg-slate-200 text-slate-900"
-                    : "bg-slate-100 text-slate-900"
-                    }`}
+                  className={`relative max-w-[75%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${
+                    msg.sender === "user"
+                      ? "bg-slate-200 text-slate-900"
+                      : "bg-slate-100 text-slate-900"
+                  }`}
                   onContextMenu={(e) => handleContextMenu(e, msg.id)}
                 >
                   {msg.attachments && msg.attachments.length > 0 && (

@@ -88,6 +88,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Partner",
+          path: `/${prefix}/partner`,
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        {
           name: "Projects",
           path: `/${prefix}/projects`,
           iconSrc: projectIcon,
@@ -155,13 +162,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteConsultantIcon,
           isVisible: true,
         },
-        {
-          name: "Clients",
-          path: "/bc/clients",
-          iconSrc: clientIcon,
-          activeIconSrc: whiteClientIcon,
-          isVisible: true,
-        },
+        // {
+        //   name: "Clients",
+        //   path: "/bc/clients",
+        //   iconSrc: clientIcon,
+        //   activeIconSrc: whiteClientIcon,
+        //   isVisible: true,
+        // },
         {
           name: "Projects",
           path: "/bc/projects",
@@ -298,53 +305,11 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteDashboardIcon,
           isVisible: true,
         },
-        {
-          name: "Consultant",
-          path: "/bm/consultants",
-          iconSrc: consultantIcon,
-          activeIconSrc: whiteConsultantIcon,
-          isVisible: true,
-        },
-        {
-          name: "Clients",
-          path: "/bm/clients",
-          iconSrc: clientIcon,
-          activeIconSrc: whiteClientIcon,
-          isVisible: true,
-        },
-        {
-          name: "Projects",
-          path: "/bm/projects",
-          iconSrc: projectIcon,
-          activeIconSrc: whiteProjectIcon,
-          isVisible: true,
-        },
-        {
+       {
           name: "My Task",
           path: "/bm/mytasks",
           iconSrc: myTaskIcon,
           activeIconSrc: whiteMyTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Team Task",
-          path: "/bm/teamtasks",
-          iconSrc: teamTaskIcon,
-          activeIconSrc: whiteTeamTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Create Team",
-          path: "/bm/createteam",
-          iconSrc: createTeamIcon,
-          activeIconSrc: whiteCreateTeamIcon,
-          isVisible: true,
-        },
-        {
-          name: "Tracker",
-          path: "/bm/tracker",
-          iconSrc: trackerIcon,
-          activeIconSrc: whiteTrackerIcon,
           isVisible: true,
         },
         {
@@ -354,13 +319,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
-        {
-          name: "Chat",
-          path: "/bm/chat",
-          iconSrc: chatIcon,
-          activeIconSrc: whiteChatIcon,
-          isVisible: true,
-        },
+       
       ];
     }
 
@@ -442,7 +401,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         activeIconSrc: whiteChatIcon,
         isVisible: isManagement,
       },
-    ].filter(item => item.isVisible);
+    ].filter((item) => item.isVisible);
   };
 
   const navItems = getNavItems();
@@ -512,7 +471,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       </div>
 
       {showLogoutModal && createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-xl p-10 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
             {/* Close Button */}
             <button

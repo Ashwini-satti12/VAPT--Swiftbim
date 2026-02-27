@@ -1,5 +1,10 @@
 import { useEffect, useState, useRef } from "react";
-import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useSearchParams,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
@@ -227,9 +232,13 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     module: str(t.module ?? t.modules_name ?? ""),
     taskName: str(t.task_name ?? t.taskName ?? ""),
     type: str(t.type ?? t.category ?? ""),
-    actualStartDate: dateOnly(t.start_date ?? t.startDate ?? t.Actual_start_time ?? ""),
+    actualStartDate: dateOnly(
+      t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+    ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
-    startTime: timeOnly(t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
+    startTime: timeOnly(
+      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+    ),
     dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
     assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
@@ -351,51 +360,51 @@ function TaskCard({
           >
             <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
-          {menuOpen && (
-            <div
-              className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980] ${isCompleted ? "right-full mr-1" : "left-full ml-1"}`}
-              role="menu"
+          <div
+            aria-hidden={!menuOpen}
+            role="menu"
+            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+            ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+              onClick={() => {
+                setMenuOpen(false);
+                onViewTask?.(task);
+              }}
             >
+              <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+              <span>View</span>
+            </button>
+            {!isCompleted && (
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
                 onClick={() => {
                   setMenuOpen(false);
-                  onViewTask?.(task);
+                  onEditTask?.(task);
                 }}
               >
-                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                <span>View</span>
+                <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                <span>Edit</span>
               </button>
-              {!isCompleted && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onEditTask?.(task);
-                  }}
-                >
-                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                  <span>Edit</span>
-                </button>
-              )}
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDeleteTask?.(task);
-                }}
-              >
-                <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+              onClick={() => {
+                setMenuOpen(false);
+                onDeleteTask?.(task);
+              }}
+            >
+              <HiOutlineTrash className="w-4 h-4 shrink-0" />
+              <span>Delete</span>
+            </button>
+          </div>
         </div>
       </div>
       <h4 className="font-semibold text-slate-900 text-sm mb-1">
@@ -480,10 +489,10 @@ export default function MyTasksPM() {
   };
   const [list, setList] = useState<Task[]>([]);
   const [myLocalTasks, setMyLocalTasks] = useState<Task[]>(() =>
-    loadFromStorage(STORAGE_KEY_MY)
+    loadFromStorage(STORAGE_KEY_MY),
   );
   const [teamLocalTasks, setTeamLocalTasks] = useState<Task[]>(() =>
-    loadFromStorage(STORAGE_KEY_TEAM)
+    loadFromStorage(STORAGE_KEY_TEAM),
   );
   const localTasks = isTeam ? teamLocalTasks : myLocalTasks;
   const setLocalTasks = isTeam ? setTeamLocalTasks : setMyLocalTasks;
@@ -493,15 +502,17 @@ export default function MyTasksPM() {
     ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
   ];
 
-  const statusToLabel = (
-    s: "todo" | "in_progress" | "completed"
-  ): string => {
-    return s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Completed";
+  const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
+    return s === "todo"
+      ? "To Do"
+      : s === "in_progress"
+        ? "In Progress"
+        : "Completed";
   };
 
   const handleMoveTask = (
     taskId: number,
-    newStatus: "todo" | "in_progress" | "completed"
+    newStatus: "todo" | "in_progress" | "completed",
   ) => {
     const label = statusToLabel(newStatus);
     setLocalTasks((prev) => {
@@ -779,7 +790,7 @@ export default function MyTasksPM() {
               });
               setAddTaskModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-3 text-sm font-medium text-white"
           >
             <svg
               className="h-5 w-5"
@@ -794,6 +805,7 @@ export default function MyTasksPM() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
+            {/* <FiAddTask className="w-5 h-5" /> */}
             Add task
           </button>
         </div>
@@ -860,7 +872,9 @@ export default function MyTasksPM() {
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const raw =
+              e.dataTransfer.getData("taskId") ||
+              e.dataTransfer.getData("text/plain");
             const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
           }}
@@ -885,7 +899,9 @@ export default function MyTasksPM() {
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const raw =
+              e.dataTransfer.getData("taskId") ||
+              e.dataTransfer.getData("text/plain");
             const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
           }}
@@ -910,7 +926,9 @@ export default function MyTasksPM() {
           onDrop={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const raw = e.dataTransfer.getData("taskId") || e.dataTransfer.getData("text/plain");
+            const raw =
+              e.dataTransfer.getData("taskId") ||
+              e.dataTransfer.getData("text/plain");
             const taskId = Number(raw);
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
           }}
@@ -1122,8 +1140,9 @@ export default function MyTasksPM() {
                         }))
                       }
                       placeholder="Enter Task / Select Task"
-                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                        }`}
+                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${
+                        editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                      }`}
                     />
                     {editingTaskId === null && (
                       <button

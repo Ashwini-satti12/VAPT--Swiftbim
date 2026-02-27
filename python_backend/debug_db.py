@@ -1,5 +1,5 @@
 
-import pymysql
+import mysql.connector
 import os
 from dotenv import load_dotenv
 
@@ -14,7 +14,7 @@ port = int(os.getenv("MYSQL_PORT", "3306"))
 print(f"Connecting to {host}:{port}, db={db} with user={user}")
 
 try:
-    conn = pymysql.connect(
+    conn = mysql.connector.connect(
         host=host,
         user=user,
         password=password,
@@ -22,20 +22,21 @@ try:
         port=port
     )
     print("Connection successful!")
-    with conn.cursor() as cur:
-        cur.execute("SHOW TABLES")
-        tables = cur.fetchall()
-        print(f"Tables in {db}: {[t[0] for t in tables]}")
-        
-        if ('employee',) in tables or any('employee' in str(t) for t in tables):
-            cur.execute("DESCRIBE employee")
-            cols = cur.fetchall()
-            print("Columns in employee table:")
-            for c in cols:
-                print(c)
-        else:
-            print("Employee table not found!")
-            
+    cur = conn.cursor()
+    cur.execute("SHOW TABLES")
+    tables = cur.fetchall()
+    print(f"Tables in {db}: {[t[0] for t in tables]}")
+
+    if ('employee',) in tables or any('employee' in str(t) for t in tables):
+        cur.execute("DESCRIBE employee")
+        cols = cur.fetchall()
+        print("Columns in employee table:")
+        for c in cols:
+            print(c)
+    else:
+        print("Employee table not found!")
+
+    cur.close()
     conn.close()
 except Exception as e:
     print(f"Error: {e}")
@@ -44,7 +45,7 @@ except Exception as e:
 db2 = "swiftmanagement"
 print(f"\nChecking database: {db2}")
 try:
-    conn = pymysql.connect(
+    conn = mysql.connector.connect(
         host=host,
         user=user,
         password=password,

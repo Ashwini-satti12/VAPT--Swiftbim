@@ -1,6 +1,6 @@
 
 import hashlib
-import pymysql
+import mysql.connector
 import os
 from dotenv import load_dotenv
 
@@ -18,24 +18,25 @@ port = int(os.getenv("MYSQL_PORT", "3306"))
 print(f"Testing login logic with db={db}...")
 
 try:
-    conn = pymysql.connect(
+    conn = mysql.connector.connect(
         host=host,
         user=user,
         password=password,
         database=db,
         port=port,
-        cursorclass=pymysql.cursors.DictCursor
+        dictionary=True
     )
     email = "admin@example.com" # Just a guess
     print(f"Checking email: {email}")
-    
-    with conn.cursor() as cur:
-        cur.execute("SELECT * FROM employee")
-        rows = cur.fetchall()
-        print(f"Found {len(rows)} employees.")
-        if rows:
-            print("First employee sample:", {k: v for k, v in rows[0].items() if k in ['id', 'email', 'full_name', 'Company_id']})
-            
+
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM employee")
+    rows = cur.fetchall()
+    print(f"Found {len(rows)} employees.")
+    if rows:
+        print("First employee sample:", {k: v for k, v in rows[0].items() if k in ['id', 'email', 'full_name', 'Company_id']})
+
+    cur.close()
     conn.close()
 except Exception as e:
     print(f"Error: {e}")
