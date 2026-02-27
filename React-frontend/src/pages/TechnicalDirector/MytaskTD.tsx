@@ -461,7 +461,18 @@ export default function MytaskTD() {
         searchParams.get("condition") === "1" || pathname.endsWith("/team");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "myTask_localTasks";
+    const STORAGE_KEY = "td_myTask_localTasks";
+    const DELETED_IDS_KEY = "td_myTask_deletedIds";
+    const loadDeletedIds = (): number[] => {
+        try {
+            const raw = localStorage.getItem(DELETED_IDS_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.map(Number).filter((n) => !Number.isNaN(n)) : [];
+        } catch {
+            return [];
+        }
+    };
     const [list, setList] = useState<Task[]>([]);
     const [localTasks, setLocalTasks] = useState<Task[]>(() => {
         try {
@@ -473,11 +484,13 @@ export default function MytaskTD() {
             return [];
         }
     });
+    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
-    const allTasks = [
+    const merged = [
         ...localTasks,
         ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
     ];
+    const allTasks = merged.filter((t) => !deletedIds.includes(t.id));
 
     const statusToLabel = (
         s: "todo" | "in_progress" | "completed"
@@ -510,6 +523,14 @@ export default function MytaskTD() {
             // ignore quota or parse errors
         }
     }, [localTasks]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
+        } catch {
+            // ignore
+        }
+    }, [deletedIds]);
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -551,7 +572,9 @@ export default function MytaskTD() {
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
+        setDeletedIds((prev) => (prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId]));
         setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+        setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
         setDeleteTaskId(null);
     };
 
