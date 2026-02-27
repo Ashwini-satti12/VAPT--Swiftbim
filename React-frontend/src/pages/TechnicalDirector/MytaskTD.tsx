@@ -486,11 +486,16 @@ export default function MytaskTD() {
     });
     const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+
+    const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
+    const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
     const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
+        ...safeLocal,
+        ...safeList.filter((t) => t && !safeLocal.some((l) => l && l.id === t.id)),
     ];
-    const allTasks = merged.filter((t) => !deletedIds.includes(t.id));
+    const allTasks = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
 
     const statusToLabel = (
         s: "todo" | "in_progress" | "completed"
@@ -572,6 +577,8 @@ export default function MytaskTD() {
         api.delete(`/api/tasks/${deleteTaskId}`)
             .then(() => {
                 setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                setDeletedIds((prev) => [...prev, deleteTaskId]);
                 setDeleteTaskId(null);
             })
             .catch(() => {
@@ -686,12 +693,12 @@ export default function MytaskTD() {
     // Data maps for dropdowns
     const employeeOptions = [
         "Select Employee",
-        ...employees.map(e => e.full_name)
+        ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
     ];
 
     const projectOptions = [
         "Select Projects",
-        ...projects.map(p => p.project_name)
+        ...(Array.isArray(projects) ? projects : []).map(p => p?.project_name).filter(Boolean)
     ];
 
     const counts = {
