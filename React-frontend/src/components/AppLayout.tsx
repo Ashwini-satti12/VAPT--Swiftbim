@@ -33,8 +33,8 @@ export default function AppLayout() {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 px-4 pb-6 min-w-0">
-          <div className="h-full min-h-0 rounded-2xl bg-white shadow-sm border border-[#AEACAC52] p-8 overflow-y-auto  custom-scrollbar">
+        <main className="flex-1 px-4 pb-2 min-w-0">
+          <div className="h-full min-h-0 rounded-[15px] bg-white border border-[#AEACAC52] p-4 overflow-y-auto">
             <Outlet />
           </div>
         </main>

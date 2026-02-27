@@ -99,7 +99,6 @@ import TrackerV from './pages/Vendor/TrackerV';
 import TeamReportV from './pages/Vendor/TeamReportV';
 import ChatV from './pages/Vendor/ChatV';
 import MytaskViewV from './pages/Vendor/MytaskViewV';
-import './App.css';
 
 function App() {
   return (
