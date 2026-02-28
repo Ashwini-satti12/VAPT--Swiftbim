@@ -102,6 +102,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Bidding Process",
+          path: `/${prefix}/bidding`,
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
           name: "My Task",
           path: `/${prefix}/mytasks`,
           iconSrc: myTaskIcon,
@@ -305,7 +312,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteDashboardIcon,
           isVisible: true,
         },
-       {
+        {
           name: "My Task",
           path: "/bm/mytasks",
           iconSrc: myTaskIcon,
@@ -319,7 +326,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
-       
+
       ];
     }
 

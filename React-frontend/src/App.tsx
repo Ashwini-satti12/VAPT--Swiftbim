@@ -45,6 +45,7 @@ import ChatTD from './pages/TechnicalDirector/ChatTD';
 import MytaskViewTD from './pages/TechnicalDirector/MytaskViewTD';
 import PartnerTD from './pages/TechnicalDirector/PartnerTD';
 import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
+import BiddingTD from './pages/TechnicalDirector/BiddingTD';
 
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
@@ -143,6 +144,7 @@ function App() {
             <Route path="td/mytasks/view" element={<MytaskViewTD />} />
             <Route path="td/partner" element={<PartnerTD />} />
             <Route path="td/partner/:id" element={<PartnerView />} />
+            <Route path="td/bidding" element={<BiddingTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
@@ -155,6 +157,7 @@ function App() {
             <Route path="bl/teamreport" element={<TeamReportBL />} />
             <Route path="bl/chat" element={<ChatBL />} />
             <Route path="bl/mytasks/view" element={<MytaskViewBL />} />
+            <Route path="bl/bidding" element={<BiddingTD />} />
 
             {/* Bim Coordinator Routes */}
             <Route path="bc/dashboard" element={<DashboardBC />} />
