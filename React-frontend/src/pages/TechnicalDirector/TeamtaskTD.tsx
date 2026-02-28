@@ -325,16 +325,22 @@ function TaskCard({
   }, [menuOpen]);
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (status === "completed") {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("taskId", String(task.id));
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", task.task_name || "Task");
   };
 
+  const isCompleted = status === "completed";
+
   return (
     <div
-      draggable
+      draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <span
@@ -429,7 +435,8 @@ function TaskCard({
           <span className="text-xs text-slate-500">+4</span>
         </div>
         <Link
-          to={`/tasks/${task.id}`}
+          to="/td/mytasks/view"
+          state={{ task, from: "teamtask" }}
           draggable={false}
           className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
         >
@@ -577,7 +584,7 @@ export default function TeamtaskPM() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate("/tasks/taskview", { state: { task } });
+    navigate("/td/mytasks/view", { state: { task, from: "teamtask" } });
   };
 
   const confirmDeleteTask = () => {
@@ -712,7 +719,7 @@ export default function TeamtaskPM() {
       {/* Top row: title + dropdowns + Add task */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-slate-800">
-          {isTeam ? "Team Task" : "My Task"}
+          {isTeam ? "Team Task" : "Team Task"}
         </h2>
         <div
           ref={dropdownsContainerRef}
@@ -791,7 +798,7 @@ export default function TeamtaskPM() {
               });
               setAddTaskModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm "
           >
             <svg
               className="h-5 w-5"
@@ -909,18 +916,7 @@ export default function TeamtaskPM() {
             />
           ))}
         </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-          }}
-        >
+        <div className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
           {tasksByStatus.completed.map((task) => (
             <TaskCard
               key={task.id}
