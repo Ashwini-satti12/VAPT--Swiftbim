@@ -208,7 +208,7 @@ export default function Clients() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[12px] bg-[#E14B4B] text-white font-semibold hover:bg-[#c93d3d] transition shadow-md shadow-red-100"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100"
           >
             <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
             Add Client
@@ -279,7 +279,7 @@ export default function Clients() {
                     <button
                       type="button"
                       onClick={() => openView(c.id)}
-                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm"
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm"
                     >
                       <img src={viewIcon} alt="View" className="w-5 h-5 object-contain" />
                       View
@@ -287,7 +287,7 @@ export default function Clients() {
                     <button
                       type="button"
                       onClick={() => openEdit(c.id)}
-                      className="flex items-center justify-center gap-2 py-3.5 rounded-xl bg-[#F2F2F2] text-[#353535] font-gantari text-sm hover:bg-gray-200 transition border border-transparent"
+                      className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent"
                     >
                       <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
                       Edit
