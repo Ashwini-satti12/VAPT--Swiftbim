@@ -328,16 +328,22 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
+        if (status === "completed") {
+            e.preventDefault();
+            return;
+        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
     };
 
+    const isCompleted = status === "completed";
+
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <span
@@ -463,6 +469,7 @@ export default function MytaskTD() {
         searchParams.get("status") || searchParams.get("taskstatus");
     const STORAGE_KEY = "td_myTask_localTasks";
     const DELETED_IDS_KEY = "td_myTask_deletedIds";
+    const STATUS_OVERRIDES_KEY = "td_myTask_statusOverrides";
     const loadDeletedIds = (): number[] => {
         try {
             const raw = localStorage.getItem(DELETED_IDS_KEY);
@@ -471,6 +478,24 @@ export default function MytaskTD() {
             return Array.isArray(parsed) ? parsed.map(Number).filter((n) => !Number.isNaN(n)) : [];
         } catch {
             return [];
+        }
+    };
+    const loadStatusOverrides = (): Record<number, string> => {
+        try {
+            const raw = localStorage.getItem(STATUS_OVERRIDES_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+                const out: Record<number, string> = {};
+                for (const [k, v] of Object.entries(parsed)) {
+                    const id = Number(k);
+                    if (!Number.isNaN(id) && typeof v === "string") out[id] = v;
+                }
+                return out;
+            }
+            return {};
+        } catch {
+            return {};
         }
     };
     const [list, setList] = useState<Task[]>([]);
@@ -485,6 +510,7 @@ export default function MytaskTD() {
         }
     });
     const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
+    const [statusOverrides, setStatusOverrides] = useState<Record<number, string>>(loadStatusOverrides);
     const [loading, setLoading] = useState(true);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -497,6 +523,9 @@ export default function MytaskTD() {
     ];
     const allTasks = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
 
+    const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
+        normalizeStatus(statusOverrides[t.id] ?? t.status);
+
     const statusToLabel = (
         s: "todo" | "in_progress" | "completed"
     ): string => {
@@ -507,22 +536,25 @@ export default function MytaskTD() {
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
+        const label = statusToLabel(newStatus);
+        setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
+
         const statusMap = {
             todo: "Todo",
             in_progress: "InProgress",
             completed: "Completed"
         };
-        const task = list.find(t => t.id === taskId);
+        const task = list.find((t) => t.id === taskId) ?? safeLocal.find((t) => t.id === taskId);
 
-        // Optimistic update
         setList((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
         );
+        setLocalTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: label } : t))
+        );
 
-        api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus], projectId: task?.projectid || task?.project_id })
-            .catch(() => {
-                // Ignore silent fail, in real app we might revert list here
-            });
+        api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus], projectId: (task as Task & { projectid?: number; project_id?: number })?.projectid ?? (task as Task & { projectid?: number; project_id?: number })?.project_id })
+            .catch(() => {});
     };
 
     useEffect(() => {
@@ -532,6 +564,14 @@ export default function MytaskTD() {
             // ignore
         }
     }, [deletedIds]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(statusOverrides));
+        } catch {
+            // ignore
+        }
+    }, [statusOverrides]);
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -702,20 +742,20 @@ export default function MytaskTD() {
     ];
 
     const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => getEffectiveStatus(t) === "in_progress",
         ).length,
-        completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
+        completed: allTasks.filter((t) => getEffectiveStatus(t) === "completed")
             .length,
     };
     const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo"),
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => getEffectiveStatus(t) === "in_progress",
         ),
         completed: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "completed",
+            (t) => getEffectiveStatus(t) === "completed",
         ),
     };
 
@@ -929,18 +969,7 @@ export default function MytaskTD() {
                         />
                     ))}
                 </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
+                <div className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
                     {tasksByStatus.completed.map((task) => (
                         <TaskCard
                             key={task.id}

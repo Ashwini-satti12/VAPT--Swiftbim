@@ -90,7 +90,10 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 
 export default function MytaskViewTD() {
     const location = useLocation();
-    const task = (location.state as { task?: Task } | null)?.task;
+    const state = location.state as { task?: Task; from?: string } | null;
+    const task = state?.task;
+    const fromTeamTask = state?.from === "teamtask";
+    const backToUrl = fromTeamTask ? "/td/teamtasks" : "/td/mytasks";
     const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
         task ? normalizeStatus(task.status) : "todo"
     );
@@ -136,7 +139,7 @@ export default function MytaskViewTD() {
             <div className="bg-white min-h-screen p-6">
                 <p className="text-slate-600 mb-4">No task selected.</p>
                 <Link
-                    to="/td/mytasks"
+                    to={backToUrl}
                     className="text-[#3d3399] hover:underline font-medium"
                 >
                     ← Back to Tasks
@@ -153,7 +156,7 @@ export default function MytaskViewTD() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4">
                 <Link
-                    to="/td/mytasks"
+                    to={backToUrl}
                     className="p-1 rounded-lg text-black hover:bg-slate-100"
                     aria-label="Close"
                 >
