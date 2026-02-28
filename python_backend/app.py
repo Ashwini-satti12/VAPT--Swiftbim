@@ -3,7 +3,7 @@ Flask backend for Swifterz Project Management.
 All PHP API endpoints have been converted to Flask blueprints.
 """
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from config import Config
 from db import mysql
@@ -19,6 +19,7 @@ from blueprints.clients import bp as clients_bp
 from blueprints.messages import bp as messages_bp
 from blueprints.location import bp as location_bp
 from blueprints.timesheet import bp as timesheet_bp
+from blueprints.attendance import bp as attendance_bp
 from blueprints.leave import bp as leave_bp
 from blueprints.community import bp as community_bp
 from blueprints.profile import bp as profile_bp
@@ -29,6 +30,8 @@ from blueprints.calendar import bp as calendar_bp
 from blueprints.reports import bp as reports_bp
 from blueprints.timeline import bp as timeline_bp
 from blueprints.client_panel import bp as client_panel_bp
+from blueprints.departments import bp as departments_bp
+from blueprints.vendor import bp as vendor_bp
 
 
 def create_app(config_class=Config): 
@@ -37,6 +40,17 @@ def create_app(config_class=Config):
     CORS(app, origins=["*"], supports_credentials=True)
 
     mysql.init_app(app)
+
+    @app.teardown_appcontext
+    def close_vendor_db(exception):
+        """Close the vendor DB (new_swiftbim) connection at end of each request."""
+        from flask import g
+        conn = g.pop("vendor_db", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -48,6 +62,7 @@ def create_app(config_class=Config):
     app.register_blueprint(messages_bp)
     app.register_blueprint(location_bp)
     app.register_blueprint(timesheet_bp)
+    app.register_blueprint(attendance_bp)
     app.register_blueprint(leave_bp)
     app.register_blueprint(community_bp)
     app.register_blueprint(profile_bp)
@@ -58,6 +73,8 @@ def create_app(config_class=Config):
     app.register_blueprint(reports_bp)
     app.register_blueprint(timeline_bp)
     app.register_blueprint(client_panel_bp)
+    app.register_blueprint(departments_bp)
+    app.register_blueprint(vendor_bp)
 
     @app.route("/")
     def index():
@@ -66,6 +83,11 @@ def create_app(config_class=Config):
     @app.route("/api/health")
     def health():
         return {"status": "ok"}
+
+    # Serve uploaded files (e.g., employee profile pictures)
+    @app.route("/uploads/<path:filename>")
+    def uploaded_file(filename):
+        return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
     return app
 

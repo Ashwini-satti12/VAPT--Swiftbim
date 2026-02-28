@@ -11,7 +11,7 @@ def list_teams():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT t.*, e.full_name AS leader_name FROM team t LEFT JOIN employee e ON t.leader = e.id WHERE t.Company_id = %s",
+        "SELECT t.*, t.teamname AS team_name, e.full_name AS leader_name FROM team t LEFT JOIN employee e ON t.leader = e.id WHERE t.Company_id = %s",
         (g.company_id,),
     )
     rows = cur.fetchall()
@@ -23,6 +23,7 @@ def list_teams():
 @project_app_required
 def create_team():
     data = request.get_json() or request.form
+    teamname = data.get("team_name") or data.get("teamname", "")
     leader = data.get("leader")
     employee_ids = data.get("employee") or data.get("employees") or []
     project_lead = data.get("project_lead")
@@ -34,8 +35,8 @@ def create_team():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO team (leader, employee, project_lead, Company_id) VALUES (%s, %s, %s, %s)",
-        (leader, employee_str, project_lead or 0, g.company_id),
+        "INSERT INTO team (teamname, leader, employee, project_lead, Company_id) VALUES (%s, %s, %s, %s, %s)",
+        (teamname, leader, employee_str, project_lead or 0, g.company_id),
     )
     return jsonify({"success": True, "id": cur.lastrowid})
 
@@ -61,18 +62,24 @@ def update_team(team_id):
     data = request.get_json() or request.form
     conn = get_db()
     cur = conn.cursor()
-    employee = data.get("employee") or data.get("employees")
-    if isinstance(employee, list):
-        employee = ",".join(str(x) for x in employee)
     sets = []
     params = []
+
+    if "team_name" in data or "teamname" in data:
+        sets.append("`teamname` = %s")
+        params.append(data.get("team_name") or data.get("teamname"))
+
     for key in ("leader", "employee", "project_lead"):
         if key in data:
             val = data[key]
-            if key == "employee" and isinstance(val, list):
-                val = ",".join(str(x) for x in val)
+            if key == "employee":
+                if isinstance(val, list):
+                    val = ",".join(str(x) for x in val)
+                elif isinstance(val, str):
+                    val = ",".join(x.strip() for x in val.split(",") if x.strip())
             sets.append(f"`{key}` = %s")
             params.append(val)
+            
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.extend([team_id, g.company_id])
@@ -80,6 +87,17 @@ def update_team(team_id):
         "UPDATE team SET " + ", ".join(sets) + " WHERE team_id = %s AND Company_id = %s",
         params,
     )
+    if cur.rowcount:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "message": "Team not found"}), 404
+
+
+@bp.route("/<int:team_id>", methods=["DELETE"])
+@project_app_required
+def delete_team(team_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM team WHERE team_id = %s AND Company_id = %s", (team_id, g.company_id))
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Team not found"}), 404
