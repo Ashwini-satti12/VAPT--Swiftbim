@@ -361,11 +361,11 @@ export default function DashboardPM() {
                       if (cell.type !== 'current') {
                         cellClass += 'text-[#CFCFCF] hover:text-[#999] hover:bg-[#F8F8F8]';
                       } else if (isBothTodayAndSelected) {
-                        cellClass += 'bg-[#DE3D3A] text-white font-bold ring-2 ring-[#3B82F6] ring-offset-1';
+                        cellClass += 'bg-[#DE3D3A] text-white font-bold';
                       } else if (isTodayCell) {
                         cellClass += 'bg-[#DE3D3A] text-white font-bold hover:bg-[#c43432]';
                       } else if (isSelectedCell) {
-                        cellClass += 'bg-[#3B82F6] text-white font-bold hover:bg-[#2563EB]';
+                        cellClass += 'bg-[#FFD9D9] text-[#DE3D3A] font-bold';
                       } else {
                         cellClass += 'text-[#020202] hover:bg-[#F2F2F2]';
                       }

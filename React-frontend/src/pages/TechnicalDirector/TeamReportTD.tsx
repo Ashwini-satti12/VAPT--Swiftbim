@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import api from '../../lib/api';
 
 interface TimesheetEntry {
     id: number;
@@ -11,25 +12,172 @@ interface TimesheetEntry {
     team?: string;
 }
 
-const DUMMY_DATA: TimesheetEntry[] = [
-    { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', team: 'Team C' },
-    { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', team: 'Team A' },
-];
 
 export default function TeamReportTD() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [employee, setEmployee] = useState('All');
     const [team, setTeam] = useState('All');
-    const [list] = useState<TimesheetEntry[]>(DUMMY_DATA);
+    const [list, setList] = useState<TimesheetEntry[]>([]);
+    const [loading, setLoading] = useState(true);
     const [employeeOpen, setEmployeeOpen] = useState(false);
     const [teamOpen, setTeamOpen] = useState(false);
-    const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
-    const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
+    const [employeeOptions, setEmployeeOptions] = useState<string[]>(['All']);
+    const [teamOptions, setTeamOptions] = useState<string[]>(['All']);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const teamDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Load employee full_name list from backend (employee table) for Employee filter dropdown
+    useEffect(() => {
+        api
+            .get<{ employees?: { full_name?: string | null }[] }>('/api/employees')
+            .then(({ data }) => {
+                const names = Array.from(
+                    new Set(
+                        (data.employees ?? [])
+                            .map((e) => (e.full_name || '').trim())
+                            .filter((name) => name.length > 0),
+                    ),
+                );
+                if (names.length) {
+                    setEmployeeOptions(['All', ...names]);
+                }
+            })
+            .catch(() => {
+                // On error keep existing default options
+            });
+    }, []);
+
+    // Load team names from backend (team table) for Team filter dropdown
+    useEffect(() => {
+        api
+            .get<{ teams?: { team_name?: string | null; name?: string | null; teamname?: string | null }[] }>('/api/teams')
+            .then(({ data }) => {
+                const teamNames = Array.from(
+                    new Set(
+                        (data.teams ?? [])
+                            .map((t) => {
+                                // Try multiple possible field names for team name
+                                return (t.teamname || t.name || t.teamname || '').trim();
+                            })
+                            .filter((name) => name.length > 0),
+                    ),
+                );
+                if (teamNames.length) {
+                    setTeamOptions(['All', ...teamNames]);
+                }
+            })
+            .catch(() => {
+                // On error keep existing default options
+            });
+    }, []);
+
+    // Format date from ISO string to DD/MM/YYYY
+    const formatDateDisplay = (date: Date | null): string => {
+        if (!date) return '-';
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        return `${d}/${m}/${y}`;
+    };
+
+    // Calculate duration between start and end times
+    const formatDuration = (start: Date | null, end: Date | null): string => {
+        if (!start || !end) return 'hh:mm:ss';
+        const diffMs = end.getTime() - start.getTime();
+        if (diffMs < 0) return 'hh:mm:ss';
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Load completed tasks from backend when dates, employee, or team filter changes
+    useEffect(() => {
+        setLoading(true);
+        const payload: any = {};
+        if (startDate) payload.startDate = startDate;
+        if (endDate) payload.endDate = endDate;
+        
+        const loadFilters = async () => {
+            try {
+                // If team filter is set, find team_id by name
+                if (team !== 'All') {
+                    const { data: teamData } = await api.get<{ teams?: { team_id?: number; team_name?: string; name?: string; teamname?: string }[] }>('/api/teams');
+                    const foundTeam = (teamData.teams ?? []).find(t => {
+                        const tName = (t.teamname || t.name || t.teamname || '').trim();
+                        return tName === team;
+                    });
+                    if (foundTeam && foundTeam.team_id) {
+                        payload.selectteam = foundTeam.team_id;
+                    }
+                }
+                
+                // If employee filter is set, find employee ID by name
+                if (employee !== 'All') {
+                    const { data: empData } = await api.get<{ employees?: { id: number; full_name?: string }[] }>('/api/employees');
+                    const emp = (empData.employees ?? []).find(e => e.full_name === employee);
+                    if (emp) payload.selectmembers = emp.id;
+                }
+                
+                fetchTasks(payload);
+            } catch {
+                // If lookup fails, still fetch all tasks and filter client-side
+                fetchTasks(payload);
+            }
+        };
+        
+        loadFilters();
+    }, [startDate, endDate, employee, team]);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeOpen(false);
+            }
+            if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
+                setTeamOpen(false);
+            }
+        };
+        if (employeeOpen || teamOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [employeeOpen, teamOpen]);
+
+    const fetchTasks = (payload: any) => {
+        api
+            .post<{ completed_tasks?: any[] }>('/api/timesheet/completed-tasks', payload)
+            .then(({ data }) => {
+                const tasks = data.completed_tasks ?? [];
+                const mapped: TimesheetEntry[] = tasks.map((t) => {
+                    const start = t.start_time ? new Date(t.start_time) : null;
+                    const end = t.end_time ? new Date(t.end_time) : null;
+                    const startDisplay = formatDateDisplay(start);
+                    const endDisplay = formatDateDisplay(end || start);
+                    const duration = formatDuration(start, end);
+
+                    return {
+                        id: t.id,
+                        project_name: t.project_name || 'Others',
+                        task_name: t.task_name || '-',
+                        start_date: startDisplay,
+                        end_date: endDisplay,
+                        duration,
+                        assignee_name: t.assigned_name || '',
+                        team: t.teamname || undefined,
+                    };
+                });
+                setList(mapped);
+            })
+            .catch(() => {
+                setList([]);
+            })
+            .finally(() => setLoading(false));
+    };
 
     const filteredList = useMemo(() => {
         return list.filter(item => {
@@ -90,6 +238,14 @@ export default function TeamReportTD() {
         link.click();
         document.body.removeChild(link);
     };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+            </div>
+        );
+    }
 
     return (
         <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
@@ -156,9 +312,16 @@ export default function TeamReportTD() {
                     </div>
 
                     {/* Employee Custom Dropdown */}
-                    <div className="relative min-w-[130px]" onBlur={() => setTimeout(() => setEmployeeOpen(false), 150)}>
-                        <button type="button" onClick={() => { setEmployeeOpen(o => !o); setTeamOpen(false); }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                    <div className="relative min-w-[130px]" ref={employeeDropdownRef}>
+                        <button 
+                            type="button" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEmployeeOpen(o => !o);
+                                setTeamOpen(false);
+                            }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+                        >
                             <span className={`text-sm font-medium ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {employee === 'All' ? 'Employee' : employee}
                             </span>
@@ -168,10 +331,21 @@ export default function TeamReportTD() {
                             </svg>
                         </button>
                         {employeeOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1">
+                            <div 
+                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
                                 {employeeOptions.map(opt => (
-                                    <button key={opt} type="button" onClick={() => { setEmployee(opt); setEmployeeOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                    <button 
+                                        key={opt} 
+                                        type="button" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEmployee(opt);
+                                            setEmployeeOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
                                         {opt === 'All' ? 'Employee' : opt}
                                     </button>
                                 ))}
@@ -180,9 +354,16 @@ export default function TeamReportTD() {
                     </div>
 
                     {/* Team Custom Dropdown */}
-                    <div className="relative min-w-[100px]" onBlur={() => setTimeout(() => setTeamOpen(false), 150)}>
-                        <button type="button" onClick={() => { setTeamOpen(o => !o); setEmployeeOpen(false); }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                    <div className="relative min-w-[100px]" ref={teamDropdownRef}>
+                        <button 
+                            type="button" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setTeamOpen(o => !o);
+                                setEmployeeOpen(false);
+                            }}
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+                        >
                             <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {team === 'All' ? 'Team' : team}
                             </span>
@@ -192,10 +373,21 @@ export default function TeamReportTD() {
                             </svg>
                         </button>
                         {teamOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+                            <div 
+                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
                                 {teamOptions.map(opt => (
-                                    <button key={opt} type="button" onClick={() => { setTeam(opt); setTeamOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                    <button 
+                                        key={opt} 
+                                        type="button" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTeam(opt);
+                                            setTeamOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
                                         {opt === 'All' ? 'Team' : opt}
                                     </button>
                                 ))}
