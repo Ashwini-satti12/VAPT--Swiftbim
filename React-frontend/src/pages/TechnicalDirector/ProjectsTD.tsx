@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import { VscEye } from "react-icons/vsc";
 import { BiDotsVerticalRounded, BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
@@ -87,24 +88,42 @@ export default function ProjectsTD() {
     const canDelete = isManagement;
     const title = isManagement ? 'Projects' : 'Projects Involved';
 
+    const mapApiProjectToProject = (r: Record<string, unknown>): Project => {
+        const num = (v: unknown) => (v === null || v === undefined ? undefined : Number(v));
+        const str = (v: unknown) => (v != null ? String(v) : undefined);
+        const d = (v: unknown) => (v != null && typeof v === 'string' ? v : undefined);
+        return {
+            id: num(r.id) ?? 0,
+            project_name: str(r.project_name),
+            progress: num(r.progress) ?? 0,
+            total_tasks: num(r.total_tasks),
+            completed_tasks: num(r.completed_tasks),
+            budget: str(r.budget),
+            module_name: str(r.modules),
+            client_name: str(r.client_id),
+            project_manager: str(r.project_manager_id),
+            start_date: d(r.start_date),
+            end_date: d(r.due_date),
+            total_hours: str(r.totalhours),
+            per_day: str(r.perday),
+            department: str(r.department),
+            bim_lead: str(r.lead_id),
+            bim_co_ordinator: str(r.bim_coordinator_id),
+            member: str(r.members),
+            priority: str(r.priority),
+            location: str(r.location),
+            description: str(r.description),
+        };
+    };
+
     useEffect(() => {
-        // Mock data for UI testing - Added more projects to show scrollbar
-        const mockProjects: Project[] = [
-            { id: 1, project_name: 'AECOM - AL AIN HOSPITAL', progress: 50, total_tasks: 15, completed_tasks: 7 },
-            { id: 2, project_name: 'AL GURG', progress: 25, total_tasks: 4, completed_tasks: 1 },
-            { id: 3, project_name: 'ARATT - AYATHI RESIDENTIAL', progress: 47, total_tasks: 70, completed_tasks: 30 },
-            { id: 4, project_name: 'GHAF WOODS DEVELOPMENT', progress: 0, total_tasks: 0, completed_tasks: 0 },
-            { id: 5, project_name: 'Guggenheim Abu Dhabi Museum', progress: 78, total_tasks: 23, completed_tasks: 18 },
-            { id: 6, project_name: 'Prestige Park Grove Phase 1', progress: 80, total_tasks: 135, completed_tasks: 110 },
-            { id: 7, project_name: 'Sobha Hartland Greens', progress: 60, total_tasks: 20, completed_tasks: 12 },
-            { id: 8, project_name: 'Dubai Hills Estate', progress: 10, total_tasks: 50, completed_tasks: 5 },
-            { id: 9, project_name: 'Palm Jumeirah Resort', progress: 95, total_tasks: 100, completed_tasks: 95 },
-            { id: 10, project_name: 'EMAAR Beachfront', progress: 40, total_tasks: 25, completed_tasks: 10 },
-            { id: 11, project_name: 'Damac Hills 2', progress: 20, total_tasks: 15, completed_tasks: 3 },
-            { id: 12, project_name: 'Business Bay Office Tower', progress: 70, total_tasks: 30, completed_tasks: 21 },
-        ];
-        setList(mockProjects);
-        setLoading(false);
+        api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+            .then(({ data }) => {
+                const projects = (data.projects ?? []).map(mapApiProjectToProject);
+                setList(projects);
+            })
+            .catch(() => setList([]))
+            .finally(() => setLoading(false));
     }, []);
 
 
@@ -936,7 +955,52 @@ export default function ProjectsTD() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setShowCreateModal(false);
+                    setCreateError('');
+                    setCreateSubmitting(true);
+                    api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
+                      project_name: createName.trim(),
+                      budget: createBudget || undefined,
+                      modules: createModuleName || undefined,
+                      client_id: createClientName || undefined,
+                      project_manager_id: createProjectManager || undefined,
+                      lead_id: createBIMLead || undefined,
+                      bim_coordinator_id: createBIMCoOrdinator || undefined,
+                      members: createMember || undefined,
+                      department: createDepartment || undefined,
+                      due_date: createEndDate || undefined,
+                      start_date: createStartDate || undefined,
+                      totalhours: createTotalHours || undefined,
+                      perday: createPerDay || undefined,
+                      priority: createPriority || undefined,
+                      location: createLocation || undefined,
+                      description: createDescription || undefined,
+                    })
+                      .then(({ data }) => {
+                        if (data.success) {
+                          setShowCreateModal(false);
+                          setCreateName('');
+                          setCreateBudget('');
+                          setCreateModuleName('');
+                          setCreateClientName('');
+                          setCreateProjectManager('');
+                          setCreateStartDate('');
+                          setCreateEndDate('');
+                          setCreateTotalHours('');
+                          setCreatePerDay('');
+                          setCreateDepartment('');
+                          setCreateBIMLead('');
+                          setCreateBIMCoOrdinator('');
+                          setCreateMember('');
+                          setCreatePriority('');
+                          setCreateLocation('');
+                          setCreateDescription('');
+                          api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+                            .then((res) => setList((res.data.projects ?? []).map(mapApiProjectToProject)))
+                            .catch(() => {});
+                        }
+                      })
+                      .catch((err) => setCreateError(err.response?.data?.message || 'Failed to create project'))
+                      .finally(() => setCreateSubmitting(false));
                   }}
                   className="space-y-6"
                 >
@@ -1392,7 +1456,17 @@ export default function ProjectsTD() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDeleteId(null)}
+                  onClick={() => {
+                    if (deleteId === null) return;
+                    api.delete(`/api/projects/${deleteId}`)
+                      .then(({ data }) => {
+                        if ((data as { success?: boolean }).success) {
+                          setList((prev) => prev.filter((p) => p.id !== deleteId));
+                          setDeleteId(null);
+                        }
+                      })
+                      .catch(() => {});
+                  }}
                   className="px-12 py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[16px] transition-all hover:bg-[#FFDEDE]"
                 >
                   Yes, Delete
@@ -1574,7 +1648,35 @@ export default function ProjectsTD() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    setShowEditModal(false);
+                    if (!selectedProjectForEdit) return;
+                    const id = selectedProjectForEdit.id;
+                    setIsEditSubmitting(true);
+                    api.patch(`/api/projects/${id}`, {
+                      project_name: createName.trim(),
+                      budget: createBudget || undefined,
+                      modules: createModuleName || undefined,
+                      client_id: createClientName || undefined,
+                      project_manager_id: createProjectManager || undefined,
+                      lead_id: createBIMLead || undefined,
+                      bim_coordinator_id: createBIMCoOrdinator || undefined,
+                      members: createMember || undefined,
+                      department: createDepartment || undefined,
+                      due_date: createEndDate || undefined,
+                      start_date: createStartDate || undefined,
+                      totalhours: createTotalHours || undefined,
+                      perday: createPerDay || undefined,
+                      priority: createPriority || undefined,
+                      location: createLocation || undefined,
+                      description: createDescription || undefined,
+                    })
+                      .then(({ data }) => {
+                        if ((data as { success?: boolean }).success) {
+                          setShowEditModal(false);
+                          setList((prev) => prev.map((p) => (p.id === id ? { ...p, project_name: createName, budget: createBudget, module_name: createModuleName, client_name: createClientName, project_manager: createProjectManager, bim_lead: createBIMLead, bim_co_ordinator: createBIMCoOrdinator, member: createMember, department: createDepartment, end_date: createEndDate, start_date: createStartDate, total_hours: createTotalHours, per_day: createPerDay, priority: createPriority, location: createLocation, description: createDescription } : p)));
+                        }
+                      })
+                      .catch(() => {})
+                      .finally(() => setIsEditSubmitting(false));
                   }}
                   className="space-y-8"
                 >

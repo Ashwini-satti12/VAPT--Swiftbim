@@ -64,11 +64,16 @@ def list_projects():
                 "total_tasks": row["total_tasks"] or 0,
                 "completed_tasks": row["completed_tasks"] or 0,
             }
+    def _serialize_row(d):
+        if d.get("due_date") and hasattr(d["due_date"], "isoformat"):
+            d["due_date"] = d["due_date"].isoformat()
+        if d.get("start_date") and hasattr(d["start_date"], "isoformat"):
+            d["start_date"] = d["start_date"].isoformat()
+
     projects = []
     for r in rows:
         d = dict(r)
-        if d.get("due_date") and hasattr(d["due_date"], "isoformat"):
-            d["due_date"] = d["due_date"].isoformat()
+        _serialize_row(d)
         counts = task_counts.get(d["id"], {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
@@ -91,6 +96,8 @@ def get_project(project_id):
     d = dict(row)
     if d.get("due_date") and hasattr(d["due_date"], "isoformat"):
         d["due_date"] = d["due_date"].isoformat()
+    if d.get("start_date") and hasattr(d["start_date"], "isoformat"):
+        d["start_date"] = d["start_date"].isoformat()
     return jsonify(d)
 
 
@@ -103,16 +110,27 @@ def create_project():
     department = data.get("department") or ""
     due_date = data.get("due_date")
     priority = data.get("priority") or "Low"
-    budget = data.get("budget")
+    budget = data.get("budget") or "0"
     modules = data.get("modules") or ""
+    client_id = data.get("client_id") or None
+    project_manager_id = data.get("project_manager_id") or None
+    lead_id = data.get("lead_id") or None
+    bim_coordinator_id = data.get("bim_coordinator_id") or None
+    totalhours = data.get("totalhours") or data.get("total_hours") or None
+    perday = data.get("perday") or data.get("per_day") or None
+    location = data.get("location") or None
+    description = data.get("description") or None
+    start_date = data.get("start_date") or None
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules, progress, Company_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s)""",
-        (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id),
+        """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+        (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
+         client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date),
     )
     project_id = cur.lastrowid
     return jsonify({"success": True, "project_id": project_id})
@@ -124,7 +142,8 @@ def update_project(project_id):
     data = request.get_json() or request.form
     conn = get_db()
     cur = conn.cursor()
-    allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress")
+    allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
+               "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date")
     sets = []
     params = []
     for key in allowed:
