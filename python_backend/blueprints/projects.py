@@ -69,6 +69,8 @@ def list_projects():
             d["due_date"] = d["due_date"].isoformat()
         if d.get("start_date") and hasattr(d["start_date"], "isoformat"):
             d["start_date"] = d["start_date"].isoformat()
+        if d.get("bidding_end_date") and hasattr(d["bidding_end_date"], "isoformat"):
+            d["bidding_end_date"] = d["bidding_end_date"].isoformat()
 
     projects = []
     for r in rows:
@@ -98,6 +100,8 @@ def get_project(project_id):
         d["due_date"] = d["due_date"].isoformat()
     if d.get("start_date") and hasattr(d["start_date"], "isoformat"):
         d["start_date"] = d["start_date"].isoformat()
+    if d.get("bidding_end_date") and hasattr(d["bidding_end_date"], "isoformat"):
+        d["bidding_end_date"] = d["bidding_end_date"].isoformat()
     return jsonify(d)
 
 
@@ -143,7 +147,8 @@ def update_project(project_id):
     conn = get_db()
     cur = conn.cursor()
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
-               "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date")
+               "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
+               "budget_ceiling", "bidding_end_date")
     sets = []
     params = []
     for key in allowed:
