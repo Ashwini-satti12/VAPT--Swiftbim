@@ -1368,7 +1368,7 @@ export default function MytaskTD() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Select Due Time
+                                            Select End Time
                                         </label>
                                         <input
                                             type="time"
