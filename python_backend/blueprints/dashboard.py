@@ -7,15 +7,29 @@ from auth_middleware import project_app_required
 bp = Blueprint("dashboard", __name__, url_prefix="/api/dashboard")
 
 
+def _time_to_hhmmss(v):
+    """Convert time or timedelta to HH:MM:SS string for consistent API output."""
+    if isinstance(v, time):
+        return v.strftime("%H:%M:%S") if v else None
+    if isinstance(v, timedelta):
+        total = int(v.total_seconds())
+        if total < 0:
+            total = 0
+        h, r = divmod(total, 3600)
+        m, s = divmod(r, 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    return None
+
+
 def _serialize_value(v):
     if v is None:
         return None
     if isinstance(v, (datetime, date)):
         return v.isoformat()
     if isinstance(v, timedelta):
-        return str(v)
+        return _time_to_hhmmss(v)
     if isinstance(v, time):
-        return v.strftime("%H:%M:%S") if v else None
+        return _time_to_hhmmss(v)
     if isinstance(v, Decimal):
         return float(v)
     return v
@@ -34,25 +48,69 @@ def stats():
     conn = get_db()
     cur = conn.cursor()
 
-    def get_total_tasks(status, uid):
-        cur.execute(
-            "SELECT COUNT(*) AS total_tasks FROM tasks WHERE status = %s AND assigned_to = %s AND Company_id = %s",
-            (status, uid, company_id),
-        )
-        row = cur.fetchone()
-        return (row or {}).get("total_tasks") or 0
+    # Projects where user is involved (client_id, PM, lead, bim_coordinator, uploaderid, members)
+    _involved_where = """p.Company_id = %s AND (
+            p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+            OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+        )"""
+    def get_tasks_in_my_projects(uid, task_status):
+        """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in.
+        Uses JOIN to projects so we match tasks.projectid and tasks.status from the tasks table."""
+        # Params: company_id, uid×6 for JOIN; then task_status for WHERE
+        params = [company_id, uid, uid, uid, uid, uid, uid, task_status]
+        try:
+            cur.execute(
+                f"""SELECT COUNT(*) AS total_tasks FROM tasks t
+                    INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
+                    WHERE t.status = %s""",
+                params,
+            )
+            row = cur.fetchone()
+            return (row or {}).get("total_tasks") or 0
+        except Exception:
+            # Fallback: subquery by members only, no JOIN (in case project columns missing)
+            try:
+                cur.execute(
+                    """SELECT COUNT(*) AS total_tasks FROM tasks t
+                       WHERE t.status = %s AND t.projectid IN (
+                           SELECT id FROM projects p WHERE p.Company_id = %s
+                           AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+                       )""",
+                    (task_status, company_id, uid),
+                )
+                row = cur.fetchone()
+                return (row or {}).get("total_tasks") or 0
+            except Exception:
+                return 0
 
     def get_total_projects(uid, status=None):
-        sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE FIND_IN_SET(%s, REPLACE(members, ' ', '')) AND Company_id = %s"
-        params = [uid, company_id]
+        # Count projects where user is involved: client_id, project_manager_id, lead_id,
+        # bim_coordinator_id, uploaderid, or in members list
+        sql = """SELECT COUNT(*) AS total_projects FROM projects
+                 WHERE Company_id = %s
+                   AND (
+                     client_id = %s
+                     OR project_manager_id = %s
+                     OR lead_id = %s
+                     OR bim_coordinator_id = %s
+                     OR uploaderid = %s
+                     OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
+                   )"""
+        params = [company_id, uid, uid, uid, uid, uid, uid]
         if status == "Completed":
             sql += " AND progress = 100"
-        elif status:
-            # Fallback if we ever have other statuses, though 'status' col doesn't exist. 
-            pass 
-        cur.execute(sql, tuple(params))
-        row = cur.fetchone()
-        return (row or {}).get("total_projects") or 0
+        try:
+            cur.execute(sql, tuple(params))
+            row = cur.fetchone()
+            return (row or {}).get("total_projects") or 0
+        except Exception:
+            # Fallback if columns missing (e.g. older schema): count by members only
+            fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
+            if status == "Completed":
+                fallback_sql += " AND progress = 100"
+            cur.execute(fallback_sql, (company_id, uid))
+            row = cur.fetchone()
+            return (row or {}).get("total_projects") or 0
 
     from datetime import date
     today = date.today().isoformat()
@@ -66,9 +124,10 @@ def stats():
 
     total_projects = get_total_projects(user_id)
     completed_projects = get_total_projects(user_id, "Completed")
-    in_progress_tasks = get_total_tasks("InProgress", user_id)
-    completed_tasks = get_total_tasks("Completed", user_id)
-    new_tasks = get_total_tasks("Todo", user_id)
+    # In-progress and completed task counts: all tasks in projects user is involved in (by projectid + status)
+    in_progress_tasks = get_tasks_in_my_projects(user_id, "InProgress")
+    completed_tasks = get_tasks_in_my_projects(user_id, "Completed")
+    new_tasks = get_tasks_in_my_projects(user_id, "Todo")
 
     return jsonify({
         "totalProjects": total_projects,
@@ -83,7 +142,9 @@ def stats():
 @bp.route("/priority-tasks", methods=["GET"])
 @project_app_required
 def priority_tasks():
-    """Today's priority tasks: assigned to user, status Todo/InProgress/Pause, due today. Limit 4."""
+    """Today's priority tasks for current user: assigned_to = user, status Todo/InProgress/Pause, due today.
+    Returns task name, start/end time (perferstart_time, perferend_time), and involved persons (assignee + uploader)
+    for dynamic display and progress bar based on end time. Limit 4, ordered by due_date and start time."""
     user_id = g.user_id
     company_id = g.company_id
     today = date.today().isoformat()
@@ -91,20 +152,42 @@ def priority_tasks():
     cur = conn.cursor()
     cur.execute(
         """SELECT t.id, t.task_name, t.due_date, t.status, t.category, t.perferstart_time, t.perferend_time,
-                  t.projectid, e_assigned.full_name AS assigned_full_name, e_assigned.profile_picture AS assigned_profile_picture,
-                  e_uploader.profile_picture AS uploader_profile_picture, p.project_name
+                  t.projectid, t.assigned_to, t.uploaderid,
+                  e_assigned.full_name AS assigned_full_name, e_assigned.profile_picture AS assigned_profile_picture,
+                  e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture,
+                  p.project_name
            FROM tasks t
            LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
            LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
            LEFT JOIN projects p ON t.projectid = p.id
            WHERE t.assigned_to = %s AND t.Company_id = %s
              AND (t.status IN ('Todo', 'InProgress', 'Pause'))
-             AND DATE(t.due_date) <= %s AND DATE(t.due_date) >= %s
-           ORDER BY t.due_date LIMIT 4""",
-        (user_id, company_id, today, today),
+             AND DATE(t.due_date) = %s
+           ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
+           LIMIT 4""",
+        (user_id, company_id, today),
     )
     rows = cur.fetchall()
-    tasks = [_serialize_row(dict(r)) for r in rows]
+    tasks = []
+    for r in rows:
+        d = _serialize_row(dict(r))
+        # Build involved persons: assignee + uploader (dedupe by id)
+        involved = []
+        if d.get("assigned_to") and d.get("assigned_full_name"):
+            involved.append({
+                "id": d["assigned_to"],
+                "full_name": d["assigned_full_name"],
+                "profile_picture": d.get("assigned_profile_picture"),
+            })
+        if d.get("uploaderid") and d.get("uploader_full_name"):
+            if not any(p.get("id") == d["uploaderid"] for p in involved):
+                involved.append({
+                    "id": d["uploaderid"],
+                    "full_name": d["uploader_full_name"],
+                    "profile_picture": d.get("uploader_profile_picture"),
+                })
+        d["involved_persons"] = involved
+        tasks.append(d)
     return jsonify({"tasks": tasks})
 
 
