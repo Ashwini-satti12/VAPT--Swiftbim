@@ -916,7 +916,18 @@ export default function TeamtaskPM() {
             />
           ))}
         </div>
-        <div className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
+        <div
+          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            const taskId = Number(e.dataTransfer.getData("taskId"));
+            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+          }}
+        >
           {tasksByStatus.completed.map((task) => (
             <TaskCard
               key={task.id}

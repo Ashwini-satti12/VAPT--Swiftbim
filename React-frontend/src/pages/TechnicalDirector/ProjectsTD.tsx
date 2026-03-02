@@ -30,6 +30,8 @@ interface Project {
   priority?: string;
   location?: string;
   description?: string;
+  budget_ceiling?: string;
+  bidding_end_date?: string;
 }
 
 export default function ProjectsTD() {
@@ -85,8 +87,15 @@ export default function ProjectsTD() {
   const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(
     null,
   );
+  const [editDropdownOpen, setEditDropdownOpen] = useState<
+    'source' | 'pm' | 'bimLead' | 'bimCoord' | null
+  >(null);
+  const [createBudgetCeiling, setCreateBudgetCeiling] = useState("");
+  const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
 
   const panelType = user?.panel_type ?? 3;
+  const isEditSourceInHouse = createDepartment === "Budget Ceiling";
+  const isEditSourceOutsource = createDepartment === "Submission Deadline";
   const isManagement = panelType === 1;
   const isTechnicalDirector = user?.user_role === "Technical Director";
   const canCreate = isManagement;
@@ -115,6 +124,8 @@ export default function ProjectsTD() {
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
       department: str(r.department),
+      budget_ceiling: str(r.budget_ceiling),
+      bidding_end_date: str(r.bidding_end_date),
       bim_lead: str(r.lead_id),
       bim_co_ordinator: str(r.bim_coordinator_id),
       member: str(r.members),
@@ -765,7 +776,13 @@ export default function ProjectsTD() {
                                       setCreateEndDate(p.end_date ?? "");
                                       setCreateTotalHours(p.total_hours ?? "");
                                       setCreatePerDay(p.per_day ?? "");
-                                      setCreateDepartment(p.department ?? "");
+                                      setCreateDepartment(
+                                        p.department === 'Budget Ceiling' || p.department === 'Submission Deadline'
+                                          ? p.department
+                                          : '',
+                                      );
+                                      setCreateBudgetCeiling(p.budget_ceiling ?? "");
+                                      setCreateBiddingEndDate(p.bidding_end_date ?? "");
                                       setCreateBIMLead(p.bim_lead ?? "");
                                       setCreateBIMCoOrdinator(
                                         p.bim_co_ordinator ?? "",
@@ -984,6 +1001,8 @@ export default function ProjectsTD() {
                         setCreateTotalHours("");
                         setCreatePerDay("");
                         setCreateDepartment("");
+                        setCreateBudgetCeiling("");
+                        setCreateBiddingEndDate("");
                         setCreateBIMLead("");
                         setCreateBIMCoOrdinator("");
                         setCreateMember("");
@@ -1628,12 +1647,12 @@ export default function ProjectsTD() {
       {/* Edit Project Details Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
             <div className="relative flex items-center justify-center px-10 py-8">
               <button
                 type="button"
-                onClick={() => setShowEditModal(false)}
+                onClick={() => { setShowEditModal(false); setEditDropdownOpen(null); setCreateBudgetCeiling(""); setCreateBiddingEndDate(""); }}
                 className="absolute left-10 p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
                 title="Close"
               >
@@ -1675,6 +1694,12 @@ export default function ProjectsTD() {
                       bim_coordinator_id: createBIMCoOrdinator || undefined,
                       members: createMember || undefined,
                       department: createDepartment || undefined,
+                      ...(isEditSourceOutsource
+                        ? {
+                            budget_ceiling: createBudgetCeiling || undefined,
+                            bidding_end_date: createBiddingEndDate || undefined,
+                          }
+                        : {}),
                       due_date: createEndDate || undefined,
                       start_date: createStartDate || undefined,
                       totalhours: createTotalHours || undefined,
@@ -1686,6 +1711,9 @@ export default function ProjectsTD() {
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
                         setShowEditModal(false);
+                        setEditDropdownOpen(null);
+                        setCreateBudgetCeiling("");
+                        setCreateBiddingEndDate("");
                         setList((prev) =>
                           prev.map((p) =>
                             p.id === id
@@ -1700,6 +1728,12 @@ export default function ProjectsTD() {
                                   bim_co_ordinator: createBIMCoOrdinator,
                                   member: createMember,
                                   department: createDepartment,
+                                  ...(isEditSourceOutsource
+                                    ? {
+                                        budget_ceiling: createBudgetCeiling,
+                                        bidding_end_date: createBiddingEndDate,
+                                      }
+                                    : {}),
                                   end_date: createEndDate,
                                   start_date: createStartDate,
                                   total_hours: createTotalHours,
@@ -1763,136 +1797,196 @@ export default function ProjectsTD() {
                       Select Source
                     </label>
                     <div className="relative">
-                      <select
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer"
-                        value={createDepartment}
-                        onChange={(e) => setCreateDepartment(e.target.value)}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditDropdownOpen((o) => (o === 'source' ? null : 'source'))
+                        }
+                        className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
                       >
-                        <option value="">Select Source</option>
-                        <option value="Budget Ceiling">Budget Ceiling</option>
-                        <option value="Submission Deadline">
-                          Submission Deadline
-                        </option>
-                      </select>
-                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <span className={createDepartment === 'Budget Ceiling' || createDepartment === 'Submission Deadline' ? 'text-gray-700' : 'text-gray-400'}>
+                          {createDepartment === 'Budget Ceiling' ? 'In House' : createDepartment === 'Submission Deadline' ? 'Outsource' : 'Select Source'}
+                        </span>
                         <svg
-                          className="w-5 h-5"
+                          className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === 'source' ? 'rotate-180' : ''}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
-                      </div>
+                      </button>
+                      {editDropdownOpen === 'source' && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                          <button type="button" onClick={() => { setCreateDepartment(''); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">Select Source</button>
+                          <button type="button" onClick={() => { setCreateDepartment('Budget Ceiling'); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">In House</button>
+                          <button type="button" onClick={() => { setCreateDepartment('Submission Deadline'); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">Outsource</button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Row 3: Select Project Manager */}
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                      Select Project Manager
-                    </label>
-                    <div className="relative">
-                      <select
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer"
-                        value={createProjectManager}
-                        onChange={(e) =>
-                          setCreateProjectManager(e.target.value)
-                        }
-                      >
-                        <option value="">Select Project Manager</option>
-                      </select>
-                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                  {/* In House: Select Project Manager, BIM Lead, BIM Coordinator */}
+                  {isEditSourceInHouse && (
+                    <>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
+                          Select Project Manager
+                        </label>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditDropdownOpen((o) => (o === "pm" ? null : "pm"))
+                            }
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
+                          >
+                            <span className={createProjectManager && !/^\d+$/.test(String(createProjectManager)) ? "text-black" : "text-gray-400"}>
+                              {createProjectManager && !/^\d+$/.test(String(createProjectManager)) ? createProjectManager : "Select Project Manager"}
+                            </span>
+                            <svg
+                              className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {editDropdownOpen === "pm" && (
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCreateProjectManager("");
+                                  setEditDropdownOpen(null);
+                                }}
+                                className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]"
+                              >
+                                Select Project Manager
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
+                          Select BIM Lead
+                        </label>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditDropdownOpen((o) => (o === "bimLead" ? null : "bimLead"))
+                            }
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
+                          >
+                            <span className={createBIMLead && !/^\d+$/.test(String(createBIMLead)) ? "text-gray-700" : "text-gray-400"}>
+                              {createBIMLead && !/^\d+$/.test(String(createBIMLead)) ? createBIMLead : "Select BIM Lead"}
+                            </span>
+                            <svg
+                              className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {editDropdownOpen === "bimLead" && (
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCreateBIMLead("");
+                                  setEditDropdownOpen(null);
+                                }}
+                                className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]"
+                              >
+                                Select BIM Lead
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
+                          Select BIM Coordinator
+                        </label>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEditDropdownOpen((o) => (o === "bimCoord" ? null : "bimCoord"))
+                            }
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
+                          >
+                            <span className={createBIMCoOrdinator && !/^\d+$/.test(String(createBIMCoOrdinator)) ? "text-gray-700" : "text-gray-400"}>
+                              {createBIMCoOrdinator && !/^\d+$/.test(String(createBIMCoOrdinator)) ? createBIMCoOrdinator : "Select BIM Coordinator"}
+                            </span>
+                            <svg
+                              className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimCoord" ? "rotate-180" : ""}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {editDropdownOpen === "bimCoord" && (
+                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCreateBIMCoOrdinator("");
+                                  setEditDropdownOpen(null);
+                                }}
+                                className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]"
+                              >
+                                Select BIM Coordinator
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
-                  {/* Row 4: Select BIM Lead, Select BIM Coordinator */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                      Select BIM Lead
-                    </label>
-                    <div className="relative">
-                      <select
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer"
-                        value={createBIMLead}
-                        onChange={(e) => setCreateBIMLead(e.target.value)}
-                      >
-                        <option value="">Select BIM Lead</option>
-                      </select>
-                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                  {/* Outsource: Budget Ceiling, Bidding End Date */}
+                  {isEditSourceOutsource && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
+                          Budget Ceiling
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                          placeholder="Enter Budget Ceiling"
+                          value={createBudgetCeiling}
+                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
+                        />
                       </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                      Select BIM Coordinator
-                    </label>
-                    <div className="relative">
-                      <select
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer"
-                        value={createBIMCoOrdinator}
-                        onChange={(e) =>
-                          setCreateBIMCoOrdinator(e.target.value)
-                        }
-                      >
-                        <option value="">Select BIM Coordinator</option>
-                      </select>
-                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                      <div className="space-y-2">
+                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
+                          Bidding End Date
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                          value={createBiddingEndDate}
+                          onChange={(e) => setCreateBiddingEndDate(e.target.value)}
+                        />
                       </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Footer Buttons */}
                 <div className="flex justify-center gap-6 pt-6">
                   <button
                     type="button"
-                    onClick={() => setShowEditModal(false)}
+                    onClick={() => { setShowEditModal(false); setEditDropdownOpen(null); setCreateBudgetCeiling(""); setCreateBiddingEndDate(""); }}
                     className="px-12 py-3 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all hover:bg-gray-200"
                   >
                     Discard
