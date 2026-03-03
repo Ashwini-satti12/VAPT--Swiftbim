@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
@@ -26,7 +27,18 @@ type PriorityTask = {
     category: string | null;
     perferstart_time: string | null;
     perferend_time: string | null;
+    projectid?: number;
+    project_name?: string;
     involved_persons: InvolvedPerson[];
+};
+
+type CelebrationEvent = {
+    type: 'birthday' | 'work_anniversary' | 'project_due';
+    full_name?: string;
+    image?: string | null;
+    working_years?: number;
+    project_name?: string;
+    due_date?: string;
 };
 
 const defaultStats: DashboardStats = {
@@ -115,23 +127,28 @@ export default function DashboardTD() {
         return () => clearInterval(id);
     }, []);
 
+    // Integration: GET /api/dashboard/stats → KPI cards (totalProjects, completedProjects, inProgressTasks, completedTasks)
     useEffect(() => {
         api.get<DashboardStats>('/api/dashboard/stats')
             .then(({ data }) => setStats({
-                totalProjects: data.totalProjects ?? 0,
-                completedProjects: data.completedProjects ?? 0,
-                inProgressTasks: data.inProgressTasks ?? 0,
-                completedTasks: data.completedTasks ?? 0,
+                totalProjects: Number(data?.totalProjects) || 0,
+                completedProjects: Number(data?.completedProjects) || 0,
+                inProgressTasks: Number(data?.inProgressTasks) || 0,
+                completedTasks: Number(data?.completedTasks) || 0,
             }))
             .catch(() => setStats(defaultStats))
             .finally(() => setLoading(false));
     }, []);
 
+    // Integration: GET /api/dashboard/priority-tasks → Today's Priority (task_name, due_date, times, project_name, involved_persons)
     useEffect(() => {
         api.get<{ tasks: PriorityTask[] }>('/api/dashboard/priority-tasks')
-            .then(({ data }) => setPriorityTasks(data.tasks ?? []))
+            .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
             .catch(() => setPriorityTasks([]));
     }, []);
+
+    // Integration: GET /api/calendar/events?selectedDate=YYYY-MM-DD → Celebrations (birthdays, anniversaries, project_due)
+    const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
 
     // Calendar state — so we can change year/month and select a date (integration code can read these)
     const today = new Date();
@@ -140,6 +157,14 @@ export default function DashboardTD() {
     const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(today.getTime()));
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Fetch celebrations (birthdays/anniversaries) when selectedDate changes
+    useEffect(() => {
+        const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+        api.get<{ events: CelebrationEvent[] }>('/api/calendar/events', { params: { selectedDate: dateStr } })
+            .then(({ data }) => setCelebrations(Array.isArray(data.events) ? data.events : []))
+            .catch(() => setCelebrations([]));
+    }, [selectedDate]);
 
     useEffect(() => {
         if (!monthDropdownOpen) return;
@@ -309,98 +334,84 @@ export default function DashboardTD() {
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
-                {/* Today's Priority */}
+                {/* Today's Priority — projects with today's tasks (image 2 card design) */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <h2 className="text-xl font-semibold text-[#353535] font-gantari mb-6 ">Today's Priority</h2>
+                    <div className="flex items-center justify-between mb-4 shrink-0">
+                        <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
+                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                    </div>
+                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
 
-                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar space-y-4 ">
+                    <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
                             <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
                         ) : (
-                            priorityTasks.map((task) => {
-                                const { progress, countdown } = taskProgressAndCountdown(
-                                    task.due_date,
-                                    task.perferstart_time,
-                                    task.perferend_time,
-                                    nowMs
-                                );
-                                const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
-                                const dateLabel = formatDateOnly(task.due_date);
-                                const hasStart = (task.perferstart_time || '').trim().length > 0;
-                                const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
-                                const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
-                                const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
-                                return (
-                                    <div
-                                        key={task.id}
-                                        className="flex items-center gap-5 p-5 bg-[#F2F2F2] rounded-xl border border-transparent hover:border-slate-200 transition-all group shrink-0 relative"
-                                    >
-                                        {/* Circular progress / timer */}
-                                        <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                                            <svg className="w-full h-full -rotate-90">
-                                                <circle
-                                                    cx="40"
-                                                    cy="40"
-                                                    r="36"
-                                                    stroke="#E5E7EB"
-                                                    strokeWidth="5"
-                                                    fill="transparent"
-                                                    className="opacity-40"
-                                                />
-                                                <circle
-                                                    cx="40"
-                                                    cy="40"
-                                                    r="36"
-                                                    stroke="#00882E"
-                                                    strokeWidth="5"
-                                                    fill="transparent"
-                                                    strokeDasharray={CIRCLE_CIRCUMFERENCE}
-                                                    strokeDashoffset={strokeOffset}
-                                                    strokeLinecap="round"
-                                                />
-                                            </svg>
-                                            <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
-                                        </div>
-
-                                        {/* Task Info */}
-                                        <div className="flex-1 min-w-0 pr-2">
-                                            <div className="mb-2">
-                                                <h3 className="text-xl font-bold text-[#353535] truncate mb-0.5">{task.task_name}</h3>
-                                                <p className="text-[14px] text-[#353535] font-medium leading-tight">
-                                                    {dateLabel}  {timeRangeLabel}
-                                                </p>
+                            <>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
+                                    <Link to="/td/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                </div>
+                                {(() => {
+                                    const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
+                                    for (const task of priorityTasks) {
+                                        const pid = task.projectid ?? 0;
+                                        const name = task.project_name || `Project #${pid}`;
+                                        if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
+                                        byProject.get(pid)!.tasks.push(task);
+                                    }
+                                    const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
+                                    return projectList.map(({ id, projectName, tasks: projectTasks }) => (
+                                        <div key={id} className="mb-6">
+                                            <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
+                                                <Link to="/td/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
+                                            </p>
+                                            <div className="space-y-4">
+                                                {projectTasks.map((task) => {
+                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
+                                                    const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
+                                                    const dateLabel = formatDateOnly(task.due_date);
+                                                    const hasStart = (task.perferstart_time || '').trim().length > 0;
+                                                    const hasEnd = (task.perferend_time || '').trim().length > 0;
+                                                    const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
+                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                    const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
+                                                    return (
+                                                        <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
+                                                            <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                                                                <svg className="w-full h-full -rotate-90">
+                                                                    <circle cx="40" cy="40" r="36" stroke="#E5E7EB" strokeWidth="5" fill="transparent" className="opacity-60" />
+                                                                    <circle cx="40" cy="40" r="36" stroke="#00882E" strokeWidth="5" fill="transparent" strokeDasharray={CIRCLE_CIRCUMFERENCE} strokeDashoffset={strokeOffset} strokeLinecap="round" />
+                                                                </svg>
+                                                                <span className="absolute text-[10px] font-bold text-black font-mono">{countdown}</span>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0 pr-2">
+                                                                <h3 className="text-xl font-bold text-black truncate mb-0.5">{task.task_name ?? 'Task'}</h3>
+                                                                <p className="text-[14px] text-[#6B7280] font-medium leading-tight">{dateLabel} — {timeRangeLabel}</p>
+                                                            </div>
+                                                            <div className="absolute top-4 right-4">
+                                                                <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
+                                                            </div>
+                                                            <div className="absolute bottom-4 right-4 flex -space-x-4">
+                                                                {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
+                                                                    <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
+                                                                        {person.profile_picture ? (
+                                                                            <img src={person.profile_picture} alt="" className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
-
-                                        {/* Badge (Top Right) */}
-                                        <div className="absolute top-4 right-4">
-                                            <span className="bg-[#DBE9FE] text-[#101827] text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">
-                                                {task.category || 'Task'}
-                                            </span>
-                                        </div>
-
-                                        {/* Involved persons (avatars) */}
-                                        <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                            {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
-                                                <div
-                                                    key={person.id}
-                                                    className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
-                                                    title={person.full_name}
-                                                >
-                                                    {person.profile_picture ? (
-                                                        <img src={person.profile_picture} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
-                                                            {person.full_name?.slice(0, 2).toUpperCase() || '?'}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })
+                                    ));
+                                })()}
+                            </>
                         )}
                     </div>
                 </div>
@@ -526,20 +537,51 @@ export default function DashboardTD() {
 
                             {/* Celebrations Section — below calendar, inside scroll */}
                             <div className="space-y-4 pr-1">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h4 className="font-bold text-[#353535] text-[17px] font-gantari">Malfoe</h4>
-                                            <span className="bg-[#E7F6EA] text-[#2D8A39] text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari">
-                                                CELEBRATIONS
-                                            </span>
+                                {celebrations.length === 0 ? (
+                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
+                                ) : (
+                                    celebrations.map((event, i) => (
+                                        <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
+                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday'
+                                                        ? 'bg-[#FFF3E0] text-[#E65100]'
+                                                        : event.type === 'work_anniversary'
+                                                            ? 'bg-[#E7F6EA] text-[#2D8A39]'
+                                                            : 'bg-[#E3F2FD] text-[#1565C0]'
+                                                    }`}>
+                                                    {event.type === 'birthday' ? 'BIRTHDAY' : event.type === 'work_anniversary' ? 'CELEBRATIONS' : 'PROJECT DUE'}
+                                                </span>
+                                            </div>
+                                            {event.type === 'birthday' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Happy Birthday 🎂</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        Wishing you a wonderful birthday! May this year bring you happiness and success.
+                                                    </p>
+                                                </>
+                                            )}
+                                            {event.type === 'work_anniversary' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        {event.working_years === 1
+                                                            ? 'Congratulations for your first anniversary! Marking a great year of excellence.'
+                                                            : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
+                                                    </p>
+                                                </>
+                                            )}
+                                            {event.type === 'project_due' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Project Due</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        Project "{event.project_name}" is due on {event.due_date}.
+                                                    </p>
+                                                </>
+                                            )}
                                         </div>
-                                        <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
-                                        <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                            You have completed 2 years in our company. Marking another year of excellence.
-                                        </p>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>

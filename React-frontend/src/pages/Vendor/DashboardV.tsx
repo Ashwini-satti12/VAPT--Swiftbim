@@ -1,16 +1,34 @@
 import { useEffect, useState } from 'react';
+import api from '../../lib/api';
 
+type CelebrationEvent = {
+    type: 'birthday' | 'work_anniversary' | 'project_due';
+    full_name?: string;
+    image?: string | null;
+    working_years?: number;
+    project_name?: string;
+    due_date?: string;
+};
 
 export default function DashboardV() {
     const [loading, setLoading] = useState(true);
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
+    const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
 
     useEffect(() => {
         setLoading(false);
     }, []);
 
-    // Calendar Logic
+    // Fetch celebrations for today
     const today = new Date();
+    useEffect(() => {
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        api.get<{ events: CelebrationEvent[] }>('/api/calendar/events', { params: { selectedDate: dateStr } })
+            .then(({ data }) => setCelebrations(data.events ?? []))
+            .catch(() => setCelebrations([]));
+    }, []);
+
+    // Calendar Logic
     const currentMonth = today.toLocaleString('default', { month: 'long' });
     const currentYear = today.getFullYear();
     const currentDay = today.getDate();
@@ -250,20 +268,41 @@ export default function DashboardV() {
 
                             {/* Celebrations Section */}
                             <div className="space-y-4">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h4 className="font-bold text-[#353535] text-[17px] font-gantari">Malfoe</h4>
-                                            <span className="bg-[#E7F6EA] text-[#2D8A39] text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari">
-                                                CELEBRATIONS
-                                            </span>
+                                {celebrations.length === 0 ? (
+                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
+                                ) : (
+                                    celebrations.map((event, i) => (
+                                        <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
+                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday' ? 'bg-[#FFF3E0] text-[#E65100]' : event.type === 'work_anniversary' ? 'bg-[#E7F6EA] text-[#2D8A39]' : 'bg-[#E3F2FD] text-[#1565C0]'
+                                                    }`}>
+                                                    {event.type === 'birthday' ? 'BIRTHDAY' : event.type === 'work_anniversary' ? 'CELEBRATIONS' : 'PROJECT DUE'}
+                                                </span>
+                                            </div>
+                                            {event.type === 'birthday' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Happy Birthday 🎂</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">Wishing you a wonderful birthday! May this year bring you happiness and success.</p>
+                                                </>
+                                            )}
+                                            {event.type === 'work_anniversary' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        {event.working_years === 1 ? 'Congratulations for your first anniversary! Marking a great year of excellence.' : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
+                                                    </p>
+                                                </>
+                                            )}
+                                            {event.type === 'project_due' && (
+                                                <>
+                                                    <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Project Due</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">Project "{event.project_name}" is due on {event.due_date}.</p>
+                                                </>
+                                            )}
                                         </div>
-                                        <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
-                                        <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                            You have completed 2 years in our company. Marking another year of excellence.
-                                        </p>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </div>
                     </div>
