@@ -162,7 +162,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm hover:bg-[#DDD] ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -421,7 +421,7 @@ function TaskCard({
                 <button
                   type="button"
                   role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
                   onClick={() => {
                     setMenuOpen(false);
                     onViewTask?.(task);
@@ -430,30 +430,34 @@ function TaskCard({
                   <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
                   <span>View</span>
                 </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onEditTask?.(task);
-                  }}
-                >
-                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDeleteTask?.(task);
-                  }}
-                >
-                  <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                  <span>Delete</span>
-                </button>
+                {!isCompleted && (
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onEditTask?.(task);
+                      }}
+                    >
+                      <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDeleteTask?.(task);
+                      }}
+                    >
+                      <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                      <span>Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

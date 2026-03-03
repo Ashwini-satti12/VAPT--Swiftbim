@@ -134,7 +134,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm hover:bg-[#DDD] ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -366,7 +366,7 @@ function TaskCard({
           <div
             aria-hidden={!menuOpen}
             role="menu"
-            className={`absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-white/70 backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] origin-top-right transform-gpu transition-all duration-200 ease-out ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "right-[-10] origin-top-right"} ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
           >
             <button
               type="button"
@@ -380,30 +380,34 @@ function TaskCard({
               <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
               <span>View</span>
             </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                onEditTask?.(task);
-              }}
-            >
-              <HiOutlinePencil className="w-4 h-4 shrink-0" />
-              <span>Edit</span>
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-              onClick={() => {
-                setMenuOpen(false);
-                onDeleteTask?.(task);
-              }}
-            >
-              <HiOutlineTrash className="w-4 h-4 shrink-0" />
-              <span>Delete</span>
-            </button>
+            {!isCompleted && (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEditTask?.(task);
+                  }}
+                >
+                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDeleteTask?.(task);
+                  }}
+                >
+                  <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                  <span>Delete</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -483,7 +487,9 @@ export default function TeamtaskPM() {
       const raw = localStorage.getItem(DELETED_IDS_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed.map(Number).filter((n) => !Number.isNaN(n)) : [];
+      return Array.isArray(parsed)
+        ? parsed.map(Number).filter((n) => !Number.isNaN(n))
+        : [];
     } catch {
       return [];
     }
@@ -589,7 +595,9 @@ export default function TeamtaskPM() {
 
   const confirmDeleteTask = () => {
     if (deleteTaskId === null) return;
-    setDeletedIds((prev) => (prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId]));
+    setDeletedIds((prev) =>
+      prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+    );
     setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
     setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
     setDeleteTaskId(null);
@@ -798,7 +806,7 @@ export default function TeamtaskPM() {
               });
               setAddTaskModalOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm "
+            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-3 text-sm font-medium text-white shadow-sm "
           >
             <svg
               className="h-5 w-5"
