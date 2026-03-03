@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+
+const apiBase = (api.defaults.baseURL as string) || '';
 import { VscEye } from "react-icons/vsc";
 import { BiDotsVerticalRounded, BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
+import { FiX } from "react-icons/fi";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import { FaCircleDollarToSlot } from "react-icons/fa6";
+
 interface Project {
   id: number;
   project_name?: string;
@@ -32,6 +37,21 @@ interface Project {
   description?: string;
   budget_ceiling?: string;
   bidding_end_date?: string;
+}
+
+interface Employee {
+  id: number;
+  full_name?: string;
+  user_role?: string;
+  empid?: string;
+  profile_picture?: string;
+  email?: string;
+  phone_number?: string;
+  dob?: string;
+  doj?: string;
+  user_type?: string;
+  address?: string;
+  department?: string;
 }
 
 export default function ProjectsTD() {
@@ -92,7 +112,41 @@ export default function ProjectsTD() {
   >(null);
   const [createBudgetCeiling, setCreateBudgetCeiling] = useState("");
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
-
+  
+  // Employee data for dropdowns
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
+  const [bimLeads, setBimLeads] = useState<Employee[]>([]);
+  const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
+  
+  // All employees for member lookup
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  
+  // Profile modal state
+  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  
+  // All members modal state
+  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  
+  // Task statistics for project view
+  const [taskStats, setTaskStats] = useState({
+    todo: 0,
+    inProgress: 0,
+    paused: 0,
+    completed: 0,
+  });
+  const [towerData, setTowerData] = useState<Array<{
+    id: number;
+    name: string;
+    progress: number;
+    completedTasks: number;
+    totalTasks: number;
+    status: 'Approved' | 'Pending' | 'Review';
+  }>>([]);
+  const [loadingTaskStats, setLoadingTaskStats] = useState(false);
+ 
   const panelType = user?.panel_type ?? 3;
   const isEditSourceInHouse = createDepartment === "Budget Ceiling";
   const isEditSourceOutsource = createDepartment === "Submission Deadline";
@@ -136,6 +190,17 @@ export default function ProjectsTD() {
   };
 
   useEffect(() => {
+    // Fetch employees for member lookup
+    api
+      .get<{ employees?: Employee[] }>("/api/employees")
+      .then(({ data }) => {
+        setAllEmployees(data.employees ?? []);
+      })
+      .catch(() => {
+        setAllEmployees([]);
+      });
+
+    // Fetch projects - use data directly from projects table
     api
       .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
       .then(({ data }) => {
@@ -145,6 +210,481 @@ export default function ProjectsTD() {
       .catch(() => setList([]))
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch employees when edit modal opens
+  useEffect(() => {
+    if (showEditModal) {
+      api
+        .get<{ employees?: Employee[] }>("/api/employees")
+        .then(({ data }) => {
+          const allEmployees = data.employees ?? [];
+          setEmployees(allEmployees);
+          setProjectManagers(
+            allEmployees.filter((e) => e.user_role === "Project Manager")
+          );
+          setBimLeads(
+            allEmployees.filter((e) => e.user_role === "BIM Lead")
+          );
+          setBimCoordinators(
+            allEmployees.filter((e) => e.user_role === "BIM Coordinator")
+          );
+        })
+        .catch(() => {
+          setEmployees([]);
+          setProjectManagers([]);
+          setBimLeads([]);
+          setBimCoordinators([]);
+        });
+    }
+  }, [showEditModal]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if click is outside any dropdown
+      if (!target.closest('.dropdown-container')) {
+        setEditDropdownOpen(null);
+      }
+    };
+    if (editDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [editDropdownOpen]);
+
+  // Fetch task statistics and tower data for selected project view
+  useEffect(() => {
+    if (showProjectView && selectedProjectForView) {
+      setLoadingTaskStats(true);
+      const projectId = selectedProjectForView.id;
+      
+      // Initialize with project table data immediately
+      const projectCompleted = selectedProjectForView.completed_tasks || 0;
+      const projectTotal = selectedProjectForView.total_tasks || 0;
+      
+      // Set initial stats from project table so cards show data immediately
+      setTaskStats({
+        todo: Math.max(0, projectTotal - projectCompleted),
+        inProgress: 0,
+        paused: 0,
+        completed: projectCompleted,
+      });
+
+      api
+        .get<{ tasks?: Array<{ 
+          status?: string; 
+          modules_name?: string; 
+          projectid?: number | string;
+          project_id?: number | string;
+          Approval?: string;
+        }> }>("/api/tasks", {
+          params: { 
+            project_id: String(projectId), 
+            condition: "1" // Get all company tasks (Technical Director can see all)
+          },
+        })
+        .then(({ data }) => {
+          const tasks = data.tasks ?? [];
+          
+          // Helper function to normalize status - database uses "Completed", "Todo", "InProgress", "Pause"
+          const normalizeStatus = (status: string | undefined): string => {
+            if (!status) return "";
+            const s = String(status).toLowerCase().trim();
+            // Handle various status formats
+            if (s === "todo" || s === "to do") return "todo";
+            if (s === "inprogress" || s === "in progress" || s === "in_progress") return "inprogress";
+            if (s === "pause" || s === "paused") return "pause";
+            if (s === "completed" || s === "complete") return "completed";
+            return s;
+          };
+
+          // API already filters by project_id, but double-check to ensure we have the right tasks
+          const projectTasks = tasks.filter((t) => {
+            const taskProjectId = t.projectid || t.project_id;
+            if (taskProjectId == null) return false;
+            // Compare as strings and numbers to handle both cases
+            return String(taskProjectId) === String(projectId) || Number(taskProjectId) === Number(projectId);
+          });
+          
+          // Debug: log tasks to see what we're getting
+          console.log("=== TASK FETCH DEBUG ===");
+          console.log("Project ID:", projectId, "Type:", typeof projectId);
+          console.log("Total tasks from API:", tasks.length);
+          console.log("Filtered project tasks:", projectTasks.length);
+          if (tasks.length > 0) {
+            console.log("Sample tasks:", tasks.slice(0, 5).map(t => ({ 
+              projectid: t.projectid, 
+              project_id: t.project_id,
+              status: t.status,
+              statusLower: String(t.status || "").toLowerCase()
+            })));
+          }
+          if (projectTasks.length > 0) {
+            const statusCounts = projectTasks.reduce((acc, t) => {
+              const status = normalizeStatus(t.status);
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>);
+            console.log("Status breakdown:", statusCounts);
+            console.log("All statuses:", projectTasks.map(t => t.status));
+          } else {
+            console.warn("No tasks found for project! Check if project_id matches.");
+          }
+
+          // Calculate task statistics by status
+          const stats = {
+            todo: projectTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+            inProgress: projectTasks.filter((t) => normalizeStatus(t.status) === "inprogress").length,
+            paused: projectTasks.filter((t) => normalizeStatus(t.status) === "pause").length,
+            completed: projectTasks.filter((t) => normalizeStatus(t.status) === "completed").length,
+          };
+          
+          console.log("Final task stats:", stats);
+          console.log("Total tasks counted:", stats.todo + stats.inProgress + stats.paused + stats.completed);
+          console.log("Expected from projects table - completed:", selectedProjectForView.completed_tasks, "total:", selectedProjectForView.total_tasks);
+          console.log("========================");
+          
+          // If we got tasks, use them; otherwise use project table data
+          if (projectTasks.length > 0) {
+            setTaskStats(stats);
+          } else {
+            // Fallback: Use project table data if no tasks found
+            console.warn("No tasks found from API, using project table data");
+            setTaskStats({
+              todo: Math.max(0, projectTotal - projectCompleted),
+              inProgress: 0,
+              paused: 0,
+              completed: projectCompleted,
+            });
+          }
+
+          // Parse all modules from project's modules field
+          const projectModules = selectedProjectForView.module_name || "";
+          const allModuleNames: string[] = [];
+          
+          if (projectModules) {
+            // Split by comma to get individual module entries
+            // Format can be: "PD - Package1/Package 2/Package 3, DD - Package1/Package 2/Package 3, IFC - Package1/Package 2/Package 3"
+            // Or: "Tower-1, Tower-2, Tower-3"
+            // Or: "RAMP RD, NEXT TO CONE 9 PLAZA, ..."
+            const parsedModules = projectModules
+              .split(',')
+              .map(m => m.trim())
+              .filter(m => m.length > 0);
+            
+            // For each module entry, extract the main module name
+            parsedModules.forEach(module => {
+              let moduleName = module.trim();
+              
+              // Handle formats like "PD - Package1/Package 2/Package 3"
+              // Extract the prefix (PD, DD, IFC) as the module identifier
+              if (moduleName.includes(' - ')) {
+                const parts = moduleName.split(' - ');
+                if (parts.length > 1) {
+                  // Use the prefix (PD, DD, IFC) as the module identifier
+                  moduleName = parts[0].trim();
+                }
+              }
+              
+              // Handle formats with slashes - for formats like "Package1/Package 2", keep the first part
+              // But if it's already a simple name, keep it as-is
+              if (moduleName.includes('/') && !moduleName.includes(' - ')) {
+                moduleName = moduleName.split('/')[0].trim();
+              }
+              
+              // Add the module name if it's not empty and not already added
+              if (moduleName && !allModuleNames.includes(moduleName)) {
+                allModuleNames.push(moduleName);
+              }
+            });
+          }
+          
+          console.log("Project modules from projects table:", allModuleNames);
+          console.log("Raw modules field:", projectModules);
+
+          // Group tasks by module/tower name from tasks
+          const moduleTaskMap = new Map<string, { 
+            total: number; 
+            completed: number;
+            approved: number;
+          }>();
+
+          projectTasks.forEach((task) => {
+            const taskModuleName = (task.modules_name || "").trim();
+            // Handle empty module names
+            if (!taskModuleName || taskModuleName === "") {
+              // Skip tasks without modules for now, or add to "Unassigned" later
+              return;
+            }
+            
+            // Extract module prefix if it contains " - " (e.g., "PD - Package1" -> "PD")
+            let moduleKey = taskModuleName;
+            if (taskModuleName.includes(' - ')) {
+              const parts = taskModuleName.split(' - ');
+              if (parts.length > 1) {
+                moduleKey = parts[0].trim();
+              }
+            }
+            
+            // Also handle slashes (e.g., "PD/Package1" -> "PD")
+            if (moduleKey.includes('/') && !moduleKey.includes(' - ')) {
+              moduleKey = moduleKey.split('/')[0].trim();
+            }
+            
+            const module = moduleKey || "Default";
+            const status = normalizeStatus(task.status);
+            const approval = (task.Approval || "").toLowerCase();
+
+            if (!moduleTaskMap.has(module)) {
+              moduleTaskMap.set(module, { total: 0, completed: 0, approved: 0 });
+            }
+            const moduleData = moduleTaskMap.get(module)!;
+            moduleData.total++;
+
+            if (status === "completed") {
+              moduleData.completed++;
+            }
+            if (approval === "approved") {
+              moduleData.approved++;
+            }
+          });
+          
+          // Also count unassigned tasks (tasks without modules_name)
+          const unassignedTasks = projectTasks.filter(t => {
+            const taskModuleName = (t.modules_name || "").trim();
+            return !taskModuleName || taskModuleName === "";
+          });
+          
+          if (unassignedTasks.length > 0) {
+            moduleTaskMap.set("Unassigned", { total: 0, completed: 0, approved: 0 });
+            const unassignedData = moduleTaskMap.get("Unassigned")!;
+            unassignedTasks.forEach(task => {
+              unassignedData.total++;
+              const status = normalizeStatus(task.status);
+              const approval = (task.Approval || "").toLowerCase();
+              if (status === "completed") {
+                unassignedData.completed++;
+              }
+              if (approval === "approved") {
+                unassignedData.approved++;
+              }
+            });
+          }
+
+          // Convert to tower data array - show ALL modules from project
+          const towers: Array<{
+            id: number;
+            name: string;
+            progress: number;
+            completedTasks: number;
+            totalTasks: number;
+            status: 'Approved' | 'Pending' | 'Review';
+          }> = [];
+
+          // Helper to format tower/module name for display
+          const formatTowerName = (moduleName: string, index: number): string => {
+            if (!moduleName || moduleName === "Default") {
+              return `Tower ${String(index + 1).padStart(2, '0')}`;
+            }
+            
+            // If module name contains "Tower" or a number, format it nicely
+            const towerMatch = moduleName.match(/tower[\s-]?(\d+)/i);
+            if (towerMatch) {
+              return `Tower ${towerMatch[1].padStart(2, '0')}`;
+            }
+            
+            // Try to extract number from module name
+            const numMatch = moduleName.match(/\d+/);
+            if (numMatch && moduleName.length < 30) {
+              // If it's a simple numbered module, format as Tower
+              return `Tower ${numMatch[0].padStart(2, '0')}`;
+            }
+            
+            // Otherwise, use the module name as-is (truncate if too long)
+            return moduleName.length > 25 ? moduleName.substring(0, 25) + "..." : moduleName;
+          };
+
+          // Process all modules from project
+          if (allModuleNames.length > 0) {
+            allModuleNames.forEach((moduleName, index) => {
+              // Get task data for this module (if any)
+              // Try exact match first
+              let taskData = moduleTaskMap.get(moduleName) || { total: 0, completed: 0, approved: 0 };
+              
+              // If no exact match, try to find tasks where modules_name contains this module name
+              if (taskData.total === 0) {
+                for (const [taskModuleName, data] of moduleTaskMap.entries()) {
+                  // Skip "Unassigned" when matching project modules
+                  if (taskModuleName === "Unassigned") continue;
+                  
+                  // Check if task's modules_name contains this project module name (case-insensitive)
+                  const taskModuleLower = taskModuleName.toLowerCase();
+                  const projectModuleLower = moduleName.toLowerCase();
+                  
+                  // Try various matching strategies
+                  if (taskModuleLower === projectModuleLower ||
+                      taskModuleLower.startsWith(projectModuleLower) ||
+                      projectModuleLower.startsWith(taskModuleLower) ||
+                      taskModuleLower.includes(projectModuleLower) ||
+                      projectModuleLower.includes(taskModuleLower)) {
+                    taskData = { 
+                      total: taskData.total + data.total, 
+                      completed: taskData.completed + data.completed,
+                      approved: taskData.approved + data.approved
+                    };
+                  }
+                }
+              }
+              
+              const progress = taskData.total > 0 ? Math.round((taskData.completed / taskData.total) * 100) : 0;
+
+              // Determine status based on approval and progress
+              let status: 'Approved' | 'Pending' | 'Review';
+              const approvalRate = taskData.total > 0 ? (taskData.approved / taskData.total) : 0;
+
+              if (taskData.total === 0) {
+                status = 'Review'; // No tasks yet
+              } else if (approvalRate >= 0.8 || progress >= 80) {
+                status = 'Approved';
+              } else if (progress >= 50 || approvalRate >= 0.5) {
+                status = 'Pending';
+              } else {
+                status = 'Review';
+              }
+
+              towers.push({
+                id: index + 1,
+                name: formatTowerName(moduleName, index),
+                progress,
+                completedTasks: taskData.completed,
+                totalTasks: taskData.total,
+                status,
+              });
+            });
+            
+            // Add "Unassigned" module if there are tasks without modules
+            const unassignedData = moduleTaskMap.get("Unassigned");
+            if (unassignedData && unassignedData.total > 0) {
+              const unassignedProgress = unassignedData.total > 0 ? Math.round((unassignedData.completed / unassignedData.total) * 100) : 0;
+              let unassignedStatus: 'Approved' | 'Pending' | 'Review';
+              const unassignedApprovalRate = unassignedData.total > 0 ? (unassignedData.approved / unassignedData.total) : 0;
+              
+              if (unassignedData.total === 0) {
+                unassignedStatus = 'Review';
+              } else if (unassignedApprovalRate >= 0.8 || unassignedProgress >= 80) {
+                unassignedStatus = 'Approved';
+              } else if (unassignedProgress >= 50 || unassignedApprovalRate >= 0.5) {
+                unassignedStatus = 'Pending';
+              } else {
+                unassignedStatus = 'Review';
+              }
+              
+              towers.push({
+                id: allModuleNames.length + 1,
+                name: "Unassigned",
+                progress: unassignedProgress,
+                completedTasks: unassignedData.completed,
+                totalTasks: unassignedData.total,
+                status: unassignedStatus,
+              });
+            }
+          } else {
+            // If no modules in project, check if we have modules from tasks
+            if (moduleTaskMap.size > 0) {
+              const sortedTaskModules = Array.from(moduleTaskMap.entries()).sort((a, b) => {
+                const numA = parseInt(a[0].match(/\d+/)?.[0] || "0");
+                const numB = parseInt(b[0].match(/\d+/)?.[0] || "0");
+                return numA - numB;
+              });
+
+              sortedTaskModules.forEach(([moduleName, data], index) => {
+                const progress = data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0;
+
+                let status: 'Approved' | 'Pending' | 'Review';
+                const approvalRate = data.total > 0 ? (data.approved / data.total) : 0;
+
+                if (approvalRate >= 0.8 || progress >= 80) {
+                  status = 'Approved';
+                } else if (progress >= 50 || approvalRate >= 0.5) {
+                  status = 'Pending';
+                } else {
+                  status = 'Review';
+                }
+
+                towers.push({
+                  id: index + 1,
+                  name: formatTowerName(moduleName, index),
+                  progress,
+                  completedTasks: data.completed,
+                  totalTasks: data.total,
+                  status,
+                });
+              });
+            } else {
+              // Fallback: create default towers from project totals
+              const totalTasks = selectedProjectForView.total_tasks || 0;
+              const completedTasks = selectedProjectForView.completed_tasks || 0;
+
+              for (let i = 1; i <= 8; i++) {
+                const variation = (i % 3 === 0 ? -0.15 : i % 2 === 0 ? -0.05 : 0.05);
+                const towerTotal = Math.max(1, Math.round((totalTasks / 8) * (1 + variation)));
+                const towerCompleted = Math.max(0, Math.round((completedTasks / 8) * (1 + variation)));
+                const towerProgress = towerTotal > 0 ? Math.round((towerCompleted / towerTotal) * 100) : 0;
+
+                let status: 'Approved' | 'Pending' | 'Review';
+                if (towerProgress >= 80) {
+                  status = 'Approved';
+                } else if (towerProgress >= 50) {
+                  status = 'Pending';
+                } else {
+                  status = 'Review';
+                }
+
+                towers.push({
+                  id: i,
+                  name: `Tower ${String(i).padStart(2, '0')}`,
+                  progress: towerProgress,
+                  completedTasks: towerCompleted,
+                  totalTasks: towerTotal,
+                  status,
+                });
+              }
+            }
+          }
+
+          setTowerData(towers);
+        })
+        .catch((err) => {
+          console.error("Error fetching task stats:", err);
+          console.error("Error details:", err.response?.data || err.message);
+          // Fallback to project table data if API fails
+          const projectCompleted = selectedProjectForView.completed_tasks || 0;
+          const projectTotal = selectedProjectForView.total_tasks || 0;
+          const fallbackStats = {
+            todo: Math.max(0, projectTotal - projectCompleted),
+            inProgress: 0,
+            paused: 0,
+            completed: projectCompleted,
+          };
+          console.log("Using fallback stats from project table:", fallbackStats);
+          setTaskStats(fallbackStats);
+          setTowerData([]);
+        })
+        .finally(() => setLoadingTaskStats(false));
+    } else {
+      // Reset when project view is closed
+      setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+      setTowerData([]);
+    }
+  }, [showProjectView, selectedProjectForView]);
+
+  // Helper function to get employee name by ID
+  const getEmployeeName = (id: string | number | undefined): string => {
+    if (!id) return "";
+    const emp = employees.find((e) => e.id === Number(id));
+    return emp?.full_name || "";
+  };
 
   if (loading) {
     return (
@@ -207,7 +747,11 @@ export default function ProjectsTD() {
                     To Do Tasks
                   </p>
                   <p className="text-white text-[48px] font-Gantari font-bold leading-none">
-                    13
+                    {loadingTaskStats ? (
+                      <span className="text-2xl">...</span>
+                    ) : (
+                      taskStats.todo
+                    )}
                   </p>
                 </div>
                 <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
@@ -215,7 +759,11 @@ export default function ProjectsTD() {
                     In Progress Tasks
                   </p>
                   <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    18
+                    {loadingTaskStats ? (
+                      <span className="text-2xl">...</span>
+                    ) : (
+                      taskStats.inProgress
+                    )}
                   </p>
                 </div>
                 <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
@@ -223,7 +771,11 @@ export default function ProjectsTD() {
                     Paused Tasks
                   </p>
                   <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    02
+                    {loadingTaskStats ? (
+                      <span className="text-2xl">...</span>
+                    ) : (
+                      taskStats.paused
+                    )}
                   </p>
                 </div>
                 <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
@@ -231,100 +783,108 @@ export default function ProjectsTD() {
                     Completed Tasks
                   </p>
                   <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    122
+                    {loadingTaskStats ? (
+                      <span className="text-2xl">...</span>
+                    ) : (
+                      taskStats.completed
+                    )}
                   </p>
                 </div>
               </div>
 
               {/* Tower Progress Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 border border-slate-100 rounded-[2rem] p-6 md:p-8">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-                  const towerProgress =
-                    i % 3 === 0 ? 35 : i % 2 === 0 ? 65 : 86;
-                  const status =
-                    i % 3 === 0
-                      ? "Review"
-                      : i % 2 === 0
-                        ? "Pending"
-                        : "Approved";
-                  const statusColor =
-                    i % 3 === 0
-                      ? "#DD4342"
-                      : i % 2 === 0
-                        ? "#FF9F00"
-                        : "#0A9344";
-                  const statusBg =
-                    i % 3 === 0
-                      ? "bg-[#FFEBEC]"
-                      : i % 2 === 0
-                        ? "bg-[#FFF4E5]"
-                        : "bg-[#E7F6ED]";
+                {loadingTaskStats ? (
+                  <div className="col-span-full text-center py-8 text-gray-500">
+                    Loading tower data...
+                  </div>
+                ) : towerData.length > 0 ? (
+                  towerData.map((tower) => {
+                    const statusColor =
+                      tower.status === "Review"
+                        ? "#DD4342"
+                        : tower.status === "Pending"
+                          ? "#FF9F00"
+                          : "#0A9344";
+                    const statusBg =
+                      tower.status === "Review"
+                        ? "bg-[#FFEBEC]"
+                        : tower.status === "Pending"
+                          ? "bg-[#FFF4E5]"
+                          : "bg-[#E7F6ED]";
+                    const circumference = 2 * Math.PI * 34;
 
-                  return (
-                    <div
-                      key={i}
-                      className="bg-white border border-slate-100 rounded-[1.5rem] p-6"
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                          Tower 0{i}
-                        </span>
-                        <div
-                          className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: statusColor }}
-                          ></span>
-                          <span
-                            className="text-[12px] font-bold"
-                            style={{ color: statusColor }}
+                    return (
+                      <div
+                        key={tower.id}
+                        className="bg-white border border-slate-100 rounded-[1.5rem] p-6"
+                      >
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                            {tower.name}
+                          </span>
+                          <div
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}
                           >
-                            {status}
-                          </span>
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: statusColor }}
+                            ></span>
+                            <span
+                              className="text-[12px] font-bold"
+                              style={{ color: statusColor }}
+                            >
+                              {tower.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="relative flex items-center justify-center w-20 h-20">
+                            <svg className="w-full h-full transform -rotate-90">
+                              <circle
+                                cx="40"
+                                cy="40"
+                                r="34"
+                                stroke="#F1F5F9"
+                                strokeWidth="6"
+                                fill="transparent"
+                              />
+                              <circle
+                                cx="40"
+                                cy="40"
+                                r="34"
+                                stroke={statusColor}
+                                strokeWidth="6"
+                                fill="transparent"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={
+                                  circumference - (tower.progress / 100) * circumference
+                                }
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span className="absolute text-[15px] font-bold text-[#1A1A1A]">
+                              {tower.progress}%
+                            </span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[14px] font-bold text-[#999999] mb-1">
+                              Tasks Done
+                            </p>
+                            <p className="text-[18px] font-bold text-[#1A1A1A]">
+                              {tower.completedTasks}
+                              <span className="text-[#999999]">/{tower.totalTasks}</span>
+                            </p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="relative flex items-center justify-center w-20 h-20">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle
-                              cx="40"
-                              cy="40"
-                              r="34"
-                              stroke="#F1F5F9"
-                              strokeWidth="6"
-                              fill="transparent"
-                            />
-                            <circle
-                              cx="40"
-                              cy="40"
-                              r="34"
-                              stroke={statusColor}
-                              strokeWidth="6"
-                              fill="transparent"
-                              strokeDasharray={213.6}
-                              strokeDashoffset={
-                                213.6 - (towerProgress / 100) * 213.6
-                              }
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[15px] font-bold text-[#1A1A1A]">
-                            {towerProgress}%
-                          </span>
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[14px] font-bold text-[#999999] mb-1">
-                            Tasks Done
-                          </p>
-                          <p className="text-[18px] font-bold text-[#1A1A1A]">
-                            20<span className="text-[#999999]">/28</span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <div className="col-span-full text-center py-8 text-gray-500">
+                    No tower/module data available
+                  </div>
+                )}
               </div>
 
               {/* Team Overview Section */}
@@ -333,64 +893,202 @@ export default function ProjectsTD() {
                   Team Overview
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
-                  <div className="flex items-center gap-4">
-                    <img
-                      src="https://i.pravatar.cc/150?u=pm"
-                      className="w-14 h-14 rounded-full border-2 border-white shadow-sm"
-                      alt="PM"
-                    />
-                    <div>
-                      <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                        Reed Richards
-                      </p>
-                      <p className="text-[15px] font-Gantari font-bold text-[#999999]">
-                        Project Manager
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <img
-                      src="https://i.pravatar.cc/150?u=bim"
-                      className="w-14 h-14 rounded-full border-2 border-white shadow-sm"
-                      alt="BIM"
-                    />
-                    <div>
-                      <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                        Richard Parker
-                      </p>
-                      <p className="text-[15px] font-Gantari font-bold text-[#999999]">
-                        BIM Lead
-                      </p>
-                    </div>
-                  </div>
+                  {/* Project Manager */}
+                  {(() => {
+                    const projectManagerId = selectedProjectForView.project_manager;
+                    const projectManager = projectManagerId 
+                      ? allEmployees.find(e => Number(e.id) === Number(projectManagerId))
+                      : null;
+                    const pmProfileUrl = projectManager?.profile_picture
+                      ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
+                          ? projectManager.profile_picture
+                          : `${apiBase}/uploads/${projectManager.profile_picture}`)
+                      : null;
+                    
+                    return (
+                      <div className="flex items-center gap-4">
+                        {pmProfileUrl ? (
+                          <img
+                            src={pmProfileUrl}
+                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            alt={projectManager?.full_name || "PM"}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${projectManagerId}`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 font-bold">
+                              {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                            {projectManager?.full_name || "Not Assigned"}
+                          </p>
+                          <p className="text-[15px] font-Gantari font-bold text-[#999999]">
+                            Project Manager
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* BIM Lead */}
+                  {(() => {
+                    const bimLeadId = selectedProjectForView.bim_lead;
+                    const bimLead = bimLeadId 
+                      ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
+                      : null;
+                    const bimProfileUrl = bimLead?.profile_picture
+                      ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
+                          ? bimLead.profile_picture
+                          : `${apiBase}/uploads/${bimLead.profile_picture}`)
+                      : null;
+                    
+                    return (
+                      <div className="flex items-center gap-4">
+                        {bimProfileUrl ? (
+                          <img
+                            src={bimProfileUrl}
+                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            alt={bimLead?.full_name || "BIM Lead"}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 font-bold">
+                              {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                            {bimLead?.full_name || "Not Assigned"}
+                          </p>
+                          <p className="text-[15px] font-Gantari font-bold text-[#999999]">
+                            BIM Lead
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Department Involved */}
                   <div>
                     <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-1">
                       Department Involved
                     </p>
                     <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                      MEP (Dept)
+                      {selectedProjectForView.department || "Not Specified"}
                     </p>
                   </div>
+                  
+                  {/* Members Involved */}
                   <div>
                     <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-2">
                       Members Involved
                     </p>
                     <div className="flex -space-x-3">
-                      {[1, 2, 3].map((j) => (
-                        <div
-                          key={j}
-                          className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
-                        >
-                          <img
-                            src={`https://i.pravatar.cc/150?u=${j}`}
-                            alt="avatar"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                      <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">
-                        +4
-                      </div>
+                      {(() => {
+                        // Get members from project
+                        const memberIds = selectedProjectForView.member 
+                          ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                          : [];
+                        
+                        // Get employee data for members
+                        const projectMembers = memberIds
+                          .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                          .filter(Boolean) as Employee[];
+                        
+                        // Show up to 3 members, then +X for remaining
+                        const visibleMembers = projectMembers.slice(0, 3);
+                        const remainingCount = Math.max(0, projectMembers.length - 3);
+                        
+                        // Helper to get profile image URL
+                        const getProfileImageUrl = (emp: Employee) => {
+                          if (emp.profile_picture) {
+                            if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
+                              return emp.profile_picture;
+                            }
+                            return `${apiBase}/uploads/${emp.profile_picture}`;
+                          }
+                          return null;
+                        };
+                        
+                        return (
+                          <>
+                            {visibleMembers.length > 0 ? (
+                              visibleMembers.map((emp) => {
+                                const profileUrl = getProfileImageUrl(emp);
+                                return (
+                                  <div
+                                    key={emp.id}
+                                    className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                    title={emp.full_name || `Employee ${emp.id}`}
+                                  >
+                                    {profileUrl ? (
+                                      <img
+                                        src={profileUrl}
+                                        alt={emp.full_name || "Member"}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                        }}
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              // Fallback: show placeholder if no members
+                              [1, 2, 3].map((j) => (
+                                <div
+                                  key={j}
+                                  className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                >
+                                  <img
+                                    src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
+                                    alt="avatar"
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ))
+                            )}
+                            {remainingCount > 0 && (
+                              <div 
+                                className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                onClick={() => {
+                                  setAllMembersList(projectMembers);
+                                  setShowAllMembersModal(true);
+                                }}
+                                title={`Click to see all ${projectMembers.length} members`}
+                              >
+                                +{remainingCount}
+                              </div>
+                            )}
+                            {visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0 && (
+                              <div 
+                                className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                onClick={() => {
+                                  setAllMembersList([]);
+                                  setShowAllMembersModal(true);
+                                }}
+                                title={`Click to see all ${memberIds.length} members`}
+                              >
+                                +{memberIds.length}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -405,11 +1103,11 @@ export default function ProjectsTD() {
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Client Name
+                        Project Name
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        Mark Specter
+                        {selectedProjectForView.project_name || "Not Specified"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -418,7 +1116,9 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        dd/mm/yyyy
+                        {selectedProjectForView.start_date 
+                          ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          : "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -427,7 +1127,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        000hrs
+                        {selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -436,7 +1136,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        000000$
+                        {selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -445,7 +1145,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        000
+                        {selectedProjectForView.resources || "Not Set"}
                       </span>
                     </div>
                   </div>
@@ -456,7 +1156,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        Bengaluru, KA
+                        {selectedProjectForView.location || "Not Specified"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -465,7 +1165,9 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        dd/mm/yyyy
+                        {selectedProjectForView.end_date 
+                          ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                          : "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -474,7 +1176,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        0:00hrs
+                        {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -483,7 +1185,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        000
+                        {selectedProjectForView.required_resources || "Not Set"}
                       </span>
                     </div>
                     <div className="flex items-center">
@@ -492,7 +1194,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        000
+                        {selectedProjectForView.required_resources || "Not Set"}
                       </span>
                     </div>
                   </div>
@@ -503,27 +1205,9 @@ export default function ProjectsTD() {
                   </span>
                   <span className="text-[#999999] mr-4">:</span>
                   <div className="flex items-center gap-3">
-                    <a
-                      href="#"
-                      className="text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline"
-                    >
-                      Document.pdf
-                    </a>
-                    <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        />
-                      </svg>
-                    </button>
+                    <span className="text-[16px] font-Gantari font-bold text-[#999999]">
+                      No Document Available
+                    </span>
                   </div>
                 </div>
               </div>
@@ -693,9 +1377,15 @@ export default function ProjectsTD() {
                   </div>
                 ) : (
                   list.map((p) => {
+                    // Use data directly from projects table
                     const total = p.total_tasks ?? 0;
                     const completed = p.completed_tasks ?? 0;
                     const progress = Math.round(p.progress ?? 0);
+                    
+                    // Get members from project.members field (comma-separated string)
+                    const memberIds = p.member 
+                      ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                      : [];
 
                     const radius = 28;
                     const circumference = 2 * Math.PI * radius;
@@ -710,12 +1400,9 @@ export default function ProjectsTD() {
                         <div>
                           <div className="flex justify-between items-start mb-6">
                             <div>
-                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
-                                {p.project_name ?? "Prestige Park Groove"}
+                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
+                                {p.project_name ?? "Untitled Project"}
                               </h3>
-                              <p className="text-[16px] font-Gantari font-semibold text-[#353535]">
-                                Tower 1 to 09
-                              </p>
                             </div>
                             <div className="relative">
                               <button
@@ -782,7 +1469,13 @@ export default function ProjectsTD() {
                                           : '',
                                       );
                                       setCreateBudgetCeiling(p.budget_ceiling ?? "");
-                                      setCreateBiddingEndDate(p.bidding_end_date ?? "");
+                                      // Convert date format if needed
+                                      const biddingDate = p.bidding_end_date 
+                                        ? p.bidding_end_date.includes('T') 
+                                          ? p.bidding_end_date.split('T')[0]
+                                          : p.bidding_end_date
+                                        : "";
+                                      setCreateBiddingEndDate(biddingDate);
                                       setCreateBIMLead(p.bim_lead ?? "");
                                       setCreateBIMCoOrdinator(
                                         p.bim_co_ordinator ?? "",
@@ -879,24 +1572,111 @@ export default function ProjectsTD() {
                         </div>
                         <div className="flex items-center justify-between border-t border-[#F1F1F1] pt-5 mt-auto">
                           <div className="flex -space-x-5">
-                            {[1, 2, 3].map((i) => (
-                              <div
-                                key={i}
-                                className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
-                              >
-                                <img
-                                  src={`https://i.pravatar.cc/150?u=${p.id + i}`}
-                                  alt="avatar"
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">
-                              +4
-                            </div>
+                            {(() => {
+                              // Get employee data for members from projects table
+                              // Match by converting both to numbers for comparison
+                              const projectEmployees = memberIds
+                                .map(id => {
+                                  const emp = allEmployees.find(e => Number(e.id) === Number(id));
+                                  return emp;
+                                })
+                                .filter(Boolean) as Employee[];
+                              
+                              // Show up to 3 members, then +X for remaining
+                              const visibleMembers = projectEmployees.slice(0, 3);
+                              const remainingCount = Math.max(0, projectEmployees.length - 3);
+                              
+                              // Helper to get profile picture URL
+                              const getProfileImageUrl = (emp: Employee) => {
+                                if (emp.profile_picture) {
+                                  // If it's already a full URL, use it; otherwise construct it
+                                  if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
+                                    return emp.profile_picture;
+                                  }
+                                  // Construct full URL from relative path
+                                  return `${apiBase}/uploads/${emp.profile_picture}`;
+                                }
+                                return null;
+                              };
+                              
+                              return (
+                                <>
+                                  {visibleMembers.length > 0 ? (
+                                    visibleMembers.map((emp) => {
+                                      const profileUrl = getProfileImageUrl(emp);
+                                      return (
+                                        <div
+                                          key={emp.id}
+                                          className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
+                                          title={emp.full_name || `Employee ${emp.id}`}
+                                          onClick={() => {
+                                            setSelectedMember(emp);
+                                            setShowMemberProfileModal(true);
+                                          }}
+                                        >
+                                          {profileUrl ? (
+                                            <img
+                                              src={profileUrl}
+                                              alt={emp.full_name || "Member"}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                // Fallback to placeholder if image fails
+                                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                              {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })
+                                  ) : (
+                                    // Fallback: show placeholder avatars if no members found
+                                    [1, 2, 3].map((i) => (
+                                      <div
+                                        key={i}
+                                        className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                      >
+                                        <img
+                                          src={`https://i.pravatar.cc/150?u=${p.id + i}`}
+                                          alt="avatar"
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                    ))
+                                  )}
+                                  {remainingCount > 0 && (
+                                    <div 
+                                      className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                      onClick={() => {
+                                        setAllMembersList(projectEmployees);
+                                        setShowAllMembersModal(true);
+                                      }}
+                                      title={`Click to see all ${projectEmployees.length} members`}
+                                    >
+                                      +{remainingCount}
+                                    </div>
+                                  )}
+                                  {visibleMembers.length === 0 && projectEmployees.length === 0 && memberIds.length > 0 && (
+                                    <div 
+                                      className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                      onClick={() => {
+                                        setAllMembersList([]);
+                                        setShowAllMembersModal(true);
+                                      }}
+                                      title={`Click to see all ${memberIds.length} members`}
+                                    >
+                                      +{memberIds.length}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
 
-                          <Link
+                          {/* <Link
                             to={`/projects/${p.id}`}
                             className="flex items-center gap-1.5 text-[16px] font-Gantari font-semibold text-[#8B8B8B] transition-colors group"
                           >
@@ -914,7 +1694,7 @@ export default function ProjectsTD() {
                                 d="M17 7l-10 10M17 7H7M17 7v10"
                               />
                             </svg>
-                          </Link>
+                          </Link> */}
                         </div>
                       </div>
                     );
@@ -1652,7 +2432,31 @@ export default function ProjectsTD() {
             <div className="relative flex items-center justify-center px-10 py-8">
               <button
                 type="button"
-                onClick={() => { setShowEditModal(false); setEditDropdownOpen(null); setCreateBudgetCeiling(""); setCreateBiddingEndDate(""); }}
+                onClick={() => { 
+                  setShowEditModal(false); 
+                  setEditDropdownOpen(null); 
+                  setCreateBudgetCeiling(""); 
+                  setCreateBiddingEndDate("");
+                  // Reset all form fields
+                  setCreateName("");
+                  setCreateBudget("");
+                  setCreateModuleName("");
+                  setCreateClientName("");
+                  setCreateProjectManager("");
+                  setCreateStartDate("");
+                  setCreateEndDate("");
+                  setCreateTotalHours("");
+                  setCreatePerDay("");
+                  setCreateDepartment("");
+                  setCreateBIMLead("");
+                  setCreateBIMCoOrdinator("");
+                  setCreateMember("");
+                  setCreateResources("");
+                  setCreateRequiredResources("");
+                  setCreatePriority("");
+                  setCreateLocation("");
+                  setCreateDescription("");
+                }}
                 className="absolute left-10 p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
                 title="Close"
               >
@@ -1714,37 +2518,19 @@ export default function ProjectsTD() {
                         setEditDropdownOpen(null);
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
-                        setList((prev) =>
-                          prev.map((p) =>
-                            p.id === id
-                              ? {
-                                  ...p,
-                                  project_name: createName,
-                                  budget: createBudget,
-                                  module_name: createModuleName,
-                                  client_name: createClientName,
-                                  project_manager: createProjectManager,
-                                  bim_lead: createBIMLead,
-                                  bim_co_ordinator: createBIMCoOrdinator,
-                                  member: createMember,
-                                  department: createDepartment,
-                                  ...(isEditSourceOutsource
-                                    ? {
-                                        budget_ceiling: createBudgetCeiling,
-                                        bidding_end_date: createBiddingEndDate,
-                                      }
-                                    : {}),
-                                  end_date: createEndDate,
-                                  start_date: createStartDate,
-                                  total_hours: createTotalHours,
-                                  per_day: createPerDay,
-                                  priority: createPriority,
-                                  location: createLocation,
-                                  description: createDescription,
-                                }
-                              : p,
-                          ),
-                        );
+                        // Refresh the project list to get updated data
+                        api
+                          .get<{ projects?: Record<string, unknown>[] }>(
+                            "/api/projects",
+                          )
+                          .then((res) =>
+                            setList(
+                              (res.data.projects ?? []).map(
+                                mapApiProjectToProject,
+                              ),
+                            ),
+                          )
+                          .catch(() => {});
                       }
                     })
                     .catch(() => {})
@@ -1796,7 +2582,7 @@ export default function ProjectsTD() {
                     <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                       Select Source
                     </label>
-                    <div className="relative">
+                    <div className="relative dropdown-container">
                       <button
                         type="button"
                         onClick={() =>
@@ -1818,9 +2604,42 @@ export default function ProjectsTD() {
                       </button>
                       {editDropdownOpen === 'source' && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                          <button type="button" onClick={() => { setCreateDepartment(''); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">Select Source</button>
-                          <button type="button" onClick={() => { setCreateDepartment('Budget Ceiling'); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">In House</button>
-                          <button type="button" onClick={() => { setCreateDepartment('Submission Deadline'); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm font-Gantari text-gray-700 hover:bg-[#F4F5F7]">Outsource</button>
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              setCreateDepartment(''); 
+                              setEditDropdownOpen(null); 
+                            }} 
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                              !createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                            }`}
+                          >
+                            Select Source
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              setCreateDepartment('Budget Ceiling'); 
+                              setEditDropdownOpen(null); 
+                            }} 
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                              createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                            }`}
+                          >
+                            In House
+                          </button>
+                          <button 
+                            type="button" 
+                            onClick={() => { 
+                              setCreateDepartment('Submission Deadline'); 
+                              setEditDropdownOpen(null); 
+                            }} 
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                              createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                            }`}
+                          >
+                            Outsource
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1833,7 +2652,7 @@ export default function ProjectsTD() {
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                           Select Project Manager
                         </label>
-                        <div className="relative">
+                        <div className="relative dropdown-container">
                           <button
                             type="button"
                             onClick={() =>
@@ -1841,8 +2660,8 @@ export default function ProjectsTD() {
                             }
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
                           >
-                            <span className={createProjectManager && !/^\d+$/.test(String(createProjectManager)) ? "text-black" : "text-gray-400"}>
-                              {createProjectManager && !/^\d+$/.test(String(createProjectManager)) ? createProjectManager : "Select Project Manager"}
+                            <span className={getEmployeeName(createProjectManager) ? "text-gray-700" : "text-gray-400"}>
+                              {getEmployeeName(createProjectManager) || "Select Project Manager"}
                             </span>
                             <svg
                               className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
@@ -1865,6 +2684,23 @@ export default function ProjectsTD() {
                               >
                                 Select Project Manager
                               </button>
+                              {projectManagers.map((pm) => (
+                                <button
+                                  key={pm.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCreateProjectManager(String(pm.id));
+                                    setEditDropdownOpen(null);
+                                  }}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                                    createProjectManager === String(pm.id)
+                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                      : "text-gray-700"
+                                  }`}
+                                >
+                                  {pm.full_name || `Employee ${pm.id}`}
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -1873,7 +2709,7 @@ export default function ProjectsTD() {
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                           Select BIM Lead
                         </label>
-                        <div className="relative">
+                        <div className="relative dropdown-container">
                           <button
                             type="button"
                             onClick={() =>
@@ -1881,8 +2717,8 @@ export default function ProjectsTD() {
                             }
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
                           >
-                            <span className={createBIMLead && !/^\d+$/.test(String(createBIMLead)) ? "text-gray-700" : "text-gray-400"}>
-                              {createBIMLead && !/^\d+$/.test(String(createBIMLead)) ? createBIMLead : "Select BIM Lead"}
+                            <span className={getEmployeeName(createBIMLead) ? "text-gray-700" : "text-gray-400"}>
+                              {getEmployeeName(createBIMLead) || "Select BIM Lead"}
                             </span>
                             <svg
                               className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
@@ -1905,6 +2741,23 @@ export default function ProjectsTD() {
                               >
                                 Select BIM Lead
                               </button>
+                              {bimLeads.map((lead) => (
+                                <button
+                                  key={lead.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCreateBIMLead(String(lead.id));
+                                    setEditDropdownOpen(null);
+                                  }}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                                    createBIMLead === String(lead.id)
+                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                      : "text-gray-700"
+                                  }`}
+                                >
+                                  {lead.full_name || `Employee ${lead.id}`}
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -1913,7 +2766,7 @@ export default function ProjectsTD() {
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                           Select BIM Coordinator
                         </label>
-                        <div className="relative">
+                        <div className="relative dropdown-container">
                           <button
                             type="button"
                             onClick={() =>
@@ -1921,8 +2774,8 @@ export default function ProjectsTD() {
                             }
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-left cursor-pointer"
                           >
-                            <span className={createBIMCoOrdinator && !/^\d+$/.test(String(createBIMCoOrdinator)) ? "text-gray-700" : "text-gray-400"}>
-                              {createBIMCoOrdinator && !/^\d+$/.test(String(createBIMCoOrdinator)) ? createBIMCoOrdinator : "Select BIM Coordinator"}
+                            <span className={getEmployeeName(createBIMCoOrdinator) ? "text-gray-700" : "text-gray-400"}>
+                              {getEmployeeName(createBIMCoOrdinator) || "Select BIM Coordinator"}
                             </span>
                             <svg
                               className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimCoord" ? "rotate-180" : ""}`}
@@ -1945,6 +2798,23 @@ export default function ProjectsTD() {
                               >
                                 Select BIM Coordinator
                               </button>
+                              {bimCoordinators.map((coord) => (
+                                <button
+                                  key={coord.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setCreateBIMCoOrdinator(String(coord.id));
+                                    setEditDropdownOpen(null);
+                                  }}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
+                                    createBIMCoOrdinator === String(coord.id)
+                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                      : "text-gray-700"
+                                  }`}
+                                >
+                                  {coord.full_name || `Employee ${coord.id}`}
+                                </button>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -1986,7 +2856,31 @@ export default function ProjectsTD() {
                 <div className="flex justify-center gap-6 pt-6">
                   <button
                     type="button"
-                    onClick={() => { setShowEditModal(false); setEditDropdownOpen(null); setCreateBudgetCeiling(""); setCreateBiddingEndDate(""); }}
+                    onClick={() => { 
+                      setShowEditModal(false); 
+                      setEditDropdownOpen(null); 
+                      setCreateBudgetCeiling(""); 
+                      setCreateBiddingEndDate("");
+                      // Reset all form fields
+                      setCreateName("");
+                      setCreateBudget("");
+                      setCreateModuleName("");
+                      setCreateClientName("");
+                      setCreateProjectManager("");
+                      setCreateStartDate("");
+                      setCreateEndDate("");
+                      setCreateTotalHours("");
+                      setCreatePerDay("");
+                      setCreateDepartment("");
+                      setCreateBIMLead("");
+                      setCreateBIMCoOrdinator("");
+                      setCreateMember("");
+                      setCreateResources("");
+                      setCreateRequiredResources("");
+                      setCreatePriority("");
+                      setCreateLocation("");
+                      setCreateDescription("");
+                    }}
                     className="px-12 py-3 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all hover:bg-gray-200"
                   >
                     Discard
@@ -2000,6 +2894,247 @@ export default function ProjectsTD() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Members Modal */}
+      {showAllMembersModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAllMembersModal(false)}
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                title="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                All Members ({allMembersList.length})
+              </h3>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
+              {allMembersList.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allMembersList.map((emp) => {
+                    const profileUrl = emp.profile_picture
+                      ? (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://'))
+                        ? emp.profile_picture
+                        : `${apiBase}/uploads/${emp.profile_picture}`
+                      : null;
+                    
+                    return (
+                      <div
+                        key={emp.id}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedMember(emp);
+                          setShowAllMembersModal(false);
+                          setShowMemberProfileModal(true);
+                        }}
+                      >
+                        {profileUrl ? (
+                          <img
+                            src={profileUrl}
+                            alt={emp.full_name || "Member"}
+                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 font-bold text-lg">
+                              {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </p>
+                          {emp.user_role && (
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999]">
+                              {emp.user_role}
+                            </p>
+                          )}
+                          {emp.email && (
+                            <p className="text-[13px] font-Gantari text-[#666666] mt-1">
+                              {emp.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-[16px] font-Gantari">No members found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Profile Modal */}
+      {showMemberProfileModal && selectedMember && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full flex flex-col">
+            {/* Modal Header */}
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMemberProfileModal(false);
+                  setSelectedMember(null);
+                }}
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                title="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                Member Profile
+              </h3>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+              <div className="flex flex-col items-center">
+                {selectedMember.profile_picture ? (
+                  <img
+                    src={
+                      selectedMember.profile_picture.startsWith('http://') || selectedMember.profile_picture.startsWith('https://')
+                        ? selectedMember.profile_picture
+                        : `${apiBase}/uploads/${selectedMember.profile_picture}`
+                    }
+                    alt={selectedMember.full_name || "Member"}
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${selectedMember.id}`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
+                    <span className="text-slate-600 font-bold text-3xl">
+                      {(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="w-full space-y-4">
+                  <div>
+                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
+                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                      {selectedMember.full_name || "Not Available"}
+                    </p>
+                  </div>
+                  
+                  {selectedMember.empid && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.empid}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.dob && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Birth</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {new Date(selectedMember.dob).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.phone_number && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.phone_number}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.email && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.email}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.user_role && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.user_role}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.address && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Address</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.address}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.department && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Department</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.department}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedMember.doj && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Joining</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        {new Date(selectedMember.doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

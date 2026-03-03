@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
+import { toast } from "react-hot-toast";
+import api from "../../lib/api";
 import Upload from '../../assets/ProjectManager/MyTask/Upload.svg';
 import ImageIcon from '../../assets/ProjectManager/MyTask/image.svg';
 
@@ -10,6 +12,7 @@ interface Task {
     status?: string;
     due_date?: string;
     project_name?: string;
+    projectid?: number;
     start_date?: string;
     progress?: number;
     module?: string;
@@ -21,6 +24,7 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    Approval?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -43,11 +47,11 @@ function formatTimeAMPM(t?: string): string {
     return `${h12}:${m} ${am ? "AM" : "PM"}`;
 }
 
-function normalizeStatus(s: string | undefined): StatusKey {
+function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
+    if (approval?.toLowerCase() === "approved") return "approved";
+    if (approval?.toLowerCase() === "rejected") return "rejected";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
-    if (lower.includes("approv")) return "approved";
-    if (lower.includes("reject")) return "rejected";
     if (lower.includes("progress") || lower === "in_progress") return "in_progress";
     if (lower.includes("complete") || lower === "done") return "completed";
     return "todo";
@@ -91,33 +95,78 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 export default function MytaskViewBC() {
     const location = useLocation();
     const task = (location.state as { task?: Task } | null)?.task;
+
     const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-        task ? normalizeStatus(task.status) : "todo"
+        task ? normalizeStatus(task.status, task.Approval) : "todo"
     );
     const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
+    const [submittingWork, setSubmittingWork] = useState(false);
+    const [updatingStatus, setUpdatingStatus] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !file.type.startsWith("image/")) return;
+        setSelectedImage(file);
         if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
         setSelectedImagePreview(URL.createObjectURL(file));
         e.target.value = "";
     };
+
+    const handleStatusUpdate = async (newStatus: StatusKey) => {
+        if (!task || updatingStatus) return;
+        setUpdatingStatus(true);
+        const backendStatus = newStatus === "approved" ? "Approved" : "Rejected";
+
+        try {
+            await api.patch(`/api/tasks/${task.id}/status`, {
+                status: backendStatus,
+                projectId: task.projectid
+            });
+            setStatusDisplay(newStatus);
+            toast.success(`Task ${backendStatus.toLowerCase()} successfully`);
+        } catch (error) {
+            console.error("Error updating status:", error);
+            toast.error("Failed to update status");
+        } finally {
+            setUpdatingStatus(false);
+            setStatusDropdownOpen(false);
+        }
+    };
+
+    const handleImageSubmit = async () => {
+        if (!task || !selectedImage || submittingWork) return;
+        setSubmittingWork(true);
+        const formData = new FormData();
+        formData.append("image", selectedImage);
+
+        try {
+            await api.post(`/api/tasks/${task.id}/output-files`, formData);
+            toast.success("Work submitted successfully");
+            setSelectedImage(null);
+            if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
+            setSelectedImagePreview(null);
+        } catch (error) {
+            console.error("Error submitting work:", error);
+            toast.error("Failed to submit work");
+        } finally {
+            setSubmittingWork(false);
+        }
+    };
+
     useEffect(() => {
         return () => {
             if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
         };
     }, [selectedImagePreview]);
 
-    // Sync displayed status when viewing a different task (e.g. navigated with new state)
     useEffect(() => {
         if (!task) return;
-        const next = normalizeStatus(task.status);
-        const id = requestAnimationFrame(() => setStatusDisplay(next));
-        return () => cancelAnimationFrame(id);
+        const next = normalizeStatus(task.status, task.Approval);
+        setStatusDisplay(next);
     }, [task]);
 
     useEffect(() => {
@@ -182,15 +231,16 @@ export default function MytaskViewBC() {
                     <div className="relative" ref={statusDropdownRef}>
                         <button
                             type="button"
+                            disabled={updatingStatus}
                             onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                            className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD]"
+                            className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50"
                             aria-expanded={statusDropdownOpen}
                             aria-haspopup="listbox"
                         >
-                            Select Status
+                            {updatingStatus ? "Updating..." : "Select Status"}
                             <FiChevronDown className="w-4 h-4" />
                         </button>
-                        {statusDropdownOpen && (
+                        {statusDropdownOpen && !updatingStatus && (
                             <div
                                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
                                 role="listbox"
@@ -201,10 +251,7 @@ export default function MytaskViewBC() {
                                         type="button"
                                         role="option"
                                         aria-selected={statusDisplay === opt.value}
-                                        onClick={() => {
-                                            setStatusDisplay(opt.value);
-                                            setStatusDropdownOpen(false);
-                                        }}
+                                        onClick={() => handleStatusUpdate(opt.value)}
                                         className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
                                             ? "bg-slate-50 font-medium"
                                             : ""
@@ -322,13 +369,24 @@ export default function MytaskViewBC() {
                             aria-label="Select image"
                             onChange={handleSelectImage}
                         />
-                        <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px]">
+                        <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
                             {selectedImagePreview ? (
-                                <img
-                                    src={selectedImagePreview}
-                                    alt="Selected"
-                                    className="max-h-48 max-w-full object-contain rounded"
-                                />
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedImage(null);
+                                            setSelectedImagePreview(null);
+                                        }}
+                                        className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10"
+                                    >
+                                        <FiX className="w-4 h-4 text-slate-600" />
+                                    </button>
+                                    <img
+                                        src={selectedImagePreview}
+                                        alt="Selected"
+                                        className="max-h-48 max-w-full object-contain rounded"
+                                    />
+                                </>
                             ) : (
                                 <>
                                     <img src={ImageIcon} alt="Image" className="w-7 h-7" />
@@ -339,18 +397,21 @@ export default function MytaskViewBC() {
                         <div className="flex gap-4 mt-6 justify-center">
                             <button
                                 type="button"
+                                disabled={submittingWork}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap"
+                                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
                             >
                                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                                 <span className="mr-2">Select Image</span>
                             </button>
                             <button
                                 type="button"
-                                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap"
+                                disabled={!selectedImage || submittingWork}
+                                onClick={handleImageSubmit}
+                                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
                             >
                                 <FiCheck className="w-4 h-4 text-[#008F22]" />
-                                Submit Image
+                                {submittingWork ? "Submitting..." : "Submit Image"}
                             </button>
                         </div>
                     </div>

@@ -79,7 +79,15 @@ const PartnerView = () => {
                     <div className="grid grid-cols-3 items-center mb-8">
                         {/* Left: Back button */}
                         <button
-                            onClick={() => navigate(location.pathname.startsWith('/td/') ? '/td/partner' : '/super-admin/partners')}
+                            onClick={() => {
+                                if (location.pathname.startsWith('/td/')) {
+                                    navigate('/td/partner');
+                                } else if (location.pathname.startsWith('/bl/')) {
+                                    navigate('/bl/partner');
+                                } else {
+                                    navigate('/super-admin/partners');
+                                }
+                            }}
                             className="flex items-center text-gray-600 hover:text-gray-900 font-medium text-lg"
                             style={{ fontFamily: 'Montserrat, sans-serif' }}
                         >

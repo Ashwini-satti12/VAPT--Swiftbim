@@ -63,89 +63,191 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isVendor = userRole === 'Vendor';
 
   const getNavItems = (): NavItem[] => {
-    if (isTechnicalDirector || isBimLead) {
-      const prefix = isTechnicalDirector ? 'td' : 'bl';
+    if (isTechnicalDirector) {
       return [
         {
           name: "Dashboard",
-          path: `/${prefix}/dashboard`,
+          path: "/td/dashboard",
           iconSrc: dashboardIcon,
           activeIconSrc: whiteDashboardIcon,
           isVisible: true,
         },
         {
           name: "Consultant",
-          path: `/${prefix}/consultants`,
+          path: "/td/consultants",
           iconSrc: consultantIcon,
           activeIconSrc: whiteConsultantIcon,
           isVisible: true,
         },
         {
           name: "Clients",
-          path: `/${prefix}/clients`,
+          path: "/td/clients",
           iconSrc: clientIcon,
           activeIconSrc: whiteClientIcon,
           isVisible: true,
         },
         {
-          name: "Partner",
-          path: `/${prefix}/partner`,
+          name: "Partners",
+          path: "/td/partner",
           iconSrc: clientIcon,
           activeIconSrc: whiteClientIcon,
           isVisible: true,
         },
         {
-          name: "Projects",
-          path: `/${prefix}/projects`,
+          name: "Proposal",
+          path: "/td/manage-proposal",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
         },
         {
           name: "Bidding Process",
-          path: `/${prefix}/bidding`,
+          path: "/td/bidding",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "Projects",
+          path: "/td/projects",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
         },
         {
           name: "My Task",
-          path: `/${prefix}/mytasks`,
+          path: "/td/mytasks",
           iconSrc: myTaskIcon,
           activeIconSrc: whiteMyTaskIcon,
           isVisible: true,
         },
         {
           name: "Team Task",
-          path: `/${prefix}/teamtasks`,
+          path: "/td/teamtasks",
           iconSrc: teamTaskIcon,
           activeIconSrc: whiteTeamTaskIcon,
           isVisible: true,
         },
         {
           name: "Create Team",
-          path: `/${prefix}/createteam`,
+          path: "/td/createteam",
           iconSrc: createTeamIcon,
           activeIconSrc: whiteCreateTeamIcon,
           isVisible: true,
         },
         {
           name: "Tracker",
-          path: `/${prefix}/tracker`,
+          path: "/td/tracker",
           iconSrc: trackerIcon,
           activeIconSrc: whiteTrackerIcon,
           isVisible: true,
         },
         {
           name: "Team Report",
-          path: `/${prefix}/teamreport`,
+          path: "/td/teamreport",
           iconSrc: teamReportIcon,
           activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
         {
           name: "Chat",
-          path: `/${prefix}/chat`,
+          path: "/td/chat",
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+      ];
+    }
+
+    if (isBimLead) {
+      return [
+        {
+          name: "Dashboard",
+          path: "/bl/dashboard",
+          iconSrc: dashboardIcon,
+          activeIconSrc: whiteDashboardIcon,
+          isVisible: true,
+        },
+        {
+          name: "Consultant",
+          path: "/bl/consultants",
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        // {
+        //   name: "Clients",
+        //   path: "/bl/clients",
+        //   iconSrc: clientIcon,
+        //   activeIconSrc: whiteClientIcon,
+        //   isVisible: true,
+        // },
+        {
+          name: "Partners",
+          path: "/bl/partner",
+          iconSrc: clientIcon,
+          activeIconSrc: whiteClientIcon,
+          isVisible: true,
+        },
+        // {
+        //   name: "Proposal",
+        //   path: "/bl/manage-proposal",
+        //   iconSrc: projectIcon,
+        //   activeIconSrc: whiteProjectIcon,
+        //   isVisible: true,
+        // },
+        // {
+        //   name: "Bidding Process",
+        //   path: "/bl/bidding",
+        //   iconSrc: projectIcon,
+        //   activeIconSrc: whiteProjectIcon,
+        //   isVisible: true,
+        // },
+        {
+          name: "Projects",
+          path: "/bl/projects",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+        {
+          name: "My Task",
+          path: "/bl/mytasks",
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: "/bl/teamtasks",
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: "/bl/createteam",
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Tracker",
+          path: "/bl/tracker",
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Report",
+          path: "/bl/teamreport",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
+          name: "Chat",
+          path: "/bl/chat",
           iconSrc: chatIcon,
           activeIconSrc: whiteChatIcon,
           isVisible: true,
@@ -430,10 +532,10 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   };
 
   return (
-    <div className="w-60 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
+    <div className="w-66 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
       {/* Navigation Items Container */}
       <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path);
 
