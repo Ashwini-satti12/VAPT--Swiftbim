@@ -365,18 +365,29 @@ export default function EmployeesPM() {
       return;
     }
     setAddSubmitting(true);
+
+    const formData = new FormData();
+    formData.append('full_name', form.full_name.trim());
+    formData.append('email', form.email.trim());
+    formData.append('password', form.password);
+    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+    if (form.user_role) formData.append('user_role', form.user_role);
+    if (form.address.trim()) formData.append('address', form.address.trim());
+    if (form.dob) formData.append('dob', form.dob);
+    if (form.type) formData.append('user_type', form.type);
+    if (form.joining_date) formData.append('doj', form.joining_date);
+    if (form.department) formData.append('department', form.department);
+    if (form.roles.length) formData.append('roles', form.roles.join(','));
+    if (form.profile_picture) {
+      formData.append('profile_picture', form.profile_picture);
+    }
+
     api
-      .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
-        full_name: form.full_name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-        phone_number: form.phone_number.trim() || undefined,
-        user_role: form.user_role,
-        address: form.address.trim() || undefined,
-        dob: form.dob || undefined,
-        user_type: form.type || undefined,
-        doj: form.joining_date || undefined,
-      })
+      .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
+        '/api/employees',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      )
       .then(({ data }) => {
         if (data.success) {
           setActiveView('list');
@@ -396,7 +407,23 @@ export default function EmployeesPM() {
             accountnumber: '',
             roles: [],
           });
-          setList((prev) => [...prev, { id: data.id!, full_name: form.full_name, email: form.email, user_role: form.user_role, active: 'active', dob: form.dob, user_type: form.type, doj: form.joining_date, address: form.address, salary: form.salary, Allpannel: form.roles.join(',') }]);
+          setList((prev) => [
+            ...prev,
+            {
+              id: data.id!,
+              full_name: form.full_name,
+              email: form.email,
+              user_role: form.user_role,
+              active: 'active',
+              dob: form.dob,
+              user_type: form.type,
+              doj: form.joining_date,
+              address: form.address,
+              salary: form.salary,
+              Allpannel: form.roles.join(','),
+              profile_picture: data.profile_picture || undefined,
+            },
+          ]);
         } else {
           setAddError(data.message || 'Failed to add consultant.');
         }
