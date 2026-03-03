@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -30,30 +30,62 @@ interface Employee {
   Allpannel?: string;
 }
 
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `/uploads/${path.replace(/\\/g, "/")}`;
+};
+
+const toCamelCase = (str: string): string => {
+  if (!str) return str;
+  return str.toLowerCase().split(' ').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+};
+const Departments_options=[
+  'Technical','Sales','Operations','Human Resources','Accounts','Designing'
+]
 
 const ROLE_OPTIONS = [
   'Consultant',
   'BIM Coordinator',
   'BIM Lead',
   'Project Manager',
-  'Technical Director',
-  'CEO',
-  'CTO',
+  'BIM Modeler',
+  'BIM Architect',
+  'BIM Architect Lead',
+  'Tekla Modeler',
+  'BIM Project Manager',
+  'Business Development Manager',
+  'Vice President Projects',
+  'Junior BIM Modeler',
+  'Architect Intern',
+  'BIM Modeler- MEP',
+  'HR Executive',
+  'Graphic Designer',
+  'Management'
+];
+
+const PANEL_ACCESS_OPTIONS = [
+  'Management', 'Accounts', 'Technical Director','Admin', 'Project Manager','Client', 'Sales', 'BIM Lead','Employee','All'
 ];
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 100px;
+    width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #48454580;
+    background: #979797;
     border-radius: 10px;
   }
-  
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #979797 transparent;
+  }
 `;
 
 function CustomDropdown({
@@ -124,6 +156,7 @@ function CustomDropdown({
 }
 
 export default function EmployeesPM() {
+  const navigate = useNavigate();
   useEffect(() => {
     const styleTag = document.createElement('style');
     styleTag.textContent = SCROLLBAR_STYLE;
@@ -145,7 +178,7 @@ export default function EmployeesPM() {
     email: '',
     password: '',
     type: '',
-    user_role: 'Consultant',
+    user_role: '',
     joining_date: '',
     department: '',
     address: '',
@@ -164,7 +197,7 @@ export default function EmployeesPM() {
     full_name: '',
     email: '',
     phone_number: '',
-    user_role: 'Consultant',
+    user_role: '',
     department: '',
     address: '',
     dob: '',
@@ -181,7 +214,8 @@ export default function EmployeesPM() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const canAdd = user?.panel_type === 1;
 
@@ -201,7 +235,7 @@ export default function EmployeesPM() {
           full_name: emp.full_name,
           email: emp.email,
           phone_number: emp.phone_number || '',
-          user_role: emp.user_role || 'Consultant',
+          user_role: emp.user_role || '',
           department: emp.department || '',
           address: emp.address || '',
           dob: emp.dob || '',
@@ -217,8 +251,16 @@ export default function EmployeesPM() {
     }
   }, [editParam, list]);
 
-  const paginatedList = list.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(list.length / itemsPerPage);
+  const filteredList = list.filter((emp: Employee) => {
+    if (statusFilter === 'All') return true;
+    const currentStatus = (emp.active || '').toLowerCase();
+    if (statusFilter === 'Active') return currentStatus === 'active';
+    if (statusFilter === 'Inactive') return currentStatus !== 'active';
+    return true;
+  });
+
+  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -334,7 +376,6 @@ export default function EmployeesPM() {
         dob: form.dob || undefined,
         user_type: form.type || undefined,
         doj: form.joining_date || undefined,
-
       })
       .then(({ data }) => {
         if (data.success) {
@@ -373,45 +414,45 @@ export default function EmployeesPM() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
-      {activeView === 'list' && (
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      {(activeView === 'list' || activeView === 'invite' || activeView === 'inactive') && (
         <>
           <div className="sticky z-50 bg-white mb-4 mt-2">
             {/* ROW 1 */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
               <h2 className="text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight">
                 Consultant
               </h2>
               {canAdd && (
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <button
                     type="button"
                     onClick={() => setActiveView('add')}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c43635] transition-all shadow-lg shadow-red-100"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
                   >
-                    <FiPlus className="w-[24px] h-[24px]" />
+                    <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Add Consultant
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView('invite')}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c43635] transition-all shadow-lg shadow-red-100"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
                   >
-                    <FiPlus className="w-[24px] h-[24px]" />
+                    <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Invite
                   </button>
                   <button
                     type="button"
                     onClick={exportCsv}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c43635] transition-all shadow-lg shadow-red-100"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
                   >
-                    <img src={exportIcon} alt="Export" className="w-[24px] h-[24px]" />
-                    Export to CSV
+                    <img src={exportIcon} alt="Export" className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
+                    CSV
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveView('inactive')}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] hover:bg-[#c43635] transition-all shadow-lg shadow-red-100"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
                   >
                     Manage Inactive
                   </button>
@@ -419,51 +460,74 @@ export default function EmployeesPM() {
               )}
             </div>
             {/* ROW 2 */}
-            <div className="flex justify-end items-center gap-4 mt-8 mb-2">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-              >
-                <FiMenu className="w-6 h-6" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('card')}
-                className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
-              >
-                <FiGrid className="w-6 h-6" />
-              </button>
-              {viewMode === 'table' && (
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F4F4F4] rounded-[10px] text-[#616161] font-Gantari text-[14px] cursor-pointer hover:bg-slate-200 transition-all">
-                    <span>Show: 100</span>
-                    <FiChevronDown className="w-5 h-5 text-slate-500" />
-                  </div>
+            <div className="flex flex-col sm:flex-row justify-between sm:justify-end items-start sm:items-center gap-4 mt-6 sm:mt-8 mb-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                >
+                  <FiMenu className="w-5 h-5 sm:w-6 h-6" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('card')}
+                  className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                >
+                  <FiGrid className="w-5 h-5 sm:w-6 h-6" />
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                {viewMode === 'table' && (
                   <CustomDropdown
-                    options={['All', 'Active', 'Inactive']}
-                    value="Status"
-                    onChange={() => {}}
-                    placeholder="Status"
-                    className="min-w-[120px]"
+                    options={['10', '20', '30', '40']}
+                    value={`Show: ${itemsPerPage}`}
+                    onChange={(val) => {
+                      setItemsPerPage(parseInt(val, 10));
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Show"
+                    className="flex-1 sm:min-w-[120px]"
                     styleType="header"
                   />
-                </div>
-              )}
+                )}
+                <CustomDropdown
+                  options={viewMode === 'card' ? ['All', 'Online', 'Offline'] : ['All', 'Active', 'Inactive']}
+                  value={
+                    statusFilter === 'All' 
+                      ? 'Status' 
+                      : (viewMode === 'card' 
+                          ? (statusFilter === 'Active' ? 'Online' : statusFilter === 'Inactive' ? 'Offline' : statusFilter)
+                          : statusFilter)
+                  }
+                  onChange={(val) => {
+                    let nextStatus = val;
+                    if (viewMode === 'card') {
+                      if (val === 'Online') nextStatus = 'Active';
+                      if (val === 'Offline') nextStatus = 'Inactive';
+                    }
+                    setStatusFilter(nextStatus);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Status"
+                  className="flex-1 sm:min-w-[120px]"
+                  styleType="header"
+                />
+              </div>
             </div>
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="h-full rounded-2xl bg-white shadow-sm overflow-x-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
         {viewMode === 'card' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-6">
-            {list.length === 0 ? (
-              <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
+            {filteredList.length === 0 ? (
+              <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                 No consultants found.
               </div>
             ) : (
-              list.map((emp) => (
-                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all ">
+              filteredList.map((emp: Employee) => (
+                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
                   {/* Image Section */}
                   <div className="relative h-[128px] overflow-hidden group">
                     <div className="absolute inset-0 z-0">
@@ -476,7 +540,7 @@ export default function EmployeesPM() {
                     </div>
 
                     {/* Top Status - Pill Shape */}
-                    <div className="absolute top-2 right-2 z-10">
+                    <div className="absolute top-3 right-3 z-10">
                       <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                         <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
                         <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
@@ -486,45 +550,58 @@ export default function EmployeesPM() {
                     </div>
                     {/* User Profile Info on Image */}
                     <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
-                      <div className="w-15 h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
                         <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
                           alt={emp.full_name}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
+                          }}
                         />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">{emp.full_name}</h3>
-                        <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                          {toCamelCase(emp.full_name)}
+                        </h3>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Content Area */}
-                  <div className="p-4 space-y-5">
+                  <div className="p-4 space-y-4 sm:space-y-5">
                     {/* Contact Buttons */}
-                    <div className="flex items-center gap-3">
-                      <button className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                        <img src={mailIcon} alt="Mail" className="w-5 h-5" /> Mail
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button 
+                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                       </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                        <img src={messageIcon} alt="Message" className="w-5 h-5" /> Message
+                      <button 
+                        onClick={() => navigate('/chat')}
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                       </button>
-                      <button className="flex-1 flex items-center justify-center gap-2 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                        <img src={callIcon} alt="Call" className="w-5 h-5" /> Call
+                      <button 
+                        onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                       </button>
                     </div>
 
                     <hr className="border-slate-200" />
 
                     {/* Actions Grid */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-3 py-3 bg-[#DD4342] text-white rounded-[5px] text-[14px] font-Gantari"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
                       >
-                        <img src={eyeIcon} alt="View" className="text-xl" /> View
+                        <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                       </button>
                       {canAdd && (
                         <button
@@ -546,12 +623,12 @@ export default function EmployeesPM() {
                               salary: emp.salary || '',
                               accountnumber: emp.accountnumber || '',
                               profile_picture: null,
-                              roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : []
                             });
                           }}
-                          className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
                         >
-                          <img src={editIcon} alt="Edit" className="text-xl" /> Edit
+                          <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                         </button>
                       )}
                     </div>
@@ -561,66 +638,79 @@ export default function EmployeesPM() {
             )}
           </div>
         ) : (
-          <div className="bg-white overflow-hidden ">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="sticky top-0 z-30 bg-white">
-                  <tr>
-                    <th className="px-5 py-5 text-center text-[18px] font-semibold font-Gantari text-[#353535]">Emp ID</th>
-                    <th className="px-5 py-5 text-center text-[18px] font-semibold font-Gantari text-[#353535]">Consultant Name</th>
-                    <th className="px-5 py-5 text-center text-[18px] font-semibold font-Gantari text-[#353535]">Email ID</th>
-                    <th className="px-5 py-5 text-center text-[18px] font-semibold font-Gantari text-[#353535]">Contact Info</th>
-                    <th className="px-5 py-5 text-center text-[18px] font-semibold font-Gantari text-[#353535]">Status</th>
+          <div className=" sticky top-0 z-40 border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white">
+              <div className="overflow-x-auto custom-scrollbar">
+              <table className="min-w-full border-separate border-spacing-0">
+                <thead className="sticky top-0 z-40">
+                  <tr className="bg-white">
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {paginatedList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-5 py-5 text-center text-slate-500 font-Gantari">
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
                     paginatedList.map((emp, idx) => (
-                      <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}>
-                        <td className="px-4 py-4 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.empid || `EMP0${emp.id + 10}`}</td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-6 justify-left pl-25">
-                            <div className="relative">
-                              <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border border-slate-100 shadow-sm">
+                      <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                          {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative shrink-0">
+                              <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
                                 <img
-                                  // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
+                                  src={emp.profile_picture}
                                   alt={emp.full_name}
                                   className="w-full h-full object-cover"
                                 />
                               </div>
-                              <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                              <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                             </div>
-                            <span className="text-[15px] font-semibold font-Gantari text-[#353535]">{emp.full_name}</span>
+                            <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
                           </div>
                         </td>
-                        <td className="px-5 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.email}</td>
-                        <td className="px-5 py-5 text-center">
+                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
+                        <td className="px-6 py-5 text-center">
                           <div className="flex items-center justify-center gap-3">
-                            <button className="p-2 rounded-full bg-[#DBE9FE]">
+                            <button 
+                              onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
                               <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                             </button>
-                            <button className="p-2 rounded-full bg-[#DBE9FE]">
+                            <button 
+                              onClick={() => navigate('/chat')}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
                               <img src={messageIcon} className="w-5 h-5" alt="Message" />
                             </button>
-                            <button className="p-2 rounded-full bg-[#DBE9FE]">
+                            <button 
+                              onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
                               <img src={callIcon} className="w-5 h-5" alt="Call" />
                             </button>
                           </div>
                         </td>
-                        <td className="px-5 py-5 text-center">
-                          <CustomDropdown
-                            options={['Active', 'Deactivate']}
-                            value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                            onChange={(val) => handleStatusToggle(emp.id, val)}
-                            placeholder="Status"
-                            styleType="table"
-                          />
+                        <td className="px-6 py-5 text-center">
+                          <div className="inline-block min-w-[140px]">
+                            <CustomDropdown
+                              options={['Active', 'Deactivate']}
+                              value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                              onChange={(val) => handleStatusToggle(emp.id, val)}
+                              placeholder="Status"
+                              styleType="table"
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -634,10 +724,10 @@ export default function EmployeesPM() {
 
       {/* Pagination Bottom Bar */}
       {viewMode === 'table' && (
-        <div className="sticky bottom-0 z-50 bg-white py-6 mt-auto">
-          <div className="flex justify-end pr-8">
-            <div className="flex items-center bg-[#F2F2F2] rounded-full p-1.5 shadow-sm">
-              <span className="px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
+        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
+          <div className="flex justify-center sm:justify-end sm:pr-8">
+            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
+              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
               
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
@@ -665,7 +755,7 @@ export default function EmployeesPM() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
                     >
-                      {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
+                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
                     </button>
                   ));
                 })()}
@@ -674,7 +764,7 @@ export default function EmployeesPM() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
+                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
               >
                 Next
                 <FiChevronDown className="w-5 h-5 -rotate-90" />
@@ -689,16 +779,16 @@ export default function EmployeesPM() {
       {activeView === 'add' && (
         <div className="flex-1 overflow-y-auto p-6 bg-white">
           <div className="max-w-[1174px] mx-auto">
-            {/* Header Section */}
-            <div className="flex items-center justify-center mb-10 relative">
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Add New Consultant</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
+              <div className="w-10" /> {/* Spacer to center title */}
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
@@ -751,7 +841,7 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={['BIM', 'HR', 'Sales']}
+                      options={Departments_options}
                       value={form.department}
                       onChange={(val) => setForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
@@ -784,7 +874,7 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                     <CustomDropdown
-                      options={['Employee', 'Consultant', 'Contractor']}
+                      options={['Trainee', 'Consultant',]}
                       value={form.type}
                       onChange={(val) => setForm((f) => ({ ...f, type: val }))}
                       placeholder="Select Type"
@@ -805,7 +895,7 @@ export default function EmployeesPM() {
                       <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                         {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                       </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer hover:bg-slate-300 transition-colors shrink-0 font-Gantari">
+                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
                         Browse File
                         <input
                           type="file"
@@ -830,18 +920,18 @@ export default function EmployeesPM() {
                   className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
                 />
               </div>
-              <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -854,44 +944,44 @@ export default function EmployeesPM() {
       {activeView === 'edit' && (
         <div className="flex-1 overflow-y-auto p-6 bg-white">
           <div className="max-w-[1174px] mx-auto">
-            {/* Header Section */}
-            <div className="flex items-center justify-center mb-10 relative">
+            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
+              <div className="w-10" /> {/* Spacer to center title */}
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
-                  <div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       placeholder="Enter Employee Name"
-                      value={editForm.full_name}
-                      onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    required
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                    <input
+                  <input
                       type="text"
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
                       className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
-                  <div>
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                     <input
                       type="password"
@@ -913,7 +1003,7 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={['BIM', 'HR', 'Sales']}
+                      options={Departments_options}
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
@@ -921,19 +1011,19 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                  />
+                </div>
                 </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
-                  <div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
                     <input
                       type="date"
@@ -944,58 +1034,58 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
-                    <input
-                      type="email"
-                      placeholder="Enter Email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="Enter Email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    required
+                  />
+                </div>
+                <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                    <CustomDropdown
-                      options={['Employee', 'Consultant', 'Contractor']}
-                      value={editForm.user_type}
-                      onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
-                      placeholder="Select Type"
-                    />
-                  </div>
-                  <div>
+                  <CustomDropdown
+                    options={['Trainee', 'Consultant', ]}
+                    value={editForm.user_type}
+                    onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
+                    placeholder="Select Type"
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                    <input
-                      type="date"
-                      value={editForm.doj}
-                      onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                    />
-                  </div>
-                  <div>
+                  <input
+                    type="date"
+                    value={editForm.doj}
+                    onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
-                    <input
-                      type="text"
-                      placeholder="0000$"
-                      value={editForm.salary}
-                      onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="0000$"
+                    value={editForm.salary}
+                    onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                        {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                      </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer hover:bg-slate-300 transition-colors shrink-0 font-Gantari">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                        />
-                      </label>
+                  <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                      {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                    </div>
+                    <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                      Browse File
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".jpg,.jpeg"
+                        onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                      />
+                    </label>
                     </div>
                   </div>
                 </div>
@@ -1013,19 +1103,48 @@ export default function EmployeesPM() {
                 />
               </div>
 
+              {/* Access Control Section */}
+              <div className="mt-8">
+                <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F9F9F9] rounded-[10px]">
+                  {PANEL_ACCESS_OPTIONS.map((role) => (
+                    <div key={role} className="flex items-center gap-3">
+                      <div
+                        onClick={() => {
+                          const newRoles = editForm.roles.includes(role)
+                            ? editForm.roles.filter(r => r !== role)
+                            : [...editForm.roles, role];
+                          setEditForm({ ...editForm, roles: newRoles });
+                        }}
+                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${
+                          editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                        }`}
+                      >
+                        {editForm.roles.includes(role) && (
+                          <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
+                            <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-[14px] font-medium text-[#353535] font-Gantari">{role}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Form Actions */}
-              <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-14 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px]transition-all"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px]  transition-all"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1035,41 +1154,40 @@ export default function EmployeesPM() {
         </div>
       )}
 
-      {activeView === 'invite' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
-          <div className="max-w-[873px] mx-auto">
-            {/* Header Section */}
+      {activeView === 'invite' && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Invite New Consultant</h3>
+              <h3 className="text-[24px] font-semibold text-[#020202] text-center">Invite New Consultant</h3>
             </div>
 
-            <form onSubmit={handleInvite} className="space-y-6">
+            <form onSubmit={handleInvite} className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email Addresses</label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-3">Email Addresses</label>
                 <textarea
                   value={inviteEmails}
                   onChange={(e) => setInviteEmails(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
                   placeholder="Enter Multiple Email addresses separated by commas,"
                 />
-                <p className="text-[12px] text-[#666666] mt-2 font-Gantari">Separate multiple emails with commas (eg., email01@eg.com)</p>
+                <p className="text-[14px] text-[#666666] mt-3 font-medium">Separate multiple emails with commas (eg., email01@eg.com)</p>
               </div>
 
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Invitation Message</label>
+                <label className="block text-[16px] font-semibold text-[#000000] mb-3">Invitation Message</label>
                 <textarea
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
                   rows={4}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
                   placeholder="Enter your Invitation Message.,"
                 />
               </div>
@@ -1078,42 +1196,41 @@ export default function EmployeesPM() {
                 <button
                   type="submit"
                   disabled={inviteSubmitting}
-                  className="px-10 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[200px]"
+                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px]"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {activeView === 'inactive' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
-          <div className="max-w-[850px] mx-auto flex flex-col h-full">
-            {/* Header Section */}
-            <div className="flex items-center justify-center mb-6 relative shrink-0">
+      {activeView === 'inactive' && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
+          <div className="bg-white rounded-[20px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
+            <div className="flex items-center justify-center mb-8 relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Manage In-active Consultants</h3>
+              <h3 className="text-[24px] font-semibold text-[#020202] text-center">Manage In-active Consultants</h3>
             </div>
 
-            <div className="shrink-0 mb-6">
-              <p className="text-[15px] text-[#353535] font-Gantari mb-4 leading-relaxed">
+            <div className="shrink-0 mb-8 px-4">
+              <p className="text-[15px] text-[#353535] mb-2 leading-relaxed font-medium">
                 Select Consultants to mark as IN-Active. In-Active Consultants will not appear in Project Assignment dropdowns.
               </p>
-              <p className="text-[16px] font-bold text-[#3d3399] font-Gantari">
+              <p className="text-[16px] font-semibold text-[#3d3399]">
                 {inactiveIds.length} Consultant(s) will be marked as In-Active
               </p>
             </div>
 
-            {/* List Area */}
-            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[10px] custom-scrollbar min-h-[400px]">
+            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[15px] custom-scrollbar mb-10">
               {(() => {
                 const grouped = list.reduce((acc: Record<string, Employee[]>, emp) => {
                   const role = emp.user_role || 'General';
@@ -1124,32 +1241,32 @@ export default function EmployeesPM() {
 
                 return Object.entries(grouped).map(([role, emps]) => (
                   <div key={role} className="border-b border-[#E0E0E0] last:border-none">
-                    <div className="px-5 py-3 bg-white font-bold text-[15px] text-[#000000] font-Gantari border-b border-[#E0E0E0]">
+                    <div className="px-6 py-4 bg-white font-semibold text-[16px] text-[#000000] border-b border-[#F0F0F0]">
                       {role}
                     </div>
                     <div className="divide-y divide-[#F0F0F0]">
-                      {emps.map((emp, idx) => (
+                      {emps.map((emp) => (
                         <div
                           key={emp.id}
-                          className={`flex items-center justify-between px-5 py-3.5 transition-colors ${idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}`}
+                          className="flex items-center justify-between px-6 py-4  transition-colors"
                         >
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-6">
                             <div
                               onClick={() => setInactiveIds((prev) => (prev.includes(emp.id) ? prev.filter((id) => id !== emp.id) : [...prev, emp.id]))}
-                              className={`w-6 h-6 rounded-[5px] border-2 cursor-pointer flex items-center justify-center transition-all ${inactiveIds.includes(emp.id) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'}`}
+                              className={`w-7 h-7 rounded-[5px] border-2 cursor-pointer flex items-center justify-center transition-all ${inactiveIds.includes(emp.id) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'}`}
                             >
                               {inactiveIds.includes(emp.id) && (
-                                <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                <svg width="16" height="12" viewBox="0 0 14 11" fill="none">
+                                  <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               )}
                             </div>
-                            <span className="text-[15px] font-medium text-[#353535] font-Gantari">
-                              {emp.full_name} {emp.empid ? `(${emp.empid})` : ''}
+                            <span className="text-[16px] font-semibold text-[#6B6B6B]">
+                              {emp.full_name} {emp.empid ? `(${emp.empid})` : `(EMP-${(emp.id + 150).toString().padStart(4, '0')})`}
                             </span>
                           </div>
                           {(emp.active === 'inactive' || emp.active === 'deactive') && (
-                            <span className="px-3 py-1 bg-[#FFE3E3] text-[#FF4D4D] text-[12px] font-semibold rounded-full font-Gantari shrink-0">
+                            <span className="px-4 py-1.5 bg-[#FFE6E6] text-[#E00100] text-[12px] font-semibold rounded-[5px] shrink-0">
                               Currently In-Active
                             </span>
                           )}
@@ -1161,12 +1278,11 @@ export default function EmployeesPM() {
               })()}
             </div>
 
-            {/* Footer */}
-            <div className="flex gap-4 justify-center pt-8 shrink-0">
+            <div className="flex justify-center gap-6 pt-4 shrink-0">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="px-10 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[140px]"
+                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px]"
               >
                 Discard
               </button>
@@ -1174,20 +1290,21 @@ export default function EmployeesPM() {
                 type="button"
                 onClick={handleInactive}
                 disabled={!inactiveIds.length || inactiveSubmitting}
-                className="px-10 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[140px]"
+                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px]"
               >
                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[750px] w-full px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[750px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
-            <div className="flex items-center justify-center relative">
+            <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
@@ -1202,19 +1319,22 @@ export default function EmployeesPM() {
             <div className="flex items-center gap-6 px-4">
               <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
                 <img
-                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
+                  src={selectedEmployee.profile_picture ? getProfileUrl(selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
                   alt={selectedEmployee.full_name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`;
+                  }}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <h4 className="text-[24px] font-bold text-[#000000]">{selectedEmployee.full_name}</h4>
+                <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
                 <p className="text-[16px] font-semibold text-[#353535]">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 
             {/* Details Table */}
-            <div className="px-8 space-y-4 pt-2">
+            <div className="px-4 sm:px-8 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1224,10 +1344,10 @@ export default function EmployeesPM() {
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
               ].map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[140px_20px_1fr] text-[15px] gap-15">
-                  <span className="font-semibold font-Gantari text-[#000000] ">{item.label}</span>
-                  <span className="text-[#353535]  font-Gantari text-center ">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value}</span>
+                <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
+                  <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
+                  <span className="hidden sm:inline text-[#353535] font-Gantari text-center">:</span>
+                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>

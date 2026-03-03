@@ -116,6 +116,9 @@ interface TaskDropdownProps {
     triggerRef: React.RefObject<HTMLButtonElement | null>;
     dropdownRef: React.RefObject<HTMLDivElement | null>;
     narrow?: boolean;
+    searchable?: boolean;
+    searchPlaceholder?: string;
+    maxVisibleItems?: number;
 }
 
 function TaskDropdown({
@@ -129,7 +132,27 @@ function TaskDropdown({
     triggerRef,
     dropdownRef,
     narrow = false,
+    searchable = false,
+    searchPlaceholder = "Search...",
+    maxVisibleItems = 5,
 }: TaskDropdownProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const q = (searchQuery || "").trim().toLowerCase();
+    const filteredOptions = searchable
+        ? (() => {
+            if (!q) return options;
+            const first = options[0];
+            const isPlaceholderOption = (o: string) =>
+                o === first && (first === "Select Employee" || first === "Select Projects");
+            return options.filter((opt) => {
+                if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+                const name = String(opt ?? "").trim().toLowerCase();
+                return name.includes(q);
+            });
+          })()
+        : options;
+    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+
     return (
         <div className="relative">
             <button
@@ -163,22 +186,43 @@ function TaskDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
                 >
-                    {options.map((opt) => (
-                        <button
-                            key={opt}
-                            type="button"
-                            role="option"
-                            onClick={() => {
-                                onSelect(opt);
-                                onClose();
-                            }}
-                            className="block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
-                        >
-                            {opt}
-                        </button>
-                    ))}
+                    {searchable && (
+                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder={searchPlaceholder}
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                aria-label={searchPlaceholder}
+                            />
+                        </div>
+                    )}
+                    <div
+                        className="overflow-y-auto py-1"
+                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                    >
+                        {filteredOptions.map((opt, idx) => (
+                            <button
+                                key={`${opt}-${idx}`}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    if (searchable) setSearchQuery("");
+                                    onSelect(opt);
+                                    onClose();
+                                }}
+                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -340,118 +384,123 @@ function TaskCard({
     const isCompleted = status === "completed";
 
     return (
-        <div
-            draggable={!isCompleted}
-            onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
-        >
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
+      <div
+        draggable={!isCompleted}
+        onDragStart={handleDragStart}
+        className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
+            />
+            {style.label}
+          </span>
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              draggable={false}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
+              className="p-0.5 rounded hover:bg-slate-100"
+              aria-label="More options"
+              aria-expanded={menuOpen}
+            >
+              <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+            </button>
+            {menuOpen && (
+              <div
+                className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                 ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+                role="menu"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onViewTask?.(task);
+                  }}
                 >
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-                    {style.label}
-                </span>
-                <div className="relative" ref={menuRef}>
-                    <button
-                        type="button"
-                        draggable={false}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen((prev) => !prev);
-                        }}
-                        className="p-0.5 rounded hover:bg-slate-100"
-                        aria-label="More options"
-                        aria-expanded={menuOpen}
-                    >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
-                    </button>
-                    {menuOpen && (
-                        <div
-                            className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980]"
-                            role="menu"
-                        >
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onViewTask?.(task);
-                                }}
-                            >
-                                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                                <span>View</span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                                <span>Edit</span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                                <span>Delete</span>
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-            <h4 className="font-semibold text-slate-900 text-sm mb-1">
-                {task.task_name || "Task Name"}
-            </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
-                <div
-                    className="h-full rounded-full bg-slate-500"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-                />
-            </div>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                    <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
-                    </div>
-                    <span className="text-xs text-slate-500">+4</span>
-                </div>
-                <Link
-                    to={`/tasks/${task.id}`}
-                    draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                  <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+                  <span>View</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEditTask?.(task);
+                  }}
                 >
-                    Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
-            </div>
+                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDeleteTask?.(task);
+                  }}
+                >
+                  <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+        <h4 className="font-semibold text-slate-900 text-sm mb-1">
+          {task.task_name || "Task Name"}
+        </h4>
+        <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <span className="text-xs text-slate-600">Progress</span>
+          <span className="text-xs font-medium text-slate-700">
+            {progress}%
+          </span>
+        </div>
+        <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+          <div
+            className="h-full rounded-full bg-slate-500"
+            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <div className="flex -space-x-2">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
+                  title="Assignee"
+                />
+              ))}
+            </div>
+            <span className="text-xs text-slate-500">+4</span>
+          </div>
+          <Link
+            to={`/tasks/${task.id}`}
+            draggable={false}
+            className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+          >
+            Details
+            <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+          </Link>
+        </div>
+      </div>
     );
 }
 
-const SHOW_OPTIONS = ["Show", "All", "To Do", "In Progress", "Completed"];
+const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -576,7 +625,7 @@ export default function MytaskTD() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>(null);
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -758,6 +807,15 @@ export default function MytaskTD() {
             (t) => getEffectiveStatus(t) === "completed",
         ),
     };
+    const showLimit =
+        selectedShow === "All" || !selectedShow
+            ? Number.POSITIVE_INFINITY
+            : Math.max(1, Number(selectedShow) || 10);
+    const displayedTasksByStatus = {
+        todo: tasksByStatus.todo.slice(0, showLimit),
+        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
+        completed: tasksByStatus.completed.slice(0, showLimit),
+    };
 
     if (loading) {
         return (
@@ -790,6 +848,9 @@ export default function MytaskTD() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={employeeTriggerRef}
                         dropdownRef={employeeMenuRef}
+                        searchable
+                        searchPlaceholder="Search employee..."
+                        maxVisibleItems={5}
                     />
                     <TaskDropdown
                         label="Select Projects"
@@ -803,6 +864,9 @@ export default function MytaskTD() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={projectsTriggerRef}
                         dropdownRef={projectsMenuRef}
+                        searchable
+                        searchPlaceholder="Search project..."
+                        maxVisibleItems={5}
                     />
                     <TaskDropdown
                         label="Show"
@@ -851,7 +915,7 @@ export default function MytaskTD() {
                             });
                             setAddTaskModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-3 text-sm font-medium text-white shadow-sm"
                     >
                         <svg
                             className="h-5 w-5"
@@ -935,7 +999,7 @@ export default function MytaskTD() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
                     }}
                 >
-                    {tasksByStatus.todo.map((task) => (
+                    {displayedTasksByStatus.todo.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -958,7 +1022,7 @@ export default function MytaskTD() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
                     }}
                 >
-                    {tasksByStatus.in_progress.map((task) => (
+                    {displayedTasksByStatus.in_progress.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -969,8 +1033,19 @@ export default function MytaskTD() {
                         />
                     ))}
                 </div>
-                <div className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1">
-                    {tasksByStatus.completed.map((task) => (
+                <div
+                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                    }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const taskId = Number(e.dataTransfer.getData("taskId"));
+                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                    }}
+                >
+                    {displayedTasksByStatus.completed.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -1293,7 +1368,7 @@ export default function MytaskTD() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Select Due Time
+                                            Select End Time
                                         </label>
                                         <input
                                             type="time"
