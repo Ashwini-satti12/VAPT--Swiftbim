@@ -149,7 +149,7 @@ function TaskDropdown({
                 const name = String(opt ?? "").trim().toLowerCase();
                 return name.includes(q);
             });
-          })()
+        })()
         : options;
     const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
 
@@ -162,7 +162,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm hover:bg-[#DDD] ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -248,6 +248,8 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    created_at?: string;
+    Approval?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -384,119 +386,123 @@ function TaskCard({
     const isCompleted = status === "completed";
 
     return (
-      <div
-        draggable={!isCompleted}
-        onDragStart={handleDragStart}
-        className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
-      >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <span
-            className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-          >
-            <span
-              className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-            />
-            {style.label}
-          </span>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              draggable={false}
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenuOpen((prev) => !prev);
-              }}
-              className="p-0.5 rounded hover:bg-slate-100"
-              aria-label="More options"
-              aria-expanded={menuOpen}
-            >
-              <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
-            </button>
-            {menuOpen && (
-              <div
-                className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+        <div
+            draggable={!isCompleted}
+            onDragStart={handleDragStart}
+            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+        >
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <span
+                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
+                >
+                    <span
+                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
+                    />
+                    {style.label}
+                </span>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        type="button"
+                        draggable={false}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen((prev) => !prev);
+                        }}
+                        className="p-0.5 rounded hover:bg-slate-100"
+                        aria-label="More options"
+                        aria-expanded={menuOpen}
+                    >
+                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                    </button>
+                    {menuOpen && (
+                        <div
+                            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
                  ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
-                role="menu"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onViewTask?.(task);
-                  }}
-                >
-                  <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                  <span>View</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onEditTask?.(task);
-                  }}
-                >
-                  <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onDeleteTask?.(task);
-                  }}
-                >
-                  <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                  <span>Delete</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        <h4 className="font-semibold text-slate-900 text-sm mb-1">
-          {task.task_name || "Task Name"}
-        </h4>
-        <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <span className="text-xs text-slate-600">Progress</span>
-          <span className="text-xs font-medium text-slate-700">
-            {progress}%
-          </span>
-        </div>
-        <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
-          <div
-            className="h-full rounded-full bg-slate-500"
-            style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1">
-            <div className="flex -space-x-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                  title="Assignee"
-                />
-              ))}
+                            role="menu"
+                        >
+                            <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onViewTask?.(task);
+                                }}
+                            >
+                                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+                                <span>View</span>
+                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                                        <span>Edit</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                                        <span>Delete</span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
-            <span className="text-xs text-slate-500">+4</span>
-          </div>
-          <Link
-            to={`/tasks/${task.id}`}
-            draggable={false}
-            className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
-          >
-            Details
-            <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-          </Link>
+            <h4 className="font-semibold text-slate-900 text-sm mb-1">
+                {task.task_name || "Task Name"}
+            </h4>
+            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs text-slate-600">Progress</span>
+                <span className="text-xs font-medium text-slate-700">
+                    {progress}%
+                </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+                <div
+                    className="h-full rounded-full bg-slate-500"
+                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
+                                title="Assignee"
+                            />
+                        ))}
+                    </div>
+                    <span className="text-xs text-slate-500">+4</span>
+                </div>
+                <Link
+                    to={`/tasks/${task.id}`}
+                    draggable={false}
+                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                >
+                    Details
+                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+                </Link>
+            </div>
         </div>
-      </div>
     );
 }
 
@@ -564,13 +570,52 @@ export default function MytaskTD() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
 
+    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+
     const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
     const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
     const merged = [
         ...safeLocal,
         ...safeList.filter((t) => t && !safeLocal.some((l) => l && l.id === t.id)),
     ];
-    const allTasks = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
+
+    const allTasksBase = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
+    const allTasks = allTasksBase.filter((t) => {
+        // Employee filter
+        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+            if (t.assigned_full_name !== selectedEmployee) return false;
+        }
+        // Project filter
+        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+            if (t.project_name !== selectedProject) return false;
+        }
+        // Period filter 
+        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+            const taskDate = new Date(t.created_at || t.start_date || "");
+            const now = new Date();
+            if (selectedPeriod === "This Week") {
+                const weekAgo = new Date();
+                weekAgo.setDate(now.getDate() - 7);
+                if (taskDate < weekAgo) return false;
+            } else if (selectedPeriod === "This Month") {
+                const monthAgo = new Date();
+                monthAgo.setMonth(now.getMonth() - 1);
+                if (taskDate < monthAgo) return false;
+            } else if (selectedPeriod === "This Quarter") {
+                const quarterAgo = new Date();
+                quarterAgo.setMonth(now.getMonth() - 3);
+                if (taskDate < quarterAgo) return false;
+            }
+        }
+        return true;
+    });
 
     const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
         normalizeStatus(statusOverrides[t.id] ?? t.status);
@@ -603,7 +648,7 @@ export default function MytaskTD() {
         );
 
         api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus], projectId: (task as Task & { projectid?: number; project_id?: number })?.projectid ?? (task as Task & { projectid?: number; project_id?: number })?.project_id })
-            .catch(() => {});
+            .catch(() => { });
     };
 
     useEffect(() => {
@@ -622,14 +667,6 @@ export default function MytaskTD() {
         }
     }, [statusOverrides]);
 
-    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const navigate = useNavigate();
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",

@@ -61,6 +61,8 @@ import TrackerBL from './pages/BimLead/TrackerBL';
 import TeamReportBL from './pages/BimLead/TeamReportBL';
 import ChatBL from './pages/BimLead/ChatBL';
 import MytaskViewBL from './pages/BimLead/MytaskViewBL';
+import ClientBL from './pages/BimLead/ClientBL';
+import PartnerBL from './pages/BimLead/PartnerBL';
 
 /* Bim Coordinator */
 import DashboardBC from './pages/BimCoordinator/DashboardBC';
@@ -153,6 +155,7 @@ function App() {
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
             <Route path="bl/consultants/:id" element={<ConsultantdetailsBL />} />
+            <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
@@ -161,6 +164,8 @@ function App() {
             <Route path="bl/teamreport" element={<TeamReportBL />} />
             <Route path="bl/chat" element={<ChatBL />} />
             <Route path="bl/mytasks/view" element={<MytaskViewBL />} />
+            <Route path="bl/partner" element={<PartnerBL />} />
+            <Route path="bl/partner/:id" element={<PartnerView />} />
             <Route path="bl/bidding" element={<BiddingTD />} />
 
             {/* Bim Coordinator Routes */}
