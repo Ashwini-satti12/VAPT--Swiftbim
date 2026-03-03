@@ -470,7 +470,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       },
       {
         name: "Team Task",
-        path: "/tasks/team",
+        path: "/teamtask",
         iconSrc: teamTaskIcon,
         activeIconSrc: whiteTeamTaskIcon,
         isVisible: isManagement || isTeamLeader,
