@@ -197,6 +197,7 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
+  Approval?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -264,7 +265,10 @@ function formatDateRange(start?: string, end?: string): string {
 
 function normalizeStatus(
   s: string | undefined,
-): "todo" | "in_progress" | "completed" {
+  approval?: string,
+): "todo" | "in_progress" | "completed" | "approved" | "rejected" {
+  if (approval?.toLowerCase() === "approved") return "approved";
+  if (approval?.toLowerCase() === "rejected") return "rejected";
   if (!s) return "todo";
   const lower = s.toLowerCase().replace(/\s+/g, "_");
   if (lower.includes("progress") || lower === "in_progress")
@@ -274,7 +278,7 @@ function normalizeStatus(
 }
 
 const STATUS_STYLE: Record<
-  "todo" | "in_progress" | "completed",
+  "todo" | "in_progress" | "completed" | "approved" | "rejected",
   { label: string; dot: string; bg: string }
 > = {
   todo: {
@@ -292,6 +296,16 @@ const STATUS_STYLE: Record<
     dot: "bg-emerald-500",
     bg: "bg-emerald-100 text-emerald-800",
   },
+  approved: {
+    label: "Approved",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-100 text-emerald-800 rounded-full",
+  },
+  rejected: {
+    label: "Rejected",
+    dot: "bg-red-500",
+    bg: "bg-red-100 text-red-800 rounded-full",
+  },
 };
 
 function TaskCard({
@@ -302,7 +316,7 @@ function TaskCard({
   onDeleteTask,
 }: {
   task: Task;
-  status: "todo" | "in_progress" | "completed";
+  status: "todo" | "in_progress" | "completed" | "approved" | "rejected";
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
@@ -681,21 +695,24 @@ export default function MyTasksPM() {
   }, [isTeam, statusFilter]);
 
   const counts = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
     in_progress: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ).length,
-    completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
-      .length,
+    completed: allTasks.filter((t) => {
+      const s = normalizeStatus(t.status, t.Approval);
+      return s === "completed" || s === "approved" || s === "rejected";
+    }).length,
   };
   const tasksByStatus = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
     in_progress: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ),
-    completed: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "completed",
-    ),
+    completed: allTasks.filter((t) => {
+      const s = normalizeStatus(t.status, t.Approval);
+      return s === "completed" || s === "approved" || s === "rejected";
+    }),
   };
 
   if (loading) {
@@ -883,7 +900,7 @@ export default function MyTasksPM() {
             <TaskCard
               key={task.id}
               task={task}
-              status="todo"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -910,7 +927,7 @@ export default function MyTasksPM() {
             <TaskCard
               key={task.id}
               task={task}
-              status="in_progress"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -937,7 +954,7 @@ export default function MyTasksPM() {
             <TaskCard
               key={task.id}
               task={task}
-              status="completed"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -1140,9 +1157,8 @@ export default function MyTasksPM() {
                         }))
                       }
                       placeholder="Enter Task / Select Task"
-                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${
-                        editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                      }`}
+                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                        }`}
                     />
                     {editingTaskId === null && (
                       <button
