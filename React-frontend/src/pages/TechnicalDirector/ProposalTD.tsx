@@ -1,354 +1,264 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import backIcon from "../../assets/back_icon.png";
-import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
-export default function ViewProposal() {
+interface ServiceRequest {
+  id: string;
+  siNo: string;
+  serviceId: string;
+  serviceName: string;
+  category: string;
+  vendorName: string;
+  vendorStatus: string;
+  companyName: string;
+  proposalCreated?: boolean;
+}
+
+const DUMMY_SERVICE_REQUESTS: ServiceRequest[] = [
+  { id: "1", siNo: "01", serviceId: "INV-001", serviceName: "BIM Modeling", category: "Architecture", vendorName: "John Smith", vendorStatus: "Confirmed", companyName: "ABC Construction", proposalCreated: false },
+  { id: "2", siNo: "02", serviceId: "INV-002", serviceName: "Clash Detection", category: "MEP", vendorName: "Sarah Johnson", vendorStatus: "Under Review", companyName: "XYZ Developers", proposalCreated: false },
+  { id: "3", siNo: "03", serviceId: "INV-003", serviceName: "4D/5D Simulation", category: "Structural", vendorName: "Michael Brown", vendorStatus: "Confirmed", companyName: "Gulf Engineering", proposalCreated: true },
+  { id: "4", siNo: "04", serviceId: "INV-004", serviceName: "As-Built Drawings", category: "Architecture", vendorName: "Emily Davis", vendorStatus: "Under Review", companyName: "Delta Projects", proposalCreated: false },
+  { id: "5", siNo: "05", serviceId: "INV-005", serviceName: "Quantity Takeoff", category: "MEP", vendorName: "David Wilson", vendorStatus: "Not Confirmed", companyName: "Prime Builders", proposalCreated: false },
+  { id: "6", siNo: "06", serviceId: "INV-006", serviceName: "BIM Coordination", category: "Structural", vendorName: "Lisa Anderson", vendorStatus: "Confirmed", companyName: "Skyline Contractors", proposalCreated: false },
+];
+
+export default function ProposalTD() {
   const navigate = useNavigate();
+  const [serviceRequests] = useState<ServiceRequest[]>(DUMMY_SERVICE_REQUESTS);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showDropdownOpen, setShowDropdownOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Editable form state
-  const [clientName, setClientName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
-  const [salutation, setSalutation] = useState("");
-  const [subject, setSubject] = useState("");
-  const [executiveSummary, setExecutiveSummary] = useState("");
-  const [aboutUs, setAboutUs] = useState("");
-  const [locationAddress, setLocationAddress] = useState("");
-  const [locationWebsite, setLocationWebsite] = useState("");
-  const [locationEmail, setLocationEmail] = useState("");
-  const [scopeOfWork, setScopeOfWork] = useState("");
-  const [technologies, setTechnologies] = useState([{ module: "" }]);
-  const [deliverables, setDeliverables] = useState("");
-  const [exclusions, setExclusions] = useState("");
-  const [otherTerms, setOtherTerms] = useState("");
-  const [bestRegardsName, setBestRegardsName] = useState("");
-  const [bestRegardsAddress, setBestRegardsAddress] = useState("");
-  const [refNumber, setRefNumber] = useState("SCS/BLR001-11/24");
+  const showOptions = [10, 20, 50, 100];
+  const categories = Array.from(new Set(serviceRequests.map((r) => r.category))).sort();
 
-  // Technology row helpers
-  const addTechnologyRow = () => {
-    setTechnologies([...technologies, { module: "" }]);
-  };
+  const filteredRequests = selectedCategory === "All"
+    ? serviceRequests
+    : serviceRequests.filter((r) => r.category === selectedCategory);
 
-  const removeTechnologyRow = (index: number) => {
-    if (technologies.length > 1) {
-      setTechnologies(technologies.filter((_, i) => i !== index));
-    }
-  };
+  const totalItems = filteredRequests.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
 
-  const updateTechnology = (index: number, value: string) => {
-    const updated = [...technologies];
-    updated[index] = { module: value };
-    setTechnologies(updated);
-  };
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, itemsPerPage]);
 
   return (
-    <div className="min-h-screen">
-      <div className="flex py-8 gap-6 max-w-[1600px] mx-auto">
-        <div className="flex-1 mr-4 mt-[-32px] overflow-hidden">
-          {/* Main Content Card */}
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-10 w-full min-h-[800px]">
-            {/* Header / Nav */}
-            <div className="flex items-center justify-between mb-8 pb-4 relative">
+    <div className="w-full">
+      {/* <div className="bg-white border border-[rgb(89,89,89)]/20 rounded-xl shadow-sm p-8 w-full"> */}
+        {/* Title and filters row */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-gantari font-semibold text-lg text-[#000000]">
+            List of Service Requests
+          </h2>
+          <div className="flex gap-4 items-center">
+            {/* Discipline dropdown */}
+            <div className="relative">
               <button
-                onClick={() => navigate("/technicalteam/create-proposal")}
-                className="flex items-center gap-2 text-gray-600 hover:text-black transition-colors group absolute left-0"
-                title="Back"
+                onClick={() => {
+                  setCategoryDropdownOpen(!categoryDropdownOpen);
+                  setShowDropdownOpen(false);
+                }}
+                className="bg-[#E8E8E8] rounded-lg px-4 py-2 flex items-center gap-2 font-gantari text-sm text-[#353535] font-medium focus:outline-none"
               >
-                <div className="p-2 rounded-full group-hover:bg-gray-100 transition-colors">
-                  <img src={backIcon} alt="Back" className="w-5 h-5" />
-                </div>
+                <span>Discipline: {selectedCategory}</span>
+                <ChevronDownIcon className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? "rotate-180" : ""}`} />
               </button>
-
-              <h1 className="font-gantari font-semibold text-xl text-[#000000] w-full text-center">
-                Proposal Details
-              </h1>
-            </div>
-
-            {/* Document Content */}
-            <div className="max-w-4xl mx-auto space-y-10">
-
-              <div className="mb-8">
-                {/* Logo Section - Top Right */}
-                <div className="flex justify-end mb-4">
-                  <img src={swifterzLogo} alt="Swifterz" className="h-12 object-contain" />
-                </div>
-
-                {/* Grey Bar with Date & Ref */}
-                <div className="flex flex-col items-end mb-6">
-                  <div className="bg-[#D8D8D8] rounded-md w-full px-8 py-4 mb-4 flex flex-col justify-center items-end shadow-sm">
-                    <div className="flex items-center gap-2 text-sm font-gantari text-[#000000] font-bold">
-                      <span className="text-right">Date:</span>
-                      <span>{new Date().toLocaleDateString("en-GB")}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm font-gantari text-[#000000] font-bold mt-1">
-                      <span className="text-right">Ref:</span>
-                      <input
-                        type="text"
-                        value={refNumber}
-                        onChange={(e) => setRefNumber(e.target.value)}
-                        className="bg-transparent border-b border-[#000000] outline-none text-sm font-bold text-[#000000] w-[180px] text-right"
-                      />
-                    </div>
+              {categoryDropdownOpen && (
+                <div className="absolute top-full mt-1 right-0 bg-white border border-[rgb(89,89,89)]/20 rounded-lg shadow-lg z-50 min-w-[160px]">
+                  <div
+                    onClick={() => { setSelectedCategory("All"); setCategoryDropdownOpen(false); }}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
+                  >
+                    All
                   </div>
-                </div>
-
-                {/* Client Details & Salutation */}
-                <div className="mb-6 font-gantari text-[#353535] text-sm space-y-2">
-                  <div className="flex items-center gap-1">
-                    <span className="font-bold text-base">Mr./Ms.</span>
-                    <input
-                      type="text"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      placeholder="Client Name"
-                      className="font-bold text-base text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent flex-1 py-1"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Company Name"
-                    className="font-bold text-base text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-full py-1"
-                  />
-                  <input
-                    type="text"
-                    value={clientAddress}
-                    onChange={(e) => setClientAddress(e.target.value)}
-                    placeholder="Client Address Line"
-                    className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-full py-1"
-                  />
-                </div>
-
-                <div className="mb-6 font-gantari text-[#353535] text-sm flex items-center gap-1">
-                  <span>Dear</span>
-                  <input
-                    type="text"
-                    value={salutation}
-                    onChange={(e) => setSalutation(e.target.value)}
-                    placeholder="Sir/Madam"
-                    className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent flex-1 py-1"
-                  />
-                </div>
-
-                {/* Subject */}
-                <div className="text-center mb-8">
-                  <div className="flex items-center justify-center gap-1 font-gantari font-bold text-[#020202] text-sm">
-                    <span>Sub: Proposal for the</span>
-                    <input
-                      type="text"
-                      value={subject}
-                      onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Project"
-                      className="font-bold text-sm text-[#020202] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-[200px] text-center py-1"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 1. EXECUTIVE SUMMARY */}
-              <section className="mb-12">
-                <h2 className="font-gantari font-bold text-xl text-[#020202] pb-2 mb-2">
-                  1. Executive Summary
-                </h2>
-                <div className="w-full px-4 border border-gray-300 py-3 rounded-md bg-[#F2F2F2] min-h-[120px]">
-                  <textarea
-                    value={executiveSummary}
-                    onChange={(e) => setExecutiveSummary(e.target.value)}
-                    placeholder="Enter Executive Summary..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[120px]"
-                  />
-                </div>
-              </section>
-
-              {/* 2. ABOUT US */}
-              <section className="mb-12">
-                <h2 className="font-gantari font-bold text-xl text-[#020202] pb-2 mb-2">
-                  2. About Us
-                </h2>
-                <div className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] min-h-[120px] mb-6">
-                  <textarea
-                    value={aboutUs}
-                    onChange={(e) => setAboutUs(e.target.value)}
-                    placeholder="Enter About Us content..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[120px]"
-                  />
-                </div>
-
-                {/* Location Info */}
-                <div className="space-y-3 pl-2">
-                  <h3 className="font-gantari font-bold text-[#020202] text-sm">Our location:</h3>
-                  <div className="flex items-start gap-3 text-sm text-[#353535] font-gantari">
-                    <span className="mt-2">📍</span>
-                    <input
-                      type="text"
-                      value={locationAddress}
-                      onChange={(e) => setLocationAddress(e.target.value)}
-                      placeholder="Enter address"
-                      className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent flex-1 py-1"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-[#353535] font-gantari">
-                    <span>🌐</span>
-                    <input
-                      type="text"
-                      value={locationWebsite}
-                      onChange={(e) => setLocationWebsite(e.target.value)}
-                      placeholder="Enter website"
-                      className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent flex-1 py-1"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 text-sm text-[#353535] font-gantari">
-                    <span>✉️</span>
-                    <input
-                      type="email"
-                      value={locationEmail}
-                      onChange={(e) => setLocationEmail(e.target.value)}
-                      placeholder="Enter email"
-                      className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent flex-1 py-1"
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* 3. SCOPE OF WORK */}
-              <section className="mb-12">
-                <h2 className="font-gantari font-bold text-xl text-[#020202] pb-2 mb-2">
-                  3. Scope of Work
-                </h2>
-
-                {/* Scope Description */}
-                <div className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] min-h-[120px] mb-6">
-                  <textarea
-                    value={scopeOfWork}
-                    onChange={(e) => setScopeOfWork(e.target.value)}
-                    placeholder="Enter Scope Description..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[120px]"
-                  />
-                </div>
-
-                {/* Technology Table */}
-                <div className="mt-8">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-gantari font-bold text-[#020202] text-sm">Technology to be Used:</h3>
-                    <button
-                      onClick={addTechnologyRow}
-                      className="text-xs font-gantari font-semibold text-white bg-[#353535] hover:bg-[#222] px-3 py-1.5 rounded-md transition-colors"
+                  {categories.map((cat) => (
+                    <div
+                      key={cat}
+                      onClick={() => { setSelectedCategory(cat); setCategoryDropdownOpen(false); }}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
                     >
-                      + Add Row
-                    </button>
-                  </div>
-                  <div className="bg-[#F2F2F2] rounded-md overflow-hidden">
-                    <table className="w-full text-sm font-gantari border-collapse">
-                      <thead className="bg-[#EAEAEA]">
-                        <tr>
-                          <th className="text-left py-2 px-4 font-bold text-[#353535] w-24">S.No</th>
-                          <th className="text-left py-2 px-4 font-bold text-[#353535]">Software</th>
-                          <th className="py-2 px-4 font-bold text-[#353535] w-20"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {technologies.map((t, idx) => (
-                          <tr key={idx} className="border-t border-gray-200">
-                            <td className="py-2 px-4 text-[#353535] font-medium">{idx + 1}.</td>
-                            <td className="py-2 px-4">
-                              <input
-                                type="text"
-                                value={t.module}
-                                onChange={(e) => updateTechnology(idx, e.target.value)}
-                                placeholder="Software Name"
-                                className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-full py-1"
-                              />
-                            </td>
-                            <td className="py-2 px-4 text-center">
-                              {technologies.length > 1 && (
-                                <button
-                                  onClick={() => removeTechnologyRow(idx)}
-                                  className="text-red-400 hover:text-red-600 text-xs font-semibold transition-colors"
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      {cat}
+                    </div>
+                  ))}
                 </div>
-              </section>
-
-              {/* 4. DELIVERABLES */}
-              <section className="mb-12">
-                <h2 className="font-gantari font-bold text-xl text-[#020202] pb-2 mb-2">
-                  4. Deliverables
-                </h2>
-                <div className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] min-h-[120px] mb-4">
-                  <textarea
-                    value={deliverables}
-                    onChange={(e) => setDeliverables(e.target.value)}
-                    placeholder="Enter Deliverables Introduction..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[120px]"
-                  />
+              )}
+            </div>
+            {/* Show dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowDropdownOpen(!showDropdownOpen);
+                  setCategoryDropdownOpen(false);
+                }}
+                className="bg-[#E8E8E8] rounded-lg px-4 py-2 flex items-center gap-2 font-gantari text-sm text-[#353535] font-medium focus:outline-none"
+              >
+                <span>Show: {itemsPerPage}</span>
+                <ChevronDownIcon className={`w-4 h-4 transition-transform ${showDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+              {showDropdownOpen && (
+                <div className="absolute top-full mt-1 right-0 bg-white border border-[rgb(89,89,89)]/20 rounded-lg shadow-lg z-50 min-w-[100px]">
+                  {showOptions.map((option) => (
+                    <div
+                      key={option}
+                      onClick={() => { setItemsPerPage(option); setCurrentPage(1); setShowDropdownOpen(false); }}
+                      className="px-4 py-2 text-center hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
+                    >
+                      {option}
+                    </div>
+                  ))}
                 </div>
-              </section>
-
-              {/* 5. EXCLUSIONS */}
-              <section className="mb-12">
-                <h2 className="font-gantari font-bold text-xl text-[#020202] pb-2 mb-2">
-                  5. Exclusions
-                </h2>
-                <div className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] min-h-[120px] mb-6">
-                  <textarea
-                    value={exclusions}
-                    onChange={(e) => setExclusions(e.target.value)}
-                    placeholder="Enter Exclusions details..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[120px]"
-                  />
-                </div>
-              </section>
-
-              {/* Other Terms & Conditions */}
-              <section className="mt-12 mb-8">
-                <h2 className="text-center font-gantari font-bold text-lg text-[#000000] mb-6">
-                  Other Terms & Conditions
-                </h2>
-                <div className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] min-h-[160px]">
-                  <textarea
-                    value={otherTerms}
-                    onChange={(e) => setOtherTerms(e.target.value)}
-                    placeholder="Enter other terms and conditions..."
-                    className="font-gantari text-sm leading-relaxed text-justify text-[#353535] placeholder-[#8B8B8B] bg-transparent outline-none resize-none w-full min-h-[160px]"
-                  />
-                </div>
-
-                <div className="mt-8 font-gantari text-[#353535] text-sm">
-                  <p className="font-bold text-base mb-4 text-[#353535]">Best Regards:</p>
-                  <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={bestRegardsName}
-                      onChange={(e) => setBestRegardsName(e.target.value)}
-                      placeholder="Name / Company"
-                      className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-full py-1"
-                    />
-                    <input
-                      type="text"
-                      value={bestRegardsAddress}
-                      onChange={(e) => setBestRegardsAddress(e.target.value)}
-                      placeholder="Address"
-                      className="text-sm text-[#353535] placeholder-[#8B8B8B] border-b border-gray-300 focus:border-[#353535] outline-none bg-transparent w-full py-1"
-                    />
-                  </div>
-                </div>
-              </section>
-
+              )}
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Table with vertical scroll only */}
+        <div className="border border-[rgb(89,89,89)]/20 rounded-lg overflow-hidden">
+          <div className="overflow-y-auto overflow-x-auto max-h-[60vh]">
+            <table className="w-full min-w-[700px]">
+              <thead className="sticky top-0 z-10 bg-[#F2F2F2] border-b border-[rgb(89,89,89)]/20 shadow-sm">
+              <tr>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">S.No</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Service Id</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">BIM Services</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Discipline</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Vendor Name</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Vendor Status</th>
+                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgb(89,89,89)]/10 bg-white">
+              {paginatedRequests.map((request, index) => (
+                <tr
+                  key={request.id}
+                  className={`${index % 2 === 1 ? "bg-[#F9FAFB]" : "bg-white"} hover:bg-gray-50 transition-colors`}
+                >
+                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{startIndex + index + 1}</td>
+                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.serviceId}</td>
+                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.serviceName}</td>
+                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.category}</td>
+                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.vendorName}</td>
+                  <td className="px-4 py-4 text-center">
+                    <span
+                      className={`inline-block px-3 py-1.5 rounded-md text-xs font-gantari font-medium ${
+                        request.vendorStatus === "Confirmed"
+                          ? "bg-[#E1F6EB] text-[#008F22]"
+                          : request.vendorStatus === "Under Review" || request.vendorStatus === "Not Confirmed"
+                            ? "bg-[#FFD9D9] text-[#E00100]"
+                            : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {request.vendorStatus === "Not Confirmed" ? "Under Review" : request.vendorStatus}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center justify-center">
+                      <button
+                        type="button"
+                        disabled={request.proposalCreated}
+                        onClick={() => {
+                          if (request.proposalCreated) return;
+                          navigate("/td/create-proposal", {
+                            state: {
+                              serviceId: request.serviceId,
+                              serviceName: request.serviceName,
+                              clientName: request.vendorName,
+                              category: request.category,
+                              companyName: request.companyName,
+                              request,
+                            },
+                          });
+                        }}
+                        className={`font-gantari font-medium px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 text-xs transition-colors ${
+                          request.proposalCreated
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-[#DD4342] text-white hover:bg-[#c93b3a] cursor-pointer"
+                        }`}
+                      >
+                        {request.proposalCreated ? (
+                          <>
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Proposal Created</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>+</span>
+                            <span>Create Proposal</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end mt-4 gap-4 bg-[#E8E8E8] w-fit ml-auto rounded-lg px-4 py-2">
+            <span className="font-gantari text-sm text-[#353535] font-medium">Showing:</span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 font-gantari text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed text-[#353535] hover:text-black"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Prev
+            </button>
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                const rangeStart = (p - 1) * itemsPerPage + 1;
+                const rangeEnd = Math.min(p * itemsPerPage, totalItems);
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`px-3 py-1 rounded-md text-xs font-gantari font-medium ${
+                      currentPage === p ? "bg-[#DD4342] text-white" : "text-[#353535] hover:bg-gray-200"
+                    }`}
+                  >
+                    {rangeStart}-{rangeEnd}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 font-gantari text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed text-[#353535] hover:text-black"
+            >
+              Next
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        )}
+      {/* </div> */}
+
+      {/* Click outside to close dropdowns */}
+      {(categoryDropdownOpen || showDropdownOpen) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setCategoryDropdownOpen(false);
+            setShowDropdownOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

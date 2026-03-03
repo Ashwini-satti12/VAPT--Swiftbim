@@ -111,6 +111,9 @@ interface TaskDropdownProps {
     triggerRef: React.RefObject<HTMLButtonElement | null>;
     dropdownRef: React.RefObject<HTMLDivElement | null>;
     narrow?: boolean;
+    searchable?: boolean;
+    searchPlaceholder?: string;
+    maxVisibleItems?: number;
 }
 
 function TaskDropdown({
@@ -124,7 +127,27 @@ function TaskDropdown({
     triggerRef,
     dropdownRef,
     narrow = false,
+    searchable = false,
+    searchPlaceholder = "Search...",
+    maxVisibleItems = 5,
 }: TaskDropdownProps) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const q = (searchQuery || "").trim().toLowerCase();
+    const filteredOptions = searchable
+        ? (() => {
+            if (!q) return options;
+            const first = options[0];
+            const isPlaceholderOption = (o: string) =>
+                o === first && (first === "Select Employee" || first === "Select Projects");
+            return options.filter((opt) => {
+                if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+                const name = String(opt ?? "").trim().toLowerCase();
+                return name.includes(q);
+            });
+        })()
+        : options;
+    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+
     return (
         <div className="relative">
             <button
@@ -158,22 +181,43 @@ function TaskDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
                 >
-                    {options.map((opt) => (
-                        <button
-                            key={opt}
-                            type="button"
-                            role="option"
-                            onClick={() => {
-                                onSelect(opt);
-                                onClose();
-                            }}
-                            className="block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
-                        >
-                            {opt}
-                        </button>
-                    ))}
+                    {searchable && (
+                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder={searchPlaceholder}
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                aria-label={searchPlaceholder}
+                            />
+                        </div>
+                    )}
+                    <div
+                        className="overflow-y-auto py-1"
+                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                    >
+                        {filteredOptions.map((opt, idx) => (
+                            <button
+                                key={`${opt}-${idx}`}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    if (searchable) setSearchQuery("");
+                                    onSelect(opt);
+                                    onClose();
+                                }}
+                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -198,6 +242,17 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
+    created_at?: string;
+}
+
+interface Employee {
+    id: number;
+    full_name: string;
+}
+
+interface Project {
+    id: number;
+    project_name: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -466,19 +521,7 @@ function TaskCard({
     );
 }
 
-const EMPLOYEE_OPTIONS = [
-    "Select Employee",
-    "Employee 1",
-    "Employee 2",
-    "Employee 3",
-];
-const PROJECT_OPTIONS = [
-    "Select Projects",
-    "Project A",
-    "Project B",
-    "Project C",
-];
-const SHOW_OPTIONS = ["Show", "All", "To Do", "In Progress", "Completed"];
+const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -524,11 +567,85 @@ export default function TeamtaskBL() {
     const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
 
+    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [modules, setModules] = useState<string[]>([]);
+
     const merged = [
         ...localTasks,
         ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
     ];
-    const allTasks = merged.filter((t) => !deletedIds.includes(t.id));
+    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
+    const allTasks = allTasksBase.filter((t: any) => {
+        // Employee filter
+        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+            if (t.assigned_full_name !== selectedEmployee) return false;
+        }
+        // Project filter
+        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+            if (t.project_name !== selectedProject) return false;
+        }
+        // Period filter 
+        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+            const taskDate = new Date(t.created_at || t.start_date || "");
+            const now = new Date();
+            if (selectedPeriod === "This Week") {
+                const weekAgo = new Date();
+                weekAgo.setDate(now.getDate() - 7);
+                if (taskDate < weekAgo) return false;
+            } else if (selectedPeriod === "This Month") {
+                const monthAgo = new Date();
+                monthAgo.setMonth(now.getMonth() - 1);
+                if (taskDate < monthAgo) return false;
+            } else if (selectedPeriod === "This Quarter") {
+                const quarterAgo = new Date();
+                quarterAgo.setMonth(now.getMonth() - 3);
+                if (taskDate < quarterAgo) return false;
+            }
+        }
+        return true;
+    });
+
+    const counts = {
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
+        in_progress: allTasks.filter(
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
+        ).length,
+        completed: allTasks.filter((t) => {
+            const s = normalizeStatus(t.status, t.Approval);
+            return s === "completed" || s === "approved" || s === "rejected";
+        }).length,
+    };
+
+    const tasksByStatus = {
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
+        in_progress: allTasks.filter(
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
+        ),
+        completed: allTasks.filter((t) => {
+            const s = normalizeStatus(t.status, t.Approval);
+            return s === "completed" || s === "approved" || s === "rejected";
+        }),
+    };
+
+    const showLimit =
+        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+            ? Number.POSITIVE_INFINITY
+            : Math.max(1, Number(selectedShow) || 10);
+
+    const displayedTasksByStatus = {
+        todo: tasksByStatus.todo.slice(0, showLimit),
+        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
+        completed: tasksByStatus.completed.slice(0, showLimit),
+    };
 
     const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
         return s === "todo"
@@ -572,14 +689,6 @@ export default function TeamtaskBL() {
         }
     }, [deletedIds]);
 
-    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>(null);
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const navigate = useNavigate();
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
@@ -611,13 +720,18 @@ export default function TeamtaskBL() {
     };
 
     const confirmDeleteTask = () => {
-        if (deleteTaskId === null) return;
-        setDeletedIds((prev) =>
-            prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-        );
-        setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setDeleteTaskId(null);
+        if (deleteTaskId !== null) {
+            api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
+                api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                    .then(res => setList(res.data.tasks ?? []));
+                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                setDeletedIds((prev) =>
+                    prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+                );
+            }).finally(() => {
+                setDeleteTaskId(null);
+            });
+        }
     };
 
     const resetTaskFormAndClose = () => {
@@ -706,33 +820,50 @@ export default function TeamtaskBL() {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) params.condition = "1";
-        api
-            .get<{ tasks?: Task[] }>("/api/tasks", { params })
-            .then(({ data }) => setList(data.tasks ?? []))
-            .catch(() => setList([]))
+
+        Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ employees?: Employee[] }>("/api/employees"),
+            api.get<{ projects?: Project[] }>("/api/projects"),
+        ])
+            .then(([tasksRes, empRes, projRes]) => {
+                setList(tasksRes.data.tasks ?? []);
+                setEmployees(empRes.data.employees ?? []);
+                setProjects(projRes.data.projects ?? []);
+            })
+            .catch(() => {
+                setList([]);
+            })
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
-        in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
-        ).length,
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }).length,
-    };
-    const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
-        in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
-        ),
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }),
-    };
+    useEffect(() => {
+        if (!addTaskForm.projectName) {
+            setModules([]);
+            return;
+        }
+        const selectedProj = projects.find(p => p.project_name === addTaskForm.projectName);
+        if (selectedProj) {
+            api.post<{ success: boolean; modules: { label: string }[] }>("/api/projects/filters/modules", { projectId: selectedProj.id })
+                .then(({ data }) => {
+                    setModules(data.modules.map(m => m.label));
+                })
+                .catch(() => setModules([]));
+        }
+    }, [addTaskForm.projectName, projects]);
+
+    const employeeOptions = [
+        "Select Employee",
+        ...employees.map(e => e.full_name)
+    ];
+    const projectOptions = [
+        "Select Projects",
+        ...projects.map(p => p.project_name)
+    ];
+    const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
+    const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
+    const modalAssignOptions = employees.map(e => ({ value: e.full_name, label: e.full_name }));
+
 
     if (loading) {
         return (
@@ -755,7 +886,7 @@ export default function TeamtaskBL() {
                 >
                     <TaskDropdown
                         label="Select Employee"
-                        options={EMPLOYEE_OPTIONS}
+                        options={employeeOptions}
                         selected={selectedEmployee}
                         onSelect={setSelectedEmployee}
                         isOpen={openDropdown === "employee"}
@@ -765,10 +896,11 @@ export default function TeamtaskBL() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={employeeTriggerRef}
                         dropdownRef={employeeMenuRef}
+                        searchable={true}
                     />
                     <TaskDropdown
                         label="Select Projects"
-                        options={PROJECT_OPTIONS}
+                        options={projectOptions}
                         selected={selectedProject}
                         onSelect={setSelectedProject}
                         isOpen={openDropdown === "projects"}
@@ -778,6 +910,7 @@ export default function TeamtaskBL() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={projectsTriggerRef}
                         dropdownRef={projectsMenuRef}
+                        searchable={true}
                     />
                     <TaskDropdown
                         label="Show"
@@ -910,7 +1043,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
                     }}
                 >
-                    {tasksByStatus.todo.map((task) => (
+                    {displayedTasksByStatus.todo.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -933,7 +1066,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
                     }}
                 >
-                    {tasksByStatus.in_progress.map((task) => (
+                    {displayedTasksByStatus.in_progress.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -956,7 +1089,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
                     }}
                 >
-                    {tasksByStatus.completed.map((task) => (
+                    {displayedTasksByStatus.completed.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -1060,36 +1193,58 @@ export default function TeamtaskBL() {
                                 e.preventDefault();
                                 const isEditing = editingTaskId !== null;
                                 const existing = isEditing
-                                    ? localTasks.find((t) => t.id === editingTaskId)
+                                    ? list.find((t) => t.id === editingTaskId)
                                     : null;
-                                const newTask: Task = {
-                                    id: isEditing ? editingTaskId : Date.now(),
-                                    task_name: addTaskForm.taskName || "Task Name",
-                                    status: existing?.status ?? "To Do",
-                                    start_date: addTaskForm.actualStartDate || undefined,
-                                    due_date: addTaskForm.actualEndDate || undefined,
-                                    project_name: addTaskForm.projectName || undefined,
-                                    progress: existing?.progress ?? 0,
-                                    module: addTaskForm.module || undefined,
-                                    type: addTaskForm.type || undefined,
-                                    start_time: addTaskForm.startTime || undefined,
-                                    due_time: addTaskForm.dueTime || undefined,
-                                    assign_to: addTaskForm.assignTo || undefined,
-                                    description: addTaskForm.description || undefined,
-                                    checklist: addTaskForm.checklist || undefined,
+
+                                const payload = {
+                                    projectid: projects.find(p => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+                                    taskName: addTaskForm.taskName,
+                                    category: addTaskForm.type,
+                                    startdate: addTaskForm.actualStartDate,
+                                    dueDate: addTaskForm.actualEndDate,
+                                    startTime: addTaskForm.startTime,
+                                    dueTime: addTaskForm.dueTime,
+                                    assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                                    description: addTaskForm.description,
+                                    checklist: addTaskForm.checklist,
+                                    modules: addTaskForm.module
                                 };
-                                if (isEditing) {
-                                    setLocalTasks((prev) => {
-                                        const idx = prev.findIndex((t) => t.id === editingTaskId);
-                                        if (idx >= 0) {
-                                            const next = [...prev];
-                                            next[idx] = newTask;
-                                            return next;
-                                        }
-                                        return [...prev, newTask];
+
+                                const handleFiles = (taskId: number | string) => {
+                                    if (attachmentFiles.length > 0) {
+                                        const formData = new FormData();
+                                        attachmentFiles.forEach(f => formData.append("image", f));
+                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                                            headers: { 'Content-Type': 'multipart/form-data' }
+                                        });
+                                    }
+                                };
+
+                                if (isEditing && existing) {
+                                    api.patch(`/api/tasks/${existing.id}`, {
+                                        task_name: payload.taskName,
+                                        assigned_to: payload.assignedTo,
+                                        due_date: payload.dueDate,
+                                        category: payload.category,
+                                        description: payload.description,
+                                        checklist: payload.checklist,
+                                        modules_name: payload.modules,
+                                        Actual_start_time: payload.startdate,
+                                        start_time: payload.startTime,
+                                        due_time: payload.dueTime
+                                    }).then(() => {
+                                        handleFiles(existing.id);
+                                        api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                                            .then(res => setList(res.data.tasks ?? []));
                                     });
                                 } else {
-                                    setLocalTasks((prev) => [newTask, ...prev]);
+                                    api.post('/api/tasks', payload).then(res => {
+                                        if (res.data.success && res.data.task_id) {
+                                            handleFiles(res.data.task_id);
+                                            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                                                .then(r => setList(r.data.tasks ?? []));
+                                        }
+                                    });
                                 }
                                 resetTaskFormAndClose();
                             }}
@@ -1100,11 +1255,10 @@ export default function TeamtaskBL() {
                                         Project Name
                                     </label>
                                     <FormDropdown
-                                        label="Select Project name"
+                                        label="Select Project"
                                         options={[
-                                            { value: "", label: "Select Project name" },
-                                            { value: "project-a", label: "Project A" },
-                                            { value: "project-b", label: "Project B" },
+                                            { value: "", label: "Select Project" },
+                                            ...modalProjectOptions,
                                         ]}
                                         value={addTaskForm.projectName}
                                         onChange={(v) =>
@@ -1129,8 +1283,7 @@ export default function TeamtaskBL() {
                                         label="Select Module"
                                         options={[
                                             { value: "", label: "Select Module" },
-                                            { value: "module-1", label: "Module 1" },
-                                            { value: "module-2", label: "Module 2" },
+                                            ...modalModuleOptions,
                                         ]}
                                         value={addTaskForm.module}
                                         onChange={(v) =>
@@ -1283,8 +1436,7 @@ export default function TeamtaskBL() {
                                             label="Select Assign To"
                                             options={[
                                                 { value: "", label: "Select Assign To" },
-                                                { value: "user-1", label: "User 1" },
-                                                { value: "user-2", label: "User 2" },
+                                                ...modalAssignOptions,
                                             ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>

@@ -8,26 +8,15 @@ interface LocationEntry {
     date?: string | null;
     /** Normalised ISO date from backend (YYYY-MM-DD) */
     date_iso?: string | null;
-    /** Time in from attendance table (HH:MM:SS format) */
+    /** Time in from attendance table (HH:MM:SS or datetime format) */
     time_in?: string | null;
-    /** Time out from attendance table, if available (HH:MM:SS format) */
+    /** Time out from attendance table, if available (HH:MM:SS or datetime format) */
     time_out?: string | null;
     /** Calculated total hours (HH:MM:SS format), if available */
     total_hours?: string | null;
     /** Derived status (Online / Offline) */
     status?: 'Online' | 'Offline' | string | null;
 }
-
-// Fallback demo data if API has no locations or fails
-const DUMMY_DATA: LocationEntry[] = [
-    { id: 1001, full_name: 'Binghatti', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
-    { id: 1002, full_name: 'Suo01', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
-    { id: 1003, full_name: 'Disu so', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
-    { id: 1004, full_name: 'Tshingin', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
-    { id: 1005, full_name: 'Ajay Srinivasan', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
-    { id: 1006, full_name: 'V L LOKESH', date_iso: new Date().toISOString().split('T')[0], status: 'Offline' },
-    { id: 1007, full_name: 'BASAVARAJ DÂ E', date_iso: new Date().toISOString().split('T')[0], status: 'Online' },
-];
 
 export default function TrackerTD() {
     const [list, setList] = useState<LocationEntry[]>([]);
@@ -68,6 +57,57 @@ export default function TrackerTD() {
         return '';
     };
 
+    // Extract only the time portion from a time or datetime string.
+    // Examples:
+    //  - "2026-03-03 17:25:41" -> "17:25:41"
+    //  - "17:25:41" -> "17:25:41"
+    const pickTime = (value?: string | null): string | null => {
+        if (!value) return null;
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const parts = trimmed.split(' ');
+        const timePart = parts[parts.length - 1];
+        return timePart;
+    };
+
+    // Format total hours:
+    // - If `hours` is a decimal number (e.g. "8.5"), convert to HH:MM:SS.
+    // - Otherwise, if we have both timeIn and timeOut, calculate the difference.
+    // - Fallback to "N/A" when not available.
+    const formatTotalHours = (
+        hours: string | null | undefined,
+        timeIn?: string | null,
+        timeOut?: string | null
+    ): string => {
+        if (hours && hours.trim() !== '') {
+            const numHours = parseFloat(hours);
+            if (!isNaN(numHours)) {
+                const h = Math.floor(numHours);
+                const m = Math.round((numHours - h) * 60);
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+            }
+        }
+
+        const tIn = timeIn ? pickTime(timeIn) : null;
+        const tOut = timeOut ? pickTime(timeOut) : null;
+        if (tIn && tOut) {
+            try {
+                const [h1, m1, s1] = tIn.split(':').map(Number);
+                const [h2, m2, s2] = tOut.split(':').map(Number);
+                const totalSeconds = (h2 * 3600 + m2 * 60 + s2) - (h1 * 3600 + m1 * 60 + s1);
+                if (totalSeconds > 0) {
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = totalSeconds % 60;
+                    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                }
+            } catch {
+                // Ignore calculation errors
+            }
+        }
+        return 'N/A';
+    };
+
     useEffect(() => {
         api
             .get<{ records?: LocationEntry[] }>('/api/attendance/tracker')
@@ -77,14 +117,10 @@ export default function TrackerTD() {
                     return { ...item, status: statusValue };
                 });
 
-                if (records.length) {
-                    setList(records);
-                } else {
-                    setList(DUMMY_DATA);
-                }
+                setList(records);
             })
             .catch(() => {
-                setList(DUMMY_DATA);
+                setList([]);
             })
             .finally(() => setLoading(false));
     }, []);
@@ -132,9 +168,9 @@ export default function TrackerTD() {
             const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
             const formattedDate = dateKey ? `${d}/${m}/${y}` : '';
 
-            const rawTimeIn = loc.time_in || '';
-            const rawTimeOut = loc.time_out || '';
-            const totalHours = loc.total_hours || '';
+            const rawTimeIn = pickTime(loc.time_in) || '';
+            const rawTimeOut = pickTime(loc.time_out) || '';
+            const totalHours = formatTotalHours(loc.total_hours, rawTimeIn, rawTimeOut);
 
             return [
                 slNo,
@@ -302,9 +338,9 @@ export default function TrackerTD() {
                                     const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
                                     const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
 
-                                    const timeIn = loc.time_in || '-';
-                                    const timeOut = loc.time_out || '-';
-                                    const totalHours = loc.total_hours || '-';
+                                    const timeIn = pickTime(loc.time_in) || '-';
+                                    const timeOut = pickTime(loc.time_out) || '-';
+                                    const totalHours = formatTotalHours(loc.total_hours, timeIn, timeOut);
 
                                     return (
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
