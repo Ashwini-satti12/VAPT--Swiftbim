@@ -37,6 +37,7 @@ export default function TrackerTD() {
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Online', 'Offline'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const dateInputRef = useRef<HTMLInputElement>(null);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -168,16 +169,19 @@ export default function TrackerTD() {
     }
 
     return (
-        <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="p-1 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    <h2 className="text-2xl font-bold text-gray-900">Employee Tracking</h2>
+                    <h2 className="text-2xl font-semibold text-[#000000]">Employee Tracking</h2>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Select Date Filter */}
-                    <div className="relative flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[130px]">
+                    <div
+                        className="relative flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[130px] cursor-pointer"
+                        onClick={() => { dateInputRef.current?.showPicker?.(); dateInputRef.current?.focus(); }}
+                    >
                         <span className={`text-sm font-medium flex-1 ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {formatDate(selectedDate)}
                         </span>
@@ -205,6 +209,7 @@ export default function TrackerTD() {
                             <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
                         </svg>
                         <input
+                            ref={dateInputRef}
                             type="date"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
@@ -215,8 +220,8 @@ export default function TrackerTD() {
 
                     {/* Status Custom Dropdown */}
                     <div className="relative min-w-[120px]" ref={statusDropdownRef}>
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
@@ -232,14 +237,14 @@ export default function TrackerTD() {
                             </svg>
                         </button>
                         {statusOpen && (
-                            <div 
+                            <div
                                 className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {statusOptions.map(opt => (
-                                    <button 
-                                        key={opt} 
-                                        type="button" 
+                                    <button
+                                        key={opt}
+                                        type="button"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setSelectedStatus(opt);
@@ -258,7 +263,7 @@ export default function TrackerTD() {
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -269,24 +274,24 @@ export default function TrackerTD() {
             </div>
 
             {/* Table Section */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
                 <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Sl.No</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Date</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Employee Name</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Time In</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Time Out</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Total Hours</th>
-                                <th className="px-6 py-4 text-center text-base font-bold text-gray-700 bg-white">Status</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {filteredList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium bg-white">
+                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
@@ -303,14 +308,14 @@ export default function TrackerTD() {
 
                                     return (
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedDate}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeIn}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeOut}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{totalHours}</td>
-                                            <td className="px-6 py-3 text-center">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{formattedDate}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap">{loc.full_name ?? 'N/A'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{timeIn}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{timeOut}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap">{totalHours}</td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                                                     {loc.status || 'Offline'}
                                                 </span>
                                             </td>
