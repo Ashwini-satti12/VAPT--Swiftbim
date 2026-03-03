@@ -645,7 +645,7 @@ export default function ProjectsTD() {
                 <h2 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                   {title}
                 </h2>
-                {canCreate && (
+                {/* {canCreate && (
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(true)}
@@ -666,7 +666,7 @@ export default function ProjectsTD() {
                     </svg>
                     Create Project
                   </button>
-                )}
+                )} */}
               </div>
 
               {/* Dashboard Content with Scrollbar */}
