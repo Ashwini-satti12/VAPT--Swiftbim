@@ -21,6 +21,7 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    Approval?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {

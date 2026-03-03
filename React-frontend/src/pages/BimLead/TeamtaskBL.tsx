@@ -242,6 +242,7 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
+    created_at?: string;
 }
 
 interface Employee {
@@ -566,11 +567,85 @@ export default function TeamtaskBL() {
     const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
 
+    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [modules, setModules] = useState<string[]>([]);
+
     const merged = [
         ...localTasks,
         ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
     ];
-    const allTasks = merged.filter((t) => !deletedIds.includes(t.id));
+    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
+    const allTasks = allTasksBase.filter((t: any) => {
+        // Employee filter
+        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+            if (t.assigned_full_name !== selectedEmployee) return false;
+        }
+        // Project filter
+        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+            if (t.project_name !== selectedProject) return false;
+        }
+        // Period filter 
+        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+            const taskDate = new Date(t.created_at || t.start_date || "");
+            const now = new Date();
+            if (selectedPeriod === "This Week") {
+                const weekAgo = new Date();
+                weekAgo.setDate(now.getDate() - 7);
+                if (taskDate < weekAgo) return false;
+            } else if (selectedPeriod === "This Month") {
+                const monthAgo = new Date();
+                monthAgo.setMonth(now.getMonth() - 1);
+                if (taskDate < monthAgo) return false;
+            } else if (selectedPeriod === "This Quarter") {
+                const quarterAgo = new Date();
+                quarterAgo.setMonth(now.getMonth() - 3);
+                if (taskDate < quarterAgo) return false;
+            }
+        }
+        return true;
+    });
+
+    const counts = {
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
+        in_progress: allTasks.filter(
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
+        ).length,
+        completed: allTasks.filter((t) => {
+            const s = normalizeStatus(t.status, t.Approval);
+            return s === "completed" || s === "approved" || s === "rejected";
+        }).length,
+    };
+
+    const tasksByStatus = {
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
+        in_progress: allTasks.filter(
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
+        ),
+        completed: allTasks.filter((t) => {
+            const s = normalizeStatus(t.status, t.Approval);
+            return s === "completed" || s === "approved" || s === "rejected";
+        }),
+    };
+
+    const showLimit =
+        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+            ? Number.POSITIVE_INFINITY
+            : Math.max(1, Number(selectedShow) || 10);
+
+    const displayedTasksByStatus = {
+        todo: tasksByStatus.todo.slice(0, showLimit),
+        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
+        completed: tasksByStatus.completed.slice(0, showLimit),
+    };
 
     const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
         return s === "todo"
@@ -614,18 +689,7 @@ export default function TeamtaskBL() {
         }
     }, [deletedIds]);
 
-    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const navigate = useNavigate();
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [modules, setModules] = useState<string[]>([]);
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
         module: "",
@@ -800,26 +864,6 @@ export default function TeamtaskBL() {
     const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
     const modalAssignOptions = employees.map(e => ({ value: e.full_name, label: e.full_name }));
 
-    const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
-        in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
-        ).length,
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }).length,
-    };
-    const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
-        in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
-        ),
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }),
-    };
 
     if (loading) {
         return (
@@ -999,7 +1043,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
                     }}
                 >
-                    {tasksByStatus.todo.map((task) => (
+                    {displayedTasksByStatus.todo.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -1022,7 +1066,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
                     }}
                 >
-                    {tasksByStatus.in_progress.map((task) => (
+                    {displayedTasksByStatus.in_progress.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -1045,7 +1089,7 @@ export default function TeamtaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
                     }}
                 >
-                    {tasksByStatus.completed.map((task) => (
+                    {displayedTasksByStatus.completed.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}

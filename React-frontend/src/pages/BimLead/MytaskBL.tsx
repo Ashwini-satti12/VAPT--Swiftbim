@@ -247,6 +247,7 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
+    created_at?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -950,7 +951,7 @@ export default function MytaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
                     }}
                 >
-                    {tasksByStatus.todo.map((task) => (
+                    {displayedTasksByStatus.todo.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -973,7 +974,7 @@ export default function MytaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
                     }}
                 >
-                    {tasksByStatus.in_progress.map((task) => (
+                    {displayedTasksByStatus.in_progress.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
@@ -996,7 +997,7 @@ export default function MytaskBL() {
                         if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
                     }}
                 >
-                    {tasksByStatus.completed.map((task) => (
+                    {displayedTasksByStatus.completed.map((task) => (
                         <TaskCard
                             key={task.id}
                             task={task}
