@@ -88,15 +88,15 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Partner",
+          name: "Partners",
           path: `/${prefix}/partner`,
           iconSrc: clientIcon,
           activeIconSrc: whiteClientIcon,
           isVisible: true,
         },
         {
-          name: "Projects",
-          path: `/${prefix}/projects`,
+          name: "Proposal",
+          path: `/${prefix}/manage-proposal`,
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
@@ -108,6 +108,15 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
         },
+        {
+          name: "Projects",
+          path: `/${prefix}/projects`,
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
+          isVisible: true,
+        },
+
+
         {
           name: "My Task",
           path: `/${prefix}/mytasks`,
@@ -430,10 +439,10 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   };
 
   return (
-    <div className="w-60 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
+    <div className="w-66 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
       {/* Navigation Items Container */}
       <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path);
 
