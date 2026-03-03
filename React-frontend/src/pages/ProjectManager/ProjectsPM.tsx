@@ -431,12 +431,17 @@ export default function ProjectsPM() {
                     return (
                       <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between">
                         <div>
-                          <div className="flex justify-between items-start mb-6">
-                            <div>
-                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
-                                {p.project_name ?? 'Prestige Park Groove'}
-                              </h3>
-                              <p className="text-[16px] font-Gantari font-semibold text-[#353535]">Tower 1 to 09</p>
+                           <div className="flex items-center justify-between mb-8 mt-4 pr-2">
+                            <div className="relative flex items-center justify-center">
+                              <svg className="w-20 h-20 transform -rotate-90">
+                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                <circle
+                                  cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
+                                  strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+                                  style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                                />
+                              </svg>
+                              <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
                             </div>
                             <div className="relative group">
                               <button type="button" className="rounded-full text-[#8B8B8B]">
@@ -508,33 +513,18 @@ export default function ProjectsPM() {
                               </div>
                             </div>
                           </div>
+                          
+                          <div className="flex justify-between items-start mb-6">
+                            <div>
+                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
+                                {p.project_name ?? 'Prestige Park Groove'}
+                              </h3>
+                              <p className="text-[16px] font-Gantari font-semibold text-[#353535]">Tower 1 to 09</p>
+                            </div>
 
-                          <div className="flex items-center gap-6 mb-8 mt-4">
-                            <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
-                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                <circle
-                                  cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                  strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                                  style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                                />
-                              </svg>
-                              <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between items-baseline mb-2">
-                                <span className="text-[15px] font-Gantari font-bold text-[#8B8B8B]">Tasks Done</span>
-                                <span className="text-[15px] font-Gantari font-bold text-[#000000]">
-                                  {completed}/<span className="text-[15px] font-Gantari font-bold text-[#8B8B8B] ml-0.5 font-bold">{total}</span>
-                                </span>
-                              </div>
-                              <div className="h-2 w-full bg-[#F1F4F9] rounded-full overflow-hidden mb-2">
-                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%` }}>
-                                </div>
-                              </div>
-                              <p className="text-[13px] font-Gantari font-bold text-[#999999] mt-2 tracking-wide">Updated 2h ago</p>
-                            </div>
                           </div>
+
+                         
                         </div>
                         <div className="flex items-center justify-between border-t border-[#F1F1F1] pt-5 mt-auto">
                           <div className="flex -space-x-5">
