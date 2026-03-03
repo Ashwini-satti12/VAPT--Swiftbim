@@ -56,7 +56,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const { data } = await api.get("/api/users/profile");
+                const { data } = await api.get("/api/profile");
                 if (data) {
                     const updated: UserProfile = {
                         name: data.full_name || profileData.name,
@@ -122,7 +122,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         setPhoneError("");
         setIsLoading(true);
         try {
-            await api.patch("/api/users/profile", {
+            await api.patch("/api/profile", {
                 full_name: editData.name,
                 designation: editData.designation,
                 phone_number: editData.phone,
@@ -135,7 +135,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                     setIsLoading(false);
                     return;
                 }
-                await api.patch("/api/users/profile/password", { password: tempPassword });
+                await api.patch("/api/profile/change-password", { new_password: tempPassword });
                 setTempPassword("");
             }
             setProfileData({ ...editData });

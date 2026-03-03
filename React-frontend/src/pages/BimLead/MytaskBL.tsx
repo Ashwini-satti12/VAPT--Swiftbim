@@ -713,22 +713,63 @@ export default function MytaskBL() {
         }
     }, [addTaskForm.projectName, projects]);
 
+    const allTasks = list.filter((t) => {
+        // Employee filter
+        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+            if (t.assigned_full_name !== selectedEmployee) return false;
+        }
+        // Project filter
+        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+            if (t.project_name !== selectedProject) return false;
+        }
+        // Period filter 
+        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+            const taskDate = new Date(t.created_at || t.start_date || "");
+            const now = new Date();
+            if (selectedPeriod === "This Week") {
+                const weekAgo = new Date();
+                weekAgo.setDate(now.getDate() - 7);
+                if (taskDate < weekAgo) return false;
+            } else if (selectedPeriod === "This Month") {
+                const monthAgo = new Date();
+                monthAgo.setMonth(now.getMonth() - 1);
+                if (taskDate < monthAgo) return false;
+            } else if (selectedPeriod === "This Quarter") {
+                const quarterAgo = new Date();
+                quarterAgo.setMonth(now.getMonth() - 3);
+                if (taskDate < quarterAgo) return false;
+            }
+        }
+        return true;
+    });
+
     const counts = {
-        todo: list.filter((t) => normalizeStatus(t.status) === "todo").length,
-        in_progress: list.filter(
+        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+        in_progress: allTasks.filter(
             (t) => normalizeStatus(t.status) === "in_progress",
         ).length,
-        completed: list.filter((t) => normalizeStatus(t.status) === "completed")
+        completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
             .length,
     };
     const tasksByStatus = {
-        todo: list.filter((t) => normalizeStatus(t.status) === "todo"),
-        in_progress: list.filter(
+        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+        in_progress: allTasks.filter(
             (t) => normalizeStatus(t.status) === "in_progress",
         ),
-        completed: list.filter(
+        completed: allTasks.filter(
             (t) => normalizeStatus(t.status) === "completed",
         ),
+    };
+
+    const showLimit =
+        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+            ? Number.POSITIVE_INFINITY
+            : Math.max(1, Number(selectedShow) || 10);
+
+    const displayedTasksByStatus = {
+        todo: tasksByStatus.todo.slice(0, showLimit),
+        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
+        completed: tasksByStatus.completed.slice(0, showLimit),
     };
 
     if (loading) {

@@ -552,6 +552,19 @@ export default function TeamtaskTD() {
   });
   const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+  const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [modules, setModules] = useState<string[]>([]);
   const merged = [
     ...localTasks,
     ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
@@ -629,18 +642,6 @@ export default function TeamtaskTD() {
     }
   }, [deletedIds]);
 
-  const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
-  const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
-  const navigate = useNavigate();
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
   const [addTaskForm, setAddTaskForm] = useState({
     projectName: "",
     module: "",
