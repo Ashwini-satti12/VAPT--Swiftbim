@@ -874,7 +874,7 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                     <CustomDropdown
-                      options={['trainee', 'Consultant',]}
+                      options={['Trainee', 'Consultant',]}
                       value={form.type}
                       onChange={(val) => setForm((f) => ({ ...f, type: val }))}
                       placeholder="Select Type"
