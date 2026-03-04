@@ -95,6 +95,44 @@ def _fetch_vendor_full(vendor_id):
 # Routes
 # ---------------------------------------------------------------------------
 
+@bp.route("/client-budget", methods=["GET"])
+@login_required
+def get_client_budget():
+    """
+    GET /api/vendors/client-budget?client_id=<id>
+    Returns the client's total contract cost (total_cost) from new_swiftbim.contracts.
+    This is shown as the 'Client Budget' read-only field in the project edit modal.
+    """
+    client_id = request.args.get("client_id")
+    if not client_id:
+        return jsonify({"client_budget": None, "message": "client_id required"}), 400
+
+    cur = vendor_cursor()
+    try:
+        cur.execute(
+            """SELECT SUM(total_cost) AS client_budget
+               FROM contracts
+               WHERE client_id = %s
+               AND status NOT IN ('Draft', 'cancelled')
+               LIMIT 1""",
+            (client_id,),
+        )
+        row = cur.fetchone()
+        if row and row["client_budget"] is not None:
+            return jsonify({"client_budget": float(row["client_budget"])})
+        # Try without status filter in case all are draft
+        cur.execute(
+            "SELECT total_cost FROM contracts WHERE client_id = %s ORDER BY id DESC LIMIT 1",
+            (client_id,),
+        )
+        row2 = cur.fetchone()
+        if row2 and row2["total_cost"] is not None:
+            return jsonify({"client_budget": float(row2["total_cost"])})
+    except Exception as e:
+        return jsonify({"client_budget": None, "error": str(e)})
+
+    return jsonify({"client_budget": None})
+
 @bp.route("", methods=["GET"])
 @login_required
 def list_vendors():
@@ -494,16 +532,25 @@ def respond_to_proposal(proposal_id):
 def list_bidding():
     """
     GET /api/vendors/bidding
-    Returns all bidding entries for the Technical Director view.
+    Returns all bidding entries for the Technical Director view,
+    including bid counts and computed status based on bid_deadline.
     """
     cur = vendor_cursor()
     try:
         cur.execute(
-            "SELECT * FROM vendor_bidding ORDER BY created_at DESC"
+            """SELECT vb.*,
+                  (SELECT COUNT(*) FROM vendor_bids vbid WHERE vbid.opportunity_id = vb.id) AS total_bids,
+                  CASE
+                    WHEN vb.bid_deadline IS NULL THEN 'active'
+                    WHEN vb.bid_deadline >= CURDATE() THEN 'active'
+                    ELSE 'closed'
+                  END AS computed_status
+               FROM vendor_bidding vb
+               ORDER BY vb.created_at DESC"""
         )
         rows = cur.fetchall()
         bidding = [{k: _serialize(v) for k, v in r.items()} for r in rows]
-    except Exception:
+    except Exception as e:
         bidding = []
     return jsonify({"bidding": bidding})
 
@@ -514,26 +561,63 @@ def bidding_bids(bidding_id):
     """
     GET /api/vendors/bidding/<id>/bids
     Returns all bids placed on a specific bidding opportunity (TD view).
-    Auto-ranks by lowest bid amount; top 4 are highlighted.
+    Joins the employee table from snh6_swiftproject for vendor info
+    (since vendor users are in employee table with user_role='Vendor').
+    Also fetches the opportunity summary.
+    Auto-ranks by lowest bid amount.
     """
     cur = vendor_cursor()
+
+    # Fetch opportunity summary
     try:
         cur.execute(
-            """SELECT vb.*, vo.company_name, vo.contact_name, vo.contact_email,
-                      vo.technical_team_size, vo.sectors, vo.service_categories
-               FROM vendor_bids vb
-               JOIN vendor_onboarding vo ON vo.id = vb.vendor_id
-               WHERE vb.opportunity_id = %s
-               ORDER BY vb.bid_amount ASC""",
+            "SELECT * FROM vendor_bidding WHERE id = %s",
+            (bidding_id,),
+        )
+        opp_row = cur.fetchone()
+        opportunity = {k: _serialize(v) for k, v in opp_row.items()} if opp_row else None
+    except Exception:
+        opportunity = None
+
+    # Fetch bids - join employee table from main DB for vendor info
+    bids = []
+    try:
+        # Get bids from vendor_bidding table
+        cur.execute(
+            """SELECT * FROM vendor_bids
+               WHERE opportunity_id = %s
+               ORDER BY bid_amount ASC""",
             (bidding_id,),
         )
         rows = cur.fetchall()
+
+        if rows:
+            # Get employee info from the main snh6_swiftproject DB for matching vendor_ids
+            vendor_ids = [r["vendor_id"] for r in rows]
+            from db import get_db
+            from flask import current_app
+            main_conn = get_db()
+            main_cur = main_conn.cursor()
+            placeholders = ",".join(["%s"] * len(vendor_ids))
+            main_cur.execute(
+                f"""SELECT id, full_name, email, phone_number, user_role
+                   FROM employee WHERE id IN ({placeholders})""",
+                vendor_ids,
+            )
+            emp_map = {r["id"]: r for r in main_cur.fetchall()}
+
+            for i, r in enumerate(rows):
+                entry = {k: _serialize(v) for k, v in r.items()}
+                emp = emp_map.get(r["vendor_id"], {})
+                entry["vendor_name"] = emp.get("full_name") or f"Vendor #{r['vendor_id']}"
+                entry["vendor_email"] = emp.get("email") or ""
+                entry["vendor_phone"] = emp.get("phone_number") or ""
+                entry["company_name"] = emp.get("full_name") or ""
+                entry["rank"] = i + 1
+                entry["is_top4"] = i < 4
+                bids.append(entry)
+
+    except Exception as e:
         bids = []
-        for i, r in enumerate(rows):
-            entry = {k: _serialize(v) for k, v in r.items()}
-            entry["rank"] = i + 1
-            entry["is_top4"] = i < 4
-            bids.append(entry)
-    except Exception:
-        bids = []
-    return jsonify({"bids": bids})
+
+    return jsonify({"opportunity": opportunity, "bids": bids})

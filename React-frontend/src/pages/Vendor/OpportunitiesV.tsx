@@ -144,7 +144,7 @@ export default function OpportunitiesV() {
                                             )}
                                             {(opp.outsource_budget > 0 || opp.budget_ceiling) && (
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#717171] font-gantari">Budget Ceiling:</span>
+                                                    <span className="text-xs text-[#717171] font-gantari">Outsourcing Budget:</span>
                                                     <span className="text-sm font-bold text-[#DE3D3A] font-gantari">
                                                         {formatCurrency(opp.budget_ceiling || opp.outsource_budget, opp.currency)}
                                                     </span>
@@ -201,7 +201,7 @@ export default function OpportunitiesV() {
                         <p className="text-sm font-medium text-[#353535] font-gantari mb-6 bg-[#F8F8F8] p-4 rounded-xl">
                             📁 <span className="font-bold">{selectedOpportunity.project_name}</span>
                             {(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget) > 0 && (
-                                <> — Budget Ceiling: <span className="text-[#DE3D3A] font-bold">{formatCurrency(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget, selectedOpportunity.currency)}</span></>
+                                <> — Outsourcing Budget: <span className="text-[#DE3D3A] font-bold">{formatCurrency(selectedOpportunity.budget_ceiling || selectedOpportunity.outsource_budget, selectedOpportunity.currency)}</span></>
                             )}
                         </p>
 
