@@ -34,7 +34,7 @@ export default function AppLayout() {
 
         {/* Page content */}
         <main className="flex-1 px-4 pb-5 min-w-0 min-h-0 overflow-hidden">
-          <div className="h-full min-h-0 rounded-[15px] bg-white border border-[#AEACAC52] p-4 overflow-y-auto">
+          <div className="h-full min-h-0 rounded-[15px] bg-white border border-[#AEACAC52] p-4 flex flex-col overflow-hidden">
             <Outlet />
           </div>
         </main>
