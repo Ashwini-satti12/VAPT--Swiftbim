@@ -673,7 +673,9 @@ export default function EmployeesPM() {
                         <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1472,6 +1474,9 @@ export default function EmployeesPM() {
                 { label: 'User Role', value: selectedEmployee.user_role },
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
+                { label: 'Salary', value: selectedEmployee.salary },
+                { label: 'Department', value: selectedEmployee.department },
+                { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>

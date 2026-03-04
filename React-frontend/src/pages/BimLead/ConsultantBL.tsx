@@ -580,8 +580,12 @@ export default function ConsultantBL() {
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">{emp.full_name}</h3>
-                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                                                    {emp.full_name}
+                                                </h3>
+                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">
+                                                    {emp.user_role || 'Consultant'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>

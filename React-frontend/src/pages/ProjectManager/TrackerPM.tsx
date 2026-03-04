@@ -51,15 +51,24 @@ export default function TrackerPM() {
     return 'Offline';
   };
 
-  // Format time from HH:MM:SS to 12-hour format
+  // Extract pure time (HH:MM:SS) from a time or datetime string
+  const extractTime = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return trimmed;
+    const match = trimmed.match(/(\d{1,2}:\d{2}:\d{2})/);
+    return match ? match[1] : trimmed;
+  };
+
+  // Format time to HH:MM:SS (24‑hour) for display
   const formatTime = (timeStr: string | null | undefined): string => {
     if (!timeStr || timeStr.trim() === '') return 'N/A';
     try {
-      const [hours, minutes, seconds] = timeStr.split(':');
-      const hour = parseInt(hours, 10);
-      const ampm = hour >= 12 ? 'PM' : 'AM';
-      const hour12 = hour % 12 || 12;
-      return `${hour12.toString().padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+      const pure = extractTime(timeStr);
+      const [hours, minutes, seconds = '00'] = pure.split(':');
+      const h = hours.padStart(2, '0');
+      const m = minutes.padStart(2, '0');
+      const s = seconds.padStart(2, '0');
+      return `${h}:${m}:${s}`;
     } catch {
       return timeStr;
     }

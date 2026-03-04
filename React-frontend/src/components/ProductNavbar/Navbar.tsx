@@ -23,6 +23,13 @@ interface NavbarProps {
     onMenuClick?: () => void;
 }
 
+interface NotificationItem {
+    id: string;
+    message: string;
+    createdAt?: string;
+    type: "general" | "task";
+}
+
 export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const navigate = useNavigate();
     const { user, logout } = useAuth();
@@ -45,8 +52,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [isEditMode, setIsEditMode] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState<boolean>(false);
     const [showNotifications, setShowNotifications] = useState(false);
-    const [notifications] = useState<any[]>([]);
-    const [unreadCount] = useState(0);
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [phoneError, setPhoneError] = useState("");
     const [currentPassword, setCurrentPassword] = useState("");
@@ -77,6 +85,76 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         fetchProfile();
         const saved = localStorage.getItem("userProfilePicture");
         if (saved) setProfilePicture(saved);
+    }, []);
+
+    // Fetch notifications for all roles (general + task-based)
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            setIsNotificationsLoading(true);
+            try {
+                const [generalRes, taskRes] = await Promise.allSettled([
+                    api.get("/api/notifications"),
+                    api.get("/api/notifications/tasks"),
+                ]);
+
+                const items: NotificationItem[] = [];
+
+                if (generalRes.status === "fulfilled") {
+                    const data = generalRes.value.data as {
+                        notifications?: { id: number; title?: string; message?: string; created_at?: string }[];
+                    };
+                    (data.notifications || []).forEach((n) => {
+                        items.push({
+                            id: `g-${n.id}`,
+                            message: n.title || n.message || "Notification",
+                            createdAt: n.created_at,
+                            type: "general",
+                        });
+                    });
+                }
+
+                if (taskRes.status === "fulfilled") {
+                    const data = taskRes.value.data as {
+                        notifications?: {
+                            taskId: number;
+                            taskName?: string;
+                            message?: string;
+                            date?: string;
+                            uploader?: string;
+                        }[];
+                    };
+                    (data.notifications || []).forEach((t) => {
+                        const base = t.taskName || "Task update";
+                        const extra = t.message || t.date || "";
+                        items.push({
+                            id: `t-${t.taskId}`,
+                            message: extra ? `${base} - ${extra}` : base,
+                            createdAt: t.date,
+                            type: "task",
+                        });
+                    });
+                }
+
+                // Sort by createdAt if available (newest first)
+                items.sort((a, b) => {
+                    if (!a.createdAt && !b.createdAt) return 0;
+                    if (!a.createdAt) return 1;
+                    if (!b.createdAt) return -1;
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                });
+
+                setNotifications(items);
+                setUnreadCount(items.length);
+            } catch (err) {
+                console.error("Failed to load notifications", err);
+                setNotifications([]);
+                setUnreadCount(0);
+            } finally {
+                setIsNotificationsLoading(false);
+            }
+        };
+
+        fetchNotifications();
     }, []);
 
     // Close notification dropdown on outside click

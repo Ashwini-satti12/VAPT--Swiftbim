@@ -102,8 +102,7 @@ const toCamelCase = (str: string): string => {
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
-// These will be loaded from the database
-const Departments_options: string[] = [];
+// These will be loaded from the database (kept for backward compatibility if needed)
 const ROLE_OPTIONS: string[] = [];
 
 const PANEL_ACCESS_OPTIONS = [
@@ -818,7 +817,9 @@ export default function ConsultantTD() {
                         <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
                       </div>
                     </div>
                   </div>
