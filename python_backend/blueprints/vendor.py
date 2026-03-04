@@ -1,6 +1,7 @@
 import mysql.connector as mysql_connector
 from flask import Blueprint, request, jsonify, g, current_app
 from auth_middleware import login_required
+from db import get_db
 
 bp = Blueprint("vendors", __name__, url_prefix="/api/vendors")
 
@@ -256,8 +257,9 @@ def vendor_dashboard_stats():
     vendor_id = getattr(g, "user_id", None)  # Use employee ID directly
 
     try:
-        # Ensure tables exist
-        cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bidding (
+        main_cur = get_db().cursor(dictionary=True)
+        # Ensure tables exist (now in main DB)
+        main_cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bidding (
             id INT AUTO_INCREMENT PRIMARY KEY, project_id INT NOT NULL,
             project_name VARCHAR(255) NOT NULL, description TEXT,
             outsource_budget DECIMAL(15,2), budget_ceiling DECIMAL(15,2),
@@ -265,7 +267,7 @@ def vendor_dashboard_stats():
             company_id INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uniq_project (project_id))"""
         )
-        cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bids (
+        main_cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bids (
             id INT AUTO_INCREMENT PRIMARY KEY, opportunity_id INT NOT NULL,
             vendor_id INT NOT NULL, bid_amount DECIMAL(15,2), notes TEXT,
             timeline VARCHAR(255), team_size INT DEFAULT 0,
@@ -273,21 +275,22 @@ def vendor_dashboard_stats():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id))"""
         )
-        cur.execute(
+        main_cur.execute(
             "SELECT COUNT(*) AS cnt FROM vendor_bidding WHERE status = 'active'"
         )
-        r = cur.fetchone()
+        r = main_cur.fetchone()
         active_opportunities = r["cnt"] if r else 0
     except Exception:
         active_opportunities = 0
 
     if vendor_id:
         try:
-            cur.execute(
+            main_cur = get_db().cursor(dictionary=True)
+            main_cur.execute(
                 "SELECT COUNT(*) AS cnt FROM vendor_bids WHERE vendor_id = %s",
                 (vendor_id,),
             )
-            r = cur.fetchone()
+            r = main_cur.fetchone()
             bids_submitted = r["cnt"] if r else 0
         except Exception:
             bids_submitted = 0
@@ -323,27 +326,11 @@ def list_opportunities():
     Returns active bidding opportunities that vendors can bid on.
     Opportunities are created when a TD marks a project as Outsource.
     """
-    cur = vendor_cursor()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
     vendor_id = getattr(g, "user_id", None)
 
     try:
-        # Ensure table exists
-        cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bidding (
-            id INT AUTO_INCREMENT PRIMARY KEY, project_id INT NOT NULL,
-            project_name VARCHAR(255) NOT NULL, description TEXT,
-            outsource_budget DECIMAL(15,2), budget_ceiling DECIMAL(15,2),
-            bid_deadline DATE, status ENUM('active','closed') DEFAULT 'active',
-            company_id INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uniq_project (project_id))"""
-        )
-        cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bids (
-            id INT AUTO_INCREMENT PRIMARY KEY, opportunity_id INT NOT NULL,
-            vendor_id INT NOT NULL, bid_amount DECIMAL(15,2), notes TEXT,
-            timeline VARCHAR(255), team_size INT DEFAULT 0,
-            status ENUM('submitted','shortlisted','won','lost') DEFAULT 'submitted',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id))"""
-        )
         # Check which ones current vendor already bid on
         already_bid = set()
         if vendor_id:
@@ -391,7 +378,8 @@ def submit_bid(opportunity_id):
     if not vendor_id:
         return jsonify({"success": False, "message": "Not authenticated"}), 401
 
-    cur = vendor_cursor()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
 
     # Verify the opportunity exists and is still active
     try:
@@ -411,6 +399,7 @@ def submit_bid(opportunity_id):
                timeline = VALUES(timeline), team_size = VALUES(team_size), status = 'submitted'""",
             (vendor_id, opportunity_id, bid_amount, notes, timeline, team_size),
         )
+        conn.commit()
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
@@ -433,7 +422,8 @@ def my_bids():
     if not vendor_id:
         return jsonify({"bids": []})
 
-    cur = vendor_cursor()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
 
     try:
         cur.execute(
@@ -535,7 +525,8 @@ def list_bidding():
     Returns all bidding entries for the Technical Director view,
     including bid counts and computed status based on bid_deadline.
     """
-    cur = vendor_cursor()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
     try:
         cur.execute(
             """SELECT vb.*,
@@ -566,7 +557,8 @@ def bidding_bids(bidding_id):
     Also fetches the opportunity summary.
     Auto-ranks by lowest bid amount.
     """
-    cur = vendor_cursor()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
 
     # Fetch opportunity summary
     try:
@@ -592,19 +584,15 @@ def bidding_bids(bidding_id):
         rows = cur.fetchall()
 
         if rows:
-            # Get employee info from the main snh6_swiftproject DB for matching vendor_ids
+            # Get employee info since we're already on main DB
             vendor_ids = [r["vendor_id"] for r in rows]
-            from db import get_db
-            from flask import current_app
-            main_conn = get_db()
-            main_cur = main_conn.cursor()
             placeholders = ",".join(["%s"] * len(vendor_ids))
-            main_cur.execute(
+            cur.execute(
                 f"""SELECT id, full_name, email, phone_number, user_role
                    FROM employee WHERE id IN ({placeholders})""",
                 vendor_ids,
             )
-            emp_map = {r["id"]: r for r in main_cur.fetchall()}
+            emp_map = {r["id"]: r for r in cur.fetchall()}
 
             for i, r in enumerate(rows):
                 entry = {k: _serialize(v) for k, v in r.items()}

@@ -26,6 +26,7 @@ interface Project {
   end_date?: string;
   total_hours?: string;
   per_day?: string;
+  client_id?: number;
   department?: string;
   bim_lead?: string;
   bim_co_ordinator?: string;
