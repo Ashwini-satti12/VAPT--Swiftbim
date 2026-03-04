@@ -59,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [token, setToken]);
 
   useEffect(() => {
-    if (token) fetchMe();
-    else {
+    if (token) {
+      setLoading(true);
+      fetchMe();
+    } else {
       setUser(null);
       setLoading(false);
     }
