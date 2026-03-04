@@ -1,99 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-
-// TipTap rich text editor with toolbar
-function TiptapEditor({
-  value,
-  onChange,
-  placeholder,
-  className = "",
-}: {
-  value: string;
-  onChange: (html: string) => void;
-  placeholder?: string;
-  className?: string;
-}) {
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: placeholder ?? "" }),
-    ],
-    content: value || "",
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
-    editorProps: {
-      attributes: {
-        class:
-          "min-h-[200px] px-4 py-3 font-gantari text-[#353535] text-base focus:outline-none prose prose-sm max-w-none",
-      },
-    },
-  });
-
-  useEffect(() => {
-    if (!editor) return;
-    const current = editor.getHTML();
-    if (value !== current && (value === "" || value === "<p></p>") && current !== "<p></p>") {
-      editor.commands.setContent(value || "", { emitUpdate: false });
-    }
-  }, [value, editor]);
-
-  if (!editor) return null;
-
-  return (
-    <div
-      className={`rounded-md border border-[rgb(89,89,89)]/20 overflow-hidden bg-[#F9FAFB] ${className}`}
-    >
-      <div className="flex flex-wrap items-center gap-1 border-b border-[rgb(89,89,89)]/20 bg-white px-2 py-2">
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`rounded px-2 py-1 text-sm font-semibold ${editor.isActive("bold") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          B
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`rounded px-2 py-1 text-sm italic ${editor.isActive("italic") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          I
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`rounded px-2 py-1 text-sm ${editor.isActive("bulletList") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          • List
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`rounded px-2 py-1 text-sm ${editor.isActive("orderedList") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          1. List
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`rounded px-2 py-1 text-sm ${editor.isActive("heading", { level: 2 }) ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          H2
-        </button>
-        <button
-          type="button"
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`rounded px-2 py-1 text-sm font-mono ${editor.isActive("codeBlock") ? "bg-gray-200" : "hover:bg-gray-100"}`}
-        >
-          {"</>"}
-        </button>
-      </div>
-      <EditorContent editor={editor} />
-    </div>
-  );
-}
 
 export default function NewProposalForm() {
   const navigate = useNavigate();
@@ -302,10 +209,12 @@ export default function NewProposalForm() {
               </h2>
 
               <div className="mb-6">
-                <TiptapEditor
+                <textarea
+                  rows={5}
                   value={scopeDescription}
-                  onChange={setScopeDescription}
+                  onChange={(e) => setScopeDescription(e.target.value)}
                   placeholder="General Scope Description..."
+                  className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2]"
                 />
               </div>
 
@@ -378,10 +287,12 @@ export default function NewProposalForm() {
                 4. Deliverables <span className="text-red-500">*</span>
               </h2>
               <div className="mb-4">
-                <TiptapEditor
+                <textarea
+                  rows={5}
                   value={deliverablesIntro}
-                  onChange={setDeliverablesIntro}
+                  onChange={(e) => setDeliverablesIntro(e.target.value)}
                   placeholder="Deliverables introduction..."
+                  className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2]"
                 />
               </div>
             </div>
@@ -392,10 +303,12 @@ export default function NewProposalForm() {
                 5.1 Exclusions <span className="text-red-500">*</span>
               </h2>
               <div className="mb-12">
-                <TiptapEditor
+                <textarea
+                  rows={5}
                   value={exclusionsContent}
-                  onChange={setExclusionsContent}
+                  onChange={(e) => setExclusionsContent(e.target.value)}
                   placeholder="Exclusions details..."
+                  className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2]"
                 />
               </div>
             </div>
