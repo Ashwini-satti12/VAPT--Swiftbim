@@ -94,8 +94,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Proposal",
-          path: "/td/manage-proposal",
+          name: "Projects",
+          path: "/td/projects",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
@@ -108,8 +108,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Projects",
-          path: "/td/projects",
+          name: "Proposal",
+          path: "/td/manage-proposal",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,

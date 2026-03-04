@@ -10,9 +10,8 @@ const PM_OPTIONS = ['Reed Richards', 'Tony Stark', 'Bruce Banner', 'Natasha Roma
 const DEPARTMENT_OPTIONS = ['MEP', 'BIM', 'Structural', 'Architectural', 'Civil', 'IT'];
 const BIM_LEAD_OPTIONS = ['Richard Parker', 'Peter Parker', 'Miles Morales', 'Gwen Stacy'];
 const BIM_COORD_OPTIONS = ['Mary Jane', 'Harry Osborn', 'Eddie Brock', 'Felicia Hardy'];
-const MEMBER_OPTIONS = ['Member A', 'Member B', 'Member C', 'Member D', 'Member E'];
-const PRIORITY_OPTIONS = ['High', 'Medium', 'Low'];
-
+const MEMBER_OPTIONS = ['Member A', 'Member B', 'Member E'];
+const PRIORITY_OPTIONS = ['High', 'Normal'];
 function FormSelect({
   label, placeholder, options, value, onChange,
 }: { label: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -162,18 +161,18 @@ export default function ProjectsPM() {
   useEffect(() => {
     // Mock data for UI testing - Added more projects to show scrollbar
     const mockProjects: Project[] = [
-      { id: 1, project_name: 'AECOM - AL AIN HOSPITAL', progress: 50, total_tasks: 15, completed_tasks: 7 },
-      { id: 2, project_name: 'AL GURG', progress: 25, total_tasks: 4, completed_tasks: 1 },
-      { id: 3, project_name: 'ARATT - AYATHI RESIDENTIAL', progress: 47, total_tasks: 70, completed_tasks: 30 },
-      { id: 4, project_name: 'GHAF WOODS DEVELOPMENT', progress: 0, total_tasks: 0, completed_tasks: 0 },
-      { id: 5, project_name: 'Guggenheim Abu Dhabi Museum', progress: 78, total_tasks: 23, completed_tasks: 18 },
-      { id: 6, project_name: 'Prestige Park Grove Phase 1', progress: 80, total_tasks: 135, completed_tasks: 110 },
-      { id: 7, project_name: 'Sobha Hartland Greens', progress: 60, total_tasks: 20, completed_tasks: 12 },
-      { id: 8, project_name: 'Dubai Hills Estate', progress: 10, total_tasks: 50, completed_tasks: 5 },
-      { id: 9, project_name: 'Palm Jumeirah Resort', progress: 95, total_tasks: 100, completed_tasks: 95 },
-      { id: 10, project_name: 'EMAAR Beachfront', progress: 40, total_tasks: 25, completed_tasks: 10 },
-      { id: 11, project_name: 'Damac Hills 2', progress: 20, total_tasks: 15, completed_tasks: 3 },
-      { id: 12, project_name: 'Business Bay Office Tower', progress: 70, total_tasks: 30, completed_tasks: 21 },
+      { id: 1, project_name: 'AECOM - AL AIN HOSPITAL', progress: 50, total_tasks: 15, completed_tasks: 7, priority: 'High' },
+      { id: 2, project_name: 'AL GURG', progress: 25, total_tasks: 4, completed_tasks: 1, priority: 'Normal' },
+      { id: 3, project_name: 'ARATT - AYATHI RESIDENTIAL', progress: 47, total_tasks: 70, completed_tasks: 30, priority: 'High' },
+      { id: 4, project_name: 'GHAF WOODS DEVELOPMENT', progress: 0, total_tasks: 0, completed_tasks: 0, priority: 'Normal' },
+      { id: 5, project_name: 'Guggenheim Abu Dhabi Museum', progress: 78, total_tasks: 23, completed_tasks: 18, priority: 'High' },
+      { id: 6, project_name: 'Prestige Park Grove Phase 1', progress: 80, total_tasks: 135, completed_tasks: 110, priority: 'Normal' },
+      { id: 7, project_name: 'Sobha Hartland Greens', progress: 60, total_tasks: 20, completed_tasks: 12, priority: 'High' },
+      { id: 8, project_name: 'Dubai Hills Estate', progress: 10, total_tasks: 50, completed_tasks: 5, priority: 'Normal' },
+      { id: 9, project_name: 'Palm Jumeirah Resort', progress: 95, total_tasks: 100, completed_tasks: 95, priority: 'High' },
+      { id: 10, project_name: 'EMAAR Beachfront', progress: 40, total_tasks: 25, completed_tasks: 10, priority: 'Normal' },
+      { id: 11, project_name: 'Damac Hills 2', progress: 20, total_tasks: 15, completed_tasks: 3, priority: 'High' },
+      { id: 12, project_name: 'Business Bay Office Tower', progress: 70, total_tasks: 30, completed_tasks: 21, priority: 'Normal' },
     ];
     setList(mockProjects);
     setLoading(false);
@@ -218,53 +217,53 @@ export default function ProjectsPM() {
             </div>
 
             {/* Project View Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
               {/* Task Status Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
                 {/* To Do Tasks */}
                 <button
                   type="button"
                   onClick={() => navigate('/teamtask?status=todo')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[120px] md:h-[160px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
                 >
-                  <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-start lg:ml-4">13</p>
+                  <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
+                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">13</p>
                 </button>
 
                 {/* In Progress Tasks */}
                 <button
                   type="button"
                   onClick={() => navigate('/teamtask?status=in_progress')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[120px] md:h-[160px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
                 >
-                  <p className="text-[#353535] group-hover:text-white text-[16px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-start lg:ml-4">18</p>
+                  <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">18</p>
                 </button>
 
                 {/* Paused Tasks */}
                 <button
                   type="button"
                   onClick={() => navigate('/teamtask?status=paused')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[120px] md:h-[160px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
                 >
-                  <p className="text-[#333333] group-hover:text-white text-[16px] md:text-[20px] font-Gantari font-bold opacity-90">Paused Tasks</p>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-start lg:ml-4">02</p>
+                  <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Paused Tasks</p>
+                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">02</p>
                 </button>
 
                 {/* Completed Tasks */}
                 <button
                   type="button"
                   onClick={() => navigate('/teamtask?status=completed')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[120px] md:h-[160px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
                 >
-                  <p className="text-[#333333] group-hover:text-white text-[16px] md:text-[20px] font-Gantari font-bold opacity-90">Completed Tasks</p>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-start lg:ml-4">122</p>
+                  <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">122</p>
                 </button>
               </div>
 
 
               {/* Tower Progress Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8 custom-scrollbar">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
                   const towerProgress = i % 3 === 0 ? 35 : i % 2 === 0 ? 65 : 86;
                   const status = i % 3 === 0 ? 'Review' : i % 2 === 0 ? 'Pending' : 'Approved';
@@ -274,7 +273,7 @@ export default function ProjectsPM() {
                   return (
                     <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">Tower 0{i}</span>
+                        <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">module_name{i}</span>
                         <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
                           <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
@@ -299,6 +298,13 @@ export default function ProjectsPM() {
                     </div>
                   );
                 })}
+              </div>
+              {/* Project Description */}
+              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 lg:p-10">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A]">Project Description</h4>
+                <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                  {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
+                </p>
               </div>
 
               {/* Team Overview Section */}
@@ -1334,7 +1340,6 @@ export default function ProjectsPM() {
                               <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
                                 {p.project_name ?? 'Prestige Park Groove'}
                               </h3>
-                              <p className="text-[16px] font-Gantari font-semibold text-[#353535]">Tower 1 to 09</p>
                             </div>
                           </div>
                         </div>
@@ -1345,10 +1350,15 @@ export default function ProjectsPM() {
                                 <img src={`https://i.pravatar.cc/150?u=${p.id + i}`} alt="avatar" className="w-full h-full object-cover" />
                               </div>
                             ))}
-                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm mb-4">
+                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
                               +4
                             </div>
                           </div>
+                          {p.priority && (
+                             <div className={`px-4 py-1.5 rounded-[10px] text-white text-[14px] font-semibold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
+                               {p.priority}
+                             </div>
+                          )}
                         </div>
                       </div>
                     );
