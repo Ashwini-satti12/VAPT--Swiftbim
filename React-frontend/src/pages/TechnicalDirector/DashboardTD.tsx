@@ -147,8 +147,9 @@ export default function DashboardTD() {
             .catch(() => setPriorityTasks([]));
     }, []);
 
-    // Integration: GET /api/calendar/events?selectedDate=YYYY-MM-DD → Celebrations (birthdays, anniversaries, project_due)
+    // Celebrations (birthdays/anniversaries) — loaded only when user clicks up arrow to avoid fetching until needed
     const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
+    const [celebrationsRequested, setCelebrationsRequested] = useState(false);
 
     // Calendar state — so we can change year/month and select a date (integration code can read these)
     const today = new Date();
@@ -158,13 +159,20 @@ export default function DashboardTD() {
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
-    // Fetch celebrations (birthdays/anniversaries) when selectedDate changes
+    // When date changes: clear celebrations and reset so they load again only when user clicks up arrow
     useEffect(() => {
+        setCelebrations([]);
+        setCelebrationsRequested(false);
+    }, [selectedDate]);
+
+    // Fetch celebrations only when user has requested them (e.g. by clicking up arrow)
+    useEffect(() => {
+        if (!celebrationsRequested) return;
         const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
         api.get<{ events: CelebrationEvent[] }>('/api/calendar/events', { params: { selectedDate: dateStr } })
             .then(({ data }) => setCelebrations(Array.isArray(data.events) ? data.events : []))
             .catch(() => setCelebrations([]));
-    }, [selectedDate]);
+    }, [selectedDate, celebrationsRequested]);
 
     useEffect(() => {
         if (!monthDropdownOpen) return;
@@ -522,12 +530,16 @@ export default function DashboardTD() {
                                 </div>
                             )}
 
-                            {/* Upward caret — bottom center (scroll / collapse) */}
+                            {/* Up arrow — load remaining data (celebrations) when clicked, and collapse/expand */}
                             <div className="flex justify-center mt-0 mb-2">
                                 <button
-                                    onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                                    type="button"
+                                    onClick={() => {
+                                        setCelebrationsRequested(true); // load remaining data only when user clicks up arrow
+                                        setIsCalendarExpanded(!isCalendarExpanded);
+                                    }}
                                     className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
-                                    aria-label={isCalendarExpanded ? 'Collapse calendar' : 'Expand calendar'}
+                                    aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar and load celebrations'}
                                 >
                                     <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
@@ -535,9 +547,11 @@ export default function DashboardTD() {
                                 </button>
                             </div>
 
-                            {/* Celebrations Section — below calendar, inside scroll */}
+                            {/* Celebrations Section — below calendar, loaded only when user clicks up arrow */}
                             <div className="space-y-4 pr-1">
-                                {celebrations.length === 0 ? (
+                                {!celebrationsRequested ? (
+                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">Click the up arrow above to load celebrations.</p>
+                                ) : celebrations.length === 0 ? (
                                     <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
                                 ) : (
                                     celebrations.map((event, i) => (
