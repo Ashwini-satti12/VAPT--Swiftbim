@@ -28,7 +28,7 @@ ENV/
 !.env.example
 
 # ── Uploads (user files, generated at runtime) ───────────────────────────────
-uploads/
+# uploads/
 
 # ── Flask / runtime ───────────────────────────────────────────────────────────
 instance/
