@@ -284,7 +284,8 @@ def upload_output_files(task_id):
         return jsonify({"success": False, "message": "No files uploaded"}), 400
     import os
     import uuid
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "task")
+    from flask import current_app
+    upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "task")
     os.makedirs(upload_dir, exist_ok=True)
     conn = get_db()
     cur = conn.cursor()
