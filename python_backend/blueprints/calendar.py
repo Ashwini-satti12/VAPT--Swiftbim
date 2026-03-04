@@ -24,10 +24,10 @@ def events():
 
     cur.execute(
         """SELECT id, full_name, dob, doj, profile_picture, Company_id,
-                  YEAR(CURDATE()) - YEAR(doj) - (DATE_FORMAT(CURDATE(), '%%m%%d') < DATE_FORMAT(doj, '%%m%%d')) AS working_years
+                  YEAR(CURDATE()) - YEAR(doj) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(doj, '%m%d')) AS working_years
            FROM employee
-           WHERE (DATE_FORMAT(dob, '%%m-%%d') = %s OR DATE_FORMAT(doj, '%%m-%%d') = %s) AND Company_id = %s""",
-        (month_day, month_day, g.company_id),
+           WHERE DATE_FORMAT(dob, '%m-%d') = %(md)s OR DATE_FORMAT(doj, '%m-%d') = %(md)s""",
+        {"md": month_day},
     )
     rows = cur.fetchall()
     events_list = []

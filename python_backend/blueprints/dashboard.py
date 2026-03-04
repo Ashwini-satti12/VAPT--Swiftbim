@@ -42,22 +42,39 @@ def _serialize_row(d):
 @bp.route("/stats", methods=["GET"])
 @project_app_required
 def stats():
+    """KPI stats: projects the logged-in user is involved in and task counts in those projects.
+    BIM Coordinator: only bim_coordinator_id or members. BIM Modeler: only members."""
     user_id = request.args.get("userid") or g.user_id
     company_id = g.company_id
+    user_role = (getattr(g, "user_role", None) or "").strip()
 
     conn = get_db()
     cur = conn.cursor()
 
-    # Projects where user is involved (client_id, PM, lead, bim_coordinator, uploaderid, members)
-    _involved_where = """p.Company_id = %s AND (
-            p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
-            OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
-        )"""
+    # BIM Coordinator: only projects where they are coordinator or in members
+    if user_role == "BIM Coordinator":
+        _involved_where = """p.Company_id = %s AND (
+                p.bim_coordinator_id = %s
+                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+            )"""
+    # BIM Modeler: only projects where user is in members list (team member)
+    elif user_role == "BIM Modeler":
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"""
+    else:
+        # Other roles: client_id, PM, lead, bim_coordinator_id, uploaderid, members
+        _involved_where = """p.Company_id = %s AND (
+                p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+            )"""
+
     def get_tasks_in_my_projects(uid, task_status):
-        """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in.
-        Uses JOIN to projects so we match tasks.projectid and tasks.status from the tasks table."""
-        # Params: company_id, uid×6 for JOIN; then task_status for WHERE
-        params = [company_id, uid, uid, uid, uid, uid, uid, task_status]
+        """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in."""
+        if user_role == "BIM Coordinator":
+            params = [company_id, uid, uid, task_status]
+        elif user_role == "BIM Modeler":
+            params = [company_id, uid, task_status]
+        else:
+            params = [company_id, uid, uid, uid, uid, uid, uid, task_status]
         try:
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
@@ -84,19 +101,31 @@ def stats():
                 return 0
 
     def get_total_projects(uid, status=None):
-        # Count projects where user is involved: client_id, project_manager_id, lead_id,
-        # bim_coordinator_id, uploaderid, or in members list
-        sql = """SELECT COUNT(*) AS total_projects FROM projects
-                 WHERE Company_id = %s
-                   AND (
-                     client_id = %s
-                     OR project_manager_id = %s
-                     OR lead_id = %s
-                     OR bim_coordinator_id = %s
-                     OR uploaderid = %s
-                     OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
-                   )"""
-        params = [company_id, uid, uid, uid, uid, uid, uid]
+        if user_role == "BIM Coordinator":
+            sql = """SELECT COUNT(*) AS total_projects FROM projects
+                     WHERE Company_id = %s
+                       AND (
+                         bim_coordinator_id = %s
+                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
+                       )"""
+            params = [company_id, uid, uid]
+        elif user_role == "BIM Modeler":
+            sql = """SELECT COUNT(*) AS total_projects FROM projects
+                     WHERE Company_id = %s
+                       AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"""
+            params = [company_id, uid]
+        else:
+            sql = """SELECT COUNT(*) AS total_projects FROM projects
+                     WHERE Company_id = %s
+                       AND (
+                         client_id = %s
+                         OR project_manager_id = %s
+                         OR lead_id = %s
+                         OR bim_coordinator_id = %s
+                         OR uploaderid = %s
+                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
+                       )"""
+            params = [company_id, uid, uid, uid, uid, uid, uid]
         if status == "Completed":
             sql += " AND progress = 100"
         try:
@@ -104,11 +133,21 @@ def stats():
             row = cur.fetchone()
             return (row or {}).get("total_projects") or 0
         except Exception:
-            # Fallback if columns missing (e.g. older schema): count by members only
-            fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
-            if status == "Completed":
-                fallback_sql += " AND progress = 100"
-            cur.execute(fallback_sql, (company_id, uid))
+            if user_role == "BIM Coordinator":
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND (bim_coordinator_id = %s OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0)"
+                if status == "Completed":
+                    fallback_sql += " AND progress = 100"
+                cur.execute(fallback_sql, (company_id, uid, uid))
+            elif user_role == "BIM Modeler":
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
+                if status == "Completed":
+                    fallback_sql += " AND progress = 100"
+                cur.execute(fallback_sql, (company_id, uid))
+            else:
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
+                if status == "Completed":
+                    fallback_sql += " AND progress = 100"
+                cur.execute(fallback_sql, (company_id, uid))
             row = cur.fetchone()
             return (row or {}).get("total_projects") or 0
 
@@ -142,14 +181,33 @@ def stats():
 @bp.route("/priority-tasks", methods=["GET"])
 @project_app_required
 def priority_tasks():
-    """Today's priority tasks for current user: assigned_to = user, status Todo/InProgress/Pause, due today.
-    Returns task name, start/end time (perferstart_time, perferend_time), and involved persons (assignee + uploader)
-    for dynamic display and progress bar based on end time. Limit 4, ordered by due_date and start time."""
+    """Today's priority tasks: user's tasks or team tasks (tasks in projects the user is involved in),
+    using each task's due_date for today. Status Todo/InProgress/Pause. Returns task name, start/end time,
+    project_name, involved persons (assignee + uploader). Ordered by due_date and start time."""
     user_id = g.user_id
     company_id = g.company_id
+    user_role = (getattr(g, "user_role", None) or "").strip()
     today = date.today().isoformat()
     conn = get_db()
     cur = conn.cursor()
+
+    # Same role-based "involved projects" as stats: tasks in projects the user is involved in
+    if user_role == "BIM Coordinator":
+        _involved_where = """p.Company_id = %s AND (
+                p.bim_coordinator_id = %s
+                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+            )"""
+        params = [company_id, user_id, user_id, company_id, today]
+    elif user_role == "BIM Modeler":
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"""
+        params = [company_id, user_id, company_id, today]
+    else:
+        _involved_where = """p.Company_id = %s AND (
+                p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+            )"""
+        params = [company_id, user_id, user_id, user_id, user_id, user_id, user_id, company_id, today]
+
     cur.execute(
         """SELECT t.id, t.task_name, t.due_date, t.status, t.category, t.perferstart_time, t.perferend_time,
                   t.projectid, t.assigned_to, t.uploaderid,
@@ -157,15 +215,15 @@ def priority_tasks():
                   e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture,
                   p.project_name
            FROM tasks t
+           INNER JOIN projects p ON t.projectid = p.id AND """ + _involved_where + """
            LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
            LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
-           LEFT JOIN projects p ON t.projectid = p.id
-           WHERE t.assigned_to = %s AND t.Company_id = %s
+           WHERE t.Company_id = %s
              AND (t.status IN ('Todo', 'InProgress', 'Pause'))
              AND DATE(t.due_date) = %s
            ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
-           LIMIT 4""",
-        (user_id, company_id, today),
+           LIMIT 20""",
+        tuple(params),
     )
     rows = cur.fetchall()
     tasks = []

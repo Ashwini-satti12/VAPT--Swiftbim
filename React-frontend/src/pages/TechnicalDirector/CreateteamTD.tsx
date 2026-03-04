@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { PlusIcon, ArrowUpRightIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
+import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 
 interface Employee {
     id: number;
@@ -37,7 +38,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-[10px] p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
+        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
             {/* Header: Title and Options */}
             <div className="flex justify-between items-start mb-6">
                 <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
@@ -52,36 +53,36 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                     </button>
 
                     {showMenu && (
-                        <div className="absolute right-[-70px] mt-3 w-[158px] bg-[#FFFFFF] rounded-[15px] shadow-[0px_10px_30px_rgba(0,0,0,0.1)] border border-[#59595980]/50 py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
+                        <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
                             <button
                                 onClick={() => {
                                     onViewDetails(team);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <ArrowUpRightIcon className="w-5 h-5 text-[#64748B]" />
-                                <span className="text-[16px] font-medium text-[#64748B]">View</span>
+                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
                             </button>
                             <button
                                 onClick={() => {
                                     onEdit(team);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <PencilSquareIcon className="w-5 h-5 text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#DD4342]">Edit</span>
+                                <PencilSquareIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
+                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Edit</span>
                             </button>
                             <button
                                 onClick={() => {
                                     onDelete(team.team_id);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <TrashIcon className="w-5 h-5 text-[#616161]" />
-                                <span className="text-[16px] font-medium text-[#616161]">Delete</span>
+                                <TrashIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
+                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Delete</span>
                             </button>
                         </div>
                     )}

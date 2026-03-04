@@ -34,7 +34,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
     const [profileData, setProfileData] = useState<UserProfile>({
         name: user?.full_name || "User",
-        designation: "Member",
+        designation: user?.user_role || "Member",
         email: user?.email || "",
         phone: "",
         address: "",
@@ -49,27 +49,29 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [unreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [phoneError, setPhoneError] = useState("");
-    const [tempPassword, setTempPassword] = useState("");
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [passwordError, setPasswordError] = useState("");
     const [isEditingActual, setIsEditingActual] = useState(false);
 
     // Fetch profile on mount
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const { data } = await api.get("/api/users/profile");
+                const { data } = await api.get("/api/profile");
                 if (data) {
                     const updated: UserProfile = {
                         name: data.full_name || profileData.name,
-                        designation: data.designation || "Member",
+                        designation: data.user_role || "Member",
                         email: data.email || profileData.email,
                         phone: data.phone_number || "",
-                        address: data.company_details || "",
+                        address: data.address || "",
                     };
                     setProfileData(updated);
                     setEditData(updated);
                 }
             } catch {
-                // keep defaults
+                // keep defaults if profile endpoint fails
             }
         };
         fetchProfile();
@@ -119,25 +121,40 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             setPhoneError("Please enter a valid phone number.");
             return;
         }
+
+        // Basic password validation before hitting API
+        if (currentPassword || newPassword) {
+            if (!currentPassword || !newPassword) {
+                setPasswordError("Please enter both current and new password.");
+                return;
+            }
+            if (newPassword.length < 6) {
+                setPasswordError("New password must be at least 6 characters.");
+                return;
+            }
+        }
+
         setPhoneError("");
+        setPasswordError("");
         setIsLoading(true);
         try {
-            await api.patch("/api/users/profile", {
+            // Update basic profile fields
+            await api.patch("/api/profile", {
                 full_name: editData.name,
-                designation: editData.designation,
                 phone_number: editData.phone,
-                company_details: editData.address,
+                address: editData.address,
             });
-            // If password was filled in, save it too
-            if (tempPassword) {
-                if (tempPassword.length < 6) {
-                    alert("Password must be at least 6 characters.");
-                    setIsLoading(false);
-                    return;
-                }
-                await api.patch("/api/users/profile/password", { password: tempPassword });
-                setTempPassword("");
+
+            // Update password if provided
+            if (currentPassword && newPassword) {
+                await api.post("/api/profile/change-password", {
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                });
+                setCurrentPassword("");
+                setNewPassword("");
             }
+
             setProfileData({ ...editData });
             setIsEditingActual(false);
         } catch {
@@ -255,7 +272,10 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             {isEditMode && (
                 <div className="fixed inset-0 z-[2000] flex items-center justify-end bg-black/40 backdrop-blur-sm p-4 sm:p-8"
                     onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}>
-                    <div className="bg-white rounded-lg shadow-2xl w-full max-w-[490px] relative p-8 transition-all animate-in slide-in-from-right duration-300" onClick={(e) => e.stopPropagation()}>
+                    <div
+                        className="bg-white rounded-lg shadow-2xl w-full max-w-[490px] relative p-8 transition-all animate-in slide-in-from-right duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         {/* Close button at top-left */}
                         <button
                             onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}
@@ -386,17 +406,31 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
                                 <hr className="border-[#AEACAC33]" />
 
-                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
-                                    <label className="font-semibold text-[#1A1A1A] font-gantari">Password</label>
-                                    <span className="text-[#353535] font-bold">:</span>
+                                <div className="grid grid-cols-[100px_20px_1fr] items-start text-[15px]">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5">Password</label>
+                                    <span className="text-[#353535] font-bold pt-0.5">:</span>
                                     {isEditingActual ? (
-                                        <input
-                                            type="password"
-                                            value={tempPassword}
-                                            onChange={(e) => setTempPassword(e.target.value)}
-                                            placeholder="********"
-                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
-                                        />
+                                        <div className="space-y-2 w-full">
+                                            <input
+                                                type="password"
+                                                value={currentPassword}
+                                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                                placeholder="Current password"
+                                                className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
+                                            />
+                                            <input
+                                                type="password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                placeholder="New password"
+                                                className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
+                                            />
+                                            {passwordError && (
+                                                <p className="text-[10px] text-red-500">
+                                                    {passwordError}
+                                                </p>
+                                            )}
+                                        </div>
                                     ) : (
                                         <span className="text-[#353535] font-medium tracking-widest">********</span>
                                     )}
@@ -408,7 +442,12 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                 {isEditingActual ? (
                                     <>
                                         <button
-                                            onClick={() => setIsEditingActual(false)}
+                                            onClick={() => {
+                                                setIsEditingActual(false);
+                                                setCurrentPassword("");
+                                                setNewPassword("");
+                                                setPasswordError("");
+                                            }}
                                             className="px-10 py-2.5 bg-[#EAEAEA] text-[#020202] rounded-[10px] font-bold text-[15px] transition-all hover:bg-gray-200"
                                         >
                                             Discard

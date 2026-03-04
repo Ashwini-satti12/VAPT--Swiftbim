@@ -100,6 +100,16 @@ function FormDropdown({
   );
 }
 
+interface Employee {
+  id: number;
+  full_name: string;
+}
+
+interface Project {
+  id: number;
+  project_name: string;
+}
+
 interface TaskDropdownProps {
   label: string;
   options: string[];
@@ -111,6 +121,9 @@ interface TaskDropdownProps {
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   narrow?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  maxVisibleItems?: number;
 }
 
 function TaskDropdown({
@@ -124,7 +137,28 @@ function TaskDropdown({
   triggerRef,
   dropdownRef,
   narrow = false,
+  searchable = false,
+  searchPlaceholder = "Search...",
+  maxVisibleItems = 5,
 }: TaskDropdownProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const q = (searchQuery || "").trim().toLowerCase();
+  const filteredOptions = searchable
+    ? (() => {
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first && (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false;
+        const name = String(opt ?? "").trim().toLowerCase();
+        return name.includes(q);
+      });
+    })()
+    : options;
+
+  const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+
   return (
     <div className="relative">
       <button
@@ -158,22 +192,43 @@ function TaskDropdown({
         <div
           ref={dropdownRef}
           role="listbox"
-          className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+          className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
         >
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              role="option"
-              onClick={() => {
-                onSelect(opt);
-                onClose();
-              }}
-              className="block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
-            >
-              {opt}
-            </button>
-          ))}
+          {searchable && (
+            <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                placeholder={searchPlaceholder}
+                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+                aria-label={searchPlaceholder}
+              />
+            </div>
+          )}
+          <div
+            className="overflow-y-auto py-1"
+            style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+          >
+            {filteredOptions.map((opt, idx) => (
+              <button
+                key={`${opt}-${idx}`}
+                type="button"
+                role="option"
+                onClick={() => {
+                  if (searchable) setSearchQuery("");
+                  onSelect(opt);
+                  onClose();
+                }}
+                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -197,6 +252,8 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
+  Approval?: string;
+  created_at?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -264,7 +321,10 @@ function formatDateRange(start?: string, end?: string): string {
 
 function normalizeStatus(
   s: string | undefined,
-): "todo" | "in_progress" | "completed" {
+  approval?: string,
+): "todo" | "in_progress" | "completed" | "approved" | "rejected" {
+  if (approval?.toLowerCase() === "approved") return "approved";
+  if (approval?.toLowerCase() === "rejected") return "rejected";
   if (!s) return "todo";
   const lower = s.toLowerCase().replace(/\s+/g, "_");
   if (lower.includes("progress") || lower === "in_progress")
@@ -274,7 +334,7 @@ function normalizeStatus(
 }
 
 const STATUS_STYLE: Record<
-  "todo" | "in_progress" | "completed",
+  "todo" | "in_progress" | "completed" | "approved" | "rejected",
   { label: string; dot: string; bg: string }
 > = {
   todo: {
@@ -292,6 +352,16 @@ const STATUS_STYLE: Record<
     dot: "bg-emerald-500",
     bg: "bg-emerald-100 text-emerald-800",
   },
+  approved: {
+    label: "Approved",
+    dot: "bg-emerald-500",
+    bg: "bg-emerald-100 text-emerald-800 rounded-full",
+  },
+  rejected: {
+    label: "Rejected",
+    dot: "bg-red-500",
+    bg: "bg-red-100 text-red-800 rounded-full",
+  },
 };
 
 function TaskCard({
@@ -302,7 +372,7 @@ function TaskCard({
   onDeleteTask,
 }: {
   task: Task;
-  status: "todo" | "in_progress" | "completed";
+  status: "todo" | "in_progress" | "completed" | "approved" | "rejected";
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
@@ -447,19 +517,7 @@ function TaskCard({
   );
 }
 
-const EMPLOYEE_OPTIONS = [
-  "Select Employee",
-  "Employee 1",
-  "Employee 2",
-  "Employee 3",
-];
-const PROJECT_OPTIONS = [
-  "Select Projects",
-  "Project A",
-  "Project B",
-  "Project C",
-];
-const SHOW_OPTIONS = ["Show", "All", "To Do", "In Progress", "Completed"];
+const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -475,78 +533,34 @@ export default function MyTasksPM() {
     searchParams.get("condition") === "1" || pathname.endsWith("/team");
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
-  const STORAGE_KEY_MY = "myTask_localTasks";
-  const STORAGE_KEY_TEAM = "teamTask_localTasks";
-  const loadFromStorage = (key: string): Task[] => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw) as Task[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  };
   const [list, setList] = useState<Task[]>([]);
-  const [myLocalTasks, setMyLocalTasks] = useState<Task[]>(() =>
-    loadFromStorage(STORAGE_KEY_MY),
-  );
-  const [teamLocalTasks, setTeamLocalTasks] = useState<Task[]>(() =>
-    loadFromStorage(STORAGE_KEY_TEAM),
-  );
-  const localTasks = isTeam ? teamLocalTasks : myLocalTasks;
-  const setLocalTasks = isTeam ? setTeamLocalTasks : setMyLocalTasks;
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [modules, setModules] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const allTasks = [
-    ...localTasks,
-    ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-  ];
 
-  const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
-    return s === "todo"
-      ? "To Do"
-      : s === "in_progress"
-        ? "In Progress"
-        : "Completed";
-  };
-
-  const handleMoveTask = (
+  const handleMoveTask = async (
     taskId: number,
     newStatus: "todo" | "in_progress" | "completed",
   ) => {
-    const label = statusToLabel(newStatus);
-    setLocalTasks((prev) => {
-      const idx = prev.findIndex((t) => t.id === taskId);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = { ...next[idx], status: label };
-        return next;
-      }
-      const fromList = list.find((t) => t.id === taskId);
-      if (fromList) return [{ ...fromList, status: label }, ...prev];
-      return prev;
-    });
+    try {
+      const statusMap = {
+        todo: "Todo",
+        in_progress: "InProgress",
+        completed: "Completed"
+      };
+      await api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus] });
+      setList(prev => prev.map(t => t.id === taskId ? { ...t, status: statusMap[newStatus] } : t));
+    } catch (error) {
+      console.error("Error moving task:", error);
+    }
   };
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_MY, JSON.stringify(myLocalTasks));
-    } catch {
-      // ignore quota or parse errors
-    }
-  }, [myLocalTasks]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_TEAM, JSON.stringify(teamLocalTasks));
-    } catch {
-      // ignore quota or parse errors
-    }
-  }, [teamLocalTasks]);
 
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [selectedShow, setSelectedShow] = useState<string | null>(null);
+  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -581,10 +595,15 @@ export default function MyTasksPM() {
     navigate("/tasks/taskview", { state: { task } });
   };
 
-  const confirmDeleteTask = () => {
+  const confirmDeleteTask = async () => {
     if (deleteTaskId === null) return;
-    setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-    setDeleteTaskId(null);
+    try {
+      await api.delete(`/api/tasks/${deleteTaskId}`);
+      setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+      setDeleteTaskId(null);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
   };
 
   const resetTaskFormAndClose = () => {
@@ -670,6 +689,11 @@ export default function MyTasksPM() {
   }, [openFormDropdown]);
 
   useEffect(() => {
+    api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
+    api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
+  }, []);
+
+  useEffect(() => {
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
     if (isTeam) params.condition = "1";
@@ -680,22 +704,80 @@ export default function MyTasksPM() {
       .finally(() => setLoading(false));
   }, [isTeam, statusFilter]);
 
+  useEffect(() => {
+    if (addTaskForm.projectName) {
+      api.post<{ modules: string[] }>("/api/projects/filters/modules", { project_name: addTaskForm.projectName })
+        .then(res => setModules(res.data.modules || []))
+        .catch(() => setModules([]));
+    } else {
+      setModules([]);
+    }
+  }, [addTaskForm.projectName]);
+
+  const employeeOptions = ["Select Employee", ...employees.map(e => e.full_name)];
+  const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
+
+  const allTasks = list.filter((t) => {
+    // Employee filter
+    if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+      if (t.assigned_full_name !== selectedEmployee) return false;
+    }
+    // Project filter
+    if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+      if (t.project_name !== selectedProject) return false;
+    }
+    // Period filter 
+    if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
+      const taskDate = new Date(t.created_at || t.start_date || "");
+      const now = new Date();
+      if (selectedPeriod === "This Week") {
+        const weekAgo = new Date();
+        weekAgo.setDate(now.getDate() - 7);
+        if (taskDate < weekAgo) return false;
+      } else if (selectedPeriod === "This Month") {
+        const monthAgo = new Date();
+        monthAgo.setMonth(now.getMonth() - 1);
+        if (taskDate < monthAgo) return false;
+      } else if (selectedPeriod === "This Quarter") {
+        const quarterAgo = new Date();
+        quarterAgo.setMonth(now.getMonth() - 3);
+        if (taskDate < quarterAgo) return false;
+      }
+    }
+    return true;
+  });
+
   const counts = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
     in_progress: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ).length,
-    completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
-      .length,
+    completed: allTasks.filter((t) => {
+      const s = normalizeStatus(t.status, t.Approval);
+      return s === "completed" || s === "approved" || s === "rejected";
+    }).length,
   };
+
   const tasksByStatus = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
     in_progress: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "in_progress",
+      (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ),
-    completed: allTasks.filter(
-      (t) => normalizeStatus(t.status) === "completed",
-    ),
+    completed: allTasks.filter((t) => {
+      const s = normalizeStatus(t.status, t.Approval);
+      return s === "completed" || s === "approved" || s === "rejected";
+    }),
+  };
+
+  const showLimit =
+    selectedShow === "All" || !selectedShow || selectedShow === "Show"
+      ? Number.POSITIVE_INFINITY
+      : Math.max(1, Number(selectedShow) || 10);
+
+  const displayedTasksByStatus = {
+    todo: tasksByStatus.todo.slice(0, showLimit),
+    in_progress: tasksByStatus.in_progress.slice(0, showLimit),
+    completed: tasksByStatus.completed.slice(0, showLimit),
   };
 
   if (loading) {
@@ -719,7 +801,7 @@ export default function MyTasksPM() {
         >
           <TaskDropdown
             label="Select Employee"
-            options={EMPLOYEE_OPTIONS}
+            options={employeeOptions}
             selected={selectedEmployee}
             onSelect={setSelectedEmployee}
             isOpen={openDropdown === "employee"}
@@ -729,10 +811,12 @@ export default function MyTasksPM() {
             onClose={() => setOpenDropdown(null)}
             triggerRef={employeeTriggerRef}
             dropdownRef={employeeMenuRef}
+            searchable
+            searchPlaceholder="Search Employee..."
           />
           <TaskDropdown
             label="Select Projects"
-            options={PROJECT_OPTIONS}
+            options={projectOptions}
             selected={selectedProject}
             onSelect={setSelectedProject}
             isOpen={openDropdown === "projects"}
@@ -742,6 +826,8 @@ export default function MyTasksPM() {
             onClose={() => setOpenDropdown(null)}
             triggerRef={projectsTriggerRef}
             dropdownRef={projectsMenuRef}
+            searchable
+            searchPlaceholder="Search Projects..."
           />
           <TaskDropdown
             label="Show"
@@ -879,11 +965,11 @@ export default function MyTasksPM() {
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
           }}
         >
-          {tasksByStatus.todo.map((task) => (
+          {displayedTasksByStatus.todo.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
-              status="todo"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -906,11 +992,11 @@ export default function MyTasksPM() {
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
           }}
         >
-          {tasksByStatus.in_progress.map((task) => (
+          {displayedTasksByStatus.in_progress.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
-              status="in_progress"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -933,11 +1019,11 @@ export default function MyTasksPM() {
             if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
           }}
         >
-          {tasksByStatus.completed.map((task) => (
+          {displayedTasksByStatus.completed.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
-              status="completed"
+              status={normalizeStatus(task.status, task.Approval)}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
@@ -1033,42 +1119,70 @@ export default function MyTasksPM() {
             </div>
             <form
               className="flex-1 overflow-y-auto p-6"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                const isEditing = editingTaskId !== null;
-                const existing = isEditing
-                  ? localTasks.find((t) => t.id === editingTaskId)
-                  : null;
-                const newTask: Task = {
-                  id: isEditing ? editingTaskId : Date.now(),
-                  task_name: addTaskForm.taskName || "Task Name",
-                  status: existing?.status ?? "To Do",
-                  start_date: addTaskForm.actualStartDate || undefined,
-                  due_date: addTaskForm.actualEndDate || undefined,
-                  project_name: addTaskForm.projectName || undefined,
-                  progress: existing?.progress ?? 0,
-                  module: addTaskForm.module || undefined,
-                  type: addTaskForm.type || undefined,
-                  start_time: addTaskForm.startTime || undefined,
-                  due_time: addTaskForm.dueTime || undefined,
-                  assign_to: addTaskForm.assignTo || undefined,
-                  description: addTaskForm.description || undefined,
-                  checklist: addTaskForm.checklist || undefined,
-                };
-                if (isEditing) {
-                  setLocalTasks((prev) => {
-                    const idx = prev.findIndex((t) => t.id === editingTaskId);
-                    if (idx >= 0) {
-                      const next = [...prev];
-                      next[idx] = newTask;
-                      return next;
-                    }
-                    return [...prev, newTask];
-                  });
-                } else {
-                  setLocalTasks((prev) => [newTask, ...prev]);
+                try {
+                  const isEditing = editingTaskId !== null;
+                  const payload = {
+                    project_id: projects.find(p => p.project_name === addTaskForm.projectName)?.id,
+                    project_name: addTaskForm.projectName,
+                    modules_name: addTaskForm.module,
+                    module: addTaskForm.module,
+                    task_name: addTaskForm.taskName,
+                    taskName: addTaskForm.taskName,
+                    type: addTaskForm.type,
+                    category: addTaskForm.type,
+                    start_date: addTaskForm.actualStartDate,
+                    startdate: addTaskForm.actualStartDate,
+                    due_date: addTaskForm.actualEndDate,
+                    dueDate: addTaskForm.actualEndDate,
+                    startTime: addTaskForm.startTime,
+                    dueTime: addTaskForm.dueTime,
+                    assigned_to: employees.find(e => e.full_name === addTaskForm.assignTo)?.id,
+                    assign_to: addTaskForm.assignTo,
+                    description: addTaskForm.description,
+                    checklist: addTaskForm.checklist,
+                    status: isEditing
+                      ? list.find((t) => t.id === editingTaskId)?.status
+                      : "To Do",
+                    progress: isEditing
+                      ? list.find((t) => t.id === editingTaskId)?.progress
+                      : 0,
+                  };
+
+                  let taskId = editingTaskId;
+                  if (isEditing) {
+                    await api.patch(`/api/tasks/${editingTaskId}`, payload);
+                  } else {
+                    const res = await api.post<{ task_id: number }>(
+                      "/api/tasks",
+                      payload,
+                    );
+                    taskId = res.data.task_id;
+                  }
+
+                  if (taskId && attachmentFiles.length > 0) {
+                    const formData = new FormData();
+                    attachmentFiles.forEach((file) =>
+                      formData.append("image", file),
+                    );
+                    await api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    });
+                  }
+
+                  const params: Record<string, string> = {};
+                  if (statusFilter) params.status = statusFilter;
+                  if (isTeam) params.condition = "1";
+                  const updatedTasks = await api.get<{ tasks?: Task[] }>(
+                    "/api/tasks",
+                    { params },
+                  );
+                  setList(updatedTasks.data.tasks ?? []);
+                  resetTaskFormAndClose();
+                } catch (error) {
+                  console.error("Error submitting task:", error);
                 }
-                resetTaskFormAndClose();
               }}
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1077,11 +1191,10 @@ export default function MyTasksPM() {
                     Project Name
                   </label>
                   <FormDropdown
-                    label="Select Project name"
+                    label="Select Project"
                     options={[
-                      { value: "", label: "Select Project name" },
-                      { value: "project-a", label: "Project A" },
-                      { value: "project-b", label: "Project B" },
+                      { value: "", label: "Select Project" },
+                      ...projects.map(p => ({ value: p.project_name, label: p.project_name }))
                     ]}
                     value={addTaskForm.projectName}
                     onChange={(v) =>
@@ -1106,8 +1219,7 @@ export default function MyTasksPM() {
                     label="Select Module"
                     options={[
                       { value: "", label: "Select Module" },
-                      { value: "module-1", label: "Module 1" },
-                      { value: "module-2", label: "Module 2" },
+                      ...modules.map(m => ({ value: m, label: m }))
                     ]}
                     value={addTaskForm.module}
                     onChange={(v) =>
@@ -1140,9 +1252,8 @@ export default function MyTasksPM() {
                         }))
                       }
                       placeholder="Enter Task / Select Task"
-                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${
-                        editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                      }`}
+                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                        }`}
                     />
                     {editingTaskId === null && (
                       <button
@@ -1261,8 +1372,7 @@ export default function MyTasksPM() {
                       label="Select Assign To"
                       options={[
                         { value: "", label: "Select Assign To" },
-                        { value: "user-1", label: "User 1" },
-                        { value: "user-2", label: "User 2" },
+                        ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
                       ]}
                       value={addTaskForm.assignTo}
                       onChange={(v) =>

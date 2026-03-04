@@ -47,6 +47,7 @@ import PartnerTD from './pages/TechnicalDirector/PartnerTD';
 import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
 import BiddingTD from './pages/TechnicalDirector/BiddingTD';
 import ProposalTD from './pages/TechnicalDirector/ProposalTD';
+import CreateProposalTD from './pages/TechnicalDirector/CreateProposalTD';
 
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
@@ -60,6 +61,8 @@ import TrackerBL from './pages/BimLead/TrackerBL';
 import TeamReportBL from './pages/BimLead/TeamReportBL';
 import ChatBL from './pages/BimLead/ChatBL';
 import MytaskViewBL from './pages/BimLead/MytaskViewBL';
+import ClientBL from './pages/BimLead/ClientBL';
+import PartnerBL from './pages/BimLead/PartnerBL';
 
 /* Bim Coordinator */
 import DashboardBC from './pages/BimCoordinator/DashboardBC';
@@ -93,6 +96,9 @@ import TrackerV from './pages/Vendor/TrackerV';
 import TeamReportV from './pages/Vendor/TeamReportV';
 import ChatV from './pages/Vendor/ChatV';
 import MytaskViewV from './pages/Vendor/MytaskViewV';
+import OpportunitiesV from './pages/Vendor/OpportunitiesV';
+import MyBidsV from './pages/Vendor/MyBidsV';
+import ProposalsV from './pages/Vendor/ProposalsV';
 
 function App() {
   return (
@@ -147,10 +153,12 @@ function App() {
             <Route path="td/partner/:id" element={<PartnerView />} />
             <Route path="td/bidding" element={<BiddingTD />} />
             <Route path="td/manage-proposal" element={<ProposalTD />} />
+            <Route path="td/create-proposal" element={<CreateProposalTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
             <Route path="bl/consultants/:id" element={<ConsultantdetailsBL />} />
+            <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
@@ -159,8 +167,9 @@ function App() {
             <Route path="bl/teamreport" element={<TeamReportBL />} />
             <Route path="bl/chat" element={<ChatBL />} />
             <Route path="bl/mytasks/view" element={<MytaskViewBL />} />
+            <Route path="bl/partner" element={<PartnerBL />} />
+            <Route path="bl/partner/:id" element={<PartnerView />} />
             <Route path="bl/bidding" element={<BiddingTD />} />
-            <Route path="bl/manage-proposal" element={<ProposalTD />} />
 
             {/* Bim Coordinator Routes */}
             <Route path="bc/dashboard" element={<DashboardBC />} />
@@ -183,6 +192,9 @@ function App() {
 
             {/* Vendor Routes */}
             <Route path="v/dashboard" element={<DashboardV />} />
+            <Route path="v/opportunities" element={<OpportunitiesV />} />
+            <Route path="v/mybids" element={<MyBidsV />} />
+            <Route path="v/proposals" element={<ProposalsV />} />
             <Route path="v/consultants" element={<ConsultantV />} />
             <Route path="v/consultants/:id" element={<ConsultantdetailsV />} />
             <Route path="v/clients" element={<ClientV />} />

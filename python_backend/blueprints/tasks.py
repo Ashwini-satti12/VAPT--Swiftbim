@@ -138,27 +138,81 @@ def list_tasks():
 @project_app_required
 def create_task():
     data = request.get_json() or request.form
-    project_id = data.get("projectid")
-    task_name = data.get("taskName")
-    assigned_to = data.get("assignedTo")
-    due_date = data.get("dueDate")
-    category = data.get("category") or ""
-    description = data.get("description") or ""
-    checklist = data.get("checklist") or ""
-    start_date = data.get("startdate") or ""
-    modules = data.get("modules") or ""
-    status = "Todo"
-    import random
-    ticket = "T-" + str(random.randint(10, 10000))
-    document_attachment = ""  # Handle file upload separately if needed
     conn = get_db()
     cur = conn.cursor()
+
+    # Robust extraction of fields with aliases
+    project_id = (
+        data.get("project_id")
+        or data.get("projectid")
+        or data.get("projectId")
+    )
+    project_name = data.get("project_name")
+    if not project_id and project_name:
+        cur.execute(
+            "SELECT id FROM projects WHERE project_name = %s AND Company_id = %s",
+            (project_name, g.company_id),
+        )
+        row = cur.fetchone()
+        if row:
+            # handle dict-like or tuple-like row
+            project_id = row["id"] if isinstance(row, dict) else row[0]
+
+    task_name = data.get("task_name") or data.get("taskName")
+    assigned_to = (
+        data.get("assigned_to")
+        or data.get("assignedTo")
+        or data.get("assign_to")
+        or data.get("assignedToId")
+    )
+    # If assigned_to is a name, try to resolve to ID (optional but helpful)
+    if assigned_to and not str(assigned_to).isdigit():
+        cur.execute(
+            "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s",
+            (assigned_to, g.company_id),
+        )
+        row = cur.fetchone()
+        if row:
+            assigned_to = row["id"] if isinstance(row, dict) else row[0]
+
+    due_date = data.get("due_date") or data.get("dueDate")
+    category = data.get("category") or data.get("type") or ""
+    description = data.get("description") or ""
+    checklist = data.get("checklist") or ""
+    start_date = (
+        data.get("start_date")
+        or data.get("startdate")
+        or data.get("actualStartDate")
+        or ""
+    )
+    modules = data.get("modules_name") or data.get("modules") or data.get("module") or ""
+
+    status = data.get("status") or "Todo"
+    import random
+
+    ticket = "T-" + str(random.randint(10, 10000))
+    document_attachment = ""
+
     cur.execute(
         """INSERT INTO tasks (projectid, uploaderid, task_name, assigned_to, due_date, category, description, checklist,
            document_attachment, status, ticket, Actual_start_time, modules_name, Company_id)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-        (project_id, g.user_id, task_name, assigned_to, due_date, category, description, checklist,
-         document_attachment, status, ticket, start_date, modules, g.company_id),
+        (
+            project_id,
+            g.user_id,
+            task_name,
+            assigned_to,
+            due_date,
+            category,
+            description,
+            checklist,
+            document_attachment,
+            status,
+            ticket,
+            start_date,
+            modules,
+            g.company_id,
+        ),
     )
     task_id = cur.lastrowid
     return jsonify({"success": True, "task_id": task_id, "ticket": ticket})
@@ -230,7 +284,8 @@ def upload_output_files(task_id):
         return jsonify({"success": False, "message": "No files uploaded"}), 400
     import os
     import uuid
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "uploads", "task")
+    from flask import current_app
+    upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "task")
     os.makedirs(upload_dir, exist_ok=True)
     conn = get_db()
     cur = conn.cursor()

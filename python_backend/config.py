@@ -8,14 +8,14 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "root")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "root@123")
     MYSQL_DB = os.getenv("MYSQL_DB", "snh6_swiftproject")
     MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
     MYSQL_CURSORCLASS = "DictCursor"
     MYSQL_AUTOCOMMIT = True
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", os.getenv("SECRET_KEY", "your-secret-key-change-in-production"))
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", 86400 * 30))  # 30 days
-    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "..", "uploads"))
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads"))
     TIMEZONE = os.getenv("TIMEZONE", "Asia/Kolkata")
 
     # SMTP / email settings (used for invite emails)

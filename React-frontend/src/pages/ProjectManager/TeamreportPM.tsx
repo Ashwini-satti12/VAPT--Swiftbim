@@ -1,31 +1,39 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import api from '../../lib/api';
 
 interface TimesheetEntry {
   id: number;
   project_name?: string;
   task_name?: string;
-  start_date?: string; // Format: DD/MM/YYYY
-  end_date?: string;   // Format: DD/MM/YYYY
-  duration?: string;
-  assignee_name?: string;
-  team?: string;
+  start_time?: string; // ISO format datetime
+  end_time?: string;   // ISO format datetime
+  due_date?: string;   // ISO format datetime
+  Actual_start_time?: string; // ISO format datetime
+  assigned_name?: string;
+  teamname?: string;
+  Pause?: number; // seconds paused
+  restart?: number; // seconds restarted
 }
 
-const DUMMY_DATA: TimesheetEntry[] = [
-  { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', team: 'Team A' },
-  { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', team: 'Team B' },
-  { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', team: 'Team A' },
-  { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', team: 'Team C' },
-  { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', team: 'Team B' },
-  { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', team: 'Team A' },
-];
+interface Employee {
+  id: number;
+  full_name: string;
+  email?: string;
+}
+
+interface Team {
+  team_id: number;
+  teamname: string;
+  employee?: string; // comma-separated employee IDs
+}
 
 export default function TimesheetPM() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [employee, setEmployee] = useState('All');
   const [team, setTeam] = useState('All');
-  const [list] = useState<TimesheetEntry[]>(DUMMY_DATA);
+  const [list, setList] = useState<TimesheetEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -33,39 +41,145 @@ export default function TimesheetPM() {
   const [showSizeOpen, setShowSizeOpen] = useState(false);
   const pageSizeOptions = [10, 20, 50, 100];
 
-  const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
-  const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
-  const filteredList = useMemo(() => {
-    return list.filter(item => {
-      // Date Range Filter Logic
-      if (startDate || endDate) {
-        const [d, m, y] = (item.start_date || '').split('/');
-        const itemDate = new Date(`${y}-${m}-${d}`);
+  // Refs for click outside detection
+  const employeeDropdownRef = useRef<HTMLDivElement>(null);
+  const teamDropdownRef = useRef<HTMLDivElement>(null);
+  const showSizeDropdownRef = useRef<HTMLDivElement>(null);
 
-        if (startDate) {
-          const start = new Date(startDate);
-          if (itemDate < start) return false;
-        }
-        if (endDate) {
-          const end = new Date(endDate);
-          if (itemDate > end) return false;
-        }
+  const employeeOptions = useMemo(() => ['All', ...employees.map(e => e.full_name)], [employees]);
+  const teamOptions = useMemo(() => ['All', ...teams.map(t => t.teamname || `Team ${t.team_id}`)], [teams]);
+
+  // Format date from ISO to DD/MM/YYYY
+  const formatDate = (dateStr: string | undefined): string => {
+    if (!dateStr) return '-';
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Calculate task duration from start_time, end_time, Pause, and restart
+  const calculateDuration = (entry: TimesheetEntry): string => {
+    if (!entry.start_time || !entry.end_time) return '00:00:00';
+    
+    try {
+      const start = new Date(entry.start_time);
+      const end = new Date(entry.end_time);
+      let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+      
+      // Subtract pause time and add restart time
+      const pauseSeconds = entry.Pause || 0;
+      const restartSeconds = entry.restart || 0;
+      totalSeconds = totalSeconds - pauseSeconds + restartSeconds;
+      
+      if (totalSeconds < 0) totalSeconds = 0;
+      
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } catch {
+      return '00:00:00';
+    }
+  };
+
+  // Fetch employees and teams on mount
+  useEffect(() => {
+    // Fetch employees
+    api.get<{ employees?: Employee[] }>('/api/employees')
+      .then(({ data }) => {
+        const empList = data.employees || [];
+        setEmployees(empList);
+      })
+      .catch((error) => {
+        console.error('Error fetching employees:', error);
+      });
+
+    // Fetch teams
+    api.get<{ teams?: Team[] }>('/api/teams')
+      .then(({ data }) => {
+        const teamList = data.teams || [];
+        setTeams(teamList);
+      })
+      .catch((error) => {
+        console.error('Error fetching teams:', error);
+      });
+  }, []);
+
+  // Fetch timesheet data when filters change
+  useEffect(() => {
+    setLoading(true);
+    const payload: {
+      startDate?: string;
+      endDate?: string;
+      selectmembers?: string;
+      selectteam?: string;
+    } = {};
+
+    if (startDate) payload.startDate = startDate;
+    if (endDate) payload.endDate = endDate;
+    
+    if (employee !== 'All') {
+      const selectedEmp = employees.find(e => e.full_name === employee);
+      if (selectedEmp) {
+        payload.selectmembers = String(selectedEmp.id);
       }
-
-      // Employee Filter
-      if (employee !== 'All' && item.assignee_name !== employee) {
-        return false;
+    }
+    
+    if (team !== 'All') {
+      const selectedTeam = teams.find(t => (t.teamname || `Team ${t.team_id}`) === team);
+      if (selectedTeam) {
+        payload.selectteam = String(selectedTeam.team_id);
       }
+    }
 
-      // Team Filter
-      if (team !== 'All' && item.team !== team) {
-        return false;
+    api.post<{ completed_tasks?: TimesheetEntry[] }>('/api/timesheet/completed-tasks', payload)
+      .then(({ data }) => {
+        const tasks = data.completed_tasks || [];
+        setList(tasks);
+      })
+      .catch((error) => {
+        console.error('Error fetching timesheet data:', error);
+        setList([]);
+      })
+      .finally(() => setLoading(false));
+  }, [startDate, endDate, employee, team, employees, teams]);
+
+  // Handle click outside for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+        setEmployeeOpen(false);
       }
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
+        setTeamOpen(false);
+      }
+      if (showSizeDropdownRef.current && !showSizeDropdownRef.current.contains(event.target as Node)) {
+        setShowSizeOpen(false);
+      }
+    };
 
-      return true;
-    });
-  }, [list, startDate, endDate, employee, team]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [startDate, endDate, employee, team]);
+
+  const filteredList = list; // API already filters, so we use list directly
 
   const totalPages = Math.ceil(filteredList.length / pageSize);
   const paginatedList = filteredList.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -82,13 +196,17 @@ export default function TimesheetPM() {
     const headers = ['Sl.No', 'Project Name', 'Task', 'Start Date', 'End Date', 'Task Duration'];
     const csvData = filteredList.map((row, index) => {
       const slNo = (index + 1).toString().padStart(2, '0');
+      const startDate = formatDate(row.start_time || row.Actual_start_time);
+      const endDate = formatDate(row.end_time || row.due_date);
+      const duration = calculateDuration(row);
+      
       return [
         slNo,
         row.project_name || '-',
         row.task_name || '-',
-        row.start_date || '-',
-        row.end_date || '-',
-        row.duration || 'hh:mm:ss'
+        startDate,
+        endDate,
+        duration
       ].map(val => `"${val}"`).join(',');
     });
 
@@ -171,10 +289,14 @@ export default function TimesheetPM() {
           </div>
 
           {/* Employee Custom Dropdown */}
-          <div className="relative min-w-[130px]" onBlur={() => setTimeout(() => setEmployeeOpen(false), 150)}>
+          <div className="relative min-w-[130px]" ref={employeeDropdownRef}>
             <button
               type="button"
-              onClick={() => { setEmployeeOpen(o => !o); setTeamOpen(false); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEmployeeOpen(o => !o);
+                setTeamOpen(false);
+              }}
               className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
             >
               <span className={`text-sm font-medium ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -186,15 +308,19 @@ export default function TimesheetPM() {
               </svg>
             </button>
             {employeeOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1">
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1 max-h-[300px] overflow-y-auto">
                 {employeeOptions.map(opt => (
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => { setEmployee(opt); setEmployeeOpen(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEmployee(opt);
+                      setEmployeeOpen(false);
+                    }}
                     className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt
-                      ? 'text-[#353535]'
-                      : 'text-[#616161] hover:text-[#353535]'
+                      ? 'text-[#353535] bg-gray-50'
+                      : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
                       }`}
                   >
                     {opt === 'All' ? 'Employee' : opt}
@@ -205,10 +331,14 @@ export default function TimesheetPM() {
           </div>
 
           {/* Team Custom Dropdown */}
-          <div className="relative min-w-[100px]" onBlur={() => setTimeout(() => setTeamOpen(false), 150)}>
+          <div className="relative min-w-[100px]" ref={teamDropdownRef}>
             <button
               type="button"
-              onClick={() => { setTeamOpen(o => !o); setEmployeeOpen(false); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTeamOpen(o => !o);
+                setEmployeeOpen(false);
+              }}
               className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
             >
               <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -220,15 +350,19 @@ export default function TimesheetPM() {
               </svg>
             </button>
             {teamOpen && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1 max-h-[300px] overflow-y-auto">
                 {teamOptions.map(opt => (
                   <button
                     key={opt}
                     type="button"
-                    onClick={() => { setTeam(opt); setTeamOpen(false); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTeam(opt);
+                      setTeamOpen(false);
+                    }}
                     className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt
-                      ? 'text-[#353535]'
-                      : 'text-[#616161] hover:text-[#353535]'
+                      ? 'text-[#353535] bg-gray-50'
+                      : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
                       }`}
                   >
                     {opt === 'All' ? 'Team' : opt}
@@ -239,11 +373,14 @@ export default function TimesheetPM() {
           </div>
 
           {/* Show Entries */}
-          <div className="relative flex items-center gap-2" onBlur={() => setTimeout(() => setShowSizeOpen(false), 150)}>
+          <div className="relative flex items-center gap-2" ref={showSizeDropdownRef}>
             <span className="text-sm text-[#616161] font-medium">Show:</span>
             <button
               type="button"
-              onClick={() => setShowSizeOpen(o => !o)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSizeOpen(o => !o);
+              }}
               className="flex items-center gap-2 px-3 py-1.5 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
             >
               <span className="text-sm font-medium text-[#353535]">{pageSize}</span>
@@ -255,8 +392,17 @@ export default function TimesheetPM() {
             {showSizeOpen && (
               <div className="absolute top-full left-8 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[80px]">
                 {pageSizeOptions.map(size => (
-                  <button key={size} type="button" onClick={() => handlePageSizeChange(size)}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${pageSize === size ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                  <button 
+                    key={size} 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePageSizeChange(size);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${pageSize === size 
+                      ? 'text-[#353535] bg-gray-50' 
+                      : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
+                    }`}>
                     {size}
                   </button>
                 ))}
@@ -268,43 +414,53 @@ export default function TimesheetPM() {
 
       {/* Table Section */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-        <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-          <table className="min-w-full border-collapse">
-            <thead className="sticky top-0 z-10 bg-white">
-              <tr className="border-b border-gray-100 bg-white">
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Sl.No</th>
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Project Name</th>
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task</th>
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Start Date</th>
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">End Date</th>
-                <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task Duration</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {paginatedList.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
-                    No records found
-                  </td>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+          </div>
+        ) : (
+          <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
+            <table className="min-w-full border-collapse">
+              <thead className="sticky top-0 z-10 bg-white">
+                <tr className="border-b border-gray-100 bg-white">
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Sl.No</th>
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Project Name</th>
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task</th>
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Start Date</th>
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">End Date</th>
+                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task Duration</th>
                 </tr>
-              ) : (
-                paginatedList.map((row, index) => {
-                  const slNo = (currentPage * pageSize + index + 1).toString().padStart(2, '0');
-                  return (
-                    <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                      <td className="px-6 py-6 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                      <td className="px-6 py-6 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
-                      <td className="px-6 py-6 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                      <td className="px-6 py-6 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
-                      <td className="px-6 py-6 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
-                      <td className="px-6 py-6 text-center text-sm text-gray-600 font-medium">{row.duration ?? 'hh:mm:ss'}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {paginatedList.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
+                      No records found
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedList.map((row, index) => {
+                    const slNo = (currentPage * pageSize + index + 1).toString().padStart(2, '0');
+                    const startDate = formatDate(row.start_time || row.Actual_start_time);
+                    const endDate = formatDate(row.end_time || row.due_date);
+                    const duration = calculateDuration(row);
+                    
+                    return (
+                      <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
+                        <td className="px-6 py-6 text-center text-sm text-gray-500 font-medium">{slNo}</td>
+                        <td className="px-6 py-6 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
+                        <td className="px-6 py-6 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
+                        <td className="px-6 py-6 text-center text-sm text-gray-600">{startDate}</td>
+                        <td className="px-6 py-6 text-center text-sm text-gray-600">{endDate}</td>
+                        <td className="px-6 py-6 text-center text-sm text-gray-600 font-medium">{duration}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Pagination Bar */}
         {totalPages > 0 && (

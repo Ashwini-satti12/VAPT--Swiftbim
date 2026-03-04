@@ -1,0 +1,62 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+wheels/
+*.whl
+MANIFEST
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.env.bak
+*.env.local
+
+# ── Secrets & environment ─────────────────────────────────────────────────────
+# .env
+# .env.*
+!.env.example
+
+# ── Uploads (user files, generated at runtime) ───────────────────────────────
+# uploads/
+
+# ── Flask / runtime ───────────────────────────────────────────────────────────
+instance/
+.flask_session/
+flask_session/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+
+# ── IDEs & editors ───────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+.cache/

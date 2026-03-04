@@ -16,7 +16,7 @@ from blueprints.tasks import bp as tasks_bp
 from blueprints.projects import bp as projects_bp
 from blueprints.employees import bp as employees_bp
 from blueprints.clients import bp as clients_bp
-from blueprints.messages import bp as messages_bp
+from blueprints.messages import bp as messages_bp, chat_bp
 from blueprints.location import bp as location_bp
 from blueprints.timesheet import bp as timesheet_bp
 from blueprints.attendance import bp as attendance_bp
@@ -60,6 +60,7 @@ def create_app(config_class=Config):
     app.register_blueprint(employees_bp)
     app.register_blueprint(clients_bp)
     app.register_blueprint(messages_bp)
+    app.register_blueprint(chat_bp)
     app.register_blueprint(location_bp)
     app.register_blueprint(timesheet_bp)
     app.register_blueprint(attendance_bp)

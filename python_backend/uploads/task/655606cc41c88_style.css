@@ -1,0 +1,23 @@
+*{
+    padding: 0;
+    margin: 0;
+}
+
+body{
+    font-family: 'Poppins', sans-serif;
+}
+
+.filter{
+    text-align: center;
+}
+
+img{
+    transition-duration: 1s;
+    border-radius: 10px;
+}
+
+img:hover{
+    transform: scale(1.05);
+}
+
+

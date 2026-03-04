@@ -1,27 +1,20 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
 
-interface LocationEntry {
+interface AttendanceEntry {
     id: number;
+    employee_id?: string;
     full_name?: string;
-    latitude?: number;
-    longitude?: number;
-    updated_at?: string;
-    status?: 'Online' | 'Offline';
+    date?: string; // DD-MM-YYYY format (from backend)
+    date_iso?: string; // YYYY-MM-DD format (normalised)
+    time_in?: string; // HH:MM:SS
+    time_out?: string | null; // HH:MM:SS or null
+    total_hours?: string | null; // hours as string or null
+    status?: string; // Online / Offline or raw value
 }
 
-const DUMMY_DATA: LocationEntry[] = [
-    { id: 1001, full_name: 'Binghatti', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1002, full_name: 'Suo01', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1003, full_name: 'Disu so', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1004, full_name: 'Tshingin', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1005, full_name: 'Ajay Srinivasan', updated_at: new Date().toISOString(), status: 'Online' },
-    { id: 1006, full_name: 'V L LOKESH', updated_at: new Date().toISOString(), status: 'Offline' },
-    { id: 1007, full_name: 'BASAVARAJ DÂ E', updated_at: new Date().toISOString(), status: 'Online' },
-];
-
 export default function TrackerBL() {
-    const [list, setList] = useState<LocationEntry[]>([]);
+    const [list, setList] = useState<AttendanceEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
@@ -34,63 +27,118 @@ export default function TrackerBL() {
         return `${day}/${month}/${year}`;
     };
 
+    // Determine status from attendance record
+    const getStatus = (entry: AttendanceEntry): 'Online' | 'Offline' => {
+        const statusStr = String(entry.status || '').trim();
+        if (statusStr.toLowerCase() === 'online') return 'Online';
+        if (statusStr.toLowerCase() === 'offline') return 'Offline';
+        // If status not set, infer from time_out: no time_out => Online, else Offline
+        if (!entry.time_out || entry.time_out.trim() === '' || entry.time_out === 'null') {
+            return 'Online';
+        }
+        return 'Offline';
+    };
+
+    // Format time from HH:MM:SS to 12-hour format with seconds
+    const formatTime = (timeStr: string | null | undefined): string => {
+        if (!timeStr || timeStr.trim() === '') return 'N/A';
+        try {
+            const [hours, minutes, seconds] = timeStr.split(':');
+            const hour = parseInt(hours, 10);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12.toString().padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+        } catch {
+            return timeStr;
+        }
+    };
+
+    // Format total hours similar to other trackers
+    const formatTotalHours = (
+        hours: string | null | undefined,
+        timeIn?: string,
+        timeOut?: string | null
+    ): string => {
+        if (hours && hours.trim() !== '') {
+            const numHours = parseFloat(hours);
+            if (!isNaN(numHours)) {
+                const h = Math.floor(numHours);
+                const m = Math.round((numHours - h) * 60);
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
+            }
+        }
+
+        if (timeIn && timeOut) {
+            try {
+                const [h1, m1, s1] = timeIn.split(':').map(Number);
+                const [h2, m2, s2] = timeOut.split(':').map(Number);
+                const totalSeconds = (h2 * 3600 + m2 * 60 + s2) - (h1 * 3600 + m1 * 60 + s1);
+                if (totalSeconds > 0) {
+                    const h = Math.floor(totalSeconds / 3600);
+                    const m = Math.floor((totalSeconds % 3600) / 60);
+                    const s = totalSeconds % 60;
+                    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                }
+            } catch {
+                // Ignore calculation errors
+            }
+        }
+        return 'N/A';
+    };
+
+    // Fetch attendance data whenever selectedDate changes
     useEffect(() => {
+        setLoading(true);
+        const params: { date?: string } = {};
+        if (selectedDate) {
+            params.date = selectedDate; // YYYY-MM-DD expected by API
+        }
+
         api
-            .get<{ locations?: LocationEntry[] }>('/api/location/employees')
+            .get<{ records?: AttendanceEntry[] }>('/api/attendance/tracker', { params })
             .then(({ data }) => {
-                // Ensure dummy data or API data has status for filtering demo
-                const baseData = data.locations?.length ? data.locations : DUMMY_DATA;
-                const dataWithStatus = baseData.map((item, idx) => ({
-                    ...item,
-                    status: item.status || (idx % 2 === 0 ? 'Online' : 'Offline')
-                }));
-                setList(dataWithStatus);
+                const records = data.records || [];
+                setList(records);
             })
-            .catch(() => {
-                setList(DUMMY_DATA);
+            .catch((error) => {
+                console.error('Error fetching attendance data:', error);
+                setList([]);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [selectedDate]);
 
     const filteredList = list.filter((item) => {
-        let matchesDate = true;
         let matchesStatus = true;
 
-        if (selectedDate) {
-            const itemDate = item.updated_at ? new Date(item.updated_at).toISOString().split('T')[0] : '';
-            matchesDate = itemDate === selectedDate;
-        }
-
+        // Date filtering is handled by API via `selectedDate`
         if (selectedStatus) {
-            matchesStatus = item.status === selectedStatus;
+            const itemStatus = getStatus(item);
+            matchesStatus = itemStatus === selectedStatus;
         }
 
-        return matchesDate && matchesStatus;
+        return matchesStatus;
     });
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
 
         const headers = ['Sl.No', 'Date', 'Employee Name', 'Time In', 'Time Out', 'Total Hours', 'Status'];
-        const csvData = filteredList.map((loc, index) => {
+        const csvData = filteredList.map((entry, index) => {
             const slNo = (index + 1).toString().padStart(2, '0');
-            const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
-            const formattedDate = dateObj.toLocaleDateString('en-GB');
-            const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            });
+            const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : 'N/A';
+            const timeIn = formatTime(entry.time_in);
+            const timeOut = formatTime(entry.time_out || null);
+            const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
+            const status = getStatus(entry);
 
             return [
                 slNo,
                 formattedDate,
-                loc.full_name || 'N/A',
-                formattedTime,
-                formattedTime,
-                'hh:mm:ss',
-                loc.status || '-'
+                entry.full_name || 'N/A',
+                timeIn,
+                timeOut,
+                totalHours,
+                status
             ].map(val => `"${val}"`).join(',');
         });
 
@@ -206,28 +254,25 @@ export default function TrackerBL() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((loc, index) => {
+                                filteredList.map((entry, index) => {
                                     const slNo = (index + 1).toString().padStart(2, '0');
-                                    const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
-                                    const formattedDate = dateObj.toLocaleDateString('en-GB').replace(/\//g, '/');
-                                    const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                        second: '2-digit',
-                                        hour12: true
-                                    });
+                                    const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : 'N/A';
+                                    const timeIn = formatTime(entry.time_in);
+                                    const timeOut = formatTime(entry.time_out || null);
+                                    const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
+                                    const status = getStatus(entry);
 
                                     return (
-                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
+                                        <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedDate}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedTime}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">hh:mm:ss</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{entry.full_name ?? 'N/A'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeIn}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeOut}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{totalHours}</td>
                                             <td className="px-6 py-3 text-center">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
-                                                    {loc.status}
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
+                                                    {status}
                                                 </span>
                                             </td>
                                         </tr>
