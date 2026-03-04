@@ -29,8 +29,31 @@ def _restricted_roles_for_current_user():
 def list_employees():
     conn = get_db()
     cur = conn.cursor()
+    # Join with department table so we can return the department NAME
+    # while still storing the numeric id in employee.department.
     cur.execute(
-        "SELECT id, full_name, empid, email, phone_number, user_type, user_role, profile_picture, address, doj, dob, department, active, status, Allpannel FROM employee WHERE Company_id = %s ORDER BY full_name",
+        """
+        SELECT
+            e.id,
+            e.full_name,
+            e.empid,
+            e.email,
+            e.phone_number,
+            e.user_type,
+            e.user_role,
+            e.profile_picture,
+            e.address,
+            e.doj,
+            e.dob,
+            COALESCE(d.name, e.department) AS department,
+            e.active,
+            e.status,
+            e.Allpannel
+        FROM employee e
+        LEFT JOIN department d ON d.id = e.department
+        WHERE e.Company_id = %s
+        ORDER BY e.full_name
+        """,
         (g.company_id,),
     )
     rows = cur.fetchall()
@@ -72,28 +95,54 @@ def create_employee():
     profile_path = None
     file = request.files.get("profile_picture")
     if file and file.filename:
-        # Save into UPLOAD_FOLDER/profiles and store relative path
+        # Save into UPLOAD_FOLDER/employee and store just filename
         upload_root = current_app.config.get("UPLOAD_FOLDER")
         if upload_root:
             os.makedirs(upload_root, exist_ok=True)
-            profiles_dir = os.path.join(upload_root, "profiles")
-            os.makedirs(profiles_dir, exist_ok=True)
+            employee_dir = os.path.join(upload_root, "employee")
+            os.makedirs(employee_dir, exist_ok=True)
             filename = secure_filename(file.filename)
-            save_path = os.path.join(profiles_dir, filename)
+            # If filename already exists, add timestamp to make it unique
+            save_path = os.path.join(employee_dir, filename)
+            if os.path.exists(save_path):
+                name, ext = os.path.splitext(filename)
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{name}_{timestamp}{ext}"
+                save_path = os.path.join(employee_dir, filename)
             file.save(save_path)
-            # Store path relative to UPLOAD_FOLDER so frontend can build URL
-            profile_path = os.path.join("profiles", filename).replace("\\", "/")
+            # Store just the filename (frontend will add employee/ prefix)
+            profile_path = filename
 
     if not full_name or not email or not password:
         return jsonify({"success": False, "message": "full_name, email, password required"}), 400
+
+    # Check for duplicate email within the same company
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id FROM employee WHERE email = %s AND Company_id = %s LIMIT 1",
+        (email, g.company_id),
+    )
+    if cur.fetchone():
+        return jsonify({"success": False, "message": "Email already exists"}), 400
 
     restricted = _restricted_roles_for_current_user()
     if user_role in restricted:
         return jsonify({"success": False, "message": "You are not allowed to assign the role '%s'." % user_role}), 403
 
     hashed = hashlib.md5(password.encode()).hexdigest()
-    conn = get_db()
-    cur = conn.cursor()
+
+    # If department is a name (not numeric), map it to the corresponding id
+    if department and not str(department).isdigit():
+        try:
+            cur.execute("SELECT id FROM department WHERE name = %s LIMIT 1", (department,))
+            row = cur.fetchone()
+            if row and row.get("id") is not None:
+                department = row["id"]
+        except Exception:
+            # If lookup fails, keep original value so existing behavior is unchanged
+            pass
     try:
         cur.execute(
             """INSERT INTO employee (full_name, empid, phone_number, email, dob, password, doj, user_type, user_role, address, Company_id, department, Allpannel, profile_picture)
@@ -111,8 +160,16 @@ def create_employee():
 def get_employee(emp_id):
     conn = get_db()
     cur = conn.cursor()
+    # Join department to return department NAME instead of numeric id
     cur.execute(
-        "SELECT * FROM employee WHERE id = %s AND Company_id = %s",
+        """
+        SELECT
+            e.*,
+            COALESCE(d.name, e.department) AS department
+        FROM employee e
+        LEFT JOIN department d ON d.id = e.department
+        WHERE e.id = %s AND e.Company_id = %s
+        """,
         (emp_id, g.company_id),
     )
     row = cur.fetchone()
@@ -141,15 +198,59 @@ def update_employee(emp_id):
         Allpannel = ",".join(roles)
     else:
         Allpannel = data.get("Allpannel")
+    
+    # Handle profile picture upload if provided
+    profile_path = None
+    file = request.files.get("profile_picture")
+    if file and file.filename:
+        # Save into UPLOAD_FOLDER/employee and store just filename
+        upload_root = current_app.config.get("UPLOAD_FOLDER")
+        if upload_root:
+            os.makedirs(upload_root, exist_ok=True)
+            employee_dir = os.path.join(upload_root, "employee")
+            os.makedirs(employee_dir, exist_ok=True)
+            filename = secure_filename(file.filename)
+            # If filename already exists, add timestamp to make it unique
+            save_path = os.path.join(employee_dir, filename)
+            if os.path.exists(save_path):
+                name, ext = os.path.splitext(filename)
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{name}_{timestamp}{ext}"
+                save_path = os.path.join(employee_dir, filename)
+            file.save(save_path)
+            # Store just the filename (frontend will add employee/ prefix)
+            profile_path = filename
+    
     conn = get_db()
     cur = conn.cursor()
-    allowed = ("full_name", "phone_number", "email", "dob", "doj", "user_type", "user_role", "address", "department", "salary", "accountnumber", "profile_picture")
+    allowed = ("full_name", "phone_number", "email", "dob", "doj", "user_type", "user_role", "address", "department", "salary", "accountnumber")
     sets = []
     params = []
     for key in allowed:
         if key in data and data[key] is not None:
+            value = data[key]
+            # If updating department with a name (not numeric), map to id
+            if key == "department" and value and not str(value).isdigit():
+                try:
+                    cur.execute("SELECT id FROM department WHERE name = %s LIMIT 1", (value,))
+                    row = cur.fetchone()
+                    if row and row.get("id") is not None:
+                        value = row["id"]
+                except Exception:
+                    pass
             sets.append(f"`{key}` = %s")
-            params.append(data[key])
+            params.append(value)
+    
+    # Add profile_picture if uploaded
+    if profile_path is not None:
+        sets.append("`profile_picture` = %s")
+        params.append(profile_path)
+    elif "profile_picture" in data and data["profile_picture"] is not None:
+        # Allow updating profile_picture path from JSON/form data
+        sets.append("`profile_picture` = %s")
+        params.append(data["profile_picture"])
+    
     if Allpannel is not None:
         sets.append("Allpannel = %s")
         params.append(Allpannel)
@@ -158,7 +259,7 @@ def update_employee(emp_id):
     params.extend([emp_id, g.company_id])
     cur.execute("UPDATE employee SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
     if cur.rowcount:
-        return jsonify({"success": True})
+        return jsonify({"success": True, "profile_picture": profile_path} if profile_path else {"success": True})
     return jsonify({"success": False, "message": "Employee not found"}), 404
 
 
