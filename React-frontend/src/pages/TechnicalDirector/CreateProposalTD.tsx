@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -209,17 +208,10 @@ export default function NewProposalForm() {
       <div className="w-full">
           {/* <div className="bg-white border border-[rgb(89,89,89)]/20 rounded-xl shadow-sm p-8 w-full"> */}
             {/* Page Header */}
-            <div className="flex items-center justify-between mb-6">
-              <button
-                onClick={() => navigate("/td/manage-proposal")}
-                className="flex items-center gap-2 text-gray-900 hover:text-gray-700 transition-colors"
-              >
-                <ArrowLeftIcon className="w-6 h-6" />
-              </button>
-              <h1 className="font-gantari font-semibold text-xl text-[#020202] flex-1 text-center">
+            <div className="flex items-center justify-center mb-6">
+              <h1 className="font-gantari font-semibold text-xl text-[#020202]">
                 Create Proposal
               </h1>
-              <div className="w-8"></div>
             </div>
 
             {/* Service ID Field */}
