@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tailwind -->
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Google Font link -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+    <!-- CSS file -->
+    <link rel="stylesheet" href="login.css">
+    <!-- Font Awesome Link -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <title>Travel</title>
+</head>
+
+<body>
+    <div class="w-screen h-screen flex flex-col justify-center items-center">
+        <h1 class="text-red-500 text-3xl"><i class="fa-solid fa-road fa-fade"></i></i>Travel</h1>
+        <div class="p-8 w-4/5 text-white form-container">
+            <h1 class="text-3xl text-center">Login</h1>
+            <form action="">
+                <div class="p-4">
+                    <input type="text" placeholder="Name" id="name" class="textbox text-white text-xl">
+                    <i class="fa-solid fa-circle-check check" id="checkName" style="color: #6be9fb;"></i>
+                    <label for="name" class="field" id="fieldName">Enter your Name</label>
+                </div>
+                <div class="p-4">
+                    <input type="email" placeholder="E-mail" id="email" class="textbox text-white text-xl">
+                    <i class="fa-solid fa-circle-check check" id="checkEmail" style="color: #6be9fb;"></i>
+                    <label for="email" class="field" id="fieldEmail">Enter Email</label>
+                </div>
+                <div class="p-4">
+                    <input type="password" placeholder="Password" id="pass" class="textbox text-white text-xl">
+                    <i class="fa-solid fa-circle-check check" id="checkPass" style="color: #6be9fb;"></i>
+                    <label for="pass" class="field" id="fieldPass">Enter Password</label>
+                </div>
+            </form>
+            <button type="submit" onclick="show()" class="field-submit m-2 p-2 border-solid border-white border-2 w-2/4" id="submitbutton">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        function show() {
+            var name = document.getElementById("name").value;
+            var email = document.getElementById("email").value;
+            var password = document.getElementById("pass").value;
+
+            var checkName = document.getElementById("checkName");
+            var checkEmail = document.getElementById("checkEmail");
+            var checkPass = document.getElementById("checkPass");
+
+            var fieldName = document.getElementById("fieldName");
+            var fieldEmail = document.getElementById("fieldEmail");
+            var fieldPass = document.getElementById("fieldPass");
+
+
+            if(name.length>=5)
+            {
+                checkName.style.visibility = 'visible';
+                fieldName.style.visibility = 'hidden';
+                checkEmail.style.visibility = 'visible';
+                fieldEmail.style.visibility = 'hidden';
+            }
+            else
+            {
+                fieldName.style.visibility = 'visible';
+                checkName.style.visibility = 'hidden';
+                fieldName.style.color="red"
+                fieldEmail.style.visibility = 'visible';
+                checkEmail.style.visibility = 'hidden';
+                fieldEmail.style.color="red"
+            }
+
+            if(password.length >= 5)
+            {
+                checkPass.style.visibility = 'visible';
+                fieldPass.style.visibility = 'hidden';
+            }
+            else
+            {
+                fieldPass.style.visibility = 'visible';
+                fieldPass.style.color="red"
+                checkPass.style.visibility = 'hidden';
+            }
+        }
+    </script>
+</body>
+
+</html>

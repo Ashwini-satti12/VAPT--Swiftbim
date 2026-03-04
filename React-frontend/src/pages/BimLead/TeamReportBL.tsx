@@ -1,66 +1,160 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import api from '../../lib/api';
 
 interface TimesheetEntry {
     id: number;
     project_name?: string;
     task_name?: string;
-    start_date?: string; // Format: DD/MM/YYYY
-    end_date?: string;   // Format: DD/MM/YYYY
-    duration?: string;
-    assignee_name?: string;
-    team?: string;
+    start_time?: string; // ISO datetime
+    end_time?: string;   // ISO datetime
+    due_date?: string;   // ISO datetime
+    Actual_start_time?: string; // ISO datetime
+    assigned_name?: string;
+    teamname?: string;
+    Pause?: number; // seconds paused
+    restart?: number; // seconds restarted
 }
 
-const DUMMY_DATA: TimesheetEntry[] = [
-    { id: 1, project_name: 'Binghatti', task_name: 'task 01', start_date: '20/02/2026', end_date: '20/02/2026', duration: '08:00:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 2, project_name: 'Suo01', task_name: 'task 02', start_date: '21/02/2026', end_date: '21/02/2026', duration: '07:30:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 3, project_name: 'Disu so', task_name: 'task 03', start_date: '22/02/2026', end_date: '22/02/2026', duration: '06:45:00', assignee_name: 'John Doe', team: 'Team A' },
-    { id: 4, project_name: 'Tshingin', task_name: 'task 04', start_date: '23/02/2026', end_date: '23/02/2026', duration: '08:15:00', assignee_name: 'Alice Brown', team: 'Team C' },
-    { id: 5, project_name: 'Project Alpha', task_name: 'task 05', start_date: '24/02/2026', end_date: '24/02/2026', duration: '05:00:00', assignee_name: 'Jane Smith', team: 'Team B' },
-    { id: 6, project_name: 'Project Beta', task_name: 'task 06', start_date: '25/02/2026', end_date: '25/02/2026', duration: '09:00:00', assignee_name: 'Bob Wilson', team: 'Team A' },
-];
+interface Employee {
+    id: number;
+    full_name: string;
+    email?: string;
+}
+
+interface Team {
+    team_id: number;
+    teamname: string;
+    employee?: string; // comma-separated employee IDs
+}
 
 export default function TeamReportBL() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [employee, setEmployee] = useState('All');
     const [team, setTeam] = useState('All');
-    const [list] = useState<TimesheetEntry[]>(DUMMY_DATA);
+    const [list, setList] = useState<TimesheetEntry[]>([]);
+    const [loading, setLoading] = useState(true);
     const [employeeOpen, setEmployeeOpen] = useState(false);
     const [teamOpen, setTeamOpen] = useState(false);
-    const employeeOptions = ['All', 'John Doe', 'Jane Smith', 'Alice Brown', 'Bob Wilson'];
-    const teamOptions = ['All', 'Team A', 'Team B', 'Team C'];
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [teams, setTeams] = useState<Team[]>([]);
 
-    const filteredList = useMemo(() => {
-        return list.filter(item => {
-            // Date Range Filter Logic
-            if (startDate || endDate) {
-                const [d, m, y] = (item.start_date || '').split('/');
-                const itemDate = new Date(`${y}-${m}-${d}`);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const teamDropdownRef = useRef<HTMLDivElement>(null);
 
-                if (startDate) {
-                    const start = new Date(startDate);
-                    if (itemDate < start) return false;
-                }
-                if (endDate) {
-                    const end = new Date(endDate);
-                    if (itemDate > end) return false;
-                }
+    const employeeOptions = useMemo(
+        () => ['All', ...employees.map(e => e.full_name)],
+        [employees]
+    );
+    const teamOptions = useMemo(
+        () => ['All', ...teams.map(t => t.teamname || `Team ${t.team_id}`)],
+        [teams]
+    );
+
+    // Format ISO date to DD/MM/YYYY
+    const formatDate = (dateStr: string | undefined): string => {
+        if (!dateStr) return '-';
+        try {
+            const date = new Date(dateStr);
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        } catch {
+            return dateStr;
+        }
+    };
+
+    // Calculate duration from start_time / end_time and pause / restart
+    const calculateDuration = (entry: TimesheetEntry): string => {
+        if (!entry.start_time || !entry.end_time) return '00:00:00';
+
+        try {
+            const start = new Date(entry.start_time);
+            const end = new Date(entry.end_time);
+            let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+
+            const pauseSeconds = entry.Pause || 0;
+            const restartSeconds = entry.restart || 0;
+            totalSeconds = totalSeconds - pauseSeconds + restartSeconds;
+
+            if (totalSeconds < 0) totalSeconds = 0;
+
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } catch {
+            return '00:00:00';
+        }
+    };
+
+    // Fetch employees and teams on mount
+    useEffect(() => {
+        api.get<{ employees?: Employee[] }>('/api/employees')
+            .then(({ data }) => setEmployees(data.employees || []))
+            .catch((error) => {
+                console.error('Error fetching employees:', error);
+            });
+
+        api.get<{ teams?: Team[] }>('/api/teams')
+            .then(({ data }) => setTeams(data.teams || []))
+            .catch((error) => {
+                console.error('Error fetching teams:', error);
+            });
+    }, []);
+
+    // Fetch completed tasks (timesheet) from backend whenever filters change
+    useEffect(() => {
+        setLoading(true);
+        const payload: {
+            startDate?: string;
+            endDate?: string;
+            selectmembers?: string;
+            selectteam?: string;
+        } = {};
+
+        if (startDate) payload.startDate = startDate;
+        if (endDate) payload.endDate = endDate;
+
+        if (employee !== 'All') {
+            const selectedEmp = employees.find(e => e.full_name === employee);
+            if (selectedEmp) payload.selectmembers = String(selectedEmp.id);
+        }
+
+        if (team !== 'All') {
+            const selectedTeam = teams.find(t => (t.teamname || `Team ${t.team_id}`) === team);
+            if (selectedTeam) payload.selectteam = String(selectedTeam.team_id);
+        }
+
+        api.post<{ completed_tasks?: TimesheetEntry[] }>('/api/timesheet/completed-tasks', payload)
+            .then(({ data }) => {
+                setList(data.completed_tasks || []);
+            })
+            .catch((error) => {
+                console.error('Error fetching timesheet data:', error);
+                setList([]);
+            })
+            .finally(() => setLoading(false));
+    }, [startDate, endDate, employee, team, employees, teams]);
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeOpen(false);
             }
-
-            // Employee Filter
-            if (employee !== 'All' && item.assignee_name !== employee) {
-                return false;
+            if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
+                setTeamOpen(false);
             }
+        };
 
-            // Team Filter
-            if (team !== 'All' && item.team !== team) {
-                return false;
-            }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-            return true;
-        });
-    }, [list, startDate, endDate, employee, team]);
+    const filteredList = list; // backend already filtered
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -68,13 +162,17 @@ export default function TeamReportBL() {
         const headers = ['Sl.No', 'Project Name', 'Task', 'Start Date', 'End Date', 'Task Duration'];
         const csvData = filteredList.map((row, index) => {
             const slNo = (index + 1).toString().padStart(2, '0');
+            const start = formatDate(row.start_time || row.Actual_start_time);
+            const end = formatDate(row.end_time || row.due_date);
+            const duration = calculateDuration(row);
+
             return [
                 slNo,
                 row.project_name || '-',
                 row.task_name || '-',
-                row.start_date || '-',
-                row.end_date || '-',
-                row.duration || 'hh:mm:ss'
+                start,
+                end,
+                duration
             ].map(val => `"${val}"`).join(',');
         });
 
@@ -144,7 +242,7 @@ export default function TeamReportBL() {
                     </div>
 
                     {/* Employee Custom Dropdown */}
-                    <div className="relative min-w-[130px]" onBlur={() => setTimeout(() => setEmployeeOpen(false), 150)}>
+                    <div className="relative min-w-[130px]" ref={employeeDropdownRef}>
                         <button type="button" onClick={() => { setEmployeeOpen(o => !o); setTeamOpen(false); }}
                             className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -168,7 +266,7 @@ export default function TeamReportBL() {
                     </div>
 
                     {/* Team Custom Dropdown */}
-                    <div className="relative min-w-[100px]" onBlur={() => setTimeout(() => setTeamOpen(false), 150)}>
+                    <div className="relative min-w-[100px]" ref={teamDropdownRef}>
                         <button type="button" onClick={() => { setTeamOpen(o => !o); setEmployeeOpen(false); }}
                             className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -217,14 +315,18 @@ export default function TeamReportBL() {
                             ) : (
                                 filteredList.map((row, index) => {
                                     const slNo = (index + 1).toString().padStart(2, '0');
+                                    const start = formatDate(row.start_time || row.Actual_start_time);
+                                    const end = formatDate(row.end_time || row.due_date);
+                                    const duration = calculateDuration(row);
+
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
                                             <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.start_date ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{row.end_date ?? '-'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{row.duration ?? 'hh:mm:ss'}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{start}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{end}</td>
+                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{duration}</td>
                                         </tr>
                                     );
                                 })

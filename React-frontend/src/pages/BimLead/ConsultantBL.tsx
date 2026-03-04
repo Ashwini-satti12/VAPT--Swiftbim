@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -36,20 +36,13 @@ const PANEL_ROLES = [
     'Client', 'Sales', 'Admin', 'BIM Lead', 'Employee', 'All'
 ];
 
-const ROLE_OPTIONS = [
-    'Consultant',
-    'BIM Coordinator',
-    'BIM Lead',
-    'Project Manager',
-    'Technical Director',
-    'CEO',
-    'CTO',
-];
-
 export default function ConsultantBL() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+    const [roles, setRoles] = useState<string[]>([]);
+    const [departments, setDepartments] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
     const [showAddModal, setShowAddModal] = useState(false);
     const [addSubmitting, setAddSubmitting] = useState(false);
@@ -102,6 +95,23 @@ export default function ConsultantBL() {
 
     useEffect(() => {
         api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
+    }, []);
+
+    // Fetch roles and departments from backend
+    useEffect(() => {
+        api.get<{ roles?: string[] }>('/api/employees/roles')
+            .then(({ data }) => setRoles(data.roles || []))
+            .catch((error) => {
+                console.error('Error fetching roles:', error);
+                setRoles([]);
+            });
+
+        api.get<{ departments?: string[] }>('/api/departments')
+            .then(({ data }) => setDepartments(data.departments || []))
+            .catch((error) => {
+                console.error('Error fetching departments:', error);
+                setDepartments([]);
+            });
     }, []);
 
     const editParam = searchParams.get('edit');
@@ -402,14 +412,26 @@ export default function ConsultantBL() {
                                     <div className="p-5 space-y-5">
                                         {/* Contact Buttons */}
                                         <div className="flex items-center gap-5">
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={mailIcon} alt="Mail" className="text-xl" /> Mail
+                                            <button
+                                                type="button"
+                                                onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={messageIcon} alt="Message" className="text-xl" /> Message
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate('/chat')}
+                                                className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={callIcon} alt="Call" className="text-xl" /> Call
+                                            <button
+                                                type="button"
+                                                onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                                             </button>
                                         </div>
 
@@ -641,7 +663,7 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {roles.map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -657,9 +679,9 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="Architecture">Architecture</option>
-                                                <option value="Engineering">Engineering</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -983,7 +1005,7 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {roles.map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -1000,9 +1022,9 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="HR">HR</option>
-                                                <option value="Sales">Sales</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
                                         </div>

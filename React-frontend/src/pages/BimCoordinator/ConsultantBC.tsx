@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -30,26 +30,25 @@ interface Employee {
     Allpannel?: string;
 }
 
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path) return "";
+    if (path.startsWith("http")) return path;
+    return `/uploads/${path.replace(/\\/g, "/")}`;
+};
+
 const PANEL_ROLES = [
     'Management', 'Accounts',
     'Project Manager', 'Technical Director',
     'Client', 'Sales', 'Admin', 'BIM Lead', 'Employee', 'All'
 ];
 
-const ROLE_OPTIONS = [
-    'Consultant',
-    'BIM Coordinator',
-    'BIM Lead',
-    'Project Manager',
-    'Technical Director',
-    'CEO',
-    'CTO',
-];
-
 export default function ConsultantBC() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
+    const [roles, setRoles] = useState<string[]>([]);
+    const [departments, setDepartments] = useState<string[]>([]);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
     const [showAddModal, setShowAddModal] = useState(false);
     const [addSubmitting, setAddSubmitting] = useState(false);
@@ -92,6 +91,7 @@ export default function ConsultantBC() {
         roles: [] as string[]
     });
     const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editError, setEditError] = useState('');
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -100,8 +100,68 @@ export default function ConsultantBC() {
 
     const canAdd = user?.panel_type === 1;
 
+    // Filter roles based on user's permissions (BIM Coordinator restrictions)
+    const getAllowedRoles = (currentRole?: string): string[] => {
+        const userRole = user?.user_role || '';
+        const restrictedRoles: string[] = [];
+        
+        if (userRole === 'BIM Coordinator') {
+            restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager', 'BIM Lead');
+        } else if (userRole === 'BIM Lead') {
+            restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager');
+        } else if (userRole === 'Project Manager') {
+            restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'BIM Lead');
+        }
+        
+        // Always include the current role even if it's restricted (for editing existing employees)
+        const allowed = roles.filter(role => !restrictedRoles.includes(role));
+        if (currentRole && restrictedRoles.includes(currentRole) && !allowed.includes(currentRole)) {
+            allowed.push(currentRole);
+        }
+        
+        return allowed;
+    };
+
+    // Check if the logged-in user is restricted from assigning the target role
+    const isRestrictedTargetRole = (targetRole: string | undefined): boolean => {
+        if (!targetRole) return false;
+        const userRole = user?.user_role || '';
+        if (userRole === 'Technical Director') {
+            return false; // TD can assign any role
+        }
+        if (userRole === 'Project Manager') {
+            return ['CEO', 'CTO', 'Technical Director', 'BIM Lead'].includes(targetRole);
+        }
+        if (userRole === 'BIM Lead') {
+            return ['CEO', 'CTO', 'Technical Director', 'Project Manager'].includes(targetRole);
+        }
+        if (userRole === 'BIM Coordinator') {
+            return ['CEO', 'CTO', 'Technical Director', 'Project Manager', 'BIM Lead'].includes(targetRole);
+        }
+        return false;
+    };
+
     useEffect(() => {
         api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
+    }, []);
+
+    // Fetch roles and departments from backend
+    useEffect(() => {
+        // Fetch roles
+        api.get<{ roles?: string[] }>('/api/employees/roles')
+            .then(({ data }) => setRoles(data.roles || []))
+            .catch((error) => {
+                console.error('Error fetching roles:', error);
+                setRoles([]);
+            });
+
+        // Fetch departments
+        api.get<{ departments?: string[] }>('/api/departments')
+            .then(({ data }) => setDepartments(data.departments || []))
+            .catch((error) => {
+                console.error('Error fetching departments:', error);
+                setDepartments([]);
+            });
     }, []);
 
     const editParam = searchParams.get('edit');
@@ -111,6 +171,7 @@ export default function ConsultantBC() {
             const emp = list.find((e) => e.id === id);
             if (emp) {
                 setEditId(id);
+                setEditError('');
                 setEditForm({
                     full_name: emp.full_name,
                     email: emp.email,
@@ -172,13 +233,16 @@ export default function ConsultantBC() {
         e.preventDefault();
         if (!editId) return;
         setEditSubmitting(true);
+        setEditError('');
 
         // Build payload with all fields from redesign
+        const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+
         const payload = {
             full_name: editForm.full_name,
             email: editForm.email,
             phone_number: editForm.phone_number || undefined,
-            user_role: editForm.user_role,
+            ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
             department: editForm.department || undefined,
             address: editForm.address || undefined,
             dob: editForm.dob || undefined,
@@ -191,7 +255,11 @@ export default function ConsultantBC() {
         };
 
         api.patch(`/api/employees/${editId}`, payload)
-            .then(() => {
+            .then((response) => {
+                if (response.data.success === false) {
+                    setEditError(response.data.message || 'Failed to update consultant.');
+                    return;
+                }
                 setList((prev) => prev.map((e) => {
                     if (e.id === editId) {
                         return {
@@ -216,6 +284,8 @@ export default function ConsultantBC() {
                 setSearchParams({});
             })
             .catch((err) => {
+                const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
+                setEditError(errorMessage);
                 console.error('Update failed:', err);
             })
             .finally(() => setEditSubmitting(false));
@@ -384,11 +454,14 @@ export default function ConsultantBC() {
 
                                         {/* User Profile Info on Image */}
                                         <div className="absolute inset-x-0 bottom-0 p-5 flex items-center gap-4 z-10">
-                                            <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0">
+                                            <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
                                                 <img
-                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
+                                                    src={emp.profile_picture ? getProfileUrl(emp.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`}
                                                     alt={emp.full_name}
                                                     className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
+                                                    }}
                                                 />
                                             </div>
                                             <div className="min-w-0">
@@ -402,14 +475,26 @@ export default function ConsultantBC() {
                                     <div className="p-5 space-y-5">
                                         {/* Contact Buttons */}
                                         <div className="flex items-center gap-5">
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={mailIcon} alt="Mail" className="text-xl" /> Mail
+                                            <button 
+                                                type="button"
+                                                onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={messageIcon} alt="Message" className="text-xl" /> Message
+                                            <button 
+                                                type="button"
+                                                onClick={() => navigate('/chat')}
+                                                className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
-                                                <img src={callIcon} alt="Call" className="text-xl" /> Call
+                                            <button 
+                                                type="button"
+                                                onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                                className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                            >
+                                                <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                                             </button>
                                         </div>
 
@@ -429,6 +514,7 @@ export default function ConsultantBC() {
                                                     type="button"
                                                     onClick={() => {
                                                         setEditId(emp.id);
+                                                        setEditError('');
                                                         setEditForm({
                                                             full_name: emp.full_name,
                                                             email: emp.email,
@@ -484,11 +570,14 @@ export default function ConsultantBC() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="relative">
-                                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200">
+                                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-white shadow-sm">
                                                                 <img
-                                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
+                                                                    src={emp.profile_picture ? getProfileUrl(emp.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`}
                                                                     alt={emp.full_name}
                                                                     className="w-full h-full object-cover"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
+                                                                    }}
                                                                 />
                                                             </div>
                                                             <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
@@ -499,13 +588,25 @@ export default function ConsultantBC() {
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.email}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-3">
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                                            className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
+                                                        >
                                                             <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                                         </button>
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => navigate('/chat')}
+                                                            className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
+                                                        >
                                                             <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                                         </button>
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                                            className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
+                                                        >
                                                             <img src={callIcon} className="w-5 h-5" alt="Call" />
                                                         </button>
                                                     </div>
@@ -641,7 +742,7 @@ export default function ConsultantBC() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {getAllowedRoles().map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -657,9 +758,9 @@ export default function ConsultantBC() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="Architecture">Architecture</option>
-                                                <option value="Engineering">Engineering</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -927,7 +1028,7 @@ export default function ConsultantBC() {
                         <div className="flex items-center justify-center mb-6 relative group">
                             <button
                                 type="button"
-                                onClick={() => { setEditId(null); setSearchParams({}); }}
+                                onClick={() => { setEditId(null); setSearchParams({}); setEditError(''); }}
                                 className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
@@ -936,6 +1037,11 @@ export default function ConsultantBC() {
                         </div>
 
                         <form onSubmit={handleEditSubmit} className="space-y-6">
+                            {editError && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p className="text-sm text-red-600 font-Gantari">{editError}</p>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
 
                                 {/* Column 1 */}
@@ -983,7 +1089,7 @@ export default function ConsultantBC() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {ROLE_OPTIONS.map((r) => (
+                                                {getAllowedRoles(editForm.user_role).map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -1000,9 +1106,9 @@ export default function ConsultantBC() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
-                                                <option value="BIM">BIM</option>
-                                                <option value="HR">HR</option>
-                                                <option value="Sales">Sales</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
                                         </div>
@@ -1148,7 +1254,7 @@ export default function ConsultantBC() {
                             <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
                                 <button
                                     type="button"
-                                    onClick={() => { setEditId(null); setSearchParams({}); }}
+                                    onClick={() => { setEditId(null); setSearchParams({}); setEditError(''); }}
                                     className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
                                 >
                                     Discard
@@ -1183,11 +1289,14 @@ export default function ConsultantBC() {
 
                         {/* Profile Section */}
                         <div className="flex items-center gap-6 px-4">
-                            <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
+                            <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border-2 border-white shadow-sm">
                                 <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
+                                    src={selectedEmployee.profile_picture ? getProfileUrl(selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
                                     alt={selectedEmployee.full_name}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`;
+                                    }}
                                 />
                             </div>
                             <div className="flex flex-col gap-1">
