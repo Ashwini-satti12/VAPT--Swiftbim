@@ -3,22 +3,53 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from './PartnerView/types';
 
+type StatusFilter = 'approved' | 'pending' | 'rejected' | 'all';
+
+const STATUS_BADGE: Record<string, string> = {
+    approved: 'bg-[#F0FDF4] text-[#16A34A] border-[#22C55E]/20',
+    pending: 'bg-[#FFF8E7] text-[#92400E] border-[#F59E0B]/20',
+    rejected: 'bg-[#FFF1F2] text-[#BE123C] border-[#F43F5E]/20',
+};
+
 export default function PartnerTD() {
-    const [list, setList] = useState<Vendor[]>([]);
+    const [allList, setAllList] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('approved');
 
     useEffect(() => {
-        api.get<{ vendors?: Vendor[] } | Vendor[]>('/api/vendors?status=approved')
+        // Fetch all vendors (no status filter) so we can switch tabs without refetching
+        api.get<{ vendors?: Vendor[] } | Vendor[]>('/api/vendors')
             .then(({ data }) => {
                 const vendors = Array.isArray(data) ? data : (data as { vendors?: Vendor[] }).vendors ?? [];
-                setList(vendors);
+                setAllList(vendors);
             })
-            .catch(() => setList([]))
+            .catch(() => setAllList([]))
             .finally(() => setLoading(false));
     }, []);
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
 
+    const filtered = allList.filter(v => {
+        const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
+        const q = search.toLowerCase();
+        const matchesSearch = !q ||
+            displayName(v).toLowerCase().includes(q) ||
+            (v.contact_name || '').toLowerCase().includes(q) ||
+            (v.city || '').toLowerCase().includes(q) ||
+            (v.country || '').toLowerCase().includes(q);
+        return matchesStatus && matchesSearch;
+    });
+
+    const tabs: { label: string; value: StatusFilter }[] = [
+        { label: 'Approved', value: 'approved' },
+        { label: 'Pending', value: 'pending' },
+        { label: 'Rejected', value: 'rejected' },
+        { label: 'All', value: 'all' },
+    ];
+
+    const countBy = (status: StatusFilter) =>
+        status === 'all' ? allList.length : allList.filter(v => v.status === status).length;
 
     if (loading) {
         return (
@@ -30,36 +61,94 @@ export default function PartnerTD() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between shrink-0">
-                <h2 className="text-2xl font-bold text-slate-800">Partner</h2>
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
+                <div>
+                    <h2 className="text-2xl font-bold text-slate-800 font-gantari">Partners</h2>
+                    <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p>
+                </div>
             </div>
 
-            <div className="flex-1 mt-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            {/* Search + Filter Tabs */}
+            <div className="flex flex-col sm:flex-row gap-4 shrink-0 mb-6">
+                {/* Search */}
+                <div className="relative flex-1 max-w-sm">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder="Search by name, city, country…"
+                        className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#AEACAC52] bg-white text-sm font-gantari text-[#353535] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/20 shadow-sm"
+                    />
+                </div>
+
+                {/* Status Tabs */}
+                <div className="flex items-center gap-1 bg-[#F2F2F2] rounded-xl p-1">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.value}
+                            onClick={() => setStatusFilter(tab.value)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold font-gantari transition-all ${statusFilter === tab.value
+                                ? 'bg-[#DD4342] text-white shadow-sm'
+                                : 'text-[#717171] hover:text-[#353535]'
+                                }`}
+                        >
+                            {tab.label}
+                            <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${statusFilter === tab.value ? 'bg-white/20 text-white' : 'bg-[#AEACAC]/20 text-[#717171]'}`}>
+                                {countBy(tab.value)}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Grid */}
+            <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {list.length === 0 ? (
+                    {filtered.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
-                            No partners found.
+                            {search ? `No partners found for "${search}"` : `No ${statusFilter === 'all' ? '' : statusFilter} partners found.`}
                         </div>
                     ) : (
-                        list.map((partner) => (
+                        filtered.map((partner) => (
                             <div
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col"
                             >
                                 <div className="p-6 flex-1 flex flex-col pt-7">
-                                    <h3 className="text-[17px] font-bold text-slate-800 font-sora line-clamp-2">
-                                        {displayName(partner)}
-                                    </h3>
+                                    {/* Company Name + Status */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h3 className="text-[17px] font-bold text-slate-800 font-sora line-clamp-2 flex-1 pr-2">
+                                            {displayName(partner)}
+                                        </h3>
+                                        <span className={`shrink-0 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border ${STATUS_BADGE[partner.status] ?? 'bg-[#F2F2F2] text-[#717171] border-transparent'}`}>
+                                            {partner.status}
+                                        </span>
+                                    </div>
 
-                                    <div className="mt-4 flex flex-col gap-1.5 flex-1">
+                                    <div className="mt-1 flex flex-col gap-1.5 flex-1">
                                         {partner.contact_name && (
-                                            <p className="text-[14px] text-slate-600 font-medium">
-                                                Contact: {partner.contact_name}
+                                            <p className="text-[14px] text-slate-600 font-medium font-gantari">
+                                                👤 {partner.contact_name}
+                                                {partner.contact_designation && <span className="text-[#717171]"> · {partner.contact_designation}</span>}
                                             </p>
                                         )}
                                         {partner.city && (
-                                            <p className="text-[13px] text-slate-500">
-                                                {[partner.city, partner.state, partner.country].filter(Boolean).join(', ')}
+                                            <p className="text-[13px] text-slate-500 font-gantari">
+                                                📍 {[partner.city, partner.state, partner.country].filter(Boolean).join(', ')}
+                                            </p>
+                                        )}
+                                        {partner.contact_email && (
+                                            <p className="text-[13px] text-slate-500 font-gantari truncate">
+                                                ✉️ {partner.contact_email}
+                                            </p>
+                                        )}
+                                        {partner.num_employees && (
+                                            <p className="text-[13px] text-slate-500 font-gantari">
+                                                🏢 {partner.num_employees} employees
                                             </p>
                                         )}
                                     </div>
@@ -67,9 +156,9 @@ export default function PartnerTD() {
                                     <div className="mt-6 border-t border-gray-100/80 pt-5">
                                         <Link
                                             to={`/td/partner/${partner.id}`}
-                                            className="flex items-center justify-center w-full py-2.5 rounded-lg bg-[#DD4342] text-white font-medium text-[14px] hover:bg-[#c93d3d] transition-colors"
+                                            className="flex items-center justify-center w-full py-2.5 rounded-lg bg-[#DD4342] text-white font-medium text-[14px] hover:bg-[#c93d3d] transition-colors font-gantari"
                                         >
-                                            View details
+                                            View Details
                                         </Link>
                                     </div>
                                 </div>

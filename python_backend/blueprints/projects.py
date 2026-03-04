@@ -1,6 +1,54 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
+import mysql.connector as mysql_connector
+
+
+def _get_vendor_db():
+    """Return a connection to the new_swiftbim (vendor) database."""
+    conn = mysql_connector.connect(
+        host=current_app.config["MYSQL_HOST"],
+        user=current_app.config["MYSQL_USER"],
+        password=current_app.config["MYSQL_PASSWORD"],
+        database="new_swiftbim",
+        port=current_app.config.get("MYSQL_PORT", 3306),
+        autocommit=True,
+    )
+    return conn
+
+
+def _ensure_vendor_bidding_table(vendor_conn):
+    """Create vendor_bidding table if it doesn't exist."""
+    cur = vendor_conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vendor_bidding (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            project_id INT NOT NULL,
+            project_name VARCHAR(255) NOT NULL,
+            description TEXT,
+            outsource_budget DECIMAL(15,2),
+            budget_ceiling DECIMAL(15,2),
+            bid_deadline DATE,
+            status ENUM('active', 'closed') DEFAULT 'active',
+            company_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_project (project_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vendor_bids (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            opportunity_id INT NOT NULL,
+            vendor_id INT NOT NULL,
+            bid_amount DECIMAL(15,2),
+            notes TEXT,
+            timeline VARCHAR(255),
+            team_size INT DEFAULT 0,
+            status ENUM('submitted','shortlisted','won','lost') DEFAULT 'submitted',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id)
+        )
+    """)
 
 bp = Blueprint("projects", __name__, url_prefix="/api/projects")
 
@@ -159,9 +207,55 @@ def update_project(project_id):
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.extend([project_id, g.company_id])
     cur.execute("UPDATE projects SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
-    if cur.rowcount:
-        return jsonify({"success": True})
-    return jsonify({"success": False, "message": "Project not found"}), 404
+    if not cur.rowcount:
+        return jsonify({"success": False, "message": "Project not found"}), 404
+
+    # -----------------------------------------------------------------------
+    # OUTSOURCE BRIDGE: if this update marks the project as Outsource
+    # (department = "Submission Deadline"), push/update the opportunity in
+    # the vendor-facing new_swiftbim.vendor_bidding table so all vendors
+    # can see it immediately in their Opportunities page.
+    # -----------------------------------------------------------------------
+    department_val = data.get("department", "")
+    budget_ceiling = data.get("budget_ceiling")
+    bidding_end_date = data.get("bidding_end_date")
+    is_outsource = (department_val == "Submission Deadline") or (budget_ceiling and bidding_end_date)
+
+    if is_outsource:
+        try:
+            # Fetch the updated project name + budget from snh6_swiftproject
+            cur.execute("SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
+                        (project_id, g.company_id))
+            proj = cur.fetchone()
+            if proj:
+                project_name = proj["project_name"]
+                outsource_budget = proj["budget"]
+                description = proj.get("description") or ""
+                vendor_conn = _get_vendor_db()
+                _ensure_vendor_bidding_table(vendor_conn)
+                vcur = vendor_conn.cursor()
+                vcur.execute(
+                    """INSERT INTO vendor_bidding
+                         (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
+                       VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
+                       ON DUPLICATE KEY UPDATE
+                         project_name   = VALUES(project_name),
+                         description    = VALUES(description),
+                         outsource_budget = VALUES(outsource_budget),
+                         budget_ceiling = VALUES(budget_ceiling),
+                         bid_deadline   = VALUES(bid_deadline),
+                         status         = 'active',
+                         company_id     = VALUES(company_id)
+                    """,
+                    (project_id, project_name, description, outsource_budget,
+                     budget_ceiling or outsource_budget, bidding_end_date, g.company_id),
+                )
+                vendor_conn.close()
+        except Exception:
+            # Don't fail the whole update if vendor bridge has an issue
+            pass
+
+    return jsonify({"success": True})
 
 
 @bp.route("/<int:project_id>", methods=["DELETE"])
