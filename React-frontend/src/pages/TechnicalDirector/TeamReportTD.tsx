@@ -29,6 +29,21 @@ export default function TeamReportTD() {
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
 
+    const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+        { value: '0-100', label: '0-100', start: 0, end: 100 },
+        { value: '101-200', label: '101-200', start: 100, end: 200 },
+        { value: '201-300', label: '201-300', start: 200, end: 300 },
+        { value: '301-400', label: '301-400', start: 300, end: 400 },
+        { value: 'all', label: 'All', start: 0, end: null },
+    ];
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const PER_PAGE = 10;
+    const PAGINATION_VISIBLE = 4;
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+
     // Load employee full_name list from backend (employee table) for Employee filter dropdown
     useEffect(() => {
         api
@@ -150,6 +165,23 @@ export default function TeamReportTD() {
         };
     }, [employeeOpen, teamOpen]);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
+        };
+        if (showEntriesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEntriesOpen]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries]);
+
     const fetchTasks = (payload: any) => {
         api
             .post<{ completed_tasks?: any[] }>('/api/timesheet/completed-tasks', payload)
@@ -211,6 +243,31 @@ export default function TeamReportTD() {
             return true;
         });
     }, [list, startDate, endDate, employee, team]);
+
+    const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+    const rangeStart = selectedRange.start;
+    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -407,41 +464,90 @@ export default function TeamReportTD() {
                         )}
                     </div>
 
+                    {/* Show entries dropdown - same design as TrackerTD */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen(o => !o);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                        >
+                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {showEntriesOpen && (
+                            <div
+                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {showEntriesOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedShowEntries(opt.value);
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             </div>
 
-            {/* Table Section */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
-                    <table className="min-w-full border-collapse">
+            {/* Table Section - same scroll as TrackerTD */}
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-260px)] pr-1 pb-18">
+                    <table className="min-w-full border-collapse table-fixed">
+                        <colgroup>
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '22%' }} />
+                            <col style={{ width: '28%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '14%' }} />
+                        </colgroup>
                         <thead className="sticky top-0 z-10 bg-white">
-                            <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Start Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">End Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Duration</th>
+                            <tr className="border-b border-gray-200 bg-white">
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Start Date</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">End Date</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Duration</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {filteredList.length === 0 ? (
+                        <tbody className="divide-y divide-gray-100">
+                            {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari">
+                                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 font-medium font-gantari">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((row, index) => {
-                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                displayedList.map((row, index) => {
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-500 font-medium font-gantari">{slNo}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-800 font-semibold font-gantari">{row.project_name ?? '-'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-600 font-gantari">{row.task_name ?? '-'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-600 font-gantari">{row.start_date ?? '-'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-600 font-gantari">{row.end_date ?? '-'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-gray-600 font-medium font-gantari">{row.duration ?? 'hh:mm:ss'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.start_date ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.end_date ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{row.duration ?? 'hh:mm:ss'}</td>
                                         </tr>
                                     );
                                 })
@@ -450,6 +556,47 @@ export default function TeamReportTD() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination bar - same design as TrackerTD */}
+            {totalInRange > 0 && (
+                <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={goPrevWindow}
+                            disabled={!canPrevWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                            Prev
+                        </button>
+                        {visiblePageRanges.map((pr, i) => {
+                            const pageNum = effectiveWindowStart + i;
+                            const isActive = pageNum === activePage;
+                            return (
+                                <button
+                                    key={pr.label}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
+                                >
+                                    {pr.label}
+                                </button>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={goNextWindow}
+                            disabled={!canNextWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
         .smooth-scroll {
