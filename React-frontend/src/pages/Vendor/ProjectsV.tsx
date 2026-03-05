@@ -4,7 +4,20 @@ import { useAuth } from '../../contexts/AuthContext';
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import { FaCircleDollarToSlot } from "react-icons/fa6"; interface Project {
+import { FaCircleDollarToSlot } from "react-icons/fa6";
+import api from '../../lib/api';
+
+interface Employee {
+    id: number;
+    full_name: string;
+    employee_id: string;
+    email: string;
+    phone: string;
+    user_role: string;
+    vendor_type?: string;
+}
+
+interface Project {
     id: number;
     project_name?: string;
     progress?: number;
@@ -48,6 +61,8 @@ export default function ProjectsV() {
     const [createBIMLead, setCreateBIMLead] = useState('');
     const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
     const [createMember, setCreateMember] = useState('');
+    const [memberTags, setMemberTags] = useState<string[]>([]);
+    const [memberInput, setMemberInput] = useState('');
     const [createResources, setCreateResources] = useState('');
     const [createRequiredResources, setCreateRequiredResources] = useState('');
     const [createPriority, setCreatePriority] = useState('');
@@ -77,6 +92,43 @@ export default function ProjectsV() {
     const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<Project | null>(null);
     const [isEditSubmitting, setIsEditSubmitting] = useState(false);
 
+    // Select Options States
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projectManagers, setProjectManagers] = useState<string[]>([]);
+    const [bimLeads, setBimLeads] = useState<string[]>([]);
+    const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
+    const [allEmployees, setAllEmployees] = useState<string[]>([]);
+    const [departments, setDepartments] = useState<string[]>([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchEmployeesAndDepartments = async () => {
+            try {
+                const [empRes, depRes] = await Promise.all([
+                    api.get('/api/employees'),
+                    api.get('/api/departments')
+                ]);
+                if (isMounted) {
+                    const empData: Employee[] = empRes.data.employees || [];
+                    setEmployees(empData);
+                    setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
+                    setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
+                    setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
+                    setAllEmployees(empData.map(e => e.full_name));
+
+                    setDepartments(depRes.data.departments || []);
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        };
+
+        if (showCreateModal || showEditModal) {
+            fetchEmployeesAndDepartments();
+        }
+        return () => { isMounted = false; };
+    }, [showCreateModal, showEditModal]);
+
     const panelType = user?.panel_type ?? 3;
     const isManagement = panelType === 1;
     const isTechnicalDirector = user?.user_role === 'Technical Director';
@@ -86,23 +138,20 @@ export default function ProjectsV() {
     const title = isManagement ? 'Projects' : 'Projects Involved';
 
     useEffect(() => {
-        // Mock data for UI testing - Added more projects to show scrollbar
-        const mockProjects: Project[] = [
-            { id: 1, project_name: 'AECOM - AL AIN HOSPITAL', progress: 50, total_tasks: 15, completed_tasks: 7 },
-            { id: 2, project_name: 'AL GURG', progress: 25, total_tasks: 4, completed_tasks: 1 },
-            { id: 3, project_name: 'ARATT - AYATHI RESIDENTIAL', progress: 47, total_tasks: 70, completed_tasks: 30 },
-            { id: 4, project_name: 'GHAF WOODS DEVELOPMENT', progress: 0, total_tasks: 0, completed_tasks: 0 },
-            { id: 5, project_name: 'Guggenheim Abu Dhabi Museum', progress: 78, total_tasks: 23, completed_tasks: 18 },
-            { id: 6, project_name: 'Prestige Park Grove Phase 1', progress: 80, total_tasks: 135, completed_tasks: 110 },
-            { id: 7, project_name: 'Sobha Hartland Greens', progress: 60, total_tasks: 20, completed_tasks: 12 },
-            { id: 8, project_name: 'Dubai Hills Estate', progress: 10, total_tasks: 50, completed_tasks: 5 },
-            { id: 9, project_name: 'Palm Jumeirah Resort', progress: 95, total_tasks: 100, completed_tasks: 95 },
-            { id: 10, project_name: 'EMAAR Beachfront', progress: 40, total_tasks: 25, completed_tasks: 10 },
-            { id: 11, project_name: 'Damac Hills 2', progress: 20, total_tasks: 15, completed_tasks: 3 },
-            { id: 12, project_name: 'Business Bay Office Tower', progress: 70, total_tasks: 30, completed_tasks: 21 },
-        ];
-        setList(mockProjects);
-        setLoading(false);
+        api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+            .then(({ data }) => {
+                const projects = (data.projects ?? []).map((r): Project => ({
+                    id: Number(r.id) ?? 0,
+                    project_name: r.project_name ? String(r.project_name) : undefined,
+                    progress: Number(r.progress) || 0,
+                    total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+                    completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+                    priority: r.priority ? String(r.priority) : undefined,
+                }));
+                setList(projects);
+            })
+            .catch(() => setList([]))
+            .finally(() => setLoading(false));
     }, []);
 
 
@@ -585,7 +634,56 @@ export default function ProjectsV() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 custom-scrollbar">
-                            <form onSubmit={(e) => { e.preventDefault(); setShowCreateModal(false); }} className="space-y-6">
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                setCreateError('');
+                                setCreateSubmitting(true);
+                                api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
+                                    project_name: createName.trim(),
+                                    budget: createBudget || undefined,
+                                    modules: createModuleName || undefined,
+                                    client_id: createClientName || undefined,
+                                    project_manager_id: createProjectManager || undefined,
+                                    lead_id: createBIMLead || undefined,
+                                    bim_coordinator_id: createBIMCoOrdinator || undefined,
+                                    members: memberTags.join(', ') || undefined,
+                                    department: createDepartment || undefined,
+                                    due_date: createEndDate || undefined,
+                                    start_date: createStartDate || undefined,
+                                    totalhours: createTotalHours || undefined,
+                                    perday: createPerDay || undefined,
+                                    resources: createResources || undefined,
+                                    required_resources: createRequiredResources || undefined,
+                                    priority: createPriority || undefined,
+                                    location: createLocation || undefined,
+                                    description: createDescription || undefined,
+                                })
+                                    .then(({ data }) => {
+                                        if (data.success) {
+                                            setShowCreateModal(false);
+                                            setCreateName(''); setCreateBudget(''); setCreateModuleName('');
+                                            setCreateClientName(''); setCreateProjectManager('');
+                                            setCreateStartDate(''); setCreateEndDate('');
+                                            setCreateTotalHours(''); setCreatePerDay(''); setCreateDepartment('');
+                                            setCreateBIMLead(''); setCreateBIMCoOrdinator(''); setCreateMember('');
+                                            setCreateResources(''); setCreateRequiredResources(''); setCreatePriority('');
+                                            setCreateLocation(''); setCreateDescription('');
+                                            setMemberTags([]); setMemberInput('');
+                                            api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+                                                .then(({ data: d }) => setList((d.projects ?? []).map((r): Project => ({
+                                                    id: Number(r.id) ?? 0,
+                                                    project_name: r.project_name ? String(r.project_name) : undefined,
+                                                    progress: Number(r.progress) || 0,
+                                                    total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+                                                    completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+                                                    priority: r.priority ? String(r.priority) : undefined,
+                                                }))))
+                                                .catch(() => { });
+                                        }
+                                    })
+                                    .catch(err => setCreateError(err.response?.data?.message || 'Failed to create project'))
+                                    .finally(() => setCreateSubmitting(false));
+                            }} className="space-y-6">
                                 {createError && (
                                     <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{createError}</p>
                                 )}
@@ -645,8 +743,9 @@ export default function ProjectsV() {
                                                 className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                                             >
                                                 <option value="">Select Project Manager</option>
-                                                <option value="manager1">Manager 1</option>
-                                                <option value="manager2">Manager 2</option>
+                                                {projectManagers.map((pm, idx) => (
+                                                    <option key={idx} value={pm}>{pm}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -710,8 +809,9 @@ export default function ProjectsV() {
                                                 className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                                             >
                                                 <option value="">Select Department</option>
-                                                <option value="it">IT</option>
-                                                <option value="bim">BIM</option>
+                                                {departments.map((dep, idx) => (
+                                                    <option key={idx} value={dep}>{dep}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -729,7 +829,9 @@ export default function ProjectsV() {
                                                 className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                                             >
                                                 <option value="">Select BIM Lead</option>
-                                                <option value="lead1">Lead 1</option>
+                                                {bimLeads.map((bl, idx) => (
+                                                    <option key={idx} value={bl}>{bl}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -749,7 +851,9 @@ export default function ProjectsV() {
                                                 className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                                             >
                                                 <option value="">Select BIM Co Ordinator</option>
-                                                <option value="coord1">Co-ordinator 1</option>
+                                                {bimCoordinators.map((bc, idx) => (
+                                                    <option key={idx} value={bc}>{bc}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -760,21 +864,32 @@ export default function ProjectsV() {
                                     </div>
                                     <div className="space-y-2">
                                         <label className="block text-[15px] font-semibold text-[#000000]">Select Member</label>
-                                        <div className="relative">
-                                            <select
-                                                value={createMember}
-                                                onChange={(e) => setCreateMember(e.target.value)}
-                                                className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                                            >
-                                                <option value="">Select Member</option>
-                                                <option value="member1">Member 1</option>
-                                            </select>
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                                </svg>
+                                        <select
+                                            value=""
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val && !memberTags.includes(val)) {
+                                                    setMemberTags(prev => [...prev, val]);
+                                                    setCreateMember([...memberTags, val].join(', '));
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                                        >
+                                            <option value="">Select Member to Add</option>
+                                            {allEmployees.filter(emp => !memberTags.includes(emp)).map((emp, idx) => (
+                                                <option key={idx} value={emp}>{emp}</option>
+                                            ))}
+                                        </select>
+                                        {memberTags.length > 0 && (
+                                            <div className="flex flex-wrap gap-2 pt-1">
+                                                {memberTags.map((tag, idx) => (
+                                                    <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                                                        {tag}
+                                                        <button type="button" onClick={() => setMemberTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 transition-colors leading-none">x</button>
+                                                    </span>
+                                                ))}
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
 
                                     {/* Resources */}
@@ -1171,6 +1286,9 @@ export default function ProjectsV() {
                                         <div className="relative">
                                             <select className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer">
                                                 <option>Select Department</option>
+                                                {departments.map((dep, idx) => (
+                                                    <option key={idx} value={dep}>{dep}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1184,6 +1302,9 @@ export default function ProjectsV() {
                                         <div className="relative">
                                             <select className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer">
                                                 <option>Select Project Manager</option>
+                                                {projectManagers.map((pm, idx) => (
+                                                    <option key={idx} value={pm}>{pm}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1199,6 +1320,9 @@ export default function ProjectsV() {
                                         <div className="relative">
                                             <select className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer">
                                                 <option>Select BIM Lead</option>
+                                                {bimLeads.map((bl, idx) => (
+                                                    <option key={idx} value={bl}>{bl}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1212,6 +1336,9 @@ export default function ProjectsV() {
                                         <div className="relative">
                                             <select className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer">
                                                 <option>Select BIM Co Ordinator</option>
+                                                {bimCoordinators.map((bc, idx) => (
+                                                    <option key={idx} value={bc}>{bc}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1227,6 +1354,9 @@ export default function ProjectsV() {
                                         <div className="relative">
                                             <select className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 appearance-none transition-all font-Gantari font-medium text-gray-400 cursor-pointer">
                                                 <option>Select Member</option>
+                                                {allEmployees.map((emp, idx) => (
+                                                    <option key={idx} value={emp}>{emp}</option>
+                                                ))}
                                             </select>
                                             <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

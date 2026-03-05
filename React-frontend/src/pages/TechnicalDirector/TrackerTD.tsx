@@ -28,6 +28,22 @@ export default function TrackerTD() {
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const dateInputRef = useRef<HTMLInputElement>(null);
 
+    const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+        { value: '0-100', label: '0-100', start: 0, end: 100 },
+        { value: '101-200', label: '101-200', start: 100, end: 200 },
+        { value: '201-300', label: '201-300', start: 200, end: 300 },
+        { value: '301-400', label: '301-400', start: 300, end: 400 },
+        { value: 'all', label: 'All', start: 0, end: null },
+    ];
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
+    const PER_PAGE = 10;
+    const PAGINATION_VISIBLE = 4; // show 4 page buttons at a time
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1); // 1-based start of visible 4 buttons
+
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
         const [year, month, day] = dateStr.split('-');
@@ -140,6 +156,27 @@ export default function TrackerTD() {
         };
     }, [statusOpen]);
 
+    // Close show entries dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
+        };
+        if (showEntriesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showEntriesOpen]);
+
+    // Reset to page 1 and window when show entries range changes
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries]);
+
     const filteredList = list.filter((item) => {
         let matchesDate = true;
         let matchesStatus = true;
@@ -157,6 +194,32 @@ export default function TrackerTD() {
 
         return matchesDate && matchesStatus;
     });
+
+    const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+    const rangeStart = selectedRange.start;
+    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    // Page ranges for pagination bar: 0-10, 11-20, 21-30, ... (no overlapping numbers)
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    // Visible window of 4 page buttons: from paginationWindowStart (1-based)
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const visiblePageRanges = pageRanges.slice(paginationWindowStart - 1, paginationWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -205,7 +268,7 @@ export default function TrackerTD() {
     }
 
     return (
-        <div className="p-1 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
                 <div className="flex items-center justify-between w-full md:w-auto">
@@ -295,6 +358,46 @@ export default function TrackerTD() {
                         )}
                     </div>
 
+                    {/* Show entries dropdown - pill design: "Show:" + value + chevron */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen(o => !o);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                        >
+                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {showEntriesOpen && (
+                            <div
+                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {showEntriesOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedShowEntries(opt.value);
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
@@ -309,9 +412,9 @@ export default function TrackerTD() {
                 </div>
             </div>
 
-            {/* Table Section */}
+            {/* Table Section - scrollable when many rows */}
             <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
@@ -325,15 +428,16 @@ export default function TrackerTD() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredList.length === 0 ? (
+                            {displayedList.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((loc, index) => {
-                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                displayedList.map((loc, index) => {
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
                                     const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
                                     const formattedDate = dateKey ? `${d}/${m}/${y}` : '-';
@@ -344,13 +448,13 @@ export default function TrackerTD() {
 
                                     return (
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap">{slNo}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{formattedDate}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{timeIn}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap">{timeOut}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap">{totalHours}</td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap">
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? 'N/A'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
                                                 <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                                                     {loc.status || 'Offline'}
                                                 </span>
@@ -361,6 +465,45 @@ export default function TrackerTD() {
                             )}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            {/* Pagination bar - pinned to bottom; right-aligned */}
+            <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                    <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                    <button
+                        type="button"
+                        onClick={goPrevWindow}
+                        disabled={!canPrevWindow}
+                        className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                        Prev
+                    </button>
+                    {visiblePageRanges.map((pr) => {
+                        const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
+                        const isActive = pageNum === activePage;
+                        return (
+                            <button
+                                key={pr.label}
+                                type="button"
+                                onClick={() => setCurrentPage(pageNum)}
+                                className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
+                            >
+                                {pr.label}
+                            </button>
+                        );
+                    })}
+                    <button
+                        type="button"
+                        onClick={goNextWindow}
+                        disabled={!canNextWindow}
+                        className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Next
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
                 </div>
             </div>
 

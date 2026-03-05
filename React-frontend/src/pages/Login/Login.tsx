@@ -24,15 +24,13 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
-
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     const result = await login(email, password);
     setSubmitting(false);
-    if (result.success) navigate(from, { replace: true });
+    if (result.success) navigate('/', { replace: true });
     else setError(result.message || 'Login failed');
   }
 

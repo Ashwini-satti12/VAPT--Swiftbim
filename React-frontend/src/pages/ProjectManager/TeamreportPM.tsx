@@ -36,10 +36,21 @@ export default function TimesheetPM() {
   const [loading, setLoading] = useState(true);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
-  const [pageSize, setPageSize] = useState(10);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [showSizeOpen, setShowSizeOpen] = useState(false);
-  const pageSizeOptions = [10, 20, 50, 100];
+
+  const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: '0-100', label: '0-100', start: 0, end: 100 },
+    { value: '101-200', label: '101-200', start: 100, end: 200 },
+    { value: '201-300', label: '201-300', start: 200, end: 300 },
+    { value: '301-400', label: '301-400', start: 300, end: 400 },
+    { value: 'all', label: 'All', start: 0, end: null },
+  ];
+  const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const PER_PAGE = 10;
+  const PAGINATION_VISIBLE = 4;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -47,7 +58,6 @@ export default function TimesheetPM() {
   // Refs for click outside detection
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
   const teamDropdownRef = useRef<HTMLDivElement>(null);
-  const showSizeDropdownRef = useRef<HTMLDivElement>(null);
 
   const employeeOptions = useMemo(() => ['All', ...employees.map(e => e.full_name)], [employees]);
   const teamOptions = useMemo(() => ['All', ...teams.map(t => t.teamname || `Team ${t.team_id}`)], [teams]);
@@ -163,9 +173,6 @@ export default function TimesheetPM() {
       if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
         setTeamOpen(false);
       }
-      if (showSizeDropdownRef.current && !showSizeDropdownRef.current.contains(event.target as Node)) {
-        setShowSizeOpen(false);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -174,21 +181,47 @@ export default function TimesheetPM() {
     };
   }, []);
 
-  // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(0);
-  }, [startDate, endDate, employee, team]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setPaginationWindowStart(1);
+  }, [selectedShowEntries]);
 
   const filteredList = list; // API already filters, so we use list directly
 
-  const totalPages = Math.ceil(filteredList.length / pageSize);
-  const paginatedList = filteredList.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+  const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = filteredList.slice(rangeStart, rangeEnd);
+  const totalInRange = listInRange.length;
+  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
-  const handlePageSizeChange = (size: number) => {
-    setPageSize(size);
-    setCurrentPage(0);
-    setShowSizeOpen(false);
-  };
+  const pageRanges: { start: number; end: number; label: string }[] = [];
+  for (let p = 1; p <= totalPages; p++) {
+    const s = rangeStart + (p - 1) * PER_PAGE;
+    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+    pageRanges.push({ start: s, end: e, label });
+  }
+  const activePage = safePage;
+  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+  const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+  const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+  const canPrevWindow = paginationWindowStart > 1;
+  const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+  const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+  const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
   const handleDownload = () => {
     if (filteredList.length === 0) return;
@@ -372,87 +405,99 @@ export default function TimesheetPM() {
             )}
           </div>
 
-          {/* Show Entries */}
-          <div className="relative flex items-center gap-2" ref={showSizeDropdownRef}>
-            <span className="text-sm text-[#616161] font-medium">Show:</span>
+          {/* Show entries - same design as TeamReportTD */}
+          <div className="relative" ref={showEntriesDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowSizeOpen(o => !o);
+                setShowEntriesOpen(o => !o);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
             >
-              <span className="text-sm font-medium text-[#353535]">{pageSize}</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transform: showSizeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+              <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+              <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
                 <path d="M6 9l6 6 6-6" />
               </svg>
             </button>
-            {showSizeOpen && (
-              <div className="absolute top-full left-8 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg py-1 min-w-[80px]">
-                {pageSizeOptions.map(size => (
-                  <button 
-                    key={size} 
-                    type="button" 
+            {showEntriesOpen && (
+              <div
+                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {showEntriesOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePageSizeChange(size);
+                      setSelectedShowEntries(opt.value);
+                      setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${pageSize === size 
-                      ? 'text-[#353535] bg-gray-50' 
-                      : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
-                    }`}>
-                    {size}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                  >
+                    {opt.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
+
         </div>
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+      <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
           </div>
         ) : (
           <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-            <table className="min-w-full border-collapse">
+            <table className="min-w-full border-collapse table-fixed">
+              <colgroup>
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '22%' }} />
+                <col style={{ width: '24%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '14%' }} />
+                <col style={{ width: '16%' }} />
+              </colgroup>
               <thead className="sticky top-0 z-10 bg-white">
-                <tr className="border-b border-gray-100 bg-white">
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Sl.No</th>
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Project Name</th>
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task</th>
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Start Date</th>
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">End Date</th>
-                  <th className="px-6 py-4 text-center text-md font-bold text-[#353535] bg-white">Task Duration</th>
+                <tr className="border-b border-gray-200 bg-white">
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">Sl.No</th>
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">Project Name</th>
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">Task</th>
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">Start Date</th>
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">End Date</th>
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">Task Duration</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {paginatedList.length === 0 ? (
+                {displayedList.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
                       No records found
                     </td>
                   </tr>
                 ) : (
-                  paginatedList.map((row, index) => {
-                    const slNo = (currentPage * pageSize + index + 1).toString().padStart(2, '0');
+                  displayedList.map((row, index) => {
+                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
                     const startDate = formatDate(row.start_time || row.Actual_start_time);
                     const endDate = formatDate(row.end_time || row.due_date);
                     const duration = calculateDuration(row);
-                    
+
                     return (
                       <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                        <td className="px-6 py-6 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                        <td className="px-6 py-6 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
-                        <td className="px-6 py-6 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                        <td className="px-6 py-6 text-center text-sm text-gray-600">{startDate}</td>
-                        <td className="px-6 py-6 text-center text-sm text-gray-600">{endDate}</td>
-                        <td className="px-6 py-6 text-center text-sm text-gray-600 font-medium">{duration}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-500 font-medium align-middle">{slNo}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold align-middle">{row.project_name ?? '-'}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">{row.task_name ?? '-'}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">{startDate}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">{endDate}</td>
+                        <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium align-middle">{duration}</td>
                       </tr>
                     );
                   })
@@ -461,46 +506,48 @@ export default function TimesheetPM() {
             </table>
           </div>
         )}
+      </div>
 
-        {/* Pagination Bar */}
-        {totalPages > 0 && (
-          <div className="flex items-center justify-end gap-1 px-4 py-3 border-t border-gray-100">
-            <span className="text-sm text-[#616161] font-medium mr-1">Showing:</span>
+      {/* Pagination - same design as TeamReportTD */}
+      {!loading && totalInRange > 0 && (
+        <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+            <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
             <button
-              onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
-              disabled={currentPage === 0}
-              className="flex items-center gap-1 px-2 py-1 text-sm text-[#616161] hover:text-[#353535] disabled:opacity-40 transition-colors"
+              type="button"
+              onClick={goPrevWindow}
+              disabled={!canPrevWindow}
+              className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
               Prev
             </button>
-            {Array.from({ length: totalPages }, (_, i) => {
-              const start = i * pageSize + 1;
-              const end = Math.min((i + 1) * pageSize, filteredList.length);
+            {visiblePageRanges.map((pr, i) => {
+              const pageNum = effectiveWindowStart + i;
+              const isActive = pageNum === activePage;
               return (
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${currentPage === i
-                    ? 'bg-[#DD4342] text-white'
-                    : 'text-[#616161] hover:text-[#353535]'
-                    }`}
+                  key={pr.label}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
                 >
-                  {start}-{end}
+                  {pr.label}
                 </button>
               );
             })}
             <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={currentPage === totalPages - 1}
-              className="flex items-center gap-1 px-2 py-1 text-sm text-[#616161] hover:text-[#353535] disabled:opacity-40 transition-colors"
+              type="button"
+              onClick={goNextWindow}
+              disabled={!canNextWindow}
+              className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <style>{`
         .smooth-scroll {
