@@ -793,10 +793,10 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowProjectView(false)}
-                className="p-3 md:p-3 rounded-xl bg-[#F2F2F2] text-[#000000]"
+                className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -805,7 +805,7 @@ export default function ProjectsTD() {
                   {selectedProjectForView.project_name ?? "Prestige Park Grove"}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1 rounded-full bg-[#999999]"></span>
+                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
                   <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
                     Overall Progress Tracker
                   </p>
@@ -1856,55 +1856,6 @@ export default function ProjectsTD() {
                       placeholder="Enter Project Budget"
                     />
                   </div>
-                  {/* Module Name - Full Width (tag-based) */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Module Name
-                    </label>
-                    <input
-                      type="text"
-                      value={moduleNameInput}
-                      onChange={(e) => setModuleNameInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault();
-                          const val = moduleNameInput.trim().replace(/,$/, '');
-                          if (val && !moduleNameTags.includes(val)) {
-                            const updated = [...moduleNameTags, val];
-                            setModuleNameTags(updated);
-                            setCreateModuleName(updated.join(', '));
-                          }
-                          setModuleNameInput('');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Type module name and press Enter or comma"
-                    />
-                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Please enter module names, separated by commas, and then press enter
-                    </p>
-                    {moduleNameTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {moduleNameTags.map((tag, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = moduleNameTags.filter((_, i) => i !== idx);
-                                setModuleNameTags(updated);
-                                setCreateModuleName(updated.join(', '));
-                              }}
-                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
-                            >x</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
 
                   {/* Client Name & Project Manager */}
                   <div className="space-y-2">
@@ -1923,62 +1874,12 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-semibold text-[#000000]">
                       Select Project Manager <span className="text-[#DD4342]">*</span>
                     </label>
-                    <div className="relative">
-                      <select
-                        value={createProjectManager}
-                        onChange={(e) =>
-                          setCreateProjectManager(e.target.value)
-                        }
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Project Manager</option>
-                        {projectManagers.map((emp) => (
-                          <option key={emp.id} value={emp.id}>
-                            {emp.full_name || `Employee ${emp.id}`}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Project Start Date
-                    </label>
-                    <input
-                      type="text"
-                      value={createStartDate}
-                      onChange={(e) => setCreateStartDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="DD/MM/YYYY"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Project End Date*
-                    </label>
-                    <input
-                      type="text"
-                      value={createEndDate}
-                      onChange={(e) => setCreateEndDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="DD/MM/YYYY"
+                    <FormSelect
+                      label="Select Project Manager"
+                      placeholder="Nothing Selected"
+                      options={PM_OPTIONS}
+                      value={createProjectManager}
+                      onChange={setCreateProjectManager}
                     />
                   </div>
 
@@ -2267,7 +2168,7 @@ export default function ProjectsTD() {
                   setCreateLocation("");
                   setCreateDescription("");
                 }}
-                className="absolute left-10 p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2]  text-gray-800 transition-colors"
                 title="Close"
               >
                 <svg
