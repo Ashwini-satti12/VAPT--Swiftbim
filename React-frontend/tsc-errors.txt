@@ -1,0 +1,66 @@
+src/App.tsx(16,26): error TS1261: Already included file name 'C:/Users/OrCon/Desktop/SwiftbimProjectManagment-/React-frontend/src/pages/ProjectManager/CreateTeamPM.tsx' differs from file name 'C:/Users/OrCon/Desktop/SwiftbimProjectManagment-/React-frontend/src/pages/ProjectManager/CreateteamPM.tsx' only in casing.
+  The file is in the program because:
+    Imported via './pages/ProjectManager/CreateTeamPM' from file 'C:/Users/OrCon/Desktop/SwiftbimProjectManagment-/React-frontend/src/App.tsx'
+    Matched by include pattern 'src' in 'C:/Users/OrCon/Desktop/SwiftbimProjectManagment-/React-frontend/tsconfig.app.json'
+src/pages/BimCoordinator/ProjectsBC.tsx(16,3): error TS6133: 'label' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(92,10): error TS6133: 'createModuleName' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(123,28): error TS6133: 'setCreateSubmitting' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(130,10): error TS6133: 'showMilestonesModal' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(130,31): error TS6133: 'setShowMilestonesModal' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(131,10): error TS6133: 'selectedProjectForMilestones' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(131,40): error TS6133: 'setSelectedProjectForMilestones' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(142,10): error TS6133: 'selectedProjectForEdit' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(143,28): error TS6133: 'setIsEditSubmitting' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(1230,27): error TS6133: 'total' is declared but its value is never read.
+src/pages/BimCoordinator/ProjectsBC.tsx(1231,27): error TS6133: 'completed' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(16,3): error TS6133: 'label' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(92,10): error TS6133: 'createModuleName' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(123,28): error TS6133: 'setCreateSubmitting' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(130,10): error TS6133: 'showMilestonesModal' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(130,31): error TS6133: 'setShowMilestonesModal' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(131,10): error TS6133: 'selectedProjectForMilestones' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(131,40): error TS6133: 'setSelectedProjectForMilestones' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(142,10): error TS6133: 'selectedProjectForEdit' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(143,28): error TS6133: 'setIsEditSubmitting' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(1228,27): error TS6133: 'total' is declared but its value is never read.
+src/pages/BimLead/ProjectsBL.tsx(1229,27): error TS6133: 'completed' is declared but its value is never read.
+src/pages/BimLead/TeamReportBL.tsx(36,12): error TS6133: 'loading' is declared but its value is never read.
+src/pages/BimModeler/ConsultantBM.tsx(3,10): error TS6133: 'Link' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(16,3): error TS6133: 'label' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(92,10): error TS6133: 'createModuleName' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(123,28): error TS6133: 'setCreateSubmitting' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(130,10): error TS6133: 'showMilestonesModal' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(130,31): error TS6133: 'setShowMilestonesModal' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(131,10): error TS6133: 'selectedProjectForMilestones' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(131,40): error TS6133: 'setSelectedProjectForMilestones' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(142,10): error TS6133: 'selectedProjectForEdit' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(143,28): error TS6133: 'setIsEditSubmitting' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(1230,27): error TS6133: 'total' is declared but its value is never read.
+src/pages/ProjectManager/ProjectsPM.tsx(1231,27): error TS6133: 'completed' is declared but its value is never read.
+src/pages/TechnicalDirector/ConsultantTD.tsx(106,7): error TS6133: 'Departments_options' is declared but its value is never read.
+src/pages/TechnicalDirector/PartnerView/PartnerView.tsx(3,8): error TS6133: 'toast' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(2,1): error TS6133: 'createPortal' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(3,10): error TS6133: 'Link' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(14,7): error TS6133: 'DEPARTMENT_OPTIONS' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(18,7): error TS6133: 'PRIORITY_OPTIONS' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(21,3): error TS6133: 'label' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(150,10): error TS6133: 'createResources' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(151,10): error TS6133: 'createRequiredResources' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(155,10): error TS6133: 'createFile' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(155,22): error TS6133: 'setCreateFile' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(165,10): error TS6133: 'showMilestonesModal' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(165,31): error TS6133: 'setShowMilestonesModal' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(166,10): error TS6133: 'selectedProjectForMilestones' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(166,40): error TS6133: 'setSelectedProjectForMilestones' is declared but its value is never read.
+src/pages/TechnicalDirector/ProjectsTD.tsx(1596,45): error TS2339: Property 'client_id' does not exist on type 'Project'.
+src/pages/TechnicalDirector/ProjectsTD.tsx(1598,127): error TS2339: Property 'client_id' does not exist on type 'Project'.
+src/pages/Vendor/ConsultantV.tsx(3,10): error TS6133: 'Link' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(34,11): error TS6133: 'navigate' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(58,30): error TS6133: 'setCreateSubmitting' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(65,12): error TS6133: 'showMilestonesModal' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(65,33): error TS6133: 'setShowMilestonesModal' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(66,12): error TS6133: 'selectedProjectForMilestones' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(66,42): error TS6133: 'setSelectedProjectForMilestones' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(77,12): error TS6133: 'selectedProjectForEdit' is declared but its value is never read.
+src/pages/Vendor/ProjectsV.tsx(78,30): error TS6133: 'setIsEditSubmitting' is declared but its value is never read.
+src/pages/Vendor/TeamtaskV.tsx(520,11): error TS6133: 'isTeam' is declared but its value is never read.

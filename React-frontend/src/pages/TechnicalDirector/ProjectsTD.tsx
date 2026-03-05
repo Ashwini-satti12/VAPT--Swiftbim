@@ -3,14 +3,89 @@ import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
-
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
+import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
+import threedot from "../../assets/ProjectManager/project/threedot.svg"
 const apiBase = (api.defaults.baseURL as string) || '';
-import { VscEye } from "react-icons/vsc";
-import { BiDotsVerticalRounded, BiEdit } from "react-icons/bi";
-import { RiDeleteBin5Fill } from "react-icons/ri";
-import { FiX } from "react-icons/fi";
-import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
-import { FaCircleDollarToSlot } from "react-icons/fa6";
+
+
+const PM_OPTIONS = ['Reed Richards', 'Tony Stark', 'Bruce Banner', 'Natasha Romanoff'];
+const DEPARTMENT_OPTIONS = ['MEP', 'BIM', 'Structural', 'Architectural', 'Civil', 'IT'];
+const BIM_LEAD_OPTIONS = ['Richard Parker', 'Peter Parker', 'Miles Morales', 'Gwen Stacy', 'dygdg', 'yyfrd', 'jfgdgf', 'yftdf'];
+const BIM_COORD_OPTIONS = ['Mary Jane', 'Harry Osborn', 'Eddie Brock', 'Felicia Hardy'];
+const CLIENT_OPTIONS = ['Mark Specter', 'Steven Grant', 'Jake Lockley', 'Arthur Harrow'];
+const PRIORITY_OPTIONS = ['High', 'Normal'];
+
+function FormSelect({
+  label,
+  placeholder,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  placeholder: string;
+  options: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none"
+      >
+        <span
+          className={
+            value
+              ? "text-[#000000] font-medium text-[16px]"
+              : "text-gray-400 font-medium text-[16px]"
+          }
+        >
+          {value || placeholder}
+        </span>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} />
+          <div className="absolute z-[60] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] max-h-48 overflow-y-auto custom-scrollbar">
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
+                  ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 interface Project {
   id: number;
@@ -707,33 +782,20 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowProjectView(false)}
-                className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="p-3 md:p-3 rounded-xl bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <div>
-                <h3 className="text-[22px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A]">
+              <div className="min-w-0">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                   {selectedProjectForView.project_name ?? "Prestige Park Grove"}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">
-                    Tower 1 to 09
-                  </p>
-                  <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">
+                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
                     Overall Progress Tracker
                   </p>
                 </div>
@@ -743,59 +805,66 @@ export default function ProjectsTD() {
             {/* Project View Content */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
               {/* Task Status Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-[#DD4342] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
-                  <p className="text-white text-[17px] font-Gantari font-bold opacity-90">
-                    To Do Tasks
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+                {/* To Do Tasks */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/teamtask?status=todo')}
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                >
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">To Do Tasks</p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {loadingTaskStats ? "..." : taskStats.todo}
                   </p>
-                  <p className="text-white text-[48px] font-Gantari font-bold leading-none">
-                    {loadingTaskStats ? (
-                      <span className="text-2xl">...</span>
-                    ) : (
-                      taskStats.todo
-                    )}
+                </button>
+
+                {/* In Progress Tasks */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/teamtask?status=in_progress')}
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {loadingTaskStats ? "..." : taskStats.inProgress}
                   </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
-                  <p className="text-[#333333] text-[17px] font-Gantari font-bold opacity-90">
-                    In Progress Tasks
+                </button>
+
+                {/* Paused Tasks */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/teamtask?status=paused')}
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">Paused Tasks</p>
+                  </div>
+                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {loadingTaskStats ? "..." : taskStats.paused}
                   </p>
-                  <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    {loadingTaskStats ? (
-                      <span className="text-2xl">...</span>
-                    ) : (
-                      taskStats.inProgress
-                    )}
+                </button>
+
+                {/* Completed Tasks */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/teamtask?status=completed')}
+                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                  </div>
+                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    {loadingTaskStats ? "..." : taskStats.completed}
                   </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
-                  <p className="text-[#333333] text-[17px] font-Gantari font-bold opacity-90">
-                    Paused Tasks
-                  </p>
-                  <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    {loadingTaskStats ? (
-                      <span className="text-2xl">...</span>
-                    ) : (
-                      taskStats.paused
-                    )}
-                  </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 md:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px] md:h-[180px]">
-                  <p className="text-[#333333] text-[17px] font-Gantari font-bold opacity-90">
-                    Completed Tasks
-                  </p>
-                  <p className="text-[#333333] text-[40px] md:text-[48px] font-Gantari font-bold leading-none">
-                    {loadingTaskStats ? (
-                      <span className="text-2xl">...</span>
-                    ) : (
-                      taskStats.completed
-                    )}
-                  </p>
-                </div>
+                </button>
               </div>
 
               {/* Tower Progress Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 border border-slate-100 rounded-[2rem] p-6 md:p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-200 rounded-[10px] md:rounded-[10px] p-4 md:p-6 lg:p-8 custom-scrollbar">
                 {loadingTaskStats ? (
                   <div className="col-span-full text-center py-8 text-gray-500">
                     Loading tower data...
@@ -814,26 +883,26 @@ export default function ProjectsTD() {
                         : tower.status === "Pending"
                           ? "bg-[#FFF4E5]"
                           : "bg-[#E7F6ED]";
-                    const circumference = 2 * Math.PI * 34;
+                    const circumference = 188.4;
 
                     return (
                       <div
                         key={tower.id}
-                        className="bg-white border border-slate-100 rounded-[1.5rem] p-6"
+                        className="bg-white border border-slate-200 w-auto rounded-[10px] md:rounded-[10px] p-4 md:p-6"
                       >
                         <div className="flex justify-between items-start mb-4">
-                          <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                          <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">
                             {tower.name}
                           </span>
                           <div
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}
+                            className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusBg}`}
                           >
                             <span
                               className="w-1.5 h-1.5 rounded-full"
                               style={{ backgroundColor: statusColor }}
                             ></span>
                             <span
-                              className="text-[12px] font-bold"
+                              className="text-[11px] md:text-[12px] font-bold"
                               style={{ color: statusColor }}
                             >
                               {tower.status}
@@ -841,23 +910,25 @@ export default function ProjectsTD() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <div className="relative flex items-center justify-center w-20 h-20">
+                          <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
                             <svg className="w-full h-full transform -rotate-90">
                               <circle
-                                cx="40"
-                                cy="40"
-                                r="34"
+                                cx="50%"
+                                cy="50%"
+                                r="30"
                                 stroke="#F1F5F9"
-                                strokeWidth="6"
+                                strokeWidth="5"
                                 fill="transparent"
+                                className="md:r-[34] md:stroke-6"
                               />
                               <circle
-                                cx="40"
-                                cy="40"
-                                r="34"
+                                cx="50%"
+                                cy="50%"
+                                r="30"
                                 stroke={statusColor}
-                                strokeWidth="6"
+                                strokeWidth="5"
                                 fill="transparent"
+                                className="md:r-[34] md:stroke-6"
                                 strokeDasharray={circumference}
                                 strokeDashoffset={
                                   circumference - (tower.progress / 100) * circumference
@@ -865,15 +936,15 @@ export default function ProjectsTD() {
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <span className="absolute text-[15px] font-bold text-[#1A1A1A]">
+                            <span className="absolute text-[13px] md:text-[15px] font-semibold text-[#1A1A1A]">
                               {tower.progress}%
                             </span>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-[14px] font-bold text-[#999999] mb-1">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] md:text-[14px] font-semibold text-[#999999] mb-1">
                               Tasks Done
                             </p>
-                            <p className="text-[18px] font-bold text-[#1A1A1A]">
+                            <p className="text-[16px] md:text-[18px] font-semibold text-[#1A1A1A]">
                               {tower.completedTasks}
                               <span className="text-[#999999]">/{tower.totalTasks}</span>
                             </p>
@@ -889,12 +960,20 @@ export default function ProjectsTD() {
                 )}
               </div>
 
+              {/* Project Description */}
+              <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-10">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
+                <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                  {selectedProjectForView.description ?? 'No description available'}
+                </p>
+              </div>
+
               {/* Team Overview Section */}
-              <div className="border border-slate-100 rounded-[2rem] p-6 md:p-10">
-                <h4 className="text-[20px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">
+              <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 lg:p-10">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-8">
                   Team Overview
                 </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
                   {/* Project Manager */}
                   {(() => {
                     const projectManagerId = selectedProjectForView.project_manager;
@@ -912,24 +991,24 @@ export default function ProjectsTD() {
                         {pmProfileUrl ? (
                           <img
                             src={pmProfileUrl}
-                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
                             alt={projectManager?.full_name || "PM"}
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${projectManagerId}`;
                             }}
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
-                            <span className="text-slate-600 font-bold">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                            <span className="text-slate-600 font-semibold">
                               {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                        <div className="min-w-0">
+                          <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
                             {projectManager?.full_name || "Not Assigned"}
                           </p>
-                          <p className="text-[15px] font-Gantari font-bold text-[#999999]">
+                          <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
                             Project Manager
                           </p>
                         </div>
@@ -954,24 +1033,24 @@ export default function ProjectsTD() {
                         {bimProfileUrl ? (
                           <img
                             src={bimProfileUrl}
-                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
                             alt={bimLead?.full_name || "BIM Lead"}
                             onError={(e) => {
                               (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
                             }}
                           />
                         ) : (
-                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
                             <span className="text-slate-600 font-bold">
                               {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
-                        <div>
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                        <div className="min-w-0">
+                          <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
                             {bimLead?.full_name || "Not Assigned"}
                           </p>
-                          <p className="text-[15px] font-Gantari font-bold text-[#999999]">
+                          <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
                             BIM Lead
                           </p>
                         </div>
@@ -980,18 +1059,18 @@ export default function ProjectsTD() {
                   })()}
 
                   {/* Department Involved */}
-                  <div>
-                    <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-1">
+                  <div className="min-w-0">
+                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
                       Department Involved
                     </p>
-                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#616161] truncate">
                       {selectedProjectForView.department || "Not Specified"}
                     </p>
                   </div>
 
                   {/* Members Involved */}
                   <div>
-                    <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-2">
+                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
                       Members Involved
                     </p>
                     <div className="flex -space-x-3">
@@ -1029,7 +1108,7 @@ export default function ProjectsTD() {
                                 return (
                                   <div
                                     key={emp.id}
-                                    className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
                                     title={emp.full_name || `Employee ${emp.id}`}
                                   >
                                     {profileUrl ? (
@@ -1054,7 +1133,7 @@ export default function ProjectsTD() {
                               [1, 2, 3].map((j) => (
                                 <div
                                   key={j}
-                                  className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
                                 >
                                   <img
                                     src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
@@ -1064,28 +1143,16 @@ export default function ProjectsTD() {
                                 </div>
                               ))
                             )}
-                            {remainingCount > 0 && (
+                            {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
                               <div
-                                className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
                                 onClick={() => {
                                   setAllMembersList(projectMembers);
                                   setShowAllMembersModal(true);
                                 }}
-                                title={`Click to see all ${projectMembers.length} members`}
+                                title={`Click to see all members`}
                               >
-                                +{remainingCount}
-                              </div>
-                            )}
-                            {visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0 && (
-                              <div
-                                className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                onClick={() => {
-                                  setAllMembersList([]);
-                                  setShowAllMembersModal(true);
-                                }}
-                                title={`Click to see all ${memberIds.length} members`}
-                              >
-                                +{memberIds.length}
+                                +{remainingCount || memberIds.length}
                               </div>
                             )}
                           </>
@@ -1097,117 +1164,117 @@ export default function ProjectsTD() {
               </div>
 
               {/* Project Details Section */}
-              <div className="border border-slate-100 rounded-[2rem] p-6 md:p-10">
-                <h4 className="text-[20px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">
+              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">
                   Project Details
                 </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-20 gap-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Project Name
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                  <div className="space-y-4 md:space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                        Client Name
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.project_name || "Not Specified"}
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                        {selectedProjectForView.client_name || "Not Specified"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Actual Start Date
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
                         {selectedProjectForView.start_date
                           ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : "Not Set"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Total Project Hours
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
                         {selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "Not Set"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Budget
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
                         {selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : "Not Set"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Total Resources Available
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.resources || "Not Set"}
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                        {selectedProjectForView.resources || "000"}
                       </span>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                  <div className="space-y-4 md:space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Location
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
                         {selectedProjectForView.location || "Not Specified"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Actual End Date
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
                         {selectedProjectForView.end_date
                           ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : "Not Set"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Hours/Day
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "Not Set"}
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                        {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "0:00hrs"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Total Resources Required
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.required_resources || "Not Set"}
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                        {selectedProjectForView.required_resources || "000"}
                       </span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                    <div className="flex flex-col sm:flex-row sm:items-center">
+                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         Required Resources
                       </span>
-                      <span className="text-[#999999] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.required_resources || "Not Set"}
+                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                        {selectedProjectForView.required_resources || "000"}
                       </span>
                     </div>
                   </div>
                 </div>
-                <div className="mt-12 flex items-center">
-                  <span className="w-48 text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
+                  <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                     Project Document
                   </span>
-                  <span className="text-[#999999] mr-4">:</span>
+                  <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-[16px] font-Gantari font-bold text-[#999999]">
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">
                       No Document Available
                     </span>
                   </div>
@@ -1342,32 +1409,32 @@ export default function ProjectsTD() {
         ) : (
           <>
             {/* Dashboard Header */}
-            <div className="flex items-center justify-between pb-6">
-              <h2 className="text-[24px] font-Gantari font-semibold text-[#000000]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 px-1">
+              <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {title}
               </h2>
-              {/* {canCreate && (
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateModal(true)}
-                    className="inline-flex items-center gap-2 p-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[16px] font-Gantari font-semibold"
+              {canCreate && (
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-[8px] bg-[#DD4342] text-[#F2F2F2] text-[15px] md:text-[16px] font-Gantari font-semibold transition-all hover:bg-[#c93a39] shadow-sm active:scale-95"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    Create Project
-                  </button>
-                )} */}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  Create Project
+                </button>
+              )}
             </div>
 
             {/* Dashboard Content with Scrollbar */}
@@ -1380,11 +1447,9 @@ export default function ProjectsTD() {
                 ) : (
                   list.map((p) => {
                     // Use data directly from projects table
-                    const total = p.total_tasks ?? 0;
-                    const completed = p.completed_tasks ?? 0;
                     const progress = Math.round(p.progress ?? 0);
 
-                    // Get members from project.members field (comma-separated string)
+                    // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
                       ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
                       : [];
@@ -1397,143 +1462,10 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between"
+                        className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
                       >
                         <div>
-                          <div className="flex justify-between items-start mb-6">
-                            <div>
-                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight">
-                                {p.project_name ?? "Untitled Project"}
-                              </h3>
-                            </div>
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setOpenMenuProjectId((prev) =>
-                                    prev === p.id ? null : p.id,
-                                  )
-                                }
-                                className="rounded-full text-[#8B8B8B] hover:opacity-80"
-                              >
-                                <img src={Dot} alt="Dot" className="w-6 h-6" />
-                              </button>
-                              <div
-                                className={`absolute -right-40 w-50 bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible"}`}
-                              >
-                                <button
-                                  onClick={() => {
-                                    setOpenMenuProjectId(null);
-                                    setSelectedProjectForView(p);
-                                    setShowProjectView(true);
-                                  }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                >
-                                  <VscEye className="w-5 h-5" />
-                                  <span className="text-sm font-semibold text-[#6B6B6B] hover:text-[#DD4342]">
-                                    View
-                                  </span>
-                                </button>
-                                {(isTechnicalDirector || isManagement) && (
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setCurrentProject(p);
-                                      setShowMilestones(true);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <FaCircleDollarToSlot className="w-5 h-5" />
-                                    <span className="text-sm font-semibold text-[#6B6B6B] hover:text-[#DD4342]">
-                                      Payment Milestones
-                                    </span>
-                                  </button>
-                                )}
-                                {canEdit && (
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setSelectedProjectForEdit(p);
-                                      setCreateName(p.project_name ?? "");
-                                      // Show project budget as placeholder, will be overwritten by contract fetch below
-                                      setCreateBudget(p.budget ? `${p.budget}` : "Fetching...");
-                                      setCreateModuleName(p.module_name ?? "");
-                                      setCreateClientName(p.client_name ?? "");
-                                      setCreateProjectManager(
-                                        p.project_manager ?? "",
-                                      );
-                                      setCreateStartDate(p.start_date ?? "");
-                                      setCreateEndDate(p.end_date ?? "");
-                                      setCreateTotalHours(p.total_hours ?? "");
-                                      setCreatePerDay(p.per_day ?? "");
-                                      setCreateDepartment(
-                                        p.department === 'Budget Ceiling' || p.department === 'Submission Deadline'
-                                          ? p.department
-                                          : '',
-                                      );
-                                      setCreateBudgetCeiling(p.budget_ceiling ?? "");
-                                      // Convert date format if needed
-                                      const biddingDate = p.bidding_end_date
-                                        ? p.bidding_end_date.includes('T')
-                                          ? p.bidding_end_date.split('T')[0]
-                                          : p.bidding_end_date
-                                        : "";
-                                      setCreateBiddingEndDate(biddingDate);
-                                      setCreateBIMLead(p.bim_lead ?? "");
-                                      setCreateBIMCoOrdinator(
-                                        p.bim_co_ordinator ?? "",
-                                      );
-                                      setCreateMember(p.member ?? "");
-                                      setCreateResources(p.resources ?? "");
-                                      setCreateRequiredResources(
-                                        p.required_resources ?? "",
-                                      );
-                                      setCreatePriority(p.priority ?? "");
-                                      setCreateLocation(p.location ?? "");
-                                      setCreateDescription(p.description ?? "");
-                                      setShowEditModal(true);
-                                      // Auto-fetch client budget from contracts table
-                                      if (p.client_id) {
-                                        import('../../lib/api').then(({ default: api }) => {
-                                          api.get<{ client_budget: number | null }>(`/api/vendors/client-budget?client_id=${p.client_id}`)
-                                            .then(({ data }) => {
-                                              if (data.client_budget !== null && data.client_budget !== undefined) {
-                                                setCreateBudget(String(data.client_budget));
-                                              } else {
-                                                setCreateBudget(p.budget ? `${p.budget}` : "—");
-                                              }
-                                            })
-                                            .catch(() => setCreateBudget(p.budget ? `${p.budget}` : "—"));
-                                        });
-                                      }
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <BiEdit className="w-5 h-5" />
-                                    <span className="text-sm font-semibold text-[#6B6B6B] hover:text-[#DD4342]">
-                                      Edit
-                                    </span>
-                                  </button>
-                                )}
-                                {canDelete && (
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setDeleteId(p.id);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <RiDeleteBin5Fill className="w-5 h-5" />
-                                    <span className="text-sm font-semibold text-[#6B6B6B] hover:text-[#DD4342]">
-                                      Delete
-                                    </span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-6 mb-8 mt-4">
+                          <div className="flex items-center justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
                               <svg className="w-20 h-20 transform -rotate-90">
                                 <circle
@@ -1555,163 +1487,213 @@ export default function ProjectsTD() {
                                   strokeDashoffset={offset}
                                   strokeLinecap="round"
                                   style={{
-                                    transition: "stroke-dashoffset 0.5s ease",
+                                    transition: "stroke-dashoffset 0.8s ease-in-out",
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-base font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between items-baseline mb-2">
-                                <span className="text-[15px] font-Gantari font-bold text-[#8B8B8B]">
-                                  Tasks Done
-                                </span>
-                                <span className="text-[15px] font-Gantari font-bold text-[#000000]">
-                                  {completed}/
-                                  <span className="text-[15px] font-Gantari text-[#8B8B8B] ml-0.5 font-bold">
-                                    {total}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuProjectId((prev) =>
+                                    prev === p.id ? null : p.id,
+                                  );
+                                }}
+                                className="p-2 rounded-full text-[#8B8B8B] transition-colors"
+                              >
+                                <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]"  />
+                               
+                              </button>
+                              <div
+                                className={`absolute -right-25 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-[10px] border border-[#FFFFFF] shadow-xl transition-all origin-top-right ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuProjectId(null);
+                                    setSelectedProjectForView(p);
+                                    setShowProjectView(true);
+                                  }}
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                >
+                                  <img src={viewIcon} alt="view" className="w-5 h-5 " />
+                                  <span className="text-[16px] font-semibold text-[#000000] font-Gantari group-hover:text-[#DD4342]">
+                                    View
                                   </span>
-                                </span>
+                                </button>
+                                {(isTechnicalDirector || isManagement) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuProjectId(null);
+                                      setCurrentProject(p);
+                                      setShowMilestones(true);
+                                    }}
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  >
+                                    <img src={paymentMilestoneIcon} alt="payment milestone" className="w-5 h-5" />
+                                    <span className="text-[16px] font-semibold text-[#000000] group-hover:text-[#DD4342] font-Gantari">
+                                      Payment Milestones
+                                    </span>
+                                  </button>
+                                )}
+                                {canEdit && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuProjectId(null);
+                                      setSelectedProjectForEdit(p);
+                                      setCreateName(p.project_name ?? "");
+                                      setCreateBudget(p.budget ? `${p.budget}` : "Fetching...");
+                                      setCreateModuleName(p.module_name ?? "");
+                                      setCreateClientName(p.client_name ?? "");
+                                      setCreateProjectManager(p.project_manager ?? "");
+                                      setCreateStartDate(p.start_date ?? "");
+                                      setCreateEndDate(p.end_date ?? "");
+                                      setCreateTotalHours(p.total_hours ?? "");
+                                      setCreatePerDay(p.per_day ?? "");
+                                      setCreateDepartment(
+                                        p.department === 'Budget Ceiling' || p.department === 'Submission Deadline'
+                                          ? p.department
+                                          : '',
+                                      );
+                                      setCreateBudgetCeiling(p.budget_ceiling ?? "");
+                                      const biddingDate = p.bidding_end_date
+                                        ? p.bidding_end_date.includes('T')
+                                          ? p.bidding_end_date.split('T')[0]
+                                          : p.bidding_end_date
+                                        : "";
+                                      setCreateBiddingEndDate(biddingDate);
+                                      setCreateBIMLead(p.bim_lead ?? "");
+                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ?? "");
+                                      setCreateMember(p.member ?? "");
+                                      setCreateResources(p.resources ?? "");
+                                      setCreateRequiredResources(p.required_resources ?? "");
+                                      setCreatePriority(p.priority ?? "");
+                                      setCreateLocation(p.location ?? "");
+                                      setCreateDescription(p.description ?? "");
+                                      setShowEditModal(true);
+                                      if (p.client_name) {
+                                        import('../../lib/api').then(({ default: api }) => {
+                                          api.get<{ client_budget: number | null }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
+                                            .then(({ data }) => {
+                                              if (data.client_budget !== null && data.client_budget !== undefined) {
+                                                setCreateBudget(String(data.client_budget));
+                                              }
+                                            });
+                                        });
+                                      }
+                                    }}
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  >
+                                    <img src={editIcon} alt="edit" className="w-5 h-5 " />
+                                    <span className="text-[16px] font-semibold text-[#000000] group-hover:text-[#DD4342] font-Gantari">
+                                      Edit
+                                    </span>
+                                  </button>
+                                )}
+                                {canDelete && (
+                                   <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMenuProjectId(null);
+                                      setDeleteId(p.id);
+                                    }}
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  >
+                                    <img src={deleteIcon} alt="delete" className="w-5 h-5" />
+                                    <span className="text-[16px] font-semibold text-[#000000] group-hover:text-[#DD4342] font-Gantari">
+                                      Delete
+                                    </span>
+                                  </button>
+                                )}
+                                </div>
                               </div>
-                              <div className="h-2 w-full bg-[#F1F4F9] rounded-full overflow-hidden mb-2">
-                                <div
-                                  className="h-full rounded-full transition-all duration-500"
-                                  style={{ width: `${progress}%` }}
-                                ></div>
-                              </div>
-                              <p className="text-[13px] font-Gantari font-bold text-[#999999] mt-2 tracking-wide">
-                                Updated 2h ago
-                              </p>
                             </div>
+
+                          <div className="mb-4 ml-6 -mt-2">
+                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                              {p.project_name ?? "Untitled Project"}
+                            </h3>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between border-t border-[#F1F1F1] pt-5 mt-auto">
-                          <div className="flex -space-x-5">
+
+                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
+                          <div className="flex -space-x-4">
                             {(() => {
-                              // Get employee data for members from projects table
-                              // Match by converting both to numbers for comparison
                               const projectEmployees = memberIds
-                                .map(id => {
-                                  const emp = allEmployees.find(e => Number(e.id) === Number(id));
-                                  return emp;
-                                })
+                                .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
                                 .filter(Boolean) as Employee[];
 
-                              // Show up to 3 members, then +X for remaining
                               const visibleMembers = projectEmployees.slice(0, 3);
                               const remainingCount = Math.max(0, projectEmployees.length - 3);
 
-                              // Helper to get profile picture URL
-                              const getProfileImageUrl = (emp: Employee) => {
-                                if (emp.profile_picture) {
-                                  // If it's already a full URL, use it; otherwise construct it
-                                  if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
-                                    return emp.profile_picture;
-                                  }
-                                  // Construct full URL from relative path
-                                  return `${apiBase}/uploads/${emp.profile_picture}`;
-                                }
-                                return null;
-                              };
-
                               return (
                                 <>
-                                  {visibleMembers.length > 0 ? (
-                                    visibleMembers.map((emp) => {
-                                      const profileUrl = getProfileImageUrl(emp);
-                                      return (
-                                        <div
-                                          key={emp.id}
-                                          className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all"
-                                          title={emp.full_name || `Employee ${emp.id}`}
-                                          onClick={() => {
-                                            setSelectedMember(emp);
-                                            setShowMemberProfileModal(true);
-                                          }}
-                                        >
-                                          {profileUrl ? (
-                                            <img
-                                              src={profileUrl}
-                                              alt={emp.full_name || "Member"}
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                // Fallback to placeholder if image fails
-                                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                              {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })
-                                  ) : (
-                                    // Fallback: show placeholder avatars if no members found
-                                    [1, 2, 3].map((i) => (
+                                  {visibleMembers.map((emp) => {
+                                    const profileUrl = emp.profile_picture
+                                      ? (emp.profile_picture.startsWith('http'))
+                                        ? emp.profile_picture
+                                        : `${apiBase}/uploads/${emp.profile_picture}`
+                                      : null;
+
+                                    return (
                                       <div
-                                        key={i}
-                                        className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm"
+                                        key={emp.id}
+                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                        title={emp.full_name}
+                                        onClick={() => {
+                                          setSelectedMember(emp);
+                                          setShowMemberProfileModal(true);
+                                        }}
                                       >
-                                        <img
-                                          src={`https://i.pravatar.cc/150?u=${p.id + i}`}
-                                          alt="avatar"
-                                          className="w-full h-full object-cover"
-                                        />
+                                        {profileUrl ? (
+                                          <img
+                                            src={profileUrl}
+                                            alt={emp.full_name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                            {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                    ))
-                                  )}
+                                    );
+                                  })}
                                   {remainingCount > 0 && (
                                     <div
-                                      className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                      className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                       onClick={() => {
                                         setAllMembersList(projectEmployees);
                                         setShowAllMembersModal(true);
                                       }}
-                                      title={`Click to see all ${projectEmployees.length} members`}
                                     >
                                       +{remainingCount}
-                                    </div>
-                                  )}
-                                  {visibleMembers.length === 0 && projectEmployees.length === 0 && memberIds.length > 0 && (
-                                    <div
-                                      className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                      onClick={() => {
-                                        setAllMembersList([]);
-                                        setShowAllMembersModal(true);
-                                      }}
-                                      title={`Click to see all ${memberIds.length} members`}
-                                    >
-                                      +{memberIds.length}
                                     </div>
                                   )}
                                 </>
                               );
                             })()}
                           </div>
-
-                          {/* <Link
-                            to={`/projects/${p.id}`}
-                            className="flex items-center gap-1.5 text-[16px] font-Gantari font-semibold text-[#8B8B8B] transition-colors group"
-                          >
-                            Details
-                            <svg
-                              className="w-5 h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
+                          {p.priority && (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
+                                }`}
                             >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2.5}
-                                d="M17 7l-10 10M17 7H7M17 7v10"
-                              />
-                            </svg>
-                          </Link> */}
+                              {p.priority}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -1757,7 +1739,7 @@ export default function ProjectsTD() {
               </h3>
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 custom-scrollbar">
+            <div className="flex-1 p-8">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1840,393 +1822,95 @@ export default function ProjectsTD() {
                   {/* Project Name & Budget */}
                   <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000]">
-                      Project Name
+                      Project Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Project name"
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-semibold text-[#000000] placeholder-gray-400 focus:outline-none"
+                      placeholder="Enter Your Project Name"
                       required
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[15px] font-semibold text-[#000000]">
-                      Budget
+                      Budget <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
                       value={createBudget}
                       onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-semibold text-[#000000] placeholder-gray-400 focus:outline-none"
                       placeholder="Enter Project Budget"
-                    />
-                  </div>
-                  {/* Module Name - Full Width */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Module Name
-                    </label>
-                    <input
-                      type="text"
-                      value={createModuleName}
-                      onChange={(e) => setCreateModuleName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Module Name"
+                      required
                     />
                   </div>
 
                   {/* Client Name & Project Manager */}
                   <div className="space-y-2">
                     <label className="block text-[15px] font-semibold text-[#000000]">
-                      Client Name
+                      Client Name <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <FormSelect
+                      label="Client Name"
+                      placeholder="Nothing selected"
+                      options={CLIENT_OPTIONS}
                       value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Client Name"
+                      onChange={setCreateClientName}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select Project Manager
+                    <label className="block text-[16px] font-semibold text-[#000000]">
+                      Select Project Manager <span className="text-[#DD4342]">*</span>
                     </label>
-                    <div className="relative">
-                      <select
-                        value={createProjectManager}
-                        onChange={(e) =>
-                          setCreateProjectManager(e.target.value)
-                        }
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Project Manager</option>
-                        <option value="manager1">Manager 1</option>
-                        <option value="manager2">Manager 2</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Project Start Date
-                    </label>
-                    <input
-                      type="text"
-                      value={createStartDate}
-                      onChange={(e) => setCreateStartDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="DD/MM/YYYY"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Project End Date*
-                    </label>
-                    <input
-                      type="text"
-                      value={createEndDate}
-                      onChange={(e) => setCreateEndDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="DD/MM/YYYY"
+                    <FormSelect
+                      label="Select Project Manager"
+                      placeholder="Nothing Selected"
+                      options={PM_OPTIONS}
+                      value={createProjectManager}
+                      onChange={setCreateProjectManager}
                     />
                   </div>
 
-                  {/* Hours */}
+                  {/* BIM Lead & BIM Coordinator */}
                   <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Total Hours*
+                    <label className="block text-[16px] font-semibold text-[#000000]">
+                      Select BIM Lead <span className="text-[#DD4342]">*</span>
                     </label>
-                    <input
-                      type="text"
-                      value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Total Hours"
+                    <FormSelect
+                      label="Select BIM Lead"
+                      placeholder="Nothing Selected"
+                      options={BIM_LEAD_OPTIONS}
+                      value={createBIMLead}
+                      onChange={setCreateBIMLead}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Per Day*
+                    <label className="block text-[16px] font-semibold text-[#000000]">
+                      Select BIM Coordinator
                     </label>
-                    <input
-                      type="text"
-                      value={createPerDay}
-                      onChange={(e) => setCreatePerDay(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Per Day Hours"
+                    <FormSelect
+                      label="Select BIM Coordinator"
+                      placeholder="Nothing Selected"
+                      options={BIM_COORD_OPTIONS}
+                      value={createBIMCoOrdinator}
+                      onChange={setCreateBIMCoOrdinator}
                     />
-                  </div>
-
-                  {/* Department & BIM Lead */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select Department
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={createDepartment}
-                        onChange={(e) => setCreateDepartment(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Department</option>
-                        <option value="it">IT</option>
-                        <option value="bim">BIM</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select BIM Lead
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={createBIMLead}
-                        onChange={(e) => setCreateBIMLead(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select BIM Lead</option>
-                        <option value="lead1">Lead 1</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* BIM Co-ordinator & Member */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select BIM Co Ordinator
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={createBIMCoOrdinator}
-                        onChange={(e) =>
-                          setCreateBIMCoOrdinator(e.target.value)
-                        }
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select BIM Co Ordinator</option>
-                        <option value="coord1">Co-ordinator 1</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select Member
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={createMember}
-                        onChange={(e) => setCreateMember(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Member</option>
-                        <option value="member1">Member 1</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resources */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Resources
-                    </label>
-                    <input
-                      type="text"
-                      value={createResources}
-                      onChange={(e) => setCreateResources(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Actual Resources"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Required Resources
-                    </label>
-                    <input
-                      type="text"
-                      value={createRequiredResources}
-                      onChange={(e) =>
-                        setCreateRequiredResources(e.target.value)
-                      }
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Required Resources"
-                    />
-                  </div>
-
-                  {/* Priority & Location */}
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Priority
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={createPriority}
-                        onChange={(e) => setCreatePriority(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Priority</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={createLocation}
-                      onChange={(e) => setCreateLocation(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Project Location"
-                    />
-                  </div>
-
-                  {/* Description - Full Width */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Project Description*
-                    </label>
-                    <textarea
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      rows={4}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400 resize-none"
-                      placeholder="Type Project Description"
-                    />
-                  </div>
-
-                  {/* Attach File - Full Width */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[15px] font-semibold text-[#000000]">
-                      Attach File*
-                    </label>
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-3 text-gray-400 font-medium">
-                        {createFile ? createFile.name : "Choose File"}
-                      </div>
-                      <label className="px-6 py-3 bg-gray-200 text-gray-600 font-semibold text-sm cursor-pointer hover:bg-gray-300 transition-colors uppercase tracking-wider">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={(e) =>
-                            setCreateFile(e.target.files?.[0] || null)
-                          }
-                        />
-                      </label>
-                    </div>
                   </div>
                 </div>
-
-                {/* Footer Buttons */}
                 <div className="flex justify-center gap-4 pt-4 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-10 py-3 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-semibold transition-all hover:bg-gray-200"
+                    className="px-10 py-3 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-semibold transition-all"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className="px-10 py-3 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-semibold transition-all hover:bg-[#D5E6FF] disabled:opacity-50"
+                    className="px-10 py-3 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-semibold transition-all"
                   >
                     {createSubmitting ? "Creating..." : "Submit"}
                   </button>
