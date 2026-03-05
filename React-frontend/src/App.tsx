@@ -97,6 +97,9 @@ import TrackerV from './pages/Vendor/TrackerV';
 import TeamReportV from './pages/Vendor/TeamReportV';
 import ChatV from './pages/Vendor/ChatV';
 import MytaskViewV from './pages/Vendor/MytaskViewV';
+import OpportunitiesV from './pages/Vendor/OpportunitiesV';
+import MyBidsV from './pages/Vendor/MyBidsV';
+import ProposalsV from './pages/Vendor/ProposalsV';
 
 function App() {
   return (
@@ -191,6 +194,9 @@ function App() {
 
             {/* Vendor Routes */}
             <Route path="v/dashboard" element={<DashboardV />} />
+            <Route path="v/opportunities" element={<OpportunitiesV />} />
+            <Route path="v/mybids" element={<MyBidsV />} />
+            <Route path="v/proposals" element={<ProposalsV />} />
             <Route path="v/consultants" element={<ConsultantV />} />
             <Route path="v/consultants/:id" element={<ConsultantdetailsV />} />
             <Route path="v/clients" element={<ClientV />} />

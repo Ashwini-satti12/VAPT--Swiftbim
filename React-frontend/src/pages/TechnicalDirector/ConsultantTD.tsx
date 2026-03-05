@@ -4,6 +4,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+
+// Get API base URL for image URLs
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || '';
+};
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -31,9 +36,64 @@ interface Employee {
 }
 
 const getProfileUrl = (path: string | undefined): string => {
-  if (!path) return "";
+  if (!path || path.trim() === "") return "";
   if (path.startsWith("http")) return path;
-  return `/uploads/${path.replace(/\\/g, "/")}`;
+  
+  // Normalize path separators
+  let normalizedPath = path.replace(/\\/g, "/").trim();
+  
+  // Remove leading numbers and spaces (e.g., "1 WhatsApp Image..." or "0 anu.jpg" -> "WhatsApp Image..." or "anu.jpg")
+  normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+  
+  // Remove leading slashes if any
+  normalizedPath = normalizedPath.replace(/^\/+/, "");
+  
+  // Get API base URL
+  const apiBaseUrl = getApiBaseUrl();
+  
+  // Build the full URL path
+  let urlPath = "";
+  
+  // If path already starts with "employee/", use it directly
+  if (normalizedPath.startsWith("employee/")) {
+    // URL encode the path parts to handle spaces and special characters
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => 
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+  // If path starts with "profiles/", redirect to employee folder instead
+  else if (normalizedPath.startsWith("profiles/")) {
+    const filename = normalizedPath.replace("profiles/", "");
+    // URL encode filename to handle spaces and special characters
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  }
+  // If path doesn't include a subfolder, assume it's in employee folder
+  // This handles cases like "anu.jpg", "suman photo.jpg", "WhatsApp Image 2024-06-24 at 3.15.30 PM.jpeg"
+  else if (!normalizedPath.includes("/")) {
+    // URL encode the filename to handle spaces and special characters
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  }
+  // If path has other subfolders, encode each part
+  else {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => 
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+  
+  // Combine API base URL with the path
+  // Remove trailing slash from base URL if present, and ensure path starts with /
+  const base = apiBaseUrl.replace(/\/$/, "");
+  
+  // If base URL is empty, use relative path (works if frontend and backend are on same domain)
+  if (!base) {
+    return urlPath;
+  }
+  
+  return `${base}${urlPath}`;
 };
 
 const toCamelCase = (str: string): string => {
@@ -42,29 +102,8 @@ const toCamelCase = (str: string): string => {
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
-const Departments_options=[
-  'Technical','Sales','Operations','Human Resources','Accounts','Designing','MEP','BIM'
-]
-
-const ROLE_OPTIONS = [
-  'Project Manager',
-  'Technical Director',
-  'BIM Modeler',
-  'BIM Architect',
-  'BIM Architect Lead',
-  'Tekla Modeler',
-  'BIM Project Manager',
-  'Business Development Manager',
-  'Vice President Projects',
-  'Junior BIM Modeler',
-  'Architect Intern',
-  'BIM Modeler- MEP',
-  'HR Executive',
-  'CEO',
-  'Graphic Designer',
-  'Management',
-  'BIM Coordinator'
-];
+// These will be loaded from the database (kept for backward compatibility if needed)
+const ROLE_OPTIONS: string[] = [];
 
 const PANEL_ACCESS_OPTIONS = [
   'Management', 'Accounts', 'Technical Director','Admin', 'Project Manager','Client', 'Sales', 'BIM Lead','Employee','All'
@@ -216,11 +255,104 @@ export default function ConsultantTD() {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [roleOptions, setRoleOptions] = useState<string[]>([]);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
   const canAdd = user?.panel_type === 1;
 
+  // Fetch roles and departments from database
   useEffect(() => {
-    api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
+    // Fetch roles
+    api.get<{ roles?: string[] }>('/api/employees/roles')
+      .then(({ data }) => {
+        if (data.roles && Array.isArray(data.roles)) {
+          // Ensure each role name appears only once (case-insensitive)
+          const map = new Map<string, string>();
+          data.roles
+            .filter(Boolean)
+            .forEach((name) => {
+              const trimmed = name.trim();
+              if (!trimmed) return;
+              const key = trimmed.toLowerCase();
+              if (!map.has(key)) {
+                // Keep the first occurrence's casing
+                map.set(key, trimmed);
+              }
+            });
+          setRoleOptions(Array.from(map.values()));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load roles:', err);
+        // Fallback to empty array
+        setRoleOptions([]);
+      });
+
+    // Fetch departments
+    api.get<{ departments?: string[] }>('/api/departments')
+      .then(({ data }) => {
+        if (data.departments && Array.isArray(data.departments)) {
+          // Ensure each department name appears only once (case-insensitive)
+          const map = new Map<string, string>();
+          data.departments
+            .filter(Boolean)
+            .forEach((name) => {
+              const trimmed = name.trim();
+              if (!trimmed) return;
+              const key = trimmed.toLowerCase();
+              if (!map.has(key)) {
+                map.set(key, trimmed);
+              }
+            });
+          setDepartmentOptions(Array.from(map.values()));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load departments:', err);
+        // Fallback to empty array
+        setDepartmentOptions([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => {
+      const employees = data.employees ?? [];
+      // Debug: Check what profile_picture values we're getting
+      console.log('=== EMPLOYEES API RESPONSE ===');
+      console.log('Total employees:', employees.length);
+      const apiBase = getApiBaseUrl();
+      console.log('API Base URL:', apiBase || '(empty - using relative URLs with Vite proxy)');
+      
+      if (!apiBase) {
+        console.log('ℹ️ Note: Vite proxy should forward /uploads/* to http://localhost:5000');
+        console.log('ℹ️ If images fail, make sure dev server was restarted after vite.config.ts changes');
+      }
+      
+      // Log first few employees with profile pictures
+      const withPics = employees.filter(emp => emp.profile_picture);
+      const withoutPics = employees.filter(emp => !emp.profile_picture);
+      
+      console.log(`Employees WITH profile_picture: ${withPics.length}`);
+      console.log(`Employees WITHOUT profile_picture: ${withoutPics.length}`);
+      
+      withPics.slice(0, 5).forEach(emp => {
+        const url = getProfileUrl(emp.profile_picture);
+        console.log(`✓ ${emp.full_name}:`, {
+          dbValue: emp.profile_picture,
+          generatedUrl: url,
+          willLoad: url ? 'YES' : 'NO'
+        });
+      });
+      
+      if (withoutPics.length > 0) {
+        console.log('Employees without profile_picture:', withoutPics.slice(0, 3).map(e => e.full_name).join(', '));
+      }
+      
+      setList(employees);
+    }).catch((err) => {
+      console.error('Failed to load employees:', err);
+      setList([]);
+    }).finally(() => setLoading(false));
   }, []);
 
   const editParam = searchParams.get('edit');
@@ -301,59 +433,128 @@ export default function ConsultantTD() {
     if (!editId) return;
     setEditSubmitting(true);
 
-    // Build payload with all fields from redesign
-    const payload = {
-      full_name: editForm.full_name,
-      email: editForm.email,
-      phone_number: editForm.phone_number || undefined,
-      user_role: editForm.user_role,
-      department: editForm.department || undefined,
-      address: editForm.address || undefined,
-      dob: editForm.dob || undefined,
-      doj: editForm.doj || undefined,
-      salary: editForm.salary || undefined,
-      accountnumber: editForm.accountnumber || undefined,
-      user_type: editForm.user_type || undefined,
-      Allpannel: editForm.roles.join(','),
-      ...(editForm.password ? { password: editForm.password } : {})
-    };
+    const hasNewFile = !!editForm.profile_picture;
 
-    api.patch(`/api/employees/${editId}`, payload)
-      .then(() => {
-        setList((prev) => prev.map((e) => {
-          if (e.id === editId) {
-            return {
-              ...e,
-              full_name: editForm.full_name,
-              email: editForm.email,
-              phone_number: editForm.phone_number,
-              user_role: editForm.user_role,
-              department: editForm.department,
-              address: editForm.address,
-              dob: editForm.dob,
-              doj: editForm.doj,
-              salary: editForm.salary,
-              accountnumber: editForm.accountnumber,
-              user_type: editForm.user_type,
-              Allpannel: payload.Allpannel,
-            };
-          }
-          return e;
-        }));
-        setEditId(null);
-        setActiveView('list');
-        setSearchParams({});
-      })
-      .catch((err) => {
-        console.error('Update failed:', err);
-      })
-      .finally(() => setEditSubmitting(false));
+    // If user selected a new profile picture, send multipart/form-data
+    if (hasNewFile) {
+      const formData = new FormData();
+      formData.append('full_name', editForm.full_name);
+      formData.append('email', editForm.email);
+      if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
+      if (editForm.user_role) formData.append('user_role', editForm.user_role);
+      if (editForm.department) formData.append('department', editForm.department);
+      if (editForm.address) formData.append('address', editForm.address);
+      if (editForm.dob) formData.append('dob', editForm.dob);
+      if (editForm.doj) formData.append('doj', editForm.doj);
+      if (editForm.salary) formData.append('salary', editForm.salary);
+      if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
+      if (editForm.user_type) formData.append('user_type', editForm.user_type);
+      if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
+      if (editForm.password) formData.append('password', editForm.password);
+      if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
+
+      api
+        .patch<{ success: boolean; profile_picture?: string | null }>(
+          `/api/employees/${editId}`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        .then(({ data }) => {
+          const newPic = data.profile_picture || undefined;
+          setList((prev) =>
+            prev.map((e) => {
+              if (e.id === editId) {
+                return {
+                  ...e,
+                  full_name: editForm.full_name,
+                  email: editForm.email,
+                  phone_number: editForm.phone_number,
+                  user_role: editForm.user_role,
+                  department: editForm.department,
+                  address: editForm.address,
+                  dob: editForm.dob,
+                  doj: editForm.doj,
+                  salary: editForm.salary,
+                  accountnumber: editForm.accountnumber,
+                  user_type: editForm.user_type,
+                  Allpannel: editForm.roles.join(','),
+                  profile_picture: newPic ?? e.profile_picture,
+                };
+              }
+              return e;
+            })
+          );
+          setEditId(null);
+          setActiveView('list');
+          setSearchParams({});
+        })
+        .catch((err) => {
+          console.error('Update failed:', err);
+        })
+        .finally(() => setEditSubmitting(false));
+    } else {
+      // No new file: send JSON payload
+      const payload = {
+        full_name: editForm.full_name,
+        email: editForm.email,
+        phone_number: editForm.phone_number || undefined,
+        user_role: editForm.user_role,
+        department: editForm.department || undefined,
+        address: editForm.address || undefined,
+        dob: editForm.dob || undefined,
+        doj: editForm.doj || undefined,
+        salary: editForm.salary || undefined,
+        accountnumber: editForm.accountnumber || undefined,
+        user_type: editForm.user_type || undefined,
+        Allpannel: editForm.roles.join(','),
+        ...(editForm.password ? { password: editForm.password } : {}),
+      };
+
+      api
+        .patch(`/api/employees/${editId}`, payload)
+        .then(() => {
+          setList((prev) =>
+            prev.map((e) => {
+              if (e.id === editId) {
+                return {
+                  ...e,
+                  full_name: editForm.full_name,
+                  email: editForm.email,
+                  phone_number: editForm.phone_number,
+                  user_role: editForm.user_role,
+                  department: editForm.department,
+                  address: editForm.address,
+                  dob: editForm.dob,
+                  doj: editForm.doj,
+                  salary: editForm.salary,
+                  accountnumber: editForm.accountnumber,
+                  user_type: editForm.user_type,
+                  Allpannel: payload.Allpannel,
+                };
+              }
+              return e;
+            })
+          );
+          setEditId(null);
+          setActiveView('list');
+          setSearchParams({});
+        })
+        .catch((err) => {
+          console.error('Update failed:', err);
+        })
+        .finally(() => setEditSubmitting(false));
+    }
   }
 
   function handleStatusToggle(id: number, newStatus: string) {
     const status = newStatus.toLowerCase() === 'active' ? 'active' : 'inactive';
-    api.post('/api/employees/bulk-status', { ids: [id], action: status }).then(() => {
-      setList(prev => prev.map(e => e.id === id ? { ...e, active: status } : e));
+    // Optimistic UI update – change immediately
+    setList(prev => prev.map(e => e.id === id ? { ...e, active: status } : e));
+
+    api.post('/api/employees/bulk-status', { ids: [id], action: status }).catch((err) => {
+      console.error('Failed to update status:', err);
+      // If the API fails, we should ideally revert the change.
+      // For now, just log the error so you can inspect it in DevTools.
     });
   }
 
@@ -415,6 +616,7 @@ export default function ConsultantTD() {
               full_name: form.full_name,
               email: form.email,
               user_role: form.user_role,
+              department: form.department,
               active: 'active',
               dob: form.dob,
               user_type: form.type,
@@ -579,19 +781,45 @@ export default function ConsultantTD() {
                     {/* User Profile Info on Image */}
                     <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
                       <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                        <img
-                          alt={emp.full_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
-                          }}
-                        />
+                        {emp.profile_picture && emp.profile_picture.trim() ? (
+                          <img
+                            key={`${emp.id}-${emp.profile_picture}`}
+                            src={getProfileUrl(emp.profile_picture)}
+                            alt={emp.full_name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const url = getProfileUrl(emp.profile_picture);
+                              console.error(`❌ Failed to load image for ${emp.full_name}:`, {
+                                attemptedUrl: target.src,
+                                generatedUrl: url,
+                                dbValue: emp.profile_picture,
+                                apiBaseUrl: getApiBaseUrl(),
+                                note: 'Check if file exists in backend/uploads/employee/ folder'
+                              });
+                              // Replace with placeholder on error
+                              const parent = target.parentElement;
+                              if (parent && !parent.querySelector('.error-placeholder')) {
+                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
+                              }
+                            }}
+                            onLoad={() => {
+                              console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">No Photo</span>
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -695,11 +923,34 @@ export default function ConsultantTD() {
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
                               <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                <img
-                                  src={emp.profile_picture}
-                                  alt={emp.full_name}
-                                  className="w-full h-full object-cover"
-                                />
+                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                  <img
+                                    key={`table-${emp.id}-${emp.profile_picture}`}
+                                    src={getProfileUrl(emp.profile_picture)}
+                                    alt={emp.full_name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      console.error(`❌ Failed to load image for ${emp.full_name}:`, {
+                                        attemptedUrl: target.src,
+                                        generatedUrl: getProfileUrl(emp.profile_picture),
+                                        dbValue: emp.profile_picture
+                                      });
+                                      // Replace with placeholder on error
+                                      const parent = target.parentElement;
+                                      if (parent && !parent.querySelector('.error-placeholder')) {
+                                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                      }
+                                    }}
+                                    onLoad={() => {
+                                      console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                    <span className="text-gray-400 text-[10px]">No Photo</span>
+                                  </div>
+                                )}
                               </div>
                               <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                             </div>
@@ -820,8 +1071,20 @@ export default function ConsultantTD() {
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
-              {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
-              
+              {addError && (
+                <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                    !
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold leading-snug">Validation error</p>
+                    <p className="mt-0.5 text-[13px] leading-snug">
+                      {addError}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
@@ -860,7 +1123,7 @@ export default function ConsultantTD() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
                     <CustomDropdown
-                      options={ROLE_OPTIONS}
+                      options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
                       value={form.user_role}
                       onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
@@ -869,7 +1132,7 @@ export default function ConsultantTD() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={Departments_options}
+                      options={departmentOptions}
                       value={form.department}
                       onChange={(val) => setForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
@@ -1022,7 +1285,7 @@ export default function ConsultantTD() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
                     <CustomDropdown
-                      options={ROLE_OPTIONS}
+                      options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
                       value={editForm.user_role}
                       onChange={(val) => setEditForm((f) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
@@ -1031,7 +1294,7 @@ export default function ConsultantTD() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={Departments_options}
+                      options={departmentOptions}
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
@@ -1346,14 +1609,34 @@ export default function ConsultantTD() {
             {/* Profile Section */}
             <div className="flex items-center gap-6 px-4">
               <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
-                <img
-                  src={selectedEmployee.profile_picture ? getProfileUrl(selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
-                  alt={selectedEmployee.full_name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`;
-                  }}
-                />
+                {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
+                  <img
+                    key={`modal-${selectedEmployee.id}-${selectedEmployee.profile_picture}`}
+                    src={getProfileUrl(selectedEmployee.profile_picture)}
+                    alt={selectedEmployee.full_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      console.error(`❌ Failed to load image for ${selectedEmployee.full_name}:`, {
+                        attemptedUrl: target.src,
+                        generatedUrl: getProfileUrl(selectedEmployee.profile_picture),
+                        dbValue: selectedEmployee.profile_picture
+                      });
+                      // Replace with placeholder on error
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.error-placeholder')) {
+                        parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-sm">No Photo</span></div>';
+                      }
+                    }}
+                    onLoad={() => {
+                      console.log(`✅ Successfully loaded image for ${selectedEmployee.full_name}:`, getProfileUrl(selectedEmployee.profile_picture));
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                    <span className="text-gray-400 text-sm">No Photo</span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
@@ -1371,6 +1654,7 @@ export default function ConsultantTD() {
                 { label: 'User Role', value: selectedEmployee.user_role },
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
+                { label: 'Department', value: selectedEmployee.department },
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>

@@ -26,6 +26,7 @@ interface Project {
   end_date?: string;
   total_hours?: string;
   per_day?: string;
+  client_id?: number;
   department?: string;
   bim_lead?: string;
   bim_co_ordinator?: string;
@@ -63,6 +64,8 @@ export default function ProjectsTD() {
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
+  const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
+  const [moduleNameInput, setModuleNameInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -73,6 +76,8 @@ export default function ProjectsTD() {
   const [createBIMLead, setCreateBIMLead] = useState("");
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
   const [createMember, setCreateMember] = useState("");
+  const [memberTags, setMemberTags] = useState<string[]>([]);
+  const [memberInput, setMemberInput] = useState("");
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
@@ -112,24 +117,25 @@ export default function ProjectsTD() {
   >(null);
   const [createBudgetCeiling, setCreateBudgetCeiling] = useState("");
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
-  
+
   // Employee data for dropdowns
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
-  
+  const [departments, setDepartments] = useState<string[]>([]);
+
   // All employees for member lookup
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
-  
+
   // Profile modal state
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
-  
+
   // All members modal state
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
-  
+
   // Task statistics for project view
   const [taskStats, setTaskStats] = useState({
     todo: 0,
@@ -146,7 +152,7 @@ export default function ProjectsTD() {
     status: 'Approved' | 'Pending' | 'Review';
   }>>([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
- 
+
   const panelType = user?.panel_type ?? 3;
   const isEditSourceInHouse = createDepartment === "Budget Ceiling";
   const isEditSourceOutsource = createDepartment === "Submission Deadline";
@@ -211,9 +217,9 @@ export default function ProjectsTD() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch employees when edit modal opens
+  // Fetch employees and departments when create or edit modal opens
   useEffect(() => {
-    if (showEditModal) {
+    if (showEditModal || showCreateModal) {
       api
         .get<{ employees?: Employee[] }>("/api/employees")
         .then(({ data }) => {
@@ -235,8 +241,13 @@ export default function ProjectsTD() {
           setBimLeads([]);
           setBimCoordinators([]);
         });
+
+      api
+        .get<{ departments?: string[] }>("/api/departments")
+        .then(({ data }) => setDepartments(data.departments ?? []))
+        .catch(() => setDepartments([]));
     }
-  }, [showEditModal]);
+  }, [showEditModal, showCreateModal]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -258,11 +269,11 @@ export default function ProjectsTD() {
     if (showProjectView && selectedProjectForView) {
       setLoadingTaskStats(true);
       const projectId = selectedProjectForView.id;
-      
+
       // Initialize with project table data immediately
       const projectCompleted = selectedProjectForView.completed_tasks || 0;
       const projectTotal = selectedProjectForView.total_tasks || 0;
-      
+
       // Set initial stats from project table so cards show data immediately
       setTaskStats({
         todo: Math.max(0, projectTotal - projectCompleted),
@@ -272,21 +283,23 @@ export default function ProjectsTD() {
       });
 
       api
-        .get<{ tasks?: Array<{ 
-          status?: string; 
-          modules_name?: string; 
-          projectid?: number | string;
-          project_id?: number | string;
-          Approval?: string;
-        }> }>("/api/tasks", {
-          params: { 
-            project_id: String(projectId), 
+        .get<{
+          tasks?: Array<{
+            status?: string;
+            modules_name?: string;
+            projectid?: number | string;
+            project_id?: number | string;
+            Approval?: string;
+          }>
+        }>("/api/tasks", {
+          params: {
+            project_id: String(projectId),
             condition: "1" // Get all company tasks (Technical Director can see all)
           },
         })
         .then(({ data }) => {
           const tasks = data.tasks ?? [];
-          
+
           // Helper function to normalize status - database uses "Completed", "Todo", "InProgress", "Pause"
           const normalizeStatus = (status: string | undefined): string => {
             if (!status) return "";
@@ -306,15 +319,15 @@ export default function ProjectsTD() {
             // Compare as strings and numbers to handle both cases
             return String(taskProjectId) === String(projectId) || Number(taskProjectId) === Number(projectId);
           });
-          
+
           // Debug: log tasks to see what we're getting
           console.log("=== TASK FETCH DEBUG ===");
           console.log("Project ID:", projectId, "Type:", typeof projectId);
           console.log("Total tasks from API:", tasks.length);
           console.log("Filtered project tasks:", projectTasks.length);
           if (tasks.length > 0) {
-            console.log("Sample tasks:", tasks.slice(0, 5).map(t => ({ 
-              projectid: t.projectid, 
+            console.log("Sample tasks:", tasks.slice(0, 5).map(t => ({
+              projectid: t.projectid,
               project_id: t.project_id,
               status: t.status,
               statusLower: String(t.status || "").toLowerCase()
@@ -339,12 +352,12 @@ export default function ProjectsTD() {
             paused: projectTasks.filter((t) => normalizeStatus(t.status) === "pause").length,
             completed: projectTasks.filter((t) => normalizeStatus(t.status) === "completed").length,
           };
-          
+
           console.log("Final task stats:", stats);
           console.log("Total tasks counted:", stats.todo + stats.inProgress + stats.paused + stats.completed);
           console.log("Expected from projects table - completed:", selectedProjectForView.completed_tasks, "total:", selectedProjectForView.total_tasks);
           console.log("========================");
-          
+
           // If we got tasks, use them; otherwise use project table data
           if (projectTasks.length > 0) {
             setTaskStats(stats);
@@ -362,7 +375,7 @@ export default function ProjectsTD() {
           // Parse all modules from project's modules field
           const projectModules = selectedProjectForView.module_name || "";
           const allModuleNames: string[] = [];
-          
+
           if (projectModules) {
             // Split by comma to get individual module entries
             // Format can be: "PD - Package1/Package 2/Package 3, DD - Package1/Package 2/Package 3, IFC - Package1/Package 2/Package 3"
@@ -372,11 +385,11 @@ export default function ProjectsTD() {
               .split(',')
               .map(m => m.trim())
               .filter(m => m.length > 0);
-            
+
             // For each module entry, extract the main module name
             parsedModules.forEach(module => {
               let moduleName = module.trim();
-              
+
               // Handle formats like "PD - Package1/Package 2/Package 3"
               // Extract the prefix (PD, DD, IFC) as the module identifier
               if (moduleName.includes(' - ')) {
@@ -386,26 +399,26 @@ export default function ProjectsTD() {
                   moduleName = parts[0].trim();
                 }
               }
-              
+
               // Handle formats with slashes - for formats like "Package1/Package 2", keep the first part
               // But if it's already a simple name, keep it as-is
               if (moduleName.includes('/') && !moduleName.includes(' - ')) {
                 moduleName = moduleName.split('/')[0].trim();
               }
-              
+
               // Add the module name if it's not empty and not already added
               if (moduleName && !allModuleNames.includes(moduleName)) {
                 allModuleNames.push(moduleName);
               }
             });
           }
-          
+
           console.log("Project modules from projects table:", allModuleNames);
           console.log("Raw modules field:", projectModules);
 
           // Group tasks by module/tower name from tasks
-          const moduleTaskMap = new Map<string, { 
-            total: number; 
+          const moduleTaskMap = new Map<string, {
+            total: number;
             completed: number;
             approved: number;
           }>();
@@ -417,7 +430,7 @@ export default function ProjectsTD() {
               // Skip tasks without modules for now, or add to "Unassigned" later
               return;
             }
-            
+
             // Extract module prefix if it contains " - " (e.g., "PD - Package1" -> "PD")
             let moduleKey = taskModuleName;
             if (taskModuleName.includes(' - ')) {
@@ -426,12 +439,12 @@ export default function ProjectsTD() {
                 moduleKey = parts[0].trim();
               }
             }
-            
+
             // Also handle slashes (e.g., "PD/Package1" -> "PD")
             if (moduleKey.includes('/') && !moduleKey.includes(' - ')) {
               moduleKey = moduleKey.split('/')[0].trim();
             }
-            
+
             const module = moduleKey || "Default";
             const status = normalizeStatus(task.status);
             const approval = (task.Approval || "").toLowerCase();
@@ -449,13 +462,13 @@ export default function ProjectsTD() {
               moduleData.approved++;
             }
           });
-          
+
           // Also count unassigned tasks (tasks without modules_name)
           const unassignedTasks = projectTasks.filter(t => {
             const taskModuleName = (t.modules_name || "").trim();
             return !taskModuleName || taskModuleName === "";
           });
-          
+
           if (unassignedTasks.length > 0) {
             moduleTaskMap.set("Unassigned", { total: 0, completed: 0, approved: 0 });
             const unassignedData = moduleTaskMap.get("Unassigned")!;
@@ -487,20 +500,20 @@ export default function ProjectsTD() {
             if (!moduleName || moduleName === "Default") {
               return `Tower ${String(index + 1).padStart(2, '0')}`;
             }
-            
+
             // If module name contains "Tower" or a number, format it nicely
             const towerMatch = moduleName.match(/tower[\s-]?(\d+)/i);
             if (towerMatch) {
               return `Tower ${towerMatch[1].padStart(2, '0')}`;
             }
-            
+
             // Try to extract number from module name
             const numMatch = moduleName.match(/\d+/);
             if (numMatch && moduleName.length < 30) {
               // If it's a simple numbered module, format as Tower
               return `Tower ${numMatch[0].padStart(2, '0')}`;
             }
-            
+
             // Otherwise, use the module name as-is (truncate if too long)
             return moduleName.length > 25 ? moduleName.substring(0, 25) + "..." : moduleName;
           };
@@ -511,32 +524,32 @@ export default function ProjectsTD() {
               // Get task data for this module (if any)
               // Try exact match first
               let taskData = moduleTaskMap.get(moduleName) || { total: 0, completed: 0, approved: 0 };
-              
+
               // If no exact match, try to find tasks where modules_name contains this module name
               if (taskData.total === 0) {
                 for (const [taskModuleName, data] of moduleTaskMap.entries()) {
                   // Skip "Unassigned" when matching project modules
                   if (taskModuleName === "Unassigned") continue;
-                  
+
                   // Check if task's modules_name contains this project module name (case-insensitive)
                   const taskModuleLower = taskModuleName.toLowerCase();
                   const projectModuleLower = moduleName.toLowerCase();
-                  
+
                   // Try various matching strategies
                   if (taskModuleLower === projectModuleLower ||
-                      taskModuleLower.startsWith(projectModuleLower) ||
-                      projectModuleLower.startsWith(taskModuleLower) ||
-                      taskModuleLower.includes(projectModuleLower) ||
-                      projectModuleLower.includes(taskModuleLower)) {
-                    taskData = { 
-                      total: taskData.total + data.total, 
+                    taskModuleLower.startsWith(projectModuleLower) ||
+                    projectModuleLower.startsWith(taskModuleLower) ||
+                    taskModuleLower.includes(projectModuleLower) ||
+                    projectModuleLower.includes(taskModuleLower)) {
+                    taskData = {
+                      total: taskData.total + data.total,
                       completed: taskData.completed + data.completed,
                       approved: taskData.approved + data.approved
                     };
                   }
                 }
               }
-              
+
               const progress = taskData.total > 0 ? Math.round((taskData.completed / taskData.total) * 100) : 0;
 
               // Determine status based on approval and progress
@@ -562,14 +575,14 @@ export default function ProjectsTD() {
                 status,
               });
             });
-            
+
             // Add "Unassigned" module if there are tasks without modules
             const unassignedData = moduleTaskMap.get("Unassigned");
             if (unassignedData && unassignedData.total > 0) {
               const unassignedProgress = unassignedData.total > 0 ? Math.round((unassignedData.completed / unassignedData.total) * 100) : 0;
               let unassignedStatus: 'Approved' | 'Pending' | 'Review';
               const unassignedApprovalRate = unassignedData.total > 0 ? (unassignedData.approved / unassignedData.total) : 0;
-              
+
               if (unassignedData.total === 0) {
                 unassignedStatus = 'Review';
               } else if (unassignedApprovalRate >= 0.8 || unassignedProgress >= 80) {
@@ -579,7 +592,7 @@ export default function ProjectsTD() {
               } else {
                 unassignedStatus = 'Review';
               }
-              
+
               towers.push({
                 id: allModuleNames.length + 1,
                 name: "Unassigned",
@@ -896,15 +909,15 @@ export default function ProjectsTD() {
                   {/* Project Manager */}
                   {(() => {
                     const projectManagerId = selectedProjectForView.project_manager;
-                    const projectManager = projectManagerId 
+                    const projectManager = projectManagerId
                       ? allEmployees.find(e => Number(e.id) === Number(projectManagerId))
                       : null;
                     const pmProfileUrl = projectManager?.profile_picture
                       ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
-                          ? projectManager.profile_picture
-                          : `${apiBase}/uploads/${projectManager.profile_picture}`)
+                        ? projectManager.profile_picture
+                        : `${apiBase}/uploads/${projectManager.profile_picture}`)
                       : null;
-                    
+
                     return (
                       <div className="flex items-center gap-4">
                         {pmProfileUrl ? (
@@ -934,19 +947,19 @@ export default function ProjectsTD() {
                       </div>
                     );
                   })()}
-                  
+
                   {/* BIM Lead */}
                   {(() => {
                     const bimLeadId = selectedProjectForView.bim_lead;
-                    const bimLead = bimLeadId 
+                    const bimLead = bimLeadId
                       ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
                       : null;
                     const bimProfileUrl = bimLead?.profile_picture
                       ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
-                          ? bimLead.profile_picture
-                          : `${apiBase}/uploads/${bimLead.profile_picture}`)
+                        ? bimLead.profile_picture
+                        : `${apiBase}/uploads/${bimLead.profile_picture}`)
                       : null;
-                    
+
                     return (
                       <div className="flex items-center gap-4">
                         {bimProfileUrl ? (
@@ -976,7 +989,7 @@ export default function ProjectsTD() {
                       </div>
                     );
                   })()}
-                  
+
                   {/* Department Involved */}
                   <div>
                     <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-1">
@@ -986,7 +999,7 @@ export default function ProjectsTD() {
                       {selectedProjectForView.department || "Not Specified"}
                     </p>
                   </div>
-                  
+
                   {/* Members Involved */}
                   <div>
                     <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-2">
@@ -995,19 +1008,19 @@ export default function ProjectsTD() {
                     <div className="flex -space-x-3">
                       {(() => {
                         // Get members from project
-                        const memberIds = selectedProjectForView.member 
+                        const memberIds = selectedProjectForView.member
                           ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
                           : [];
-                        
+
                         // Get employee data for members
                         const projectMembers = memberIds
                           .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
                           .filter(Boolean) as Employee[];
-                        
+
                         // Show up to 3 members, then +X for remaining
                         const visibleMembers = projectMembers.slice(0, 3);
                         const remainingCount = Math.max(0, projectMembers.length - 3);
-                        
+
                         // Helper to get profile image URL
                         const getProfileImageUrl = (emp: Employee) => {
                           if (emp.profile_picture) {
@@ -1018,7 +1031,7 @@ export default function ProjectsTD() {
                           }
                           return null;
                         };
-                        
+
                         return (
                           <>
                             {visibleMembers.length > 0 ? (
@@ -1063,7 +1076,7 @@ export default function ProjectsTD() {
                               ))
                             )}
                             {remainingCount > 0 && (
-                              <div 
+                              <div
                                 className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                 onClick={() => {
                                   setAllMembersList(projectMembers);
@@ -1075,7 +1088,7 @@ export default function ProjectsTD() {
                               </div>
                             )}
                             {visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0 && (
-                              <div 
+                              <div
                                 className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                 onClick={() => {
                                   setAllMembersList([]);
@@ -1116,7 +1129,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.start_date 
+                        {selectedProjectForView.start_date
                           ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : "Not Set"}
                       </span>
@@ -1165,7 +1178,7 @@ export default function ProjectsTD() {
                       </span>
                       <span className="text-[#999999] mr-4">:</span>
                       <span className="text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.end_date 
+                        {selectedProjectForView.end_date
                           ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
                           : "Not Set"}
                       </span>
@@ -1381,9 +1394,9 @@ export default function ProjectsTD() {
                     const total = p.total_tasks ?? 0;
                     const completed = p.completed_tasks ?? 0;
                     const progress = Math.round(p.progress ?? 0);
-                    
+
                     // Get members from project.members field (comma-separated string)
-                    const memberIds = p.member 
+                    const memberIds = p.member
                       ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
                       : [];
 
@@ -1453,7 +1466,8 @@ export default function ProjectsTD() {
                                       setOpenMenuProjectId(null);
                                       setSelectedProjectForEdit(p);
                                       setCreateName(p.project_name ?? "");
-                                      setCreateBudget(p.budget ?? "");
+                                      // Show project budget as placeholder, will be overwritten by contract fetch below
+                                      setCreateBudget(p.budget ? `${p.budget}` : "Fetching...");
                                       setCreateModuleName(p.module_name ?? "");
                                       setCreateClientName(p.client_name ?? "");
                                       setCreateProjectManager(
@@ -1470,8 +1484,8 @@ export default function ProjectsTD() {
                                       );
                                       setCreateBudgetCeiling(p.budget_ceiling ?? "");
                                       // Convert date format if needed
-                                      const biddingDate = p.bidding_end_date 
-                                        ? p.bidding_end_date.includes('T') 
+                                      const biddingDate = p.bidding_end_date
+                                        ? p.bidding_end_date.includes('T')
                                           ? p.bidding_end_date.split('T')[0]
                                           : p.bidding_end_date
                                         : "";
@@ -1489,6 +1503,20 @@ export default function ProjectsTD() {
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
                                       setShowEditModal(true);
+                                      // Auto-fetch client budget from contracts table
+                                      if (p.client_id) {
+                                        import('../../lib/api').then(({ default: api }) => {
+                                          api.get<{ client_budget: number | null }>(`/api/vendors/client-budget?client_id=${p.client_id}`)
+                                            .then(({ data }) => {
+                                              if (data.client_budget !== null && data.client_budget !== undefined) {
+                                                setCreateBudget(String(data.client_budget));
+                                              } else {
+                                                setCreateBudget(p.budget ? `${p.budget}` : "—");
+                                              }
+                                            })
+                                            .catch(() => setCreateBudget(p.budget ? `${p.budget}` : "—"));
+                                        });
+                                      }
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
                                   >
@@ -1581,11 +1609,11 @@ export default function ProjectsTD() {
                                   return emp;
                                 })
                                 .filter(Boolean) as Employee[];
-                              
+
                               // Show up to 3 members, then +X for remaining
                               const visibleMembers = projectEmployees.slice(0, 3);
                               const remainingCount = Math.max(0, projectEmployees.length - 3);
-                              
+
                               // Helper to get profile picture URL
                               const getProfileImageUrl = (emp: Employee) => {
                                 if (emp.profile_picture) {
@@ -1598,7 +1626,7 @@ export default function ProjectsTD() {
                                 }
                                 return null;
                               };
-                              
+
                               return (
                                 <>
                                   {visibleMembers.length > 0 ? (
@@ -1648,7 +1676,7 @@ export default function ProjectsTD() {
                                     ))
                                   )}
                                   {remainingCount > 0 && (
-                                    <div 
+                                    <div
                                       className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                       onClick={() => {
                                         setAllMembersList(projectEmployees);
@@ -1660,7 +1688,7 @@ export default function ProjectsTD() {
                                     </div>
                                   )}
                                   {visibleMembers.length === 0 && projectEmployees.length === 0 && memberIds.length > 0 && (
-                                    <div 
+                                    <div
                                       className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                       onClick={() => {
                                         setAllMembersList([]);
@@ -1800,13 +1828,13 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
                     .catch((err) =>
                       setCreateError(
                         err.response?.data?.message ||
-                          "Failed to create project",
+                        "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -1846,18 +1874,54 @@ export default function ProjectsTD() {
                       placeholder="Enter Project Budget"
                     />
                   </div>
-                  {/* Module Name - Full Width */}
+                  {/* Module Name - Full Width (tag-based) */}
                   <div className="md:col-span-2 space-y-2">
                     <label className="block text-[15px] font-semibold text-[#000000]">
                       Module Name
                     </label>
                     <input
                       type="text"
-                      value={createModuleName}
-                      onChange={(e) => setCreateModuleName(e.target.value)}
+                      value={moduleNameInput}
+                      onChange={(e) => setModuleNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = moduleNameInput.trim().replace(/,$/, '');
+                          if (val && !moduleNameTags.includes(val)) {
+                            const updated = [...moduleNameTags, val];
+                            setModuleNameTags(updated);
+                            setCreateModuleName(updated.join(', '));
+                          }
+                          setModuleNameInput('');
+                        }
+                      }}
                       className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Enter Module Name"
+                      placeholder="Type module name and press Enter or comma"
                     />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter module names, separated by commas, and then press enter
+                    </p>
+                    {moduleNameTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {moduleNameTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = moduleNameTags.filter((_, i) => i !== idx);
+                                setModuleNameTags(updated);
+                                setCreateModuleName(updated.join(', '));
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+                            >x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -1886,8 +1950,11 @@ export default function ProjectsTD() {
                         className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                       >
                         <option value="">Select Project Manager</option>
-                        <option value="manager1">Manager 1</option>
-                        <option value="manager2">Manager 2</option>
+                        {projectManagers.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                         <svg
@@ -1971,8 +2038,11 @@ export default function ProjectsTD() {
                         className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                       >
                         <option value="">Select Department</option>
-                        <option value="it">IT</option>
-                        <option value="bim">BIM</option>
+                        {departments.map((dept, idx) => (
+                          <option key={idx} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                         <svg
@@ -2002,7 +2072,11 @@ export default function ProjectsTD() {
                         className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                       >
                         <option value="">Select BIM Lead</option>
-                        <option value="lead1">Lead 1</option>
+                        {bimLeads.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                         <svg
@@ -2036,7 +2110,11 @@ export default function ProjectsTD() {
                         className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
                       >
                         <option value="">Select BIM Co Ordinator</option>
-                        <option value="coord1">Co-ordinator 1</option>
+                        {bimCoordinators.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                         <svg
@@ -2055,35 +2133,48 @@ export default function ProjectsTD() {
                       </div>
                     </div>
                   </div>
+                  {/* Member multi-select */}
                   <div className="space-y-2">
                     <label className="block text-[15px] font-semibold text-[#000000]">
                       Select Member
                     </label>
-                    <div className="relative">
-                      <select
-                        value={createMember}
-                        onChange={(e) => setCreateMember(e.target.value)}
-                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      >
-                        <option value="">Select Member</option>
-                        <option value="member1">Member 1</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && !memberTags.includes(val)) {
+                          const updated = [...memberTags, val];
+                          setMemberTags(updated);
+                          setCreateMember(updated.join(', '));
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                    >
+                      <option value="">Select Member to Add</option>
+                      {allEmployees.filter(emp => !memberTags.includes(emp.full_name || String(emp.id))).map((emp) => (
+                        <option key={emp.id} value={emp.full_name || String(emp.id)}>
+                          {emp.full_name || `Employee ${emp.id}`}
+                        </option>
+                      ))}
+                    </select>
+                    {memberTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {memberTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = memberTags.filter((_, i) => i !== idx);
+                                setMemberTags(updated);
+                                setCreateMember(updated.join(', '));
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+                            >x</button>
+                          </span>
+                        ))}
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Resources */}
@@ -2277,7 +2368,7 @@ export default function ProjectsTD() {
                         setDeleteId(null);
                       }
                     })
-                    .catch(() => {});
+                    .catch(() => { });
                 }}
                 className="px-12 py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[16px] transition-all hover:bg-[#FFDEDE]"
               >
@@ -2432,10 +2523,10 @@ export default function ProjectsTD() {
             <div className="relative flex items-center justify-center px-10 py-8">
               <button
                 type="button"
-                onClick={() => { 
-                  setShowEditModal(false); 
-                  setEditDropdownOpen(null); 
-                  setCreateBudgetCeiling(""); 
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditDropdownOpen(null);
+                  setCreateBudgetCeiling("");
                   setCreateBiddingEndDate("");
                   // Reset all form fields
                   setCreateName("");
@@ -2500,9 +2591,9 @@ export default function ProjectsTD() {
                       department: createDepartment || undefined,
                       ...(isEditSourceOutsource
                         ? {
-                            budget_ceiling: createBudgetCeiling || undefined,
-                            bidding_end_date: createBiddingEndDate || undefined,
-                          }
+                          budget_ceiling: createBudgetCeiling || undefined,
+                          bidding_end_date: createBiddingEndDate || undefined,
+                        }
                         : {}),
                       due_date: createEndDate || undefined,
                       start_date: createStartDate || undefined,
@@ -2530,10 +2621,10 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
-                    .catch(() => {})
+                    .catch(() => { })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"
@@ -2565,17 +2656,17 @@ export default function ProjectsTD() {
                     />
                   </div>
 
-                  {/* Row 2: Budget, Select source */}
+                  {/* Row 2: Client Budget (read-only from contracts), Select source */}
                   <div className="space-y-2">
                     <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                      Budget
+                      Client Budget
                     </label>
                     <input
                       type="text"
-                      className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
-                      placeholder="Enter Budget"
+                      readOnly
+                      className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] font-Gantari font-medium text-gray-500 cursor-not-allowed"
+                      placeholder="Auto-fetched from contract"
                       value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -2604,39 +2695,36 @@ export default function ProjectsTD() {
                       </button>
                       {editDropdownOpen === 'source' && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                          <button 
-                            type="button" 
-                            onClick={() => { 
-                              setCreateDepartment(''); 
-                              setEditDropdownOpen(null); 
-                            }} 
-                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                              !createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${!createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                              }`}
                           >
                             Select Source
                           </button>
-                          <button 
-                            type="button" 
-                            onClick={() => { 
-                              setCreateDepartment('Budget Ceiling'); 
-                              setEditDropdownOpen(null); 
-                            }} 
-                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                              createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('Budget Ceiling');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                              }`}
                           >
                             In House
                           </button>
-                          <button 
-                            type="button" 
-                            onClick={() => { 
-                              setCreateDepartment('Submission Deadline'); 
-                              setEditDropdownOpen(null); 
-                            }} 
-                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                              createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('Submission Deadline');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
+                              }`}
                           >
                             Outsource
                           </button>
@@ -2692,11 +2780,10 @@ export default function ProjectsTD() {
                                     setCreateProjectManager(String(pm.id));
                                     setEditDropdownOpen(null);
                                   }}
-                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                                    createProjectManager === String(pm.id)
-                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                      : "text-gray-700"
-                                  }`}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${createProjectManager === String(pm.id)
+                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                    : "text-gray-700"
+                                    }`}
                                 >
                                   {pm.full_name || `Employee ${pm.id}`}
                                 </button>
@@ -2749,11 +2836,10 @@ export default function ProjectsTD() {
                                     setCreateBIMLead(String(lead.id));
                                     setEditDropdownOpen(null);
                                   }}
-                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                                    createBIMLead === String(lead.id)
-                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                      : "text-gray-700"
-                                  }`}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${createBIMLead === String(lead.id)
+                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                    : "text-gray-700"
+                                    }`}
                                 >
                                   {lead.full_name || `Employee ${lead.id}`}
                                 </button>
@@ -2806,11 +2892,10 @@ export default function ProjectsTD() {
                                     setCreateBIMCoOrdinator(String(coord.id));
                                     setEditDropdownOpen(null);
                                   }}
-                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${
-                                    createBIMCoOrdinator === String(coord.id)
-                                      ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                      : "text-gray-700"
-                                  }`}
+                                  className={`block w-full text-left px-5 py-2.5 text-sm font-Gantari hover:bg-[#F4F5F7] ${createBIMCoOrdinator === String(coord.id)
+                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                    : "text-gray-700"
+                                    }`}
                                 >
                                   {coord.full_name || `Employee ${coord.id}`}
                                 </button>
@@ -2822,17 +2907,17 @@ export default function ProjectsTD() {
                     </>
                   )}
 
-                  {/* Outsource: Budget Ceiling, Bidding End Date */}
+                  {/* Outsource: Outsourcing Budget, Bidding End Date */}
                   {isEditSourceOutsource && (
                     <>
                       <div className="space-y-2">
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                          Budget Ceiling
+                          Outsourcing Budget
                         </label>
                         <input
                           type="text"
                           className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
-                          placeholder="Enter Budget Ceiling"
+                          placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
                           onChange={(e) => setCreateBudgetCeiling(e.target.value)}
                         />
@@ -2856,10 +2941,10 @@ export default function ProjectsTD() {
                 <div className="flex justify-center gap-6 pt-6">
                   <button
                     type="button"
-                    onClick={() => { 
-                      setShowEditModal(false); 
-                      setEditDropdownOpen(null); 
-                      setCreateBudgetCeiling(""); 
+                    onClick={() => {
+                      setShowEditModal(false);
+                      setEditDropdownOpen(null);
+                      setCreateBudgetCeiling("");
                       setCreateBiddingEndDate("");
                       // Reset all form fields
                       setCreateName("");
@@ -2940,7 +3025,7 @@ export default function ProjectsTD() {
                         ? emp.profile_picture
                         : `${apiBase}/uploads/${emp.profile_picture}`
                       : null;
-                    
+
                     return (
                       <div
                         key={emp.id}
@@ -3053,7 +3138,7 @@ export default function ProjectsTD() {
                     </span>
                   </div>
                 )}
-                
+
                 <div className="w-full space-y-4">
                   <div>
                     <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
@@ -3061,7 +3146,7 @@ export default function ProjectsTD() {
                       {selectedMember.full_name || "Not Available"}
                     </p>
                   </div>
-                  
+
                   {selectedMember.empid && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
@@ -3070,7 +3155,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.dob && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Birth</p>
@@ -3079,7 +3164,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.phone_number && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
@@ -3088,7 +3173,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.email && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
@@ -3097,7 +3182,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.user_role && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
@@ -3106,7 +3191,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.address && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Address</p>
@@ -3115,7 +3200,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.department && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Department</p>
@@ -3124,7 +3209,7 @@ export default function ProjectsTD() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedMember.doj && (
                     <div>
                       <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Joining</p>
