@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 
 interface LeaveEntry {
     id: number;
@@ -8,19 +10,36 @@ interface LeaveEntry {
     leaveType: string;
     appliedOn: string;
     currentStatus: string;
+    fromDate?: string;
+    toDate?: string;
+    description?: string;
 }
 
-const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+interface LeaveTypeOption {
+    id: number;
+    title: string;
+}
 
-const DUMMY_LEAVES: LeaveEntry[] = [
-    { id: 1, slNo: 1, employeeName: 'John Doe', leaveType: 'Sick Leave', appliedOn: '01/03/2026', currentStatus: 'Approved' },
-    { id: 2, slNo: 2, employeeName: 'Jane Smith', leaveType: 'Casual Leave', appliedOn: '28/02/2026', currentStatus: 'Pending' },
-    { id: 3, slNo: 3, employeeName: 'Mike Johnson', leaveType: 'Earned Leave', appliedOn: '25/02/2026', currentStatus: 'Approved' },
-    { id: 4, slNo: 4, employeeName: 'Sarah Williams', leaveType: 'Sick Leave', appliedOn: '20/02/2026', currentStatus: 'Rejected' },
-    { id: 5, slNo: 5, employeeName: 'David Brown', leaveType: 'Casual Leave', appliedOn: '15/02/2026', currentStatus: 'Approved' },
-];
+const mapStatusLabel = (rawStatus: unknown): string => {
+    const code = String(rawStatus ?? '').trim();
+    if (code === '1') return 'Approved';
+    if (code === '2') return 'Rejected';
+    return 'Pending';
+};
+
+const formatDate = (value?: string | null): string => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+};
 
 export default function ManageLeave() {
+    const { user } = useAuth();
+
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -28,8 +47,50 @@ export default function ManageLeave() {
     const [leaveFrom, setLeaveFrom] = useState('');
     const [leaveTo, setLeaveTo] = useState('');
     const [reason, setReason] = useState('');
+    const [leaveTypes, setLeaveTypes] = useState<LeaveTypeOption[]>([]);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+    // Load leave types and existing applications from backend
+    useEffect(() => {
+        // Fetch available leave types
+        api.get<{ leave_types?: any[] }>('/api/leave/types')
+            .then(({ data }) => {
+                const types = (data.leave_types || []).map((t) => ({
+                    id: t.id,
+                    title: t.title as string,
+                }));
+                setLeaveTypes(types);
+            })
+            .catch((err) => {
+                console.error('Failed to load leave types:', err);
+            });
+
+        // Fetch leave applications for current user
+        api.get<{ applications?: any[] }>('/api/leave/applications')
+            .then(({ data }) => {
+                const apps = data.applications || [];
+                const filtered = user?.id ? apps.filter((a: any) => a.employee_id === user.id) : apps;
+
+                const mapped: LeaveEntry[] = filtered.map((app: any, index: number) => ({
+                    id: app.lid ?? app.id,
+                    slNo: index + 1,
+                    employeeName: app.full_name ?? '',
+                    leaveType: app.title ?? '',
+                    appliedOn: formatDate(app.posting_date || app.from_date || app.to_date),
+                    currentStatus: mapStatusLabel(app.status),
+                    fromDate: app.from_date,
+                    toDate: app.to_date,
+                    description: app.description,
+                }));
+                setLeaves(mapped);
+            })
+            .catch((err) => {
+                console.error('Failed to load leave applications:', err);
+                setLeaves([]);
+            })
+            .finally(() => setLoading(false));
+    }, [user?.id]);
 
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
@@ -39,15 +100,46 @@ export default function ManageLeave() {
     const handleSubmitApply = (e: React.FormEvent) => {
         e.preventDefault();
         const trimmedReason = reason.trim();
-        if (!trimmedReason) {
+        if (!trimmedReason || !leaveType || !leaveFrom || !leaveTo) {
             return;
         }
-        // TODO: API submit
-        setLeaveType('');
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-        setApplyModalOpen(false);
+
+        api.post('/api/leave/applications', {
+            leavetype: leaveType,
+            from_date: leaveFrom,
+            to_date: leaveTo,
+            description: trimmedReason,
+        })
+            .then(() => {
+                // After successful apply, reload applications list
+                return api.get<{ applications?: any[] }>('/api/leave/applications');
+            })
+            .then(({ data }) => {
+                const apps = data.applications || [];
+                const filtered = user?.id ? apps.filter((a: any) => a.employee_id === user.id) : apps;
+                const mapped: LeaveEntry[] = filtered.map((app: any, index: number) => ({
+                    id: app.lid ?? app.id,
+                    slNo: index + 1,
+                    employeeName: app.full_name ?? '',
+                    leaveType: app.title ?? '',
+                    appliedOn: formatDate(app.posting_date || app.from_date || app.to_date),
+                    currentStatus: mapStatusLabel(app.status),
+                    fromDate: app.from_date,
+                    toDate: app.to_date,
+                    description: app.description,
+                }));
+                setLeaves(mapped);
+            })
+            .catch((err) => {
+                console.error('Failed to apply for leave:', err);
+            })
+            .finally(() => {
+                setLeaveType('');
+                setLeaveFrom('');
+                setLeaveTo('');
+                setReason('');
+                setApplyModalOpen(false);
+            });
     };
 
     const handleCloseModal = () => {
@@ -87,7 +179,13 @@ export default function ManageLeave() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {leaves.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
+                                        Loading leaves...
+                                    </td>
+                                </tr>
+                            ) : leaves.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
                                         No leave records found
@@ -161,8 +259,10 @@ export default function ManageLeave() {
                                     className="w-full px-4 py-2.5 bg-[#EAEAEA] border border-gray-200 rounded-md text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#DD4342]/30 focus:border-[#DD4342]"
                                 >
                                     <option value="">Nothing selected</option>
-                                    {LEAVE_TYPES.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
+                                    {leaveTypes.map((type) => (
+                                        <option key={type.id} value={String(type.id)}>
+                                            {type.title}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
