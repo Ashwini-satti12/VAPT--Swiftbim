@@ -65,7 +65,6 @@ export default function ProjectsTD() {
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
-  const [moduleNameInput, setModuleNameInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -76,8 +75,9 @@ export default function ProjectsTD() {
   const [createBIMLead, setCreateBIMLead] = useState("");
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
   const [createMember, setCreateMember] = useState("");
-  const [memberTags, setMemberTags] = useState<string[]>([]);
-  const [memberInput, setMemberInput] = useState("");
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
@@ -246,6 +246,11 @@ export default function ProjectsTD() {
         .get<{ departments?: string[] }>("/api/departments")
         .then(({ data }) => setDepartments(data.departments ?? []))
         .catch(() => setDepartments([]));
+    }
+    if (showCreateModal) {
+      setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
+      setCreateModuleName('m1, m2, m3, m4');
+      setSelectedMemberIds([]);
     }
   }, [showEditModal, showCreateModal]);
 
@@ -1785,7 +1790,7 @@ export default function ProjectsTD() {
                         project_manager_id: createProjectManager || undefined,
                         lead_id: createBIMLead || undefined,
                         bim_coordinator_id: createBIMCoOrdinator || undefined,
-                        members: createMember || undefined,
+                        members: selectedMemberIds.join(',') || createMember || undefined,
                         department: createDepartment || undefined,
                         due_date: createEndDate || undefined,
                         start_date: createStartDate || undefined,
@@ -1814,6 +1819,8 @@ export default function ProjectsTD() {
                         setCreateBIMLead("");
                         setCreateBIMCoOrdinator("");
                         setCreateMember("");
+                        setSelectedMemberIds([]);
+                        setModuleNameTags([]);
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
@@ -1874,54 +1881,18 @@ export default function ProjectsTD() {
                       placeholder="Enter Project Budget"
                     />
                   </div>
-                  {/* Module Name - Full Width (tag-based) */}
+                  {/* Module Name - Full Width */}
                   <div className="md:col-span-2 space-y-2">
                     <label className="block text-[15px] font-semibold text-[#000000]">
                       Module Name
                     </label>
                     <input
                       type="text"
-                      value={moduleNameInput}
-                      onChange={(e) => setModuleNameInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault();
-                          const val = moduleNameInput.trim().replace(/,$/, '');
-                          if (val && !moduleNameTags.includes(val)) {
-                            const updated = [...moduleNameTags, val];
-                            setModuleNameTags(updated);
-                            setCreateModuleName(updated.join(', '));
-                          }
-                          setModuleNameInput('');
-                        }
-                      }}
+                      value={createModuleName}
+                      onChange={(e) => setCreateModuleName(e.target.value)}
                       className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
-                      placeholder="Type module name and press Enter or comma"
+                      placeholder="Enter Module Name"
                     />
-                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Please enter module names, separated by commas, and then press enter
-                    </p>
-                    {moduleNameTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {moduleNameTags.map((tag, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = moduleNameTags.filter((_, i) => i !== idx);
-                                setModuleNameTags(updated);
-                                setCreateModuleName(updated.join(', '));
-                              }}
-                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
-                            >x</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -2133,46 +2104,58 @@ export default function ProjectsTD() {
                       </div>
                     </div>
                   </div>
-                  {/* Member multi-select */}
-                  <div className="space-y-2">
+                  {/* Members multi-select */}
+                  <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
                     <label className="block text-[15px] font-semibold text-[#000000]">
-                      Select Member
+                      Select Members
                     </label>
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val && !memberTags.includes(val)) {
-                          const updated = [...memberTags, val];
-                          setMemberTags(updated);
-                          setCreateMember(updated.join(', '));
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                    <div
+                      className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                      onClick={() => setMemberDropdownOpen(o => !o)}
                     >
-                      <option value="">Select Member to Add</option>
-                      {allEmployees.filter(emp => !memberTags.includes(emp.full_name || String(emp.id))).map((emp) => (
-                        <option key={emp.id} value={emp.full_name || String(emp.id)}>
-                          {emp.full_name || `Employee ${emp.id}`}
-                        </option>
-                      ))}
-                    </select>
-                    {memberTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {memberTags.map((tag, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = memberTags.filter((_, i) => i !== idx);
-                                setMemberTags(updated);
-                                setCreateMember(updated.join(', '));
-                              }}
-                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
-                            >x</button>
+                      {selectedMemberIds.length === 0 && <span className="text-gray-400 text-[16px]">Select Members</span>}
+                      {selectedMemberIds.map(id => {
+                        const emp = allEmployees.find(e => e.id === id);
+                        return emp ? (
+                          <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-medium px-2 py-0.5 rounded-full">
+                            {emp.full_name || `Employee ${emp.id}`}
+                            <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                           </span>
-                        ))}
+                        ) : null;
+                      })}
+                      <span className="ml-auto text-gray-400 text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
+                    </div>
+                    {memberDropdownOpen && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
+                        <div className="p-2 border-b">
+                          <input
+                            type="text"
+                            value={memberSearch}
+                            onChange={e => setMemberSearch(e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                            placeholder="Search employees..."
+                            className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] focus:outline-none"
+                          />
+                        </div>
+                        <div className="overflow-y-auto">
+                          {allEmployees
+                            .filter(e => (e.full_name ?? '').toLowerCase().includes(memberSearch.toLowerCase()))
+                            .map(e => (
+                              <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMemberIds.includes(e.id)}
+                                  onChange={() => setSelectedMemberIds(prev =>
+                                    prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id]
+                                  )}
+                                  onClick={ev => ev.stopPropagation()}
+                                  className="w-4 h-4 accent-[#DD4342]"
+                                />
+                                <span className="text-[14px] text-[#333]">{e.full_name || `Employee ${e.id}`}</span>
+                                <span className="ml-auto text-[12px] text-gray-400">{e.user_role}</span>
+                              </label>
+                            ))}
+                        </div>
                       </div>
                     )}
                   </div>

@@ -173,16 +173,19 @@ def create_project():
     location = data.get("location") or None
     description = data.get("description") or None
     start_date = data.get("start_date") or None
+    resources = data.get("resources") or None
+    required_resources = data.get("required_resources") or None
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, resources, required_resources)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
-         client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date),
+         client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
+         resources, required_resources),
     )
     project_id = cur.lastrowid
     return jsonify({"success": True, "project_id": project_id})
@@ -196,7 +199,7 @@ def update_project(project_id):
     cur = conn.cursor()
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
-               "budget_ceiling", "bidding_end_date")
+               "budget_ceiling", "bidding_end_date", "resources", "required_resources")
     sets = []
     params = []
     for key in allowed:
