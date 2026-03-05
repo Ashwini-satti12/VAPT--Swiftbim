@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
 
 interface AttendanceEntry {
@@ -20,6 +20,21 @@ export default function TrackerBL() {
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Online', 'Offline'];
+    const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+        { value: '0-100', label: '0-100', start: 0, end: 100 },
+        { value: '101-200', label: '101-200', start: 100, end: 200 },
+        { value: '201-300', label: '201-300', start: 200, end: 300 },
+        { value: '301-400', label: '301-400', start: 300, end: 400 },
+        { value: 'all', label: 'All', start: 0, end: null },
+    ];
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const PER_PAGE = 10;
+    const PAGINATION_VISIBLE = 4;
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+    const statusDropdownRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -39,15 +54,24 @@ export default function TrackerBL() {
         return 'Offline';
     };
 
-    // Format time from HH:MM:SS to 12-hour format with seconds
+    // Extract pure time (HH:MM:SS) from a time or datetime string
+    const extractTime = (value: string): string => {
+        const trimmed = value.trim();
+        if (!trimmed) return trimmed;
+        const match = trimmed.match(/(\d{1,2}:\d{2}:\d{2})/);
+        return match ? match[1] : trimmed;
+    };
+
+    // Format time to HH:MM:SS (24‑hour) for display
     const formatTime = (timeStr: string | null | undefined): string => {
         if (!timeStr || timeStr.trim() === '') return 'N/A';
         try {
-            const [hours, minutes, seconds] = timeStr.split(':');
-            const hour = parseInt(hours, 10);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            const hour12 = hour % 12 || 12;
-            return `${hour12.toString().padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+            const pure = extractTime(timeStr);
+            const [hours, minutes, seconds = '00'] = pure.split(':');
+            const h = hours.padStart(2, '0');
+            const m = minutes.padStart(2, '0');
+            const s = seconds.padStart(2, '0');
+            return `${h}:${m}:${s}`;
         } catch {
             return timeStr;
         }
@@ -107,6 +131,20 @@ export default function TrackerBL() {
             .finally(() => setLoading(false));
     }, [selectedDate]);
 
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) setStatusOpen(false);
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) setShowEntriesOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries, selectedStatus]);
+
     const filteredList = list.filter((item) => {
         let matchesStatus = true;
 
@@ -118,6 +156,30 @@ export default function TrackerBL() {
 
         return matchesStatus;
     });
+
+    const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+    const rangeStart = selectedRange.start;
+    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const visiblePageRanges = pageRanges.slice(paginationWindowStart - 1, paginationWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -173,7 +235,7 @@ export default function TrackerBL() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Select Date Filter */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer group min-w-[130px]">
                         <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {formatDate(selectedDate)}
                         </span>
@@ -194,9 +256,9 @@ export default function TrackerBL() {
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" onBlur={() => setTimeout(() => setStatusOpen(false), 150)}>
+                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
                         <button type="button" onClick={() => setStatusOpen(o => !o)}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
@@ -217,11 +279,41 @@ export default function TrackerBL() {
                         )}
                     </div>
 
+                    {/* Show entries dropdown - same design as TrackerTD */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen((o) => !o); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+                        >
+                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1" onMouseDown={(e) => e.preventDefault()}>
+                                {showEntriesOptions.map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Download Button */}
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -231,47 +323,47 @@ export default function TrackerBL() {
                 </div>
             </div>
 
-            {/* Table Section */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
+            {/* Table Section - scrollable when many rows */}
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-white">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Sl.No</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Date</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Employee Name</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Time In</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Time Out</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Total Hours</th>
-                                <th className="px-6 py-4 text-center text-md font-bold text-gray-700 bg-white">Status</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {filteredList.length === 0 ? (
+                            {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium bg-white">
+                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                filteredList.map((entry, index) => {
-                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                displayedList.map((entry, index) => {
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : 'N/A';
                                     const timeIn = formatTime(entry.time_in);
                                     const timeOut = formatTime(entry.time_out || null);
                                     const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
                                     const status = getStatus(entry);
-
                                     return (
                                         <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{formattedDate}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{entry.full_name ?? 'N/A'}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeIn}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600">{timeOut}</td>
-                                            <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{totalHours}</td>
-                                            <td className="px-6 py-3 text-center">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold ${status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? 'N/A'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
                                                     {status}
                                                 </span>
                                             </td>
@@ -281,6 +373,30 @@ export default function TrackerBL() {
                             )}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            {/* Pagination bar - same design as TrackerTD */}
+            <div className="flex flex-wrap items-center justify-end mt-auto -mb-8 pt-0 pb-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                    <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                    <button type="button" onClick={goPrevWindow} disabled={!canPrevWindow} className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                        Prev
+                    </button>
+                    {visiblePageRanges.map((pr) => {
+                        const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
+                        const isActive = pageNum === activePage;
+                        return (
+                            <button key={pr.label} type="button" onClick={() => setCurrentPage(pageNum)} className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}>
+                                {pr.label}
+                            </button>
+                        );
+                    })}
+                    <button type="button" onClick={goNextWindow} disabled={!canNextWindow} className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed">
+                        Next
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
                 </div>
             </div>
 
