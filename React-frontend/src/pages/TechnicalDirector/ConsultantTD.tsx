@@ -225,6 +225,7 @@ export default function ConsultantTD() {
     accountnumber: '',
     roles: [] as string[],
     profile_picture: null as File | null,
+    active: 'Active',
   });
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -246,7 +247,8 @@ export default function ConsultantTD() {
     salary: '',
     accountnumber: '',
     profile_picture: null as File | null,
-    roles: [] as string[]
+    roles: [] as string[],
+    active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -377,7 +379,8 @@ export default function ConsultantTD() {
           salary: emp.salary || '',
           accountnumber: emp.accountnumber || '',
           profile_picture: null,
-          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+          active: emp.active === 'active' ? 'Active' : 'Deactivate',
         });
       }
     }
@@ -451,6 +454,7 @@ export default function ConsultantTD() {
       if (editForm.user_type) formData.append('user_type', editForm.user_type);
       if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
       if (editForm.password) formData.append('password', editForm.password);
+      if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
       if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
 
       api
@@ -478,6 +482,7 @@ export default function ConsultantTD() {
                   accountnumber: editForm.accountnumber,
                   user_type: editForm.user_type,
                   Allpannel: editForm.roles.join(','),
+                  active: editForm.active === 'Active' ? 'active' : 'inactive',
                   profile_picture: newPic ?? e.profile_picture,
                 };
               }
@@ -507,6 +512,7 @@ export default function ConsultantTD() {
         accountnumber: editForm.accountnumber || undefined,
         user_type: editForm.user_type || undefined,
         Allpannel: editForm.roles.join(','),
+        active: editForm.active === 'Active' ? 'active' : 'inactive',
         ...(editForm.password ? { password: editForm.password } : {}),
       };
 
@@ -530,6 +536,7 @@ export default function ConsultantTD() {
                   accountnumber: editForm.accountnumber,
                   user_type: editForm.user_type,
                   Allpannel: payload.Allpannel,
+                  active: editForm.active === 'Active' ? 'active' : 'inactive',
                 };
               }
               return e;
@@ -580,6 +587,7 @@ export default function ConsultantTD() {
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.department) formData.append('department', form.department);
     if (form.roles.length) formData.append('roles', form.roles.join(','));
+    if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
       formData.append('profile_picture', form.profile_picture);
     }
@@ -608,6 +616,7 @@ export default function ConsultantTD() {
             salary: '',
             accountnumber: '',
             roles: [],
+            active: 'Active',
           });
           setList((prev) => [
             ...prev,
@@ -617,7 +626,7 @@ export default function ConsultantTD() {
               email: form.email,
               user_role: form.user_role,
               department: form.department,
-              active: 'active',
+              active: form.active === 'Active' ? 'active' : 'inactive',
               dob: form.dob,
               user_type: form.type,
               doj: form.joining_date,
@@ -879,7 +888,8 @@ export default function ConsultantTD() {
                               salary: emp.salary || '',
                               accountnumber: emp.accountnumber || '',
                               profile_picture: null,
-                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : []
+                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
+                              active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
                           className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
@@ -1138,6 +1148,15 @@ export default function ConsultantTD() {
                       placeholder="Select Department"
                     />
                   </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={form.active}
+                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
+                    />
+                  </div>
                 </div>
 
                 {/* Column 2 */}
@@ -1298,6 +1317,15 @@ export default function ConsultantTD() {
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={editForm.active}
+                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
                     />
                   </div>
                   <div>

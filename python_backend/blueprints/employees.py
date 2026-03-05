@@ -86,6 +86,10 @@ def create_employee():
     address = data.get("address") or ""
     department = data.get("department") or data.get("userdpt") or ""
     empid = data.get("empid") or ""
+    # Optional numeric/financial fields
+    salary = data.get("salary")
+    accountnumber = data.get("accountnumber")
+    active = data.get("active") or "active"  # Default to 'active' if not provided
     roles = data.get("role") or data.get("roles") or []
     if isinstance(roles, str):
         roles = [roles]
@@ -145,9 +149,27 @@ def create_employee():
             pass
     try:
         cur.execute(
-            """INSERT INTO employee (full_name, empid, phone_number, email, dob, password, doj, user_type, user_role, address, Company_id, department, Allpannel, profile_picture)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (full_name, empid, phone_number, email, dob, hashed, doj, user_type, user_role, address, g.company_id, department, Allpannel, profile_path),
+            """INSERT INTO employee (full_name, empid, phone_number, email, dob, password, doj, user_type, user_role, address, Company_id, department, Allpannel, profile_picture, salary, accountnumber, active)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                full_name,
+                empid,
+                phone_number,
+                email,
+                dob,
+                hashed,
+                doj,
+                user_type,
+                user_role,
+                address,
+                g.company_id,
+                department,
+                Allpannel,
+                profile_path,
+                salary,
+                accountnumber,
+                active,
+            ),
         )
         emp_id = cur.lastrowid
         return jsonify({"success": True, "id": emp_id, "profile_picture": profile_path})
@@ -228,7 +250,7 @@ def update_employee(emp_id):
     
     conn = get_db()
     cur = conn.cursor()
-    allowed = ("full_name", "phone_number", "email", "dob", "doj", "user_type", "user_role", "address", "department", "salary", "accountnumber")
+    allowed = ("full_name", "phone_number", "email", "dob", "doj", "user_type", "user_role", "address", "department", "salary", "accountnumber", "active")
     sets = []
     params = []
     for key in allowed:
