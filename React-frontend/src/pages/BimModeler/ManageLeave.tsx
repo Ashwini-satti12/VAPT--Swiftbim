@@ -14,11 +14,6 @@ interface LeaveEntry {
     description?: string;
 }
 
-interface LeaveTypeOption {
-    id: number;
-    title: string;
-}
-
 const DUMMY_LEAVES: LeaveEntry[] = [
     { id: 1, slNo: 1, employeeName: 'John Doe', leaveType: 'Sick Leave', appliedOn: '01/03/2026', currentStatus: 'Approved' },
     { id: 2, slNo: 2, employeeName: 'Jane Smith', leaveType: 'Casual Leave', appliedOn: '28/02/2026', currentStatus: 'Pending' },
@@ -32,6 +27,8 @@ const DUMMY_LEAVES: LeaveEntry[] = [
     { id: 10, slNo: 10, employeeName: 'Sophia Anderson', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', currentStatus: 'Approved' },
 ];
 
+const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: '0-100', label: '0-100', start: 0, end: 100 },
     { value: '101-200', label: '101-200', start: 100, end: 200 },
@@ -44,8 +41,6 @@ const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeave() {
-    const { user } = useAuth();
-
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -53,9 +48,7 @@ export default function ManageLeave() {
     const [leaveFrom, setLeaveFrom] = useState('');
     const [leaveTo, setLeaveTo] = useState('');
     const [reason, setReason] = useState('');
-    const [leaveTypes, setLeaveTypes] = useState<LeaveTypeOption[]>([]);
-    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
 
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
@@ -64,8 +57,6 @@ export default function ManageLeave() {
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
-
-    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -365,7 +356,7 @@ export default function ManageLeave() {
                                         >
                                             Nothing selected
                                         </button>
-                                        {LEAVE_TYPES.map((type) => {
+                                        {LEAVE_TYPES.map((type: string) => {
                                             const isSelected = leaveType === type;
                                             return (
                                                 <button
