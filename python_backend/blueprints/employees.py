@@ -187,7 +187,11 @@ def get_employee(emp_id):
 @bp.route("/<int:emp_id>", methods=["PUT", "PATCH"])
 @project_app_required
 def update_employee(emp_id):
-    data = request.get_json() or request.form
+    # Accept both JSON and form/multipart without raising 415
+    if request.is_json:
+        data = request.get_json() or {}
+    else:
+        data = request.form
     new_role = data.get("user_role") or data.get("userRole")
     if new_role is not None:
         restricted = _restricted_roles_for_current_user()

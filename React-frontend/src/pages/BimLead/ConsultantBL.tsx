@@ -89,7 +89,8 @@ export default function ConsultantBL() {
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [statusFilter, setStatusFilter] = useState<'All' | 'Online' | 'Offline'>('All');
 
     const canAdd = user?.panel_type === 1;
 
@@ -97,17 +98,51 @@ export default function ConsultantBL() {
         api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
     }, []);
 
-    // Fetch roles and departments from backend
+    // Fetch roles and departments from backend (deduplicated, case-insensitive)
     useEffect(() => {
         api.get<{ roles?: string[] }>('/api/employees/roles')
-            .then(({ data }) => setRoles(data.roles || []))
+            .then(({ data }) => {
+                if (data.roles && Array.isArray(data.roles)) {
+                    const map = new Map<string, string>();
+                    data.roles
+                        .filter(Boolean)
+                        .forEach((name) => {
+                            const trimmed = name.trim();
+                            if (!trimmed) return;
+                            const key = trimmed.toLowerCase();
+                            if (!map.has(key)) {
+                                map.set(key, trimmed);
+                            }
+                        });
+                    setRoles(Array.from(map.values()));
+                } else {
+                    setRoles([]);
+                }
+            })
             .catch((error) => {
                 console.error('Error fetching roles:', error);
                 setRoles([]);
             });
 
         api.get<{ departments?: string[] }>('/api/departments')
-            .then(({ data }) => setDepartments(data.departments || []))
+            .then(({ data }) => {
+                if (data.departments && Array.isArray(data.departments)) {
+                    const map = new Map<string, string>();
+                    data.departments
+                        .filter(Boolean)
+                        .forEach((name) => {
+                            const trimmed = name.trim();
+                            if (!trimmed) return;
+                            const key = trimmed.toLowerCase();
+                            if (!map.has(key)) {
+                                map.set(key, trimmed);
+                            }
+                        });
+                    setDepartments(Array.from(map.values()));
+                } else {
+                    setDepartments([]);
+                }
+            })
             .catch((error) => {
                 console.error('Error fetching departments:', error);
                 setDepartments([]);
@@ -141,8 +176,15 @@ export default function ConsultantBL() {
         }
     }, [editParam, list]);
 
-    const paginatedList = list.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const totalPages = Math.ceil(list.length / itemsPerPage);
+    const filteredList = list.filter((emp) => {
+        if (statusFilter === 'All') return true;
+        const isActive = (emp.active || '').toLowerCase() === 'active';
+        return statusFilter === 'Online' ? isActive : !isActive;
+    });
+
+    const effectivePerPage = itemsPerPage === 0 ? filteredList.length || 1 : itemsPerPage;
+    const paginatedList = filteredList.slice((currentPage - 1) * effectivePerPage, currentPage * effectivePerPage);
+    const totalPages = Math.ceil(filteredList.length / effectivePerPage);
 
     function exportCsv() {
         const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -183,52 +225,111 @@ export default function ConsultantBL() {
         if (!editId) return;
         setEditSubmitting(true);
 
-        // Build payload with all fields from redesign
-        const payload = {
-            full_name: editForm.full_name,
-            email: editForm.email,
-            phone_number: editForm.phone_number || undefined,
-            user_role: editForm.user_role,
-            department: editForm.department || undefined,
-            address: editForm.address || undefined,
-            dob: editForm.dob || undefined,
-            doj: editForm.doj || undefined,
-            salary: editForm.salary || undefined,
-            accountnumber: editForm.accountnumber || undefined,
-            user_type: editForm.user_type || undefined,
-            Allpannel: editForm.roles.join(','),
-            ...(editForm.password ? { password: editForm.password } : {})
-        };
+        const hasNewFile = !!editForm.profile_picture;
 
-        api.patch(`/api/employees/${editId}`, payload)
-            .then(() => {
-                setList((prev) => prev.map((e) => {
-                    if (e.id === editId) {
-                        return {
-                            ...e,
-                            full_name: editForm.full_name,
-                            email: editForm.email,
-                            phone_number: editForm.phone_number,
-                            user_role: editForm.user_role,
-                            department: editForm.department,
-                            address: editForm.address,
-                            dob: editForm.dob,
-                            doj: editForm.doj,
-                            salary: editForm.salary,
-                            accountnumber: editForm.accountnumber,
-                            user_type: editForm.user_type,
-                            Allpannel: payload.Allpannel,
-                        };
-                    }
-                    return e;
-                }));
-                setEditId(null);
-                setSearchParams({});
-            })
-            .catch((err) => {
-                console.error('Update failed:', err);
-            })
-            .finally(() => setEditSubmitting(false));
+        // If user selected a new profile picture, send multipart/form-data
+        if (hasNewFile) {
+            const formData = new FormData();
+            formData.append('full_name', editForm.full_name);
+            formData.append('email', editForm.email);
+            if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
+            if (editForm.user_role) formData.append('user_role', editForm.user_role);
+            if (editForm.department) formData.append('department', editForm.department);
+            if (editForm.address) formData.append('address', editForm.address);
+            if (editForm.dob) formData.append('dob', editForm.dob);
+            if (editForm.doj) formData.append('doj', editForm.doj);
+            if (editForm.salary) formData.append('salary', editForm.salary);
+            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
+            if (editForm.user_type) formData.append('user_type', editForm.user_type);
+            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
+            if (editForm.password) formData.append('password', editForm.password);
+            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
+
+            api
+                .patch<{ success: boolean; profile_picture?: string | null }>(
+                    `/api/employees/${editId}`,
+                    formData,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                )
+                .then(({ data }) => {
+                    const newPic = data.profile_picture || undefined;
+                    setList((prev) =>
+                        prev.map((e) =>
+                            e.id === editId
+                                ? {
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: editForm.phone_number,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: editForm.roles.join(','),
+                                      profile_picture: newPic ?? e.profile_picture,
+                                  }
+                                : e
+                        )
+                    );
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        } else {
+            // No new file: send JSON payload
+            const payload = {
+                full_name: editForm.full_name,
+                email: editForm.email,
+                phone_number: editForm.phone_number || undefined,
+                user_role: editForm.user_role,
+                department: editForm.department || undefined,
+                address: editForm.address || undefined,
+                dob: editForm.dob || undefined,
+                doj: editForm.doj || undefined,
+                salary: editForm.salary || undefined,
+                accountnumber: editForm.accountnumber || undefined,
+                user_type: editForm.user_type || undefined,
+                Allpannel: editForm.roles.join(','),
+                ...(editForm.password ? { password: editForm.password } : {})
+            };
+
+            api.patch(`/api/employees/${editId}`, payload)
+                .then(() => {
+                    setList((prev) => prev.map((e) => {
+                        if (e.id === editId) {
+                            return {
+                                ...e,
+                                full_name: editForm.full_name,
+                                email: editForm.email,
+                                phone_number: editForm.phone_number,
+                                user_role: editForm.user_role,
+                                department: editForm.department,
+                                address: editForm.address,
+                                dob: editForm.dob,
+                                doj: editForm.doj,
+                                salary: editForm.salary,
+                                accountnumber: editForm.accountnumber,
+                                user_type: editForm.user_type,
+                                Allpannel: payload.Allpannel,
+                            };
+                        }
+                        return e;
+                    }));
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        }
     }
 
     function handleAddSubmit(e: React.FormEvent) {
@@ -239,33 +340,62 @@ export default function ConsultantBL() {
             return;
         }
         setAddSubmitting(true);
+
+        // Build multipart form data so backend receives profile_picture file
+        const formData = new FormData();
+        formData.append('full_name', form.full_name.trim());
+        formData.append('email', form.email.trim());
+        formData.append('password', form.password);
+        if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+        if (form.user_role) formData.append('user_role', form.user_role);
+        if (form.address.trim()) formData.append('address', form.address.trim());
+        if (form.dob) formData.append('dob', form.dob);
+        if (form.type) formData.append('user_type', form.type);
+        if (form.joining_date) formData.append('doj', form.joining_date);
+        if (form.department) formData.append('department', form.department);
+        if (form.profile_picture) {
+            formData.append('profile_picture', form.profile_picture);
+        }
+
         api
-            .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
-                full_name: form.full_name.trim(),
-                email: form.email.trim(),
-                password: form.password,
-                phone_number: form.phone_number.trim() || undefined,
-                user_role: form.user_role,
-                department: form.department.trim() || undefined,
-                address: form.address.trim() || undefined,
-            })
+            .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
+                '/api/employees',
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            )
             .then(({ data }) => {
                 if (data.success) {
                     setShowAddModal(false);
                     setForm({
                         full_name: '',
+                        dob: '',
+                        phone_number: '',
                         email: '',
                         password: '',
-                        phone_number: '',
+                        type: '',
                         user_role: 'Consultant',
+                        joining_date: '',
                         department: '',
                         address: '',
-                        dob: '',
-                        type: '',
-                        joining_date: '',
-                        profile_picture: null
+                        profile_picture: null,
                     });
-                    setList((prev) => [...prev, { id: data.id!, full_name: form.full_name, email: form.email, user_role: form.user_role, active: 'active' }]);
+                    setList((prev) => [
+                        ...prev,
+                        {
+                            id: data.id!,
+                            full_name: form.full_name,
+                            email: form.email,
+                            user_role: form.user_role,
+                            active: 'active',
+                            dob: form.dob,
+                            user_type: form.type,
+                            doj: form.joining_date,
+                            address: form.address,
+                            department: form.department,
+                            phone_number: form.phone_number,
+                            profile_picture: data.profile_picture || undefined,
+                        },
+                    ]);
                 } else {
                     setAddError(data.message || 'Failed to add consultant.');
                 }
@@ -342,20 +472,57 @@ export default function ConsultantBL() {
                     >
                         <FiGrid className="w-6 h-6" />
                     </button>
-                    <div className="relative group">
+
+                    {/* Show: dropdown */}
+                    <div className="relative">
                         <div className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F2] rounded-[5px]">
                             <span className="text-[14px] font-Gantari text-[#6B6B6B]">Show:</span>
-                            <button className="flex items-center gap-2 text-[14px] font-semibold text-[#353535]">
-                                {itemsPerPage}
-                                <FiChevronDown className="w-4 h-4 text-slate-500" />
-                            </button>
+                            <div className="relative">
+                                <select
+                                    value={itemsPerPage === 0 ? 'All' : String(itemsPerPage)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'All') {
+                                            setItemsPerPage(0);
+                                            setCurrentPage(1);
+                                        } else {
+                                            setItemsPerPage(parseInt(val, 10));
+                                            setCurrentPage(1);
+                                        }
+                                    }}
+                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
+                                >
+                                    {/* As requested: 12, 20, ... All */}
+                                    <option value="12">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="All">All</option>
+                                </select>
+                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                            </div>
                         </div>
                     </div>
-                    <div className="relative group">
-                        <button className="inline-flex items-center gap-4 px-5 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-[5px] font-semibold font-Gantari">
-                            Status
-                            <FiChevronDown className="w-5 h-5 text-slate-500" />
-                        </button>
+
+                    {/* Status filter dropdown */}
+                    <div className="relative">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-[5px]">
+                            <span className="text-[14px] font-Gantari text-[#353535]">Status</span>
+                            <div className="relative">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => {
+                                        setStatusFilter(e.target.value as 'All' | 'Online' | 'Offline');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
+                                >
+                                    <option value="All">All</option>
+                                    <option value="Online">Online</option>
+                                    <option value="Offline">Offline</option>
+                                </select>
+                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -395,15 +562,30 @@ export default function ConsultantBL() {
                                         {/* User Profile Info on Image */}
                                         <div className="absolute inset-x-0 bottom-0 p-5 flex items-center gap-4 z-10">
                                             <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0">
-                                                <img
-                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
-                                                    alt={emp.full_name}
-                                                    className="w-full h-full object-cover"
-                                                />
+                                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                                    <img
+                                                        src={`/uploads/employee/${emp.profile_picture.replace(/\\/g, '/')}`}
+                                                        alt={emp.full_name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            // If loading fails, hide the image and show placeholder
+                                                            const target = e.target as HTMLImageElement;
+                                                            target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                        <span className="text-gray-400 text-xs">No Photo</span>
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">{emp.full_name}</h3>
-                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                                                    {emp.full_name}
+                                                </h3>
+                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">
+                                                    {emp.user_role || 'Consultant'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -507,11 +689,21 @@ export default function ConsultantBL() {
                                                     <div className="flex items-center gap-4">
                                                         <div className="relative">
                                                             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200">
-                                                                <img
-                                                                    // src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`} 
-                                                                    alt={emp.full_name}
-                                                                    className="w-full h-full object-cover"
-                                                                />
+                                                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                                                    <img
+                                                                        src={`/uploads/employee/${emp.profile_picture.replace(/\\/g, '/')}`}
+                                                                        alt={emp.full_name}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={(e) => {
+                                                                            const target = e.target as HTMLImageElement;
+                                                                            target.style.display = 'none';
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                                        <span className="text-gray-400 text-[10px]">No Photo</span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                                         </div>
@@ -719,9 +911,8 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Type</option>
-                                                <option value="Full Time">Full Time</option>
-                                                <option value="Part Time">Part Time</option>
-                                                <option value="Contract">Contract</option>
+                                                <option value="Full Time">Trainee</option>
+                                                <option value="Part Time">Consultant</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -1075,9 +1266,8 @@ export default function ConsultantBL() {
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Type</option>
-                                                <option value="Employee">Employee</option>
+                                                <option value="Trainee">Trainee</option>
                                                 <option value="Consultant">Consultant</option>
-                                                <option value="Contractor">Contractor</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
                                         </div>
@@ -1228,6 +1418,9 @@ export default function ConsultantBL() {
                                 { label: 'User Role', value: selectedEmployee.user_role },
                                 { label: 'Address', value: selectedEmployee.address },
                                 { label: 'Joined Date', value: selectedEmployee.doj },
+                                { label: 'Department', value: selectedEmployee.department },
+                                { label: 'Account Number', value: selectedEmployee.accountnumber },
+                                { label: 'Salary', value: selectedEmployee.salary },
                             ].map((item, idx) => (
                                 <div key={idx} className="grid grid-cols-[140px_20px_1fr] text-[15px] gap-15">
                                     <span className="font-semibold font-Gantari text-[#00000] ">{item.label}</span>

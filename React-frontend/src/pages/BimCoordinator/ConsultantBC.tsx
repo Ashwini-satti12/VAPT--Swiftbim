@@ -4,6 +4,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+
+// Get API base URL for image URLs (same logic as other panels)
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || '';
+};
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -31,9 +36,57 @@ interface Employee {
 }
 
 const getProfileUrl = (path: string | undefined): string => {
-    if (!path) return "";
+    if (!path || path.trim() === "") return "";
     if (path.startsWith("http")) return path;
-    return `/uploads/${path.replace(/\\/g, "/")}`;
+
+    // Normalize path separators
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+
+    // Remove leading numbers and spaces (e.g., "1 WhatsApp Image..." or "0 anu.jpg")
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+
+    // Remove leading slashes if any
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    // Get API base URL
+    const apiBaseUrl = getApiBaseUrl();
+
+    // Build the full URL path
+    let urlPath = "";
+
+    // If path already starts with "employee/", use it directly
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part)
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+    // If path starts with "profiles/", redirect to employee folder instead
+    else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    }
+    // If path doesn't include a subfolder, assume it's in employee folder
+    else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    }
+    // If path has other subfolders, encode each part
+    else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part)
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    const base = apiBaseUrl.replace(/\/$/, "");
+    // If base URL is empty, use relative path (works with Vite proxy)
+    if (!base) {
+        return urlPath;
+    }
+
+    return `${base}${urlPath}`;
 };
 
 const PANEL_ROLES = [
@@ -235,60 +288,129 @@ export default function ConsultantBC() {
         setEditSubmitting(true);
         setEditError('');
 
-        // Build payload with all fields from redesign
-        const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+        const hasNewFile = !!editForm.profile_picture;
 
-        const payload = {
-            full_name: editForm.full_name,
-            email: editForm.email,
-            phone_number: editForm.phone_number || undefined,
-            ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
-            department: editForm.department || undefined,
-            address: editForm.address || undefined,
-            dob: editForm.dob || undefined,
-            doj: editForm.doj || undefined,
-            salary: editForm.salary || undefined,
-            accountnumber: editForm.accountnumber || undefined,
-            user_type: editForm.user_type || undefined,
-            Allpannel: editForm.roles.join(','),
-            ...(editForm.password ? { password: editForm.password } : {})
-        };
+        // If user selected a new profile picture, send multipart/form-data
+        if (hasNewFile) {
+            const formData = new FormData();
+            formData.append('full_name', editForm.full_name);
+            formData.append('email', editForm.email);
+            if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
 
-        api.patch(`/api/employees/${editId}`, payload)
-            .then((response) => {
-                if (response.data.success === false) {
-                    setEditError(response.data.message || 'Failed to update consultant.');
-                    return;
-                }
-                setList((prev) => prev.map((e) => {
-                    if (e.id === editId) {
-                        return {
-                            ...e,
-                            full_name: editForm.full_name,
-                            email: editForm.email,
-                            phone_number: editForm.phone_number,
-                            user_role: editForm.user_role,
-                            department: editForm.department,
-                            address: editForm.address,
-                            dob: editForm.dob,
-                            doj: editForm.doj,
-                            salary: editForm.salary,
-                            accountnumber: editForm.accountnumber,
-                            user_type: editForm.user_type,
-                            Allpannel: payload.Allpannel,
-                        };
+            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+            if (!shouldOmitUserRole && editForm.user_role) formData.append('user_role', editForm.user_role);
+
+            if (editForm.department) formData.append('department', editForm.department);
+            if (editForm.address) formData.append('address', editForm.address);
+            if (editForm.dob) formData.append('dob', editForm.dob);
+            if (editForm.doj) formData.append('doj', editForm.doj);
+            if (editForm.salary) formData.append('salary', editForm.salary);
+            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
+            if (editForm.user_type) formData.append('user_type', editForm.user_type);
+            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
+            if (editForm.password) formData.append('password', editForm.password);
+            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
+
+            api
+                .patch<{ success: boolean; profile_picture?: string | null; message?: string }>(
+                    `/api/employees/${editId}`,
+                    formData,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                )
+                .then(({ data }) => {
+                    if (data.success === false) {
+                        setEditError(data.message || 'Failed to update consultant.');
+                        return;
                     }
-                    return e;
-                }));
-                setEditId(null);
-                setSearchParams({});
-            })
-            .catch((err) => {
-                const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
-                setEditError(errorMessage);
-                console.error('Update failed:', err);
-            })
-            .finally(() => setEditSubmitting(false));
+                    const newPic = data.profile_picture || undefined;
+                    setList((prev) =>
+                        prev.map((e) =>
+                            e.id === editId
+                                ? {
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: editForm.phone_number,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: editForm.roles.join(','),
+                                      profile_picture: newPic ?? e.profile_picture,
+                                  }
+                                : e
+                        )
+                    );
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
+                    setEditError(errorMessage);
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        } else {
+            // No new file: send JSON payload
+            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+            const payload = {
+                full_name: editForm.full_name,
+                email: editForm.email,
+                phone_number: editForm.phone_number || undefined,
+                ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
+                department: editForm.department || undefined,
+                address: editForm.address || undefined,
+                dob: editForm.dob || undefined,
+                doj: editForm.doj || undefined,
+                salary: editForm.salary || undefined,
+                accountnumber: editForm.accountnumber || undefined,
+                user_type: editForm.user_type || undefined,
+                Allpannel: editForm.roles.join(','),
+                ...(editForm.password ? { password: editForm.password } : {})
+            };
+
+            api
+                .patch(`/api/employees/${editId}`, payload)
+                .then((response) => {
+                    if (response.data.success === false) {
+                        setEditError(response.data.message || 'Failed to update consultant.');
+                        return;
+                    }
+                    setList((prev) =>
+                        prev.map((e) =>
+                            e.id === editId
+                                ? {
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: editForm.phone_number,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: payload.Allpannel,
+                                  }
+                                : e
+                        )
+                    );
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
+                    setEditError(errorMessage);
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        }
     }
 
     function handleAddSubmit(e: React.FormEvent) {
@@ -299,16 +421,29 @@ export default function ConsultantBC() {
             return;
         }
         setAddSubmitting(true);
+
+        // Use multipart/form-data so backend receives profile_picture file
+        const formData = new FormData();
+        formData.append('full_name', form.full_name.trim());
+        formData.append('email', form.email.trim());
+        formData.append('password', form.password);
+        if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+        if (form.user_role) formData.append('user_role', form.user_role);
+        if (form.address.trim()) formData.append('address', form.address.trim());
+        if (form.dob) formData.append('dob', form.dob);
+        if (form.type) formData.append('user_type', form.type);
+        if (form.joining_date) formData.append('doj', form.joining_date);
+        if (form.department) formData.append('department', form.department);
+        if (form.profile_picture) {
+            formData.append('profile_picture', form.profile_picture);
+        }
+
         api
-            .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
-                full_name: form.full_name.trim(),
-                email: form.email.trim(),
-                password: form.password,
-                phone_number: form.phone_number.trim() || undefined,
-                user_role: form.user_role,
-                department: form.department.trim() || undefined,
-                address: form.address.trim() || undefined,
-            })
+            .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
+                '/api/employees',
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            )
             .then(({ data }) => {
                 if (data.success) {
                     setShowAddModal(false);
@@ -325,7 +460,23 @@ export default function ConsultantBC() {
                         joining_date: '',
                         profile_picture: null
                     });
-                    setList((prev) => [...prev, { id: data.id!, full_name: form.full_name, email: form.email, user_role: form.user_role, active: 'active' }]);
+                    setList((prev) => [
+                        ...prev,
+                        {
+                            id: data.id!,
+                            full_name: form.full_name,
+                            email: form.email,
+                            user_role: form.user_role,
+                            active: 'active',
+                            department: form.department,
+                            phone_number: form.phone_number,
+                            address: form.address,
+                            dob: form.dob,
+                            user_type: form.type,
+                            doj: form.joining_date,
+                            profile_picture: data.profile_picture || undefined,
+                        },
+                    ]);
                 } else {
                     setAddError(data.message || 'Failed to add consultant.');
                 }
@@ -452,21 +603,32 @@ export default function ConsultantBC() {
                                             </div>
                                         </div>
 
-                                        {/* User Profile Info on Image */}
+                                        {/* User Profile Info on Image (real photo if present, otherwise initials) */}
                                         <div className="absolute inset-x-0 bottom-0 p-5 flex items-center gap-4 z-10">
-                                            <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                                                <img
-                                                    src={emp.profile_picture ? getProfileUrl(emp.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`}
-                                                    alt={emp.full_name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
-                                                    }}
-                                                />
+                                            <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm flex items-center justify-center">
+                                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                                    <img
+                                                        src={getProfileUrl(emp.profile_picture)}
+                                                        alt={emp.full_name}
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            // Hide broken image; name text still shows
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <span className="text-[24px] font-semibold text-[#1A1A1A]">
+                                                        {emp.full_name.charAt(0).toUpperCase() || 'U'}
+                                                    </span>
+                                                )}
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">{emp.full_name}</h3>
-                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                                                    {emp.full_name}
+                                                </h3>
+                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">
+                                                    {emp.user_role || 'Consultant'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -570,15 +732,21 @@ export default function ConsultantBC() {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="relative">
-                                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-white shadow-sm">
-                                                                <img
-                                                                    src={emp.profile_picture ? getProfileUrl(emp.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`}
-                                                                    alt={emp.full_name}
-                                                                    className="w-full h-full object-cover"
-                                                                    onError={(e) => {
-                                                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
-                                                                    }}
-                                                                />
+                                                            <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center">
+                                                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                                                    <img
+                                                                        src={getProfileUrl(emp.profile_picture)}
+                                                                        alt={emp.full_name}
+                                                                        className="w-full h-full object-cover"
+                                                                        onError={(e) => {
+                                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                                        }}
+                                                                    />
+                                                                ) : (
+                                                                    <span className="text-[16px] font-semibold text-[#1A1A1A]">
+                                                                        {emp.full_name.charAt(0).toUpperCase() || 'U'}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                                         </div>
@@ -798,9 +966,8 @@ export default function ConsultantBC() {
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Type</option>
-                                                <option value="Full Time">Full Time</option>
-                                                <option value="Part Time">Part Time</option>
-                                                <option value="Contract">Contract</option>
+                                                <option value="Trainee">Trainee</option>
+                                                <option value="Consultant">Consultant</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -1315,6 +1482,9 @@ export default function ConsultantBC() {
                                 { label: 'User Role', value: selectedEmployee.user_role },
                                 { label: 'Address', value: selectedEmployee.address },
                                 { label: 'Joined Date', value: selectedEmployee.doj },
+                                { label: 'Department', value: selectedEmployee.department },
+                                { label: 'Account Number', value: selectedEmployee.accountnumber },
+                                { label: 'Salary', value: selectedEmployee.salary },
                             ].map((item, idx) => (
                                 <div key={idx} className="grid grid-cols-[140px_20px_1fr] text-[15px] gap-15">
                                     <span className="font-semibold font-Gantari text-[#00000] ">{item.label}</span>
