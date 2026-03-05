@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -94,8 +94,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Proposal",
-          path: "/td/manage-proposal",
+          name: "Projects",
+          path: "/td/projects",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
@@ -108,8 +108,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Projects",
-          path: "/td/projects",
+          name: "Proposal",
+          path: "/td/manage-proposal",
           iconSrc: projectIcon,
           activeIconSrc: whiteProjectIcon,
           isVisible: true,
@@ -393,6 +393,14 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
+        {
+          name: "Manage Leave",
+          path: "/bm/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        
 
       ];
     }
@@ -479,6 +487,22 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   };
 
   const navItems = getNavItems();
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+
+  const handleNavClick = (path: string) => {
+    if (location.pathname === path) {
+      onMenuClick?.();
+      return;
+    }
+    setNavigatingTo(path);
+    navigate(path);
+    onMenuClick?.();
+    setTimeout(() => setNavigatingTo(null), 800);
+  };
+
+  useEffect(() => {
+    if (navigatingTo && location.pathname.startsWith(navigatingTo)) setNavigatingTo(null);
+  }, [location.pathname, navigatingTo]);
 
   const handleLogout = async () => {
     setShowLogoutModal(false);
@@ -503,28 +527,32 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         <div className="flex-1 overflow-y-auto p-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path);
+            const isNavigating = navigatingTo === item.path;
 
             return (
               <button
                 key={item.path}
-                onClick={() => {
-                  navigate(item.path);
-                  onMenuClick?.();
-                }}
+                type="button"
+                onClick={() => handleNavClick(item.path)}
+                disabled={isNavigating}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${active
                   ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
                   : "text-slate-700 hover:bg-white/20 hover:text-black"
-                  }`}
+                  } ${isNavigating ? "opacity-90" : ""}`}
               >
-                {item.iconSrc && (
+                {isNavigating ? (
+                  <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" aria-hidden />
+                  </span>
+                ) : item.iconSrc ? (
                   <img
                     src={active ? item.activeIconSrc : item.iconSrc}
                     alt={item.name}
                     className="w-5 h-5 flex-shrink-0 object-contain transition-all duration-200"
                   />
-                )}
+                ) : null}
                 <span className={`text-[15px] whitespace-nowrap overflow-hidden text-ellipsis ${active ? "text-white font-bold" : "text-slate-800 font-semibold"}`}>
-                  {item.name}
+                  {isNavigating ? 'Loading...' : item.name}
                 </span>
               </button>
             );

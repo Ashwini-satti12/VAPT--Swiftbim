@@ -76,11 +76,12 @@ export default function TrackerV() {
             const slNo = (index + 1).toString().padStart(2, '0');
             const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
             const formattedDate = dateObj.toLocaleDateString('en-GB');
-            const formattedTime = dateObj.toLocaleTimeString('en-US', {
+            // 24‑hour HH:MM:SS
+            const formattedTime = dateObj.toLocaleTimeString('en-GB', {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: true
+                hour12: false
             });
 
             return [
@@ -210,11 +211,12 @@ export default function TrackerV() {
                                     const slNo = (index + 1).toString().padStart(2, '0');
                                     const dateObj = loc.updated_at ? new Date(loc.updated_at) : new Date();
                                     const formattedDate = dateObj.toLocaleDateString('en-GB').replace(/\//g, '/');
-                                    const formattedTime = dateObj.toLocaleTimeString('en-US', {
+                                    // 24‑hour HH:MM:SS
+                                    const formattedTime = dateObj.toLocaleTimeString('en-GB', {
                                         hour: '2-digit',
                                         minute: '2-digit',
                                         second: '2-digit',
-                                        hour12: true
+                                        hour12: false
                                     });
 
                                     return (

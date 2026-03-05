@@ -101,6 +101,7 @@ interface Project {
   end_date?: string;
   total_hours?: string;
   per_day?: string;
+  client_id?: number;
   department?: string;
   bim_lead?: string;
   bim_co_ordinator?: string;
@@ -138,6 +139,8 @@ export default function ProjectsTD() {
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
+  const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
+  const [moduleNameInput, setModuleNameInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -148,6 +151,8 @@ export default function ProjectsTD() {
   const [createBIMLead, setCreateBIMLead] = useState("");
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
   const [createMember, setCreateMember] = useState("");
+  const [memberTags, setMemberTags] = useState<string[]>([]);
+  const [memberInput, setMemberInput] = useState("");
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
@@ -193,6 +198,7 @@ export default function ProjectsTD() {
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
 
   // All employees for member lookup
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -286,9 +292,9 @@ export default function ProjectsTD() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch employees when edit modal opens
+  // Fetch employees and departments when create or edit modal opens
   useEffect(() => {
-    if (showEditModal) {
+    if (showEditModal || showCreateModal) {
       api
         .get<{ employees?: Employee[] }>("/api/employees")
         .then(({ data }) => {
@@ -310,8 +316,13 @@ export default function ProjectsTD() {
           setBimLeads([]);
           setBimCoordinators([]);
         });
+
+      api
+        .get<{ departments?: string[] }>("/api/departments")
+        .then(({ data }) => setDepartments(data.departments ?? []))
+        .catch(() => setDepartments([]));
     }
-  }, [showEditModal]);
+  }, [showEditModal, showCreateModal]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1843,8 +1854,56 @@ export default function ProjectsTD() {
                       onChange={(e) => setCreateBudget(e.target.value)}
                       className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-semibold text-[#000000] placeholder-gray-400 focus:outline-none"
                       placeholder="Enter Project Budget"
-                      required
                     />
+                  </div>
+                  {/* Module Name - Full Width (tag-based) */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Module Name
+                    </label>
+                    <input
+                      type="text"
+                      value={moduleNameInput}
+                      onChange={(e) => setModuleNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = moduleNameInput.trim().replace(/,$/, '');
+                          if (val && !moduleNameTags.includes(val)) {
+                            const updated = [...moduleNameTags, val];
+                            setModuleNameTags(updated);
+                            setCreateModuleName(updated.join(', '));
+                          }
+                          setModuleNameInput('');
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="Type module name and press Enter or comma"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter module names, separated by commas, and then press enter
+                    </p>
+                    {moduleNameTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {moduleNameTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = moduleNameTags.filter((_, i) => i !== idx);
+                                setModuleNameTags(updated);
+                                setCreateModuleName(updated.join(', '));
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+                            >x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -1864,12 +1923,62 @@ export default function ProjectsTD() {
                     <label className="block text-[16px] font-semibold text-[#000000]">
                       Select Project Manager <span className="text-[#DD4342]">*</span>
                     </label>
-                    <FormSelect
-                      label="Select Project Manager"
-                      placeholder="Nothing Selected"
-                      options={PM_OPTIONS}
-                      value={createProjectManager}
-                      onChange={setCreateProjectManager}
+                    <div className="relative">
+                      <select
+                        value={createProjectManager}
+                        onChange={(e) =>
+                          setCreateProjectManager(e.target.value)
+                        }
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      >
+                        <option value="">Select Project Manager</option>
+                        {projectManagers.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Project Start Date
+                    </label>
+                    <input
+                      type="text"
+                      value={createStartDate}
+                      onChange={(e) => setCreateStartDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="DD/MM/YYYY"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Project End Date*
+                    </label>
+                    <input
+                      type="text"
+                      value={createEndDate}
+                      onChange={(e) => setCreateEndDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="DD/MM/YYYY"
                     />
                   </div>
 
@@ -1897,6 +2006,267 @@ export default function ProjectsTD() {
                       value={createBIMCoOrdinator}
                       onChange={setCreateBIMCoOrdinator}
                     />
+                  </div>
+
+                  {/* Department & BIM Lead */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Select Department
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createDepartment}
+                        onChange={(e) => setCreateDepartment(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dept, idx) => (
+                          <option key={idx} value={dept}>
+                            {dept}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Select BIM Lead
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createBIMLead}
+                        onChange={(e) => setCreateBIMLead(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      >
+                        <option value="">Select BIM Lead</option>
+                        {bimLeads.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* BIM Co-ordinator & Member */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Select BIM Co Ordinator
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createBIMCoOrdinator}
+                        onChange={(e) =>
+                          setCreateBIMCoOrdinator(e.target.value)
+                        }
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      >
+                        <option value="">Select BIM Co Ordinator</option>
+                        {bimCoordinators.map((emp) => (
+                          <option key={emp.id} value={emp.id}>
+                            {emp.full_name || `Employee ${emp.id}`}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Member multi-select */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Select Member
+                    </label>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && !memberTags.includes(val)) {
+                          const updated = [...memberTags, val];
+                          setMemberTags(updated);
+                          setCreateMember(updated.join(', '));
+                        }
+                      }}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                    >
+                      <option value="">Select Member to Add</option>
+                      {allEmployees.filter(emp => !memberTags.includes(emp.full_name || String(emp.id))).map((emp) => (
+                        <option key={emp.id} value={emp.full_name || String(emp.id)}>
+                          {emp.full_name || `Employee ${emp.id}`}
+                        </option>
+                      ))}
+                    </select>
+                    {memberTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {memberTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = memberTags.filter((_, i) => i !== idx);
+                                setMemberTags(updated);
+                                setCreateMember(updated.join(', '));
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors leading-none"
+                            >x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Resources */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Resources
+                    </label>
+                    <input
+                      type="text"
+                      value={createResources}
+                      onChange={(e) => setCreateResources(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="Enter Actual Resources"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Required Resources
+                    </label>
+                    <input
+                      type="text"
+                      value={createRequiredResources}
+                      onChange={(e) =>
+                        setCreateRequiredResources(e.target.value)
+                      }
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="Enter Required Resources"
+                    />
+                  </div>
+
+                  {/* Priority & Location */}
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Priority
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={createPriority}
+                        onChange={(e) => setCreatePriority(e.target.value)}
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      >
+                        <option value="">Select Priority</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Location
+                    </label>
+                    <input
+                      type="text"
+                      value={createLocation}
+                      onChange={(e) => setCreateLocation(e.target.value)}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400"
+                      placeholder="Enter Project Location"
+                    />
+                  </div>
+
+                  {/* Description - Full Width */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Project Description*
+                    </label>
+                    <textarea
+                      value={createDescription}
+                      onChange={(e) => setCreateDescription(e.target.value)}
+                      rows={4}
+                      className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] transition-all font-medium text-[#000000] placeholder-gray-400 resize-none"
+                      placeholder="Type Project Description"
+                    />
+                  </div>
+
+                  {/* Attach File - Full Width */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[15px] font-semibold text-[#000000]">
+                      Attach File*
+                    </label>
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 py-3 text-gray-400 font-medium">
+                        {createFile ? createFile.name : "Choose File"}
+                      </div>
+                      <label className="px-6 py-3 bg-gray-200 text-gray-600 font-semibold text-sm cursor-pointer hover:bg-gray-300 transition-colors uppercase tracking-wider">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) =>
+                            setCreateFile(e.target.files?.[0] || null)
+                          }
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-center gap-4 pt-4 border-t border-gray-100">

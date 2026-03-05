@@ -231,9 +231,9 @@ def update_project(project_id):
                 project_name = proj["project_name"]
                 outsource_budget = proj["budget"]
                 description = proj.get("description") or ""
-                vendor_conn = _get_vendor_db()
-                _ensure_vendor_bidding_table(vendor_conn)
-                vcur = vendor_conn.cursor()
+                # Bidding tables are now in the main snh6_swiftproject database
+                # so we can use the same connection `conn`
+                vcur = conn.cursor()
                 vcur.execute(
                     """INSERT INTO vendor_bidding
                          (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)

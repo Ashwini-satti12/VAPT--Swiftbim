@@ -4,6 +4,12 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+
+// Get API base URL for image URLs (so uploaded profile pictures load correctly)
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || '';
+};
+
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -30,10 +36,47 @@ interface Employee {
   Allpannel?: string;
 }
 
+// Build the correct URL for a stored profile picture (only used when a real photo exists)
 const getProfileUrl = (path: string | undefined): string => {
-  if (!path) return "";
-  if (path.startsWith("http")) return path;
-  return `/uploads/${path.replace(/\\/g, "/")}`;
+  if (!path || path.trim() === '') return '';
+  if (path.startsWith('http')) return path;
+
+  // Normalize path separators
+  let normalizedPath = path.replace(/\\/g, '/').trim();
+
+  // Remove leading numbers and spaces (e.g., "1 WhatsApp..." or "0 anu.jpg")
+  normalizedPath = normalizedPath.replace(/^\d+\s+/, '');
+
+  // Remove leading slashes if any
+  normalizedPath = normalizedPath.replace(/^\/+/, '');
+
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = '';
+
+  if (normalizedPath.startsWith('employee/')) {
+    const parts = normalizedPath.split('/');
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join('/')}`;
+  } else if (normalizedPath.startsWith('profiles/')) {
+    const filename = normalizedPath.replace('profiles/', '');
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes('/')) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split('/');
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join('/')}`;
+  }
+
+  const base = apiBaseUrl.replace(/\/$/, '');
+  if (!base) {
+    return urlPath; // relative path (works with Vite proxy)
+  }
+  return `${base}${urlPath}`;
 };
 
 const toCamelCase = (str: string): string => {
@@ -42,10 +85,10 @@ const toCamelCase = (str: string): string => {
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
-const Departments_options=[
+// Fallback options; will be replaced by values loaded from backend department.name
+const Departments_options = [
   'Technical','Sales','Operations','Human Resources','Accounts','Designing'
-]
-
+];
 const ROLE_OPTIONS = [
   'Consultant',
   'BIM Coordinator',
@@ -186,6 +229,7 @@ export default function EmployeesPM() {
     accountnumber: '',
     roles: [] as string[],
     profile_picture: null as File | null,
+    active: 'Active',
   });
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -207,7 +251,8 @@ export default function EmployeesPM() {
     salary: '',
     accountnumber: '',
     profile_picture: null as File | null,
-    roles: [] as string[]
+    roles: [] as string[],
+    active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -216,11 +261,41 @@ export default function EmployeesPM() {
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
 
   const canAdd = user?.panel_type === 1;
 
   useEffect(() => {
     api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
+  }, []);
+
+  // Load departments from backend (department table, name field)
+  useEffect(() => {
+    api.get<{ departments?: string[] }>('/api/departments')
+      .then(({ data }) => {
+        if (Array.isArray(data.departments)) {
+          // Deduplicate by case-insensitive name
+          const map = new Map<string, string>();
+          data.departments
+            .filter(Boolean)
+            .forEach((name) => {
+              const trimmed = String(name).trim();
+              if (!trimmed) return;
+              const key = trimmed.toLowerCase();
+              if (!map.has(key)) {
+                map.set(key, trimmed);
+              }
+            });
+          const fromBackend = Array.from(map.values());
+          if (fromBackend.length) {
+            setDepartmentOptions(fromBackend);
+          }
+        }
+      })
+      .catch(() => {
+        // On error, keep existing fallback Departments_options
+        setDepartmentOptions(Departments_options);
+      });
   }, []);
 
   const editParam = searchParams.get('edit');
@@ -245,7 +320,8 @@ export default function EmployeesPM() {
           salary: emp.salary || '',
           accountnumber: emp.accountnumber || '',
           profile_picture: null,
-          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+          active: emp.active === 'active' ? 'Active' : 'Deactivate',
         });
       }
     }
@@ -263,7 +339,7 @@ export default function EmployeesPM() {
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   function exportCsv() {
-    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
     const rows = list.map((e) => [e.full_name, e.email, e.user_role || '', e.active || '', e.phone_number || '', e.department || ''].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -315,6 +391,7 @@ export default function EmployeesPM() {
       accountnumber: editForm.accountnumber || undefined,
       user_type: editForm.user_type || undefined,
       Allpannel: editForm.roles.join(','),
+      active: editForm.active === 'Active' ? 'active' : 'inactive',
       ...(editForm.password ? { password: editForm.password } : {})
     };
 
@@ -336,6 +413,7 @@ export default function EmployeesPM() {
               accountnumber: editForm.accountnumber,
               user_type: editForm.user_type,
               Allpannel: payload.Allpannel,
+              active: editForm.active === 'Active' ? 'active' : 'inactive',
             };
           }
           return e;
@@ -377,7 +455,10 @@ export default function EmployeesPM() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.department) formData.append('department', form.department);
+    if (form.salary.trim()) formData.append('salary', form.salary.trim());
+    if (form.accountnumber.trim()) formData.append('accountnumber', form.accountnumber.trim());
     if (form.roles.length) formData.append('roles', form.roles.join(','));
+    if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
       formData.append('profile_picture', form.profile_picture);
     }
@@ -406,6 +487,7 @@ export default function EmployeesPM() {
             salary: '',
             accountnumber: '',
             roles: [],
+            active: 'Active',
           });
           setList((prev) => [
             ...prev,
@@ -414,12 +496,13 @@ export default function EmployeesPM() {
               full_name: form.full_name,
               email: form.email,
               user_role: form.user_role,
-              active: 'active',
+              active: form.active === 'Active' ? 'active' : 'inactive',
               dob: form.dob,
               user_type: form.type,
               doj: form.joining_date,
               address: form.address,
               salary: form.salary,
+              accountnumber: form.accountnumber,
               Allpannel: form.roles.join(','),
               profile_picture: data.profile_picture || undefined,
             },
@@ -575,22 +658,34 @@ export default function EmployeesPM() {
                         </span>
                       </div>
                     </div>
-                    {/* User Profile Info on Image */}
+                    {/* User info on image: show uploaded photo if available, otherwise initials */}
                     <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
                       <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                        <img
-                          alt={emp.full_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.email}`;
-                          }}
-                        />
+                        {emp.profile_picture && emp.profile_picture.trim() ? (
+                          <img
+                            src={getProfileUrl(emp.profile_picture)}
+                            alt={emp.full_name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If the photo fails, fall back to initials
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-[20px] font-semibold text-[#1A1A1A]">
+                              {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="min-w-0">
                         <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -650,7 +745,8 @@ export default function EmployeesPM() {
                               salary: emp.salary || '',
                               accountnumber: emp.accountnumber || '',
                               profile_picture: null,
-                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : []
+                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
+                              active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
                           className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
@@ -694,11 +790,23 @@ export default function EmployeesPM() {
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
                               <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                <img
-                                  src={emp.profile_picture}
-                                  alt={emp.full_name}
-                                  className="w-full h-full object-cover"
-                                />
+                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                  <img
+                                    src={getProfileUrl(emp.profile_picture)}
+                                    alt={emp.full_name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Hide broken image; the status dot + name still show
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <span className="text-[16px] font-semibold text-[#1A1A1A]">
+                                      {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                               <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                             </div>
@@ -868,10 +976,19 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={Departments_options}
+                      options={departmentOptions}
                       value={form.department}
                       onChange={(val) => setForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={form.active}
+                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
                     />
                   </div>
                 </div>
@@ -1030,10 +1147,19 @@ export default function EmployeesPM() {
                   <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
-                      options={Departments_options}
+                      options={departmentOptions}
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={editForm.active}
+                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
                     />
                   </div>
                   <div>
@@ -1342,17 +1468,24 @@ export default function EmployeesPM() {
               <h3 className="text-[20px] font-semibold text-[#020202]">View Details</h3>
             </div>
 
-            {/* Profile Section */}
+            {/* Profile Section: show uploaded photo if available, otherwise initials */}
             <div className="flex items-center gap-6 px-4">
-              <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
-                <img
-                  src={selectedEmployee.profile_picture ? getProfileUrl(selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
-                  alt={selectedEmployee.full_name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`;
-                  }}
-                />
+              <div className="w-[100px] h-[100px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
+                {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
+                  <img
+                    src={getProfileUrl(selectedEmployee.profile_picture)}
+                    alt={selectedEmployee.full_name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Hide broken image and let initials show
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className="text-[32px] font-bold text-[#000000]">
+                    {toCamelCase(selectedEmployee.full_name).charAt(0) || 'U'}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
@@ -1370,6 +1503,9 @@ export default function EmployeesPM() {
                 { label: 'User Role', value: selectedEmployee.user_role },
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
+                { label: 'Salary', value: selectedEmployee.salary },
+                { label: 'Department', value: selectedEmployee.department },
+                { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
