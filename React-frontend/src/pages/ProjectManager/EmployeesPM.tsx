@@ -229,6 +229,7 @@ export default function EmployeesPM() {
     accountnumber: '',
     roles: [] as string[],
     profile_picture: null as File | null,
+    active: 'Active',
   });
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
@@ -250,7 +251,8 @@ export default function EmployeesPM() {
     salary: '',
     accountnumber: '',
     profile_picture: null as File | null,
-    roles: [] as string[]
+    roles: [] as string[],
+    active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -318,7 +320,8 @@ export default function EmployeesPM() {
           salary: emp.salary || '',
           accountnumber: emp.accountnumber || '',
           profile_picture: null,
-          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+          active: emp.active === 'active' ? 'Active' : 'Deactivate',
         });
       }
     }
@@ -336,7 +339,7 @@ export default function EmployeesPM() {
   const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   function exportCsv() {
-    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
+    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
     const rows = list.map((e) => [e.full_name, e.email, e.user_role || '', e.active || '', e.phone_number || '', e.department || ''].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -388,6 +391,7 @@ export default function EmployeesPM() {
       accountnumber: editForm.accountnumber || undefined,
       user_type: editForm.user_type || undefined,
       Allpannel: editForm.roles.join(','),
+      active: editForm.active === 'Active' ? 'active' : 'inactive',
       ...(editForm.password ? { password: editForm.password } : {})
     };
 
@@ -409,6 +413,7 @@ export default function EmployeesPM() {
               accountnumber: editForm.accountnumber,
               user_type: editForm.user_type,
               Allpannel: payload.Allpannel,
+              active: editForm.active === 'Active' ? 'active' : 'inactive',
             };
           }
           return e;
@@ -450,7 +455,10 @@ export default function EmployeesPM() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.department) formData.append('department', form.department);
+    if (form.salary.trim()) formData.append('salary', form.salary.trim());
+    if (form.accountnumber.trim()) formData.append('accountnumber', form.accountnumber.trim());
     if (form.roles.length) formData.append('roles', form.roles.join(','));
+    if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
     if (form.profile_picture) {
       formData.append('profile_picture', form.profile_picture);
     }
@@ -479,6 +487,7 @@ export default function EmployeesPM() {
             salary: '',
             accountnumber: '',
             roles: [],
+            active: 'Active',
           });
           setList((prev) => [
             ...prev,
@@ -487,12 +496,13 @@ export default function EmployeesPM() {
               full_name: form.full_name,
               email: form.email,
               user_role: form.user_role,
-              active: 'active',
+              active: form.active === 'Active' ? 'active' : 'inactive',
               dob: form.dob,
               user_type: form.type,
               doj: form.joining_date,
               address: form.address,
               salary: form.salary,
+              accountnumber: form.accountnumber,
               Allpannel: form.roles.join(','),
               profile_picture: data.profile_picture || undefined,
             },
@@ -673,7 +683,9 @@ export default function EmployeesPM() {
                         <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
                           {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -733,7 +745,8 @@ export default function EmployeesPM() {
                               salary: emp.salary || '',
                               accountnumber: emp.accountnumber || '',
                               profile_picture: null,
-                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : []
+                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
+                              active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
                           className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
@@ -969,6 +982,15 @@ export default function EmployeesPM() {
                       placeholder="Select Department"
                     />
                   </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={form.active}
+                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
+                    />
+                  </div>
                 </div>
 
                 {/* Column 2 */}
@@ -1129,6 +1151,15 @@ export default function EmployeesPM() {
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
+                    />
+                  </div>
+                  <div className="relative">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                    <CustomDropdown
+                      options={['Active', 'Deactivate']}
+                      value={editForm.active}
+                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
+                      placeholder="Select Status"
                     />
                   </div>
                   <div>
@@ -1472,6 +1503,9 @@ export default function EmployeesPM() {
                 { label: 'User Role', value: selectedEmployee.user_role },
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
+                { label: 'Salary', value: selectedEmployee.salary },
+                { label: 'Department', value: selectedEmployee.department },
+                { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>

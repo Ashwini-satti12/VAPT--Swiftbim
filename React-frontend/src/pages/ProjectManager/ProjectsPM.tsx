@@ -6,12 +6,17 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-const PM_OPTIONS = ['Reed Richards', 'Tony Stark', 'Bruce Banner', 'Natasha Romanoff'];
-const DEPARTMENT_OPTIONS = ['MEP', 'BIM', 'Structural', 'Architectural', 'Civil', 'IT'];
-const BIM_LEAD_OPTIONS = ['Richard Parker', 'Peter Parker', 'Miles Morales', 'Gwen Stacy'];
-const BIM_COORD_OPTIONS = ['Mary Jane', 'Harry Osborn', 'Eddie Brock', 'Felicia Hardy'];
-const MEMBER_OPTIONS = ['Member A', 'Member B', 'Member E'];
-const PRIORITY_OPTIONS = ['High', 'Normal'];
+import api from '../../lib/api';
+
+interface Employee {
+  id: number;
+  full_name: string;
+  employee_id: string;
+  email: string;
+  phone: string;
+  user_role: string;
+  vendor_type?: string;
+}
 function FormSelect({
   label, placeholder, options, value, onChange,
 }: { label: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -103,6 +108,8 @@ export default function ProjectsPM() {
   const [editBIMLead, setEditBIMLead] = useState('');
   const [editBIMCoOrd, setEditBIMCoOrd] = useState('');
   const [editMember, setEditMember] = useState('');
+  const [editMemberTags, setEditMemberTags] = useState<string[]>([]);
+  const [editMemberInput, setEditMemberInput] = useState('');
   const [createClientName, setCreateClientName] = useState('');
   const [createProjectManager, setCreateProjectManager] = useState('');
   const [createStartDate, setCreateStartDate] = useState('');
@@ -113,6 +120,8 @@ export default function ProjectsPM() {
   const [createBIMLead, setCreateBIMLead] = useState('');
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
   const [createMember, setCreateMember] = useState('');
+  const [memberTags, setMemberTags] = useState<string[]>([]);
+  const [memberInput, setMemberInput] = useState('');
   const [createResources, setCreateResources] = useState('');
   const [createRequiredResources, setCreateRequiredResources] = useState('');
   const [createPriority, setCreatePriority] = useState('');
@@ -144,6 +153,44 @@ export default function ProjectsPM() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
 
+  // Select Options States
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projectManagers, setProjectManagers] = useState<string[]>([]);
+  const [bimLeads, setBimLeads] = useState<string[]>([]);
+  const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
+  const [allEmployees, setAllEmployees] = useState<string[]>([]);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const priorityOptions = ['High', 'Normal'];
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchEmployeesAndDepartments = async () => {
+      try {
+        const [empRes, depRes] = await Promise.all([
+          api.get('/api/employees'),
+          api.get('/api/departments')
+        ]);
+        if (isMounted) {
+          const empData: Employee[] = empRes.data.employees || [];
+          setEmployees(empData);
+          setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
+          setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
+          setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
+          setAllEmployees(empData.map(e => e.full_name));
+
+          setDepartments(depRes.data.departments || []);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    if (showCreateModal || showEditModal) {
+      fetchEmployeesAndDepartments();
+    }
+    return () => { isMounted = false; };
+  }, [showCreateModal, showEditModal]);
+
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
     window.addEventListener('click', handleClickOutside);
@@ -159,23 +206,36 @@ export default function ProjectsPM() {
   const title = isManagement ? 'Projects' : 'Projects Involved';
 
   useEffect(() => {
-    // Mock data for UI testing - Added more projects to show scrollbar
-    const mockProjects: Project[] = [
-      { id: 1, project_name: 'AECOM - AL AIN HOSPITAL', progress: 50, total_tasks: 15, completed_tasks: 7, priority: 'High' },
-      { id: 2, project_name: 'AL GURG', progress: 25, total_tasks: 4, completed_tasks: 1, priority: 'Normal' },
-      { id: 3, project_name: 'ARATT - AYATHI RESIDENTIAL', progress: 47, total_tasks: 70, completed_tasks: 30, priority: 'High' },
-      { id: 4, project_name: 'GHAF WOODS DEVELOPMENT', progress: 0, total_tasks: 0, completed_tasks: 0, priority: 'Normal' },
-      { id: 5, project_name: 'Guggenheim Abu Dhabi Museum', progress: 78, total_tasks: 23, completed_tasks: 18, priority: 'High' },
-      { id: 6, project_name: 'Prestige Park Grove Phase 1', progress: 80, total_tasks: 135, completed_tasks: 110, priority: 'Normal' },
-      { id: 7, project_name: 'Sobha Hartland Greens', progress: 60, total_tasks: 20, completed_tasks: 12, priority: 'High' },
-      { id: 8, project_name: 'Dubai Hills Estate', progress: 10, total_tasks: 50, completed_tasks: 5, priority: 'Normal' },
-      { id: 9, project_name: 'Palm Jumeirah Resort', progress: 95, total_tasks: 100, completed_tasks: 95, priority: 'High' },
-      { id: 10, project_name: 'EMAAR Beachfront', progress: 40, total_tasks: 25, completed_tasks: 10, priority: 'Normal' },
-      { id: 11, project_name: 'Damac Hills 2', progress: 20, total_tasks: 15, completed_tasks: 3, priority: 'High' },
-      { id: 12, project_name: 'Business Bay Office Tower', progress: 70, total_tasks: 30, completed_tasks: 21, priority: 'Normal' },
-    ];
-    setList(mockProjects);
-    setLoading(false);
+    api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+      .then(({ data }) => {
+        const projects = (data.projects ?? []).map((r): Project => ({
+          id: Number(r.id) ?? 0,
+          project_name: r.project_name ? String(r.project_name) : undefined,
+          progress: Number(r.progress) || 0,
+          total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+          completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+          budget: r.budget ? String(r.budget) : undefined,
+          module_name: r.modules ? String(r.modules) : undefined,
+          client_name: r.client_id ? String(r.client_id) : undefined,
+          project_manager: r.project_manager_id ? String(r.project_manager_id) : undefined,
+          start_date: r.start_date ? String(r.start_date) : undefined,
+          end_date: r.due_date ? String(r.due_date) : undefined,
+          total_hours: r.totalhours ? String(r.totalhours) : undefined,
+          per_day: r.perday ? String(r.perday) : undefined,
+          department: r.department ? String(r.department) : undefined,
+          bim_lead: r.lead_id ? String(r.lead_id) : undefined,
+          bim_co_ordinator: r.bim_coordinator_id ? String(r.bim_coordinator_id) : undefined,
+          member: r.members ? String(r.members) : undefined,
+          resources: r.resources ? String(r.resources) : undefined,
+          required_resources: r.required_resources ? String(r.required_resources) : undefined,
+          priority: r.priority ? String(r.priority) : undefined,
+          location: r.location ? String(r.location) : undefined,
+          description: r.description ? String(r.description) : undefined,
+        }));
+        setList(projects);
+      })
+      .catch(() => setList([]))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -186,1188 +246,1363 @@ export default function ProjectsPM() {
     );
   }
 
-  
+
   return (
     <div className="bg-white h-full flex flex-col overflow-hidden">
-        {/* Main Content View Switcher */}
-        {showProjectView && selectedProjectForView ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Project View Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+      {/* Main Content View Switcher */}
+      {showProjectView && selectedProjectForView ? (
+        <div className="flex flex-col h-full bg-white">
+          {/* Project View Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => setShowProjectView(false)}
+              className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="min-w-0">
+              <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">
+                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
+                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Tower 1 to 09</p>
+                <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
+                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Overall Progress Tracker</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Project View Content */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
+            {/* Task Status Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+              {/* To Do Tasks */}
               <button
                 type="button"
-                onClick={() => setShowProjectView(false)}
-                className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
-                title="Close"
+                onClick={() => navigate('/teamtask?status=todo')}
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
               >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">13</p>
               </button>
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">
-                  {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
-                </h3>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Tower 1 to 09</p>
-                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Overall Progress Tracker</p>
+
+              {/* In Progress Tasks */}
+              <button
+                type="button"
+                onClick={() => navigate('/teamtask?status=in_progress')}
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+              >
+                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">18</p>
+              </button>
+
+              {/* Paused Tasks */}
+              <button
+                type="button"
+                onClick={() => navigate('/teamtask?status=paused')}
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+              >
+                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Paused Tasks</p>
+                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">02</p>
+              </button>
+
+              {/* Completed Tasks */}
+              <button
+                type="button"
+                onClick={() => navigate('/teamtask?status=completed')}
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+              >
+                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">122</p>
+              </button>
+            </div>
+
+
+            {/* Tower Progress Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8 custom-scrollbar">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
+                const towerProgress = i % 3 === 0 ? 35 : i % 2 === 0 ? 65 : 86;
+                const status = i % 3 === 0 ? 'Review' : i % 2 === 0 ? 'Pending' : 'Approved';
+                const statusColor = i % 3 === 0 ? '#DD4342' : i % 2 === 0 ? '#FF9F00' : '#0A9344';
+                const statusBg = i % 3 === 0 ? 'bg-[#FFEBEC]' : i % 2 === 0 ? 'bg-[#FFF4E5]' : 'bg-[#E7F6ED]';
+
+                return (
+                  <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">module_name{i}</span>
+                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                        <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
+                        <svg className="w-full h-full transform -rotate-90">
+                          <circle cx="50%" cy="50%" r="30" stroke="#F1F5F9" strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6" />
+                          <circle
+                            cx="50%" cy="50%" r="30" stroke={statusColor} strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6"
+                            strokeDasharray={188.4} strokeDashoffset={188.4 - (towerProgress / 100) * 188.4} strokeLinecap="round"
+                          />
+                        </svg>
+                        <span className="absolute text-[13px] md:text-[15px] font-bold text-[#1A1A1A]">{towerProgress}%</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] md:text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
+                        <p className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A]">20<span className="text-[#999999]">/28</span></p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Project Description */}
+            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 lg:p-10">
+              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A]">Project Description</h4>
+              <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
+              </p>
+            </div>
+
+            {/* Team Overview Section */}
+            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 lg:p-10">
+              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Team Overview</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
+                <div className="flex items-center gap-4">
+                  <img src="https://i.pravatar.cc/150?u=pm" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
+                  <div className="min-w-0">
+                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Reed Richards</p>
+                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <img src="https://i.pravatar.cc/150?u=bim" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
+                  <div className="min-w-0">
+                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Richard Parker</p>
+                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
+                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">MEP (Dept)</p>
+                </div>
+                <div>
+                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
+                  <div className="flex -space-x-3">
+                    {[1, 2, 3].map(j => (
+                      <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                        <img src={`https://i.pravatar.cc/150?u=${j}`} alt="avatar" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
+                      +4
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Project View Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
-              {/* Task Status Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-                {/* To Do Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=todo')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">13</p>
-                </button>
-
-                {/* In Progress Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=in_progress')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">18</p>
-                </button>
-
-                {/* Paused Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=paused')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Paused Tasks</p>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">02</p>
-                </button>
-
-                {/* Completed Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=completed')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">122</p>
-                </button>
-              </div>
-
-
-              {/* Tower Progress Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8 custom-scrollbar">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-                  const towerProgress = i % 3 === 0 ? 35 : i % 2 === 0 ? 65 : 86;
-                  const status = i % 3 === 0 ? 'Review' : i % 2 === 0 ? 'Pending' : 'Approved';
-                  const statusColor = i % 3 === 0 ? '#DD4342' : i % 2 === 0 ? '#FF9F00' : '#0A9344';
-                  const statusBg = i % 3 === 0 ? 'bg-[#FFEBEC]' : i % 2 === 0 ? 'bg-[#FFF4E5]' : 'bg-[#E7F6ED]';
-
-                  return (
-                    <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">module_name{i}</span>
-                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}>
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                          <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="50%" cy="50%" r="30" stroke="#F1F5F9" strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6" />
-                            <circle
-                              cx="50%" cy="50%" r="30" stroke={statusColor} strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6"
-                              strokeDasharray={188.4} strokeDashoffset={188.4 - (towerProgress / 100) * 188.4} strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[13px] md:text-[15px] font-bold text-[#1A1A1A]">{towerProgress}%</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] md:text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
-                          <p className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A]">20<span className="text-[#999999]">/28</span></p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Project Description */}
-              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 lg:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A]">Project Description</h4>
-                <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
-                </p>
-              </div>
-
-              {/* Team Overview Section */}
-              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 lg:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Team Overview</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
-                  <div className="flex items-center gap-4">
-                    <img src="https://i.pravatar.cc/150?u=pm" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
-                    <div className="min-w-0">
-                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Reed Richards</p>
-                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
-                    </div>
+            {/* Project Details Section */}
+            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
+              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Project Details</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                <div className="space-y-4 md:space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Client Name</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Mark Specter</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <img src="https://i.pravatar.cc/150?u=bim" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
-                    <div className="min-w-0">
-                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Richard Parker</p>
-                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
                   </div>
-                  <div>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">MEP (Dept)</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000hrs</span>
                   </div>
-                  <div>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
-                    <div className="flex -space-x-3">
-                      {[1, 2, 3].map(j => (
-                        <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                          <img src={`https://i.pravatar.cc/150?u=${j}`} alt="avatar" className="w-full h-full object-cover" />
-                        </div>
-                      ))}
-                      <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
-                        +4
-                      </div>
-                    </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000000$</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                  </div>
+                </div>
+                <div className="space-y-4 md:space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Location</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Bengaluru, KA</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">0:00hrs</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Required Resources</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
                   </div>
                 </div>
               </div>
-
-              {/* Project Details Section */}
-              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Project Details</h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Client Name</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Mark Specter</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000hrs</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000000$</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
-                    </div>
-                  </div>
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Location</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Bengaluru, KA</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">0:00hrs</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Required Resources</span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
-                  <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A] mb-2 sm:mb-0">Project Document</span>
-                  <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                  <div className="flex items-center gap-3">
-                    <a href="#" className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline truncate max-w-[150px] md:max-w-none">Document.pdf</a>
-                    <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors shrink-0">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
-                  </div>
+              <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
+                <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A] mb-2 sm:mb-0">Project Document</span>
+                <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                <div className="flex items-center gap-3">
+                  <a href="#" className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline truncate max-w-[150px] md:max-w-none">Document.pdf</a>
+                  <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors shrink-0">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        ) : showMilestones && currentProject ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Milestones Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 md:px-10 py-6 md:py-8 border-b border-slate-50">
-              <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones(false)}
-                  className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="min-w-0">
-                  <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">Payment Milestones</h3>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999] mt-0.5 truncate">
-                    {currentProject.project_name ?? 'Prestige Park Grove'}_Tower 1 to 09
-                  </p>
-                </div>
-              </div>
+        </div>
+      ) : showMilestones && currentProject ? (
+        <div className="flex flex-col h-full bg-white">
+          {/* Milestones Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 md:px-10 py-6 md:py-8 border-b border-slate-50">
+            <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
               <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[15px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
-                title="Add Milestone"
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <div className="min-w-0">
+                <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">Payment Milestones</h3>
+                <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999] mt-0.5 truncate">
+                  {currentProject.project_name ?? 'Prestige Park Grove'}_Tower 1 to 09
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAddMilestoneModal(true)}
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[15px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
+              title="Add Milestone"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Milestone
+            </button>
+          </div>
+
+          {/* Milestones Content - No Scroll Version */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-6 md:px-10 pb-10 custom-scrollbar">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+              <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
+                <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">10,000,00</p>
+              </div>
+              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
+                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">4,000,00</p>
+              </div>
+              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
+                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">6,000,00</p>
+              </div>
+              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
+                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">72%</p>
+              </div>
+            </div>
+
+            {/* Central Box Area - Now Flexible */}
+            <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
+              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
+              <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
+                Add your First Payment to get started with payment tracking
+              </p>
+              <button
+                onClick={() => setShowAddMilestoneModal(true)}
+                className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
                 </svg>
                 Add Milestone
               </button>
             </div>
-
-            {/* Milestones Content - No Scroll Version */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-6 md:px-10 pb-10 custom-scrollbar">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-                <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                  <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
-                  <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">10,000,00</p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                  <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
-                  <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">4,000,00</p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                  <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
-                  <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">6,000,00</p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                  <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
-                  <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">72%</p>
-                </div>
-              </div>
-
-              {/* Central Box Area - Now Flexible */}
-              <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-                <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
-                  Add your First Payment to get started with payment tracking
-                </p>
-                <button
-                  onClick={() => setShowAddMilestoneModal(true)}
-                  className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Milestone
-                </button>
-              </div>
-            </div>
           </div>
-        ) : showCreateModal ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Create Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors hover:bg-gray-200"
-                title="Close"
-              >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#000000]">Add New Project</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
-              <form
-                onSubmit={(e) => { e.preventDefault(); setShowCreateModal(false); }}
-                className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
-              >
-                {createError && (
-                  <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{createError}</p>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
-                  {/* ── Project Name ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createName}
-                      onChange={(e) => setCreateName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Budget <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Budget"
-                    />
-                  </div>
-
-                  {/* ── Module Name ── */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Modules Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={moduleNameInput}
-                      onChange={(e) => setModuleNameInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault();
-                          const val = moduleNameInput.trim().replace(/,$/, '');
-                          if (val && !moduleNameTags.includes(val)) {
-                            setModuleNameTags(prev => [...prev, val]);
-                            setCreateModuleName([...moduleNameTags, val].join(', '));
-                          }
-                          setModuleNameInput('');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Modules Name"
-                    />
-                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Please enter names, separated by commas, and then press enter
-                    </p>
-                    {moduleNameTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {moduleNameTags.map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]"
-                          >
-                            {tag}
-                            <button
-                              type="button"
-                              onClick={() => setModuleNameTags(prev => prev.filter((_, i) => i !== idx))}
-                              className="text-gray-400 transition-colors leading-none"
-                            >
-                              x
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── Client Name ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Client Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Client Name"
-                    />
-                  </div>
-
-                  {/* ── Project Manager dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Manager <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Project Manager" placeholder="Select project manager"
-                      options={PM_OPTIONS} value={createProjectManager}
-                      onChange={setCreateProjectManager}
-                    />
-                  </div>
-
-                  {/* ── Project Start Date ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Start Date <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="date" required
-                      value={createStartDate}
-                      onChange={(e) => setCreateStartDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
-                    />
-                  </div>
-
-                  {/* ── Project End Date ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project End Date <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="date" required
-                      value={createEndDate}
-                      onChange={(e) => setCreateEndDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
-                    />
-                  </div>
-
-                  {/* ── Total Hours ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Total Hours <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Total Hours"
-                    />
-                  </div>
-
-                  {/* ── Per Day ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Per Day <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createPerDay}
-                      onChange={(e) => setCreatePerDay(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Per Day Hours"
-                    />
-                  </div>
-
-                  {/* ── Department dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select Department <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Department" placeholder="Select Department"
-                      options={DEPARTMENT_OPTIONS} value={createDepartment}
-                      onChange={setCreateDepartment}
-                    />
-                  </div>
-                  {/* ── BIM Lead dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select BIM Lead <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="BIM Lead" placeholder="Select BIM Lead"
-                      options={BIM_LEAD_OPTIONS} value={createBIMLead}
-                      onChange={setCreateBIMLead}
-                    />
-                  </div>
-                  {/* ── BIM Co-ordinator dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
-                      options={BIM_COORD_OPTIONS} value={createBIMCoOrdinator}
-                      onChange={setCreateBIMCoOrdinator}
-                    />
-                  </div>
-                  {/* ── Member dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select Member <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Member" placeholder="Select Member"
-                      options={MEMBER_OPTIONS} value={createMember}
-                      onChange={setCreateMember}
-                    />
-                  </div>
-
-                  {/* ── Resources ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Resources <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createResources}
-                      onChange={(e) => setCreateResources(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Actual Resources"
-                    />
-                  </div>
-
-                  {/* ── Required Resources ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Required Resources <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createRequiredResources}
-                      onChange={(e) => setCreateRequiredResources(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Required Resources"
-                    />
-                  </div>
-
-                  {/* ── Priority dropdown ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Priority <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Priority" placeholder="Select Priority"
-                      options={PRIORITY_OPTIONS} value={createPriority}
-                      onChange={setCreatePriority}
-                    />
-                  </div>
-
-                  {/* ── Location ── */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Location <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createLocation}
-                      onChange={(e) => setCreateLocation(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Location"
-                    />
-                  </div>
-
-                  {/* ── Project Description (full width) ── */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Description <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <textarea
-                      required
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      rows={4}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
-                      placeholder="Type Project Description"
-                    />
-                  </div>
-
-                  {/* ── Attach File (full width) ── */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Attach File <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                        {createFile ? createFile.name : 'choose File'}
-                      </div>
-                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
-                        Browse File
-                        <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
-                  <button
-                    type="button"
-                    onClick={() => {
+        </div>
+      ) : showCreateModal ? (
+        <div className="flex flex-col h-full bg-white">
+          {/* Create Project Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors hover:bg-gray-200"
+              title="Close"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#000000]">Add New Project</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setCreateError('');
+                setCreateSubmitting(true);
+                api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
+                  project_name: createName.trim(),
+                  budget: createBudget || undefined,
+                  modules: moduleNameTags.join(', ') || undefined,
+                  client_id: createClientName || undefined,
+                  project_manager_id: createProjectManager || undefined,
+                  lead_id: createBIMLead || undefined,
+                  bim_coordinator_id: createBIMCoOrdinator || undefined,
+                  members: memberTags.join(', ') || undefined,
+                  department: createDepartment || undefined,
+                  due_date: createEndDate || undefined,
+                  start_date: createStartDate || undefined,
+                  totalhours: createTotalHours || undefined,
+                  perday: createPerDay || undefined,
+                  resources: createResources || undefined,
+                  required_resources: createRequiredResources || undefined,
+                  priority: createPriority || undefined,
+                  location: createLocation || undefined,
+                  description: createDescription || undefined,
+                })
+                  .then(({ data }) => {
+                    if (data.success) {
                       setShowCreateModal(false);
-                      setModuleNameTags([]);
-                      setModuleNameInput('');
-                    }}
-                    className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={createSubmitting}
-                    className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
-                  >
-                    {createSubmitting ? 'Creating...' : 'Submit'}
-                  </button>
+                      setCreateName(''); setCreateBudget(''); setCreateClientName('');
+                      setCreateProjectManager(''); setCreateStartDate(''); setCreateEndDate('');
+                      setCreateTotalHours(''); setCreatePerDay(''); setCreateDepartment('');
+                      setCreateBIMLead(''); setCreateBIMCoOrdinator(''); setCreateMember('');
+                      setCreateResources(''); setCreateRequiredResources(''); setCreatePriority('');
+                      setCreateLocation(''); setCreateDescription('');
+                      setModuleNameTags([]); setModuleNameInput('');
+                      setMemberTags([]); setMemberInput('');
+                      api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+                        .then(({ data: d }) => setList((d.projects ?? []).map((r): Project => ({
+                          id: Number(r.id) ?? 0,
+                          project_name: r.project_name ? String(r.project_name) : undefined,
+                          progress: Number(r.progress) || 0,
+                          total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+                          completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+                          priority: r.priority ? String(r.priority) : undefined,
+                        }))))
+                        .catch(() => { });
+                    }
+                  })
+                  .catch(err => setCreateError(err.response?.data?.message || 'Failed to create project'))
+                  .finally(() => setCreateSubmitting(false));
+              }}
+              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
+            >
+              {createError && (
+                <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{createError}</p>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+                {/* ── Project Name ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createName}
+                    onChange={(e) => setCreateName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Name"
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
-        ) : showEditModal ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Edit Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
-                title="Close"
-              >
-                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-              <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#1A1A1A]">Edit Details</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
-              <form
-                onSubmit={(e) => { e.preventDefault(); setShowEditModal(false); }}
-                className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
-                  {/* Project Name */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createName}
-                      onChange={(e) => setCreateName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Name"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Budget <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createBudget}
+                    onChange={(e) => setCreateBudget(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Budget"
+                  />
+                </div>
 
-                  {/* Budget */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Budget <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createBudget}
-                      onChange={(e) => setCreateBudget(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Budget"
-                    />
-                  </div>
-
-                  {/* Modules Name */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Modules Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editModuleInput}
-                      onChange={(e) => setEditModuleInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault();
-                          const val = editModuleInput.trim().replace(/,$/, '');
-                          if (val && !editModuleTags.includes(val)) setEditModuleTags(prev => [...prev, val]);
-                          setEditModuleInput('');
+                {/* ── Module Name ── */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Modules Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={moduleNameInput}
+                    onChange={(e) => setModuleNameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = moduleNameInput.trim().replace(/,$/, '');
+                        if (val && !moduleNameTags.includes(val)) {
+                          setModuleNameTags(prev => [...prev, val]);
+                          setCreateModuleName([...moduleNameTags, val].join(', '));
                         }
-                      }}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Modules Name"
-                    />
-                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Please enter names, separated by commas, and then press enter
-                    </p>
-                    {editModuleTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {editModuleTags.map((tag, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
-                            {tag}
-                            <button type="button" onClick={() => setEditModuleTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
-                              x
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Task Name */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Task Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editTaskInput}
-                      onChange={(e) => setEditTaskInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ',') {
-                          e.preventDefault();
-                          const val = editTaskInput.trim().replace(/,$/, '');
-                          if (val && !editTaskTags.includes(val)) setEditTaskTags(prev => [...prev, val]);
-                          setEditTaskInput('');
-                        }
-                      }}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Task Name"
-                    />
-                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
-                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                      Please enter names, separated by commas, and then press enter
-                    </p>
-                    {editTaskTags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {editTaskTags.map((tag, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
-                            {tag}
-                            <button type="button" onClick={() => setEditTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
-                              x
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Client Name */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Client Name <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Client Name"
-                    />
-                  </div>
-
-                  {/* Priority */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Priority <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Priority" placeholder="Select Priority"
-                      options={PRIORITY_OPTIONS} value={editPriority}
-                      onChange={setEditPriority}
-                    />
-                  </div>
-
-                  {/* Start Date */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Start Date <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="date" required
-                      value={createStartDate}
-                      onChange={(e) => setCreateStartDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
-                    />
-                  </div>
-
-                  {/* End Date */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project End Date <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="date" required
-                      value={createEndDate}
-                      onChange={(e) => setCreateEndDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Total Hours */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Total Hours <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Total Hours"
-                    />
-                  </div>
-
-                  {/* Per Day */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Per Day <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createPerDay}
-                      onChange={(e) => setCreatePerDay(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Per Day Hours"
-                    />
-                  </div>
-
-                  {/* Select Department */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select Department <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Department" placeholder="Select Department"
-                      options={DEPARTMENT_OPTIONS} value={editDepartment}
-                      onChange={setEditDepartment}
-                    />
-                  </div>
-
-                  {/* Select Project Manager */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select Project Manager <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Project Manager" placeholder="Select Project Manager"
-                      options={PM_OPTIONS} value={editProjectManager}
-                      onChange={setEditProjectManager}
-                    />
-                  </div>
-
-                  {/* Select BIM Lead */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select BIM Lead <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="BIM Lead" placeholder="Select BIM Lead"
-                      options={BIM_LEAD_OPTIONS} value={editBIMLead}
-                      onChange={setEditBIMLead}
-                    />
-                  </div>
-
-                  {/* Select BIM Co-Ordinator */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
-                      options={BIM_COORD_OPTIONS} value={editBIMCoOrd}
-                      onChange={setEditBIMCoOrd}
-                    />
-                  </div>
-
-                  {/* Select Member */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Select Member <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Member" placeholder="Select Member"
-                      options={MEMBER_OPTIONS} value={editMember}
-                      onChange={setEditMember}
-                    />
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Location <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createLocation}
-                      onChange={(e) => setCreateLocation(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Project Location"
-                    />
-                  </div>
-
-                  {/* Resources */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Resources <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createResources}
-                      onChange={(e) => setCreateResources(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Actual Resources"
-                    />
-                  </div>
-
-                  {/* Required Resources */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Required Resources <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text" required
-                      value={createRequiredResources}
-                      onChange={(e) => setCreateRequiredResources(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                      placeholder="Enter Required Resources"
-                    />
-                  </div>
-
-                  {/* Project Description */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Project Description <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      value={createDescription}
-                      onChange={(e) => setCreateDescription(e.target.value)}
-                      className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
-                      placeholder="Type Project Description"
-                    />
-                  </div>
-
-                  {/* Attach File */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                      Attach File <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                        {createFile ? createFile.name : 'choose File'}
-                      </div>
-                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
-                        Browse File
-                        <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
-                      </label>
+                        setModuleNameInput('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Modules Name"
+                  />
+                  <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Please enter names, separated by commas, and then press enter
+                  </p>
+                  {moduleNameTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {moduleNameTags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => setModuleNameTags(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-gray-400 transition-colors leading-none"
+                          >
+                            x
+                          </button>
+                        </span>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Footer Buttons */}
-                <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowEditModal(false);
-                      setEditModuleTags([]);
-                      setEditModuleInput('');
-                      setEditTaskTags([]);
-                      setEditTaskInput('');
-                    }}
-                    className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
-                  >
-                    Discard
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isEditSubmitting}
-                    className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
-                  >
-                    {isEditSubmitting ? 'Updating...' : 'Update Project'}
-                  </button>
+                {/* ── Client Name ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Client Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createClientName}
+                    onChange={(e) => setCreateClientName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Client Name"
+                  />
                 </div>
-              </form>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {/* Dashboard Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
-              <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">{title}</h2>
-              {canCreate && (
+
+                {/* ── Project Manager dropdown ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Manager <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Project Manager" placeholder="Select project manager"
+                    options={projectManagers} value={createProjectManager}
+                    onChange={setCreateProjectManager}
+                  />
+                </div>
+
+                {/* ── Project Start Date ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Start Date <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="date" required
+                    value={createStartDate}
+                    onChange={(e) => setCreateStartDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  />
+                </div>
+
+                {/* ── Project End Date ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project End Date <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="date" required
+                    value={createEndDate}
+                    onChange={(e) => setCreateEndDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Total Hours"
+                  />
+                </div>
+
+                {/* ── Per Day ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Per Day <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createPerDay}
+                    onChange={(e) => setCreatePerDay(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Department dropdown ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select Department <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Department" placeholder="Select Department"
+                    options={departments} value={createDepartment}
+                    onChange={setCreateDepartment}
+                  />
+                </div>
+                {/* ── BIM Lead dropdown ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select BIM Lead <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="BIM Lead" placeholder="Select BIM Lead"
+                    options={bimLeads} value={createBIMLead}
+                    onChange={setCreateBIMLead}
+                  />
+                </div>
+                {/* ── BIM Co-ordinator dropdown ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
+                    options={bimCoordinators} value={createBIMCoOrdinator}
+                    onChange={setCreateBIMCoOrdinator}
+                  />
+                </div>
+                {/* ── Member multi-select ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select Member <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val && !memberTags.includes(val)) {
+                        setMemberTags(prev => [...prev, val]);
+                        setCreateMember([...memberTags, val].join(', '));
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  >
+                    <option value="">Select Member to Add</option>
+                    {allEmployees.filter(emp => !memberTags.includes(emp)).map((emp, idx) => (
+                      <option key={idx} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                  {memberTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {memberTags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                          {tag}
+                          <button type="button" onClick={() => setMemberTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 transition-colors leading-none">x</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Resources ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Resources <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createResources}
+                    onChange={(e) => setCreateResources(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Actual Resources"
+                  />
+                </div>
+
+                {/* ── Required Resources ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Required Resources <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createRequiredResources}
+                    onChange={(e) => setCreateRequiredResources(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Required Resources"
+                  />
+                </div>
+
+                {/* ── Priority dropdown ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Priority <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Priority" placeholder="Select Priority"
+                    options={priorityOptions} value={createPriority}
+                    onChange={setCreatePriority}
+                  />
+                </div>
+
+                {/* ── Location ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Location <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createLocation}
+                    onChange={(e) => setCreateLocation(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Location"
+                  />
+                </div>
+
+                {/* ── Project Description (full width) ── */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Description <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <textarea
+                    required
+                    value={createDescription}
+                    onChange={(e) => setCreateDescription(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    placeholder="Type Project Description"
+                  />
+                </div>
+
+                {/* ── Attach File (full width) ── */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Attach File <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                    <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                      {createFile ? createFile.name : 'choose File'}
+                    </div>
+                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
+                      Browse File
+                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[15px] md:text-[16px] font-Gantari font-semibold transition-all hover:bg-[#c93a39]"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setModuleNameTags([]);
+                    setModuleNameInput('');
+                  }}
+                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create Project
+                  Discard
                 </button>
-              )}
-            </div>
+                <button
+                  type="submit"
+                  disabled={createSubmitting}
+                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
+                >
+                  {createSubmitting ? 'Creating...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : showEditModal ? (
+        <div className="flex flex-col h-full bg-white">
+          {/* Edit Project Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => setShowEditModal(false)}
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#1A1A1A]">Edit Details</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!selectedProjectForEdit) return;
+                setIsEditSubmitting(true);
+                try {
+                  const payload = {
+                    project_name: createName,
+                    budget: createBudget,
+                    module_name: editModuleTags.join(', '),
+                    client_name: createClientName,
+                    project_manager: editProjectManager,
+                    start_date: createStartDate,
+                    end_date: createEndDate,
+                    total_hours: createTotalHours,
+                    per_day: createPerDay,
+                    department: editDepartment,
+                    bim_lead: editBIMLead,
+                    bim_co_ordinator: editBIMCoOrd,
+                    member: editMemberTags.join(', '),
+                    resources: createResources,
+                    required_resources: createRequiredResources,
+                    priority: editPriority,
+                    location: createLocation,
+                    description: createDescription
+                  };
+                  await api.patch(`/api/projects/${selectedProjectForEdit.id}`, payload);
 
-            {/* Dashboard Content with Scrollbar */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
-                {list.length === 0 ? (
-                  <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
-                    No projects found.
+                  // Refresh list
+                  const response = await api.get('/api/projects');
+                  if (Array.isArray(response.data)) {
+                    setList(response.data.map((r: any) => ({
+                      id: r.id,
+                      project_name: r.project_name,
+                      client_name: r.client_name,
+                      project_manager: r.project_manager,
+                      start_date: r.start_date,
+                      end_date: r.end_date,
+                      status: r.status,
+                      progress: r.progress,
+                      budget: r.budget,
+                      module_name: r.module_name,
+                      total_tasks: r.total_tasks,
+                      completed_tasks: r.completed_tasks,
+                      department: r.department,
+                      bim_lead: r.bim_lead,
+                      bim_co_ordinator: r.bim_co_ordinator,
+                      member: r.member,
+                      total_hours: r.total_hours,
+                      per_day: r.per_day,
+                      resources: r.resources,
+                      required_resources: r.required_resources,
+                      priority: r.priority,
+                      location: r.location,
+                      description: r.description
+                    })));
+                  }
+                  setShowEditModal(false);
+                } catch (err) {
+                  console.error('Error updating project:', err);
+                  alert('Failed to update project');
+                } finally {
+                  setIsEditSubmitting(false);
+                }
+              }}
+              className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+                {/* Project Name */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createName}
+                    onChange={(e) => setCreateName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Name"
+                  />
+                </div>
+
+                {/* Budget */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Budget <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createBudget}
+                    onChange={(e) => setCreateBudget(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Budget"
+                  />
+                </div>
+
+                {/* Modules Name */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Modules Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editModuleInput}
+                    onChange={(e) => setEditModuleInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = editModuleInput.trim().replace(/,$/, '');
+                        if (val && !editModuleTags.includes(val)) setEditModuleTags(prev => [...prev, val]);
+                        setEditModuleInput('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Modules Name"
+                  />
+                  <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Please enter names, separated by commas, and then press enter
+                  </p>
+                  {editModuleTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {editModuleTags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                          {tag}
+                          <button type="button" onClick={() => setEditModuleTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
+                            x
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Task Name */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Task Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editTaskInput}
+                    onChange={(e) => setEditTaskInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = editTaskInput.trim().replace(/,$/, '');
+                        if (val && !editTaskTags.includes(val)) setEditTaskTags(prev => [...prev, val]);
+                        setEditTaskInput('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Task Name"
+                  />
+                  <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Please enter names, separated by commas, and then press enter
+                  </p>
+                  {editTaskTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {editTaskTags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                          {tag}
+                          <button type="button" onClick={() => setEditTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
+                            x
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Client Name */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Client Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createClientName}
+                    onChange={(e) => setCreateClientName(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Client Name"
+                  />
+                </div>
+
+                {/* Priority */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Priority <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Priority" placeholder="Select Priority"
+                    options={PRIORITY_OPTIONS} value={editPriority}
+                    onChange={setEditPriority}
+                  />
+                </div>
+
+                {/* Start Date */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Start Date <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="date" required
+                    value={createStartDate}
+                    onChange={(e) => setCreateStartDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  />
+                </div>
+
+                {/* End Date */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project End Date <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="date" required
+                    value={createEndDate}
+                    onChange={(e) => setCreateEndDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  />
+                </div>
+
+                {/* Total Hours */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Total Hours"
+                  />
+                </div>
+
+                {/* Per Day */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Per Day <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createPerDay}
+                    onChange={(e) => setCreatePerDay(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* Select Department */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select Department <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Department" placeholder="Select Department"
+                    options={departments} value={editDepartment}
+                    onChange={setEditDepartment}
+                  />
+                </div>
+
+                {/* Select Project Manager */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select Project Manager <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Project Manager" placeholder="Select Project Manager"
+                    options={projectManagers} value={editProjectManager}
+                    onChange={setEditProjectManager}
+                  />
+                </div>
+
+                {/* Select BIM Lead */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select BIM Lead <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="BIM Lead" placeholder="Select BIM Lead"
+                    options={bimLeads} value={editBIMLead}
+                    onChange={setEditBIMLead}
+                  />
+                </div>
+
+                {/* Select BIM Co-Ordinator */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
+                    options={bimCoordinators} value={editBIMCoOrd}
+                    onChange={setEditBIMCoOrd}
+                  />
+                </div>
+
+                {/* Member selection with multi-select tags */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Select Member <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val && !editMemberTags.includes(val)) {
+                        setEditMemberTags(prev => [...prev, val]);
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  >
+                    <option value="">Select Member</option>
+                    {allEmployees.filter(emp => !editMemberTags.includes(emp)).map((emp, idx) => (
+                      <option key={idx} value={emp}>{emp}</option>
+                    ))}
+                  </select>
+                  {editMemberTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {editMemberTags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => setEditMemberTags(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-gray-400 hover:text-[#DD4342] transition-colors leading-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Location <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createLocation}
+                    onChange={(e) => setCreateLocation(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Location"
+                  />
+                </div>
+
+                {/* Resources */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Resources <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createResources}
+                    onChange={(e) => setCreateResources(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Actual Resources"
+                  />
+                </div>
+
+                {/* Required Resources */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Required Resources <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createRequiredResources}
+                    onChange={(e) => setCreateRequiredResources(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Required Resources"
+                  />
+                </div>
+
+                {/* Project Description */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Project Description <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={createDescription}
+                    onChange={(e) => setCreateDescription(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    placeholder="Type Project Description"
+                  />
+                </div>
+
+                {/* Attach File */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Attach File <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                    <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                      {createFile ? createFile.name : 'choose File'}
+                    </div>
+                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
+                      Browse File
+                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                    </label>
                   </div>
-                ) : (
-                  list.map((p) => {
-                    const total = p.total_tasks ?? 0;
-                    const completed = p.completed_tasks ?? 0;
-                    const progress = Math.round(p.progress ?? 0);
+                </div>
+              </div>
 
-                    const radius = 28;
-                    const circumference = 2 * Math.PI * radius;
-                    const offset = circumference - (progress / 100) * circumference;
+              {/* Footer Buttons */}
+              <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditModuleTags([]);
+                    setEditModuleInput('');
+                    setEditTaskTags([]);
+                    setEditTaskInput('');
+                  }}
+                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
+                >
+                  Discard
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditSubmitting}
+                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
+                >
+                  {isEditSubmitting ? 'Updating...' : 'Update Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Dashboard Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
+            <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">{title}</h2>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[15px] md:text-[16px] font-Gantari font-semibold transition-all hover:bg-[#c93a39]"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Project
+              </button>
+            )}
+          </div>
 
-                    return (
-                      <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                        <div>
-                           <div className="flex items-center justify-between mb-6 mt-2 pr-2">
-                            <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
-                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                <circle
-                                  cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                  strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                                  style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                                />
-                              </svg>
-                              <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
-                            </div>
-                            <div className="relative">
-                              <button 
-                                type="button" 
-                                className="rounded-full text-[#8B8B8B]"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setOpenMenuId(openMenuId === p.id ? null : p.id);
+          {/* Dashboard Content with Scrollbar */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+              {list.length === 0 ? (
+                <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+                  No projects found.
+                </div>
+              ) : (
+                list.map((p) => {
+                  const total = p.total_tasks ?? 0;
+                  const completed = p.completed_tasks ?? 0;
+                  const progress = Math.round(p.progress ?? 0);
+
+                  const radius = 28;
+                  const circumference = 2 * Math.PI * radius;
+                  const offset = circumference - (progress / 100) * circumference;
+
+                  return (
+                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                      <div>
+                        <div className="flex items-center justify-between mb-6 mt-2 pr-2">
+                          <div className="relative flex items-center justify-center">
+                            <svg className="w-20 h-20 transform -rotate-90">
+                              <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                              <circle
+                                cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
+                                strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
+                                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                              />
+                            </svg>
+                            <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
+                          </div>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              className="rounded-full text-[#8B8B8B]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === p.id ? null : p.id);
+                              }}
+                            >
+                              <img src={threedot} alt="" className='w-8 h-8' />
+                            </button>
+                            <div
+                              className={`absolute -right-30 w-72 bg-white/10 backdrop-blur-md rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 shadow-xl overflow-hidden ${openMenuId === p.id ? 'opacity-100 visible translate-y-2' : 'opacity-0 invisible translate-y-0'}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => {
+                                  setSelectedProjectForView(p);
+                                  setShowProjectView(true);
+                                  setOpenMenuId(null);
                                 }}
-                              >
-                                <img src={threedot} alt="" className='w-8 h-8' />
+                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
+                                <img src={viewIcon} alt="view" className="w-6 h-6" />
+                                <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">View</span>
                               </button>
-                              <div 
-                                className={`absolute -right-30 w-72 bg-white/10 backdrop-blur-md rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 shadow-xl overflow-hidden ${openMenuId === p.id ? 'opacity-100 visible translate-y-2' : 'opacity-0 invisible translate-y-0'}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
+                              {(isTechnicalDirector || isManagement) && (
                                 <button
                                   onClick={() => {
-                                    setSelectedProjectForView(p);
-                                    setShowProjectView(true);
+                                    setCurrentProject(p);
+                                    setShowMilestones(true);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
-                                  <img src={viewIcon} alt="view" className="w-6 h-6" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">View</span>
+                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                >
+                                  <img src={paymentMilestone} alt=" milestones" className="w-6 h-6" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Payment Milestones</span>
                                 </button>
-                                {(isTechnicalDirector || isManagement) && (
-                                  <button
-                                    onClick={() => {
-                                      setCurrentProject(p);
-                                      setShowMilestones(true);
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <img src={paymentMilestone} alt=" milestones" className="w-6 h-6"/>
-                                    <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Payment Milestones</span>
-                                  </button>
-                                )}
-                                {canEdit && (
-                                  <button
-                                    onClick={() => {
-                                      setSelectedProjectForEdit(p);
-                                      setCreateName(p.project_name ?? '');
-                                      setCreateBudget(p.budget ?? '');
-                                      setCreateModuleName(p.module_name ?? '');
-                                      setCreateClientName(p.client_name ?? '');
-                                      setCreateProjectManager(p.project_manager ?? '');
-                                      setCreateStartDate(p.start_date ?? '');
-                                      setCreateEndDate(p.end_date ?? '');
-                                      setCreateTotalHours(p.total_hours ?? '');
-                                      setCreatePerDay(p.per_day ?? '');
-                                      setCreateDepartment(p.department ?? '');
-                                      setCreateBIMLead(p.bim_lead ?? '');
-                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ?? '');
-                                      setCreateMember(p.member ?? '');
-                                      setCreateResources(p.resources ?? '');
-                                      setCreateRequiredResources(p.required_resources ?? '');
-                                      setCreatePriority(p.priority ?? '');
-                                      setCreateLocation(p.location ?? '');
-                                      setCreateDescription(p.description ?? '');
-                                      setShowEditModal(true);
-                                      setOpenMenuId(null);
-                                    }}
-                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <img src={editIcon} alt="edit" className="w-6 h-6" />
-                                    <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Edit</span>
-                                  </button>
-                                )}
-                                {canDelete && (
-                                  <button
-                                    onClick={() => {
+                              )}
+                              {canEdit && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedProjectForEdit(p);
+                                    setCreateName(p.project_name ?? '');
+                                    setCreateBudget(p.budget ?? '');
+                                    setCreateModuleName(p.module_name ?? '');
+
+                                    // Initialize tags correctly
+                                    const mods = (p.module_name || '').split(',').map(s => s.trim()).filter(Boolean);
+                                    setEditModuleTags(mods);
+                                    setEditModuleInput('');
+
+                                    const mems = (p.member || '').split(',').map(s => s.trim()).filter(Boolean);
+                                    setEditMemberTags(mems);
+                                    setEditMemberInput('');
+
+                                    // Set other edit variables
+                                    setEditPriority(p.priority || '');
+                                    setEditDepartment(p.department || '');
+                                    setEditProjectManager(p.project_manager || '');
+                                    setEditBIMLead(p.bim_lead || '');
+                                    setEditBIMCoOrd(p.bim_co_ordinator || '');
+                                    setCreateClientName(p.client_name ?? '');
+                                    setCreateProjectManager(p.project_manager ?? '');
+                                    setCreateStartDate(p.start_date ?? '');
+                                    setCreateEndDate(p.end_date ?? '');
+                                    setCreateTotalHours(p.total_hours ?? '');
+                                    setCreatePerDay(p.per_day ?? '');
+                                    setCreateDepartment(p.department ?? '');
+                                    setCreateBIMLead(p.bim_lead ?? '');
+                                    setCreateBIMCoOrdinator(p.bim_co_ordinator ?? '');
+                                    setCreateMember(p.member ?? '');
+                                    setCreateResources(p.resources ?? '');
+                                    setCreateRequiredResources(p.required_resources ?? '');
+                                    setCreatePriority(p.priority ?? '');
+                                    setCreateLocation(p.location ?? '');
+                                    setCreateDescription(p.description ?? '');
+                                    setShowEditModal(true);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                >
+                                  <img src={editIcon} alt="edit" className="w-6 h-6" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Edit</span>
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => {
                                     setDeleteId(p.id);
                                     setOpenMenuId(null);
                                   }}
-                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left hover:text-[#DD4342] font-Gantari"
-                                  >
-                                    <img src={deleteIcon} alt="delete" className="w-6 h-6" />
-                                    <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Delete</span>
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between items-start mb-4 ml-8 -mt-4">
-                            <div>
-                              <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
-                                {p.project_name ?? 'Prestige Park Groove'}
-                              </h3>
+                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                >
+                                  <img src={deleteIcon} alt="delete" className="w-6 h-6" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Delete</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-5 mt-auto">
-                          <div className="flex -space-x-5">
-                            {[1, 2, 3].map((i) => (
-                              <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                                <img src={`https://i.pravatar.cc/150?u=${p.id + i}`} alt="avatar" className="w-full h-full object-cover" />
-                              </div>
-                            ))}
-                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
-                              +4
-                            </div>
+
+                        <div className="flex justify-between items-start mb-4 ml-8 -mt-4">
+                          <div>
+                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
+                              {p.project_name ?? 'Prestige Park Groove'}
+                            </h3>
                           </div>
-                          {p.priority && (
-                             <div className={`px-4 py-1.5 rounded-[10px] text-white text-[14px] font-semibold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
-                               {p.priority}
-                             </div>
-                          )}
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-5 mt-auto">
+                        <div className="flex -space-x-5">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
+                              <img src={`https://i.pravatar.cc/150?u=${p.id + i}`} alt="avatar" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                          <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
+                            +4
+                          </div>
+                        </div>
+                        {p.priority && (
+                          <div className={`px-4 py-1.5 rounded-[10px] text-white text-[14px] font-semibold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
+                            {p.priority}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Delete confirmation (Keep as modal) */}
       {deleteId !== null && (

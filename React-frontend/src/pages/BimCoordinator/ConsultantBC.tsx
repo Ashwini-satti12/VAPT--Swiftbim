@@ -118,6 +118,7 @@ export default function ConsultantBC() {
         department: '',
         address: '',
         profile_picture: null as File | null,
+        active: 'Active',
     });
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteEmails, setInviteEmails] = useState('');
@@ -141,7 +142,8 @@ export default function ConsultantBC() {
         salary: '',
         accountnumber: '',
         profile_picture: null as File | null,
-        roles: [] as string[]
+        roles: [] as string[],
+        active: 'Active',
     });
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [editError, setEditError] = useState('');
@@ -239,7 +241,8 @@ export default function ConsultantBC() {
                     salary: emp.salary || '',
                     accountnumber: emp.accountnumber || '',
                     profile_picture: null,
-                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+                    active: emp.active === 'active' ? 'Active' : 'Deactivate',
                 });
             }
         }
@@ -303,6 +306,7 @@ export default function ConsultantBC() {
             if (editForm.department) formData.append('department', editForm.department);
             if (editForm.address) formData.append('address', editForm.address);
             if (editForm.dob) formData.append('dob', editForm.dob);
+            if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
             if (editForm.doj) formData.append('doj', editForm.doj);
             if (editForm.salary) formData.append('salary', editForm.salary);
             if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
@@ -340,6 +344,7 @@ export default function ConsultantBC() {
                                       accountnumber: editForm.accountnumber,
                                       user_type: editForm.user_type,
                                       Allpannel: editForm.roles.join(','),
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
                                       profile_picture: newPic ?? e.profile_picture,
                                   }
                                 : e
@@ -366,6 +371,7 @@ export default function ConsultantBC() {
                 address: editForm.address || undefined,
                 dob: editForm.dob || undefined,
                 doj: editForm.doj || undefined,
+                active: editForm.active === 'Active' ? 'active' : 'inactive',
                 salary: editForm.salary || undefined,
                 accountnumber: editForm.accountnumber || undefined,
                 user_type: editForm.user_type || undefined,
@@ -397,6 +403,7 @@ export default function ConsultantBC() {
                                       accountnumber: editForm.accountnumber,
                                       user_type: editForm.user_type,
                                       Allpannel: payload.Allpannel,
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
                                   }
                                 : e
                         )
@@ -434,6 +441,7 @@ export default function ConsultantBC() {
         if (form.type) formData.append('user_type', form.type);
         if (form.joining_date) formData.append('doj', form.joining_date);
         if (form.department) formData.append('department', form.department);
+        if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
         if (form.profile_picture) {
             formData.append('profile_picture', form.profile_picture);
         }
@@ -458,7 +466,8 @@ export default function ConsultantBC() {
                         dob: '',
                         type: '',
                         joining_date: '',
-                        profile_picture: null
+                        profile_picture: null,
+                        active: 'Active',
                     });
                     setList((prev) => [
                         ...prev,
@@ -467,13 +476,13 @@ export default function ConsultantBC() {
                             full_name: form.full_name,
                             email: form.email,
                             user_role: form.user_role,
-                            active: 'active',
                             department: form.department,
                             phone_number: form.phone_number,
                             address: form.address,
                             dob: form.dob,
                             user_type: form.type,
                             doj: form.joining_date,
+                            active: form.active === 'Active' ? 'active' : 'inactive',
                             profile_picture: data.profile_picture || undefined,
                         },
                     ]);
@@ -623,8 +632,12 @@ export default function ConsultantBC() {
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">{emp.full_name}</h3>
-                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">{emp.address}</p>
+                                                <h3 className="text-[22px]  font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                                                    {emp.full_name}
+                                                </h3>
+                                                <p className="text-[16px]  text-[#F2F2F2] mt-1 truncate">
+                                                    {emp.user_role || 'Consultant'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
@@ -687,7 +700,8 @@ export default function ConsultantBC() {
                                                             salary: emp.salary || '',
                                                             accountnumber: emp.accountnumber || '',
                                                             profile_picture: null,
-                                                            roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
+                                                            roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+                                                            active: emp.active === 'active' ? 'Active' : 'Deactivate',
                                                         });
                                                     }}
                                                     className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
@@ -925,6 +939,20 @@ export default function ConsultantBC() {
                                                 {departments.map((dept) => (
                                                     <option key={dept} value={dept}>{dept}</option>
                                                 ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Status</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.active}
+                                                onChange={(e) => setForm((f) => ({ ...f, active: e.target.value }))}
+                                                className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="Active">Active</option>
+                                                <option value="Deactivate">Deactivate</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -1272,6 +1300,21 @@ export default function ConsultantBC() {
                                                 {departments.map((dept) => (
                                                     <option key={dept} value={dept}>{dept}</option>
                                                 ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
+                                        </div>
+                                    </div>
+
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
+                                        <div className="relative">
+                                            <select
+                                                value={editForm.active}
+                                                onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="Active">Active</option>
+                                                <option value="Deactivate">Deactivate</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
                                         </div>
