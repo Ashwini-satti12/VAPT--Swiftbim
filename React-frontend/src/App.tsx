@@ -204,7 +204,6 @@ function App() {
             <Route path="bc/teamreport" element={<TeamReportBC />} />
             <Route path="bc/chat" element={<ChatBC />} />
             <Route path="bc/mytasks/view" element={<MytaskViewBC />} />
-            <Route path="bc/manage-leave" element={<ManageLeave />} />
             <Route path="bc/manage-leave" element={<ManageLeaveBC />} />
 
             {/* Bim Modeler Routes */}

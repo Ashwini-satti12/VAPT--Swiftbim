@@ -203,13 +203,6 @@ export default function ManageLeaveBC() {
         setLeaves((prev) => prev.filter((l) => l.id !== row.id));
     };
 
-    const handleApprove = (row: LeaveEntry) => {
-        setLeaves((prev) => prev.map((l) => l.id === row.id ? { ...l, currentStatus: 'Approved' } : l));
-    };
-    const handleReject = (row: LeaveEntry) => {
-        setLeaves((prev) => prev.map((l) => l.id === row.id ? { ...l, currentStatus: 'Rejected' } : l));
-    };
-
     const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
@@ -250,7 +243,7 @@ export default function ManageLeaveBC() {
             >
             {/* Page header: heading left; Employee + Show entries right */}
             <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-                <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">Manage Leavesawasdfs</h1>
+                <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">Manage Leave</h1>
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"
@@ -403,36 +396,6 @@ export default function ManageLeaveBC() {
                                                     <button type="button" onClick={() => handleDelete(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0" title="Delete">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                     </button>
-                                                    {row.currentStatus === 'Pending' ? (
-                                                        <>
-                                                            <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Approve" onClick={() => handleApprove(row)} className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
-                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
-                                                                </button>
-                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                                                    <div className="relative z-10">
-                                                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                                                    </div>
-                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">Approve</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Reject" onClick={() => handleReject(row)} className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
-                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                                                </button>
-                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                                                    <div className="relative z-10">
-                                                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                                                    </div>
-                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">Reject</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </>
-                                                    ) : null}
                                                 </div>
                                             </td>
                                         </tr>
@@ -572,54 +535,59 @@ export default function ManageLeaveBC() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                            <button type="button" onClick={handleCloseModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] text-[#353535]" aria-label="Close">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            <button type="button" onClick={handleCloseModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                             </button>
                             <h3 className="text-xl font-bold text-[#353535]">Apply Leave</h3>
                         </div>
                         <form onSubmit={handleSubmitApply} className="px-6 py-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Employee Name</label>
-                                <input type="text" value={employeeName} onChange={(e) => setEmployeeName(normalizeNameAndReason(e.target.value))} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.employeeName ? 'border-red-500' : 'border-[#E5E5E5]'}`} placeholder="Enter employee name" />
-                                {applyFormErrors.employeeName && <p className="text-xs text-red-500 mt-1">{applyFormErrors.employeeName}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
+                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
+                                {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Leave Type</label>
-                                <div className="relative" ref={leaveTypeDropdownRef}>
-                                    <button type="button" onClick={() => setLeaveTypeOpen((o) => !o)} className={`w-full px-4 py-2.5 rounded-lg border text-left text-sm flex items-center justify-between ${applyFormErrors.leaveType ? 'border-red-500' : 'border-[#E5E5E5]'}`}>
-                                        <span className={leaveType ? 'text-[#353535]' : 'text-[#616161]'}>{leaveType || 'Select leave type'}</span>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={`${leaveTypeOpen ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
-                                    </button>
-                                    {leaveTypeOpen && (
-                                        <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E5E5] rounded-lg shadow-lg z-50 py-1 max-h-48 overflow-y-auto">
-                                            {LEAVE_TYPES.map((t) => (
-                                                <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[#F0F2F7]">{t}</button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                {applyFormErrors.leaveType && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveType}</p>}
+                            <div className="relative" ref={leaveTypeDropdownRef}>
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Leave Type <span className="text-[#DD4342]">*</span></label>
+                                <button type="button" onClick={() => setLeaveTypeOpen((o) => !o)} className={`w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors ${leaveTypeOpen ? 'ring-1 ring-[#D2D2D2]' : applyFormErrors.leaveType ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`}>
+                                    <span className={leaveType ? 'text-[#353535] font-medium' : 'text-[#8B8B8B]'}>{leaveType || 'Select leave type'}</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${leaveTypeOpen ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+                                </button>
+                                {leaveTypeOpen && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
+                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        {LEAVE_TYPES.map((t) => (
+                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpen(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                        ))}
+                                    </div>
+                                )}
+                                {applyFormErrors.leaveType && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveType}</p>}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#353535] mb-1">Leave From</label>
-                                    <input type="date" value={leaveFrom} onChange={(e) => setLeaveFrom(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.leaveFrom ? 'border-red-500' : 'border-[#E5E5E5]'}`} />
-                                    {applyFormErrors.leaveFrom && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveFrom}</p>}
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave From <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveFrom && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveFrom}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#353535] mb-1">Leave To</label>
-                                    <input type="date" value={leaveTo} onChange={(e) => setLeaveTo(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.leaveTo ? 'border-red-500' : 'border-[#E5E5E5]'}`} />
-                                    {applyFormErrors.leaveTo && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveTo}</p>}
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave To <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveTo && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveTo}</p>}
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Describe Your Reason</label>
-                                <textarea value={reason} onChange={(e) => setReason(normalizeNameAndReason(e.target.value))} rows={3} className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none ${applyFormErrors.reason ? 'border-red-500' : 'border-[#E5E5E5]'}`} placeholder="Enter reason" />
-                                {applyFormErrors.reason && <p className="text-xs text-red-500 mt-1">{applyFormErrors.reason}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Describe Your Reason <span className="text-[#DD4342]">*</span></label>
+                                <textarea value={reason} onChange={(e) => { setReason(normalizeNameAndReason(e.target.value)); if (applyFormErrors.reason) setApplyFormErrors((p) => ({ ...p, reason: '' })); }} rows={3} placeholder="Enter your reason for leave..." className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none ${applyFormErrors.reason ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} />
+                                {applyFormErrors.reason && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.reason}</p>}
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-2.5 rounded-lg border border-[#E5E5E5] text-[#353535] font-medium hover:bg-[#F0F2F7]">Cancel</button>
-                                <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg bg-[#DD4346] text-white font-medium hover:bg-[#c43a39]">Submit</button>
+                                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors">Cancel</button>
+                                <button type="submit" className="flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm">Submit</button>
                             </div>
                         </form>
                     </div>
@@ -632,54 +600,59 @@ export default function ManageLeaveBC() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleCloseEditModal}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                            <button type="button" onClick={handleCloseEditModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] text-[#353535]" aria-label="Close">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            <button type="button" onClick={handleCloseEditModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                             </button>
                             <h3 className="text-xl font-bold text-[#353535]">Edit Leave</h3>
                         </div>
                         <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Employee Name</label>
-                                <input type="text" value={employeeName} onChange={(e) => setEmployeeName(normalizeNameAndReason(e.target.value))} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.employeeName ? 'border-red-500' : 'border-[#E5E5E5]'}`} placeholder="Enter employee name" />
-                                {applyFormErrors.employeeName && <p className="text-xs text-red-500 mt-1">{applyFormErrors.employeeName}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
+                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
+                                {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
                             </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Leave Type</label>
-                                <div className="relative" ref={leaveTypeDropdownEditRef}>
-                                    <button type="button" onClick={() => setLeaveTypeOpenEdit((o) => !o)} className={`w-full px-4 py-2.5 rounded-lg border text-left text-sm flex items-center justify-between ${applyFormErrors.leaveType ? 'border-red-500' : 'border-[#E5E5E5]'}`}>
-                                        <span className={leaveType ? 'text-[#353535]' : 'text-[#616161]'}>{leaveType || 'Select leave type'}</span>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className={`${leaveTypeOpenEdit ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
-                                    </button>
-                                    {leaveTypeOpenEdit && (
-                                        <div className="absolute top-full left-0 mt-1 w-full bg-white border border-[#E5E5E5] rounded-lg shadow-lg z-50 py-1 max-h-48 overflow-y-auto">
-                                            {LEAVE_TYPES.map((t) => (
-                                                <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpenEdit(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-[#F0F2F7]">{t}</button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                {applyFormErrors.leaveType && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveType}</p>}
+                            <div className="relative" ref={leaveTypeDropdownEditRef}>
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Leave Type <span className="text-[#DD4342]">*</span></label>
+                                <button type="button" onClick={() => setLeaveTypeOpenEdit((o) => !o)} className={`w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors ${leaveTypeOpenEdit ? 'ring-1 ring-[#D2D2D2]' : applyFormErrors.leaveType ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`}>
+                                    <span className={leaveType ? 'text-[#353535] font-medium' : 'text-[#8B8B8B]'}>{leaveType || 'Select leave type'}</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${leaveTypeOpenEdit ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+                                </button>
+                                {leaveTypeOpenEdit && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
+                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpenEdit(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        {LEAVE_TYPES.map((t) => (
+                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpenEdit(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                        ))}
+                                    </div>
+                                )}
+                                {applyFormErrors.leaveType && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveType}</p>}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#353535] mb-1">Leave From</label>
-                                    <input type="date" value={leaveFrom} onChange={(e) => setLeaveFrom(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.leaveFrom ? 'border-red-500' : 'border-[#E5E5E5]'}`} />
-                                    {applyFormErrors.leaveFrom && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveFrom}</p>}
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave From <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveFrom && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveFrom}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-[#353535] mb-1">Leave To</label>
-                                    <input type="date" value={leaveTo} onChange={(e) => setLeaveTo(e.target.value)} className={`w-full px-4 py-2.5 rounded-lg border text-sm ${applyFormErrors.leaveTo ? 'border-red-500' : 'border-[#E5E5E5]'}`} />
-                                    {applyFormErrors.leaveTo && <p className="text-xs text-red-500 mt-1">{applyFormErrors.leaveTo}</p>}
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave To <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveTo && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveTo}</p>}
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-[#353535] mb-1">Describe Your Reason</label>
-                                <textarea value={reason} onChange={(e) => setReason(normalizeNameAndReason(e.target.value))} rows={3} className={`w-full px-4 py-2.5 rounded-lg border text-sm resize-none ${applyFormErrors.reason ? 'border-red-500' : 'border-[#E5E5E5]'}`} placeholder="Enter reason" />
-                                {applyFormErrors.reason && <p className="text-xs text-red-500 mt-1">{applyFormErrors.reason}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Describe Your Reason <span className="text-[#DD4342]">*</span></label>
+                                <textarea value={reason} onChange={(e) => { setReason(normalizeNameAndReason(e.target.value)); if (applyFormErrors.reason) setApplyFormErrors((p) => ({ ...p, reason: '' })); }} rows={3} placeholder="Enter your reason for leave..." className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none ${applyFormErrors.reason ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} />
+                                {applyFormErrors.reason && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.reason}</p>}
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={handleCloseEditModal} className="flex-1 px-4 py-2.5 rounded-lg border border-[#E5E5E5] text-[#353535] font-medium hover:bg-[#F0F2F7]">Cancel</button>
-                                <button type="submit" className="flex-1 px-4 py-2.5 rounded-lg bg-[#DD4346] text-white font-medium hover:bg-[#c43a39]">Update</button>
+                                <button type="button" onClick={handleCloseEditModal} className="flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors">Cancel</button>
+                                <button type="submit" className="flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm">Update</button>
                             </div>
                         </form>
                     </div>
