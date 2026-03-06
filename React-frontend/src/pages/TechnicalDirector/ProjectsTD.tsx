@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
@@ -8,18 +7,17 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
+
 const apiBase = (api.defaults.baseURL as string) || '';
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected") return undefined;
-  // If it's already an ID string (digits only), return it directly
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
   return emp ? emp.id : undefined;
 };
 
 function FormSelect({
-  label,
   placeholder,
   options,
   value,
@@ -32,8 +30,19 @@ function FormSelect({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -63,25 +72,22 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <>
-          <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} />
-          <div className="absolute z-[60] top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] max-h-48 overflow-y-auto custom-scrollbar">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
-                  ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
+                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -115,6 +121,15 @@ interface Project {
   bidding_end_date?: string;
 }
 
+interface Milestone {
+  id: number;
+  milestone_name: string;
+  milestone_amount: number;
+  due_date: string;
+  status: string;
+  notes?: string;
+}
+
 interface Employee {
   id: number;
   full_name?: string;
@@ -133,6 +148,7 @@ interface Employee {
 export default function ProjectsTD() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -140,6 +156,7 @@ export default function ProjectsTD() {
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
+  const [moduleNameInput, setModuleNameInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -158,14 +175,13 @@ export default function ProjectsTD() {
   const [createPriority, setCreatePriority] = useState("");
   const [createLocation, setCreateLocation] = useState("");
   const [createDescription, setCreateDescription] = useState("");
-  const [createFile, setCreateFile] = useState<File | null>(null);
 
-  const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [createSubmitting, setCreateSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [showProjectView, setShowProjectView] = useState(false);
+  const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
@@ -178,6 +194,8 @@ export default function ProjectsTD() {
   const [milestoneAmount, setMilestoneAmount] = useState("");
   const [milestoneDueDate, setMilestoneDueDate] = useState("");
   const [milestoneNotes, setMilestoneNotes] = useState("");
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -253,19 +271,19 @@ export default function ProjectsTD() {
       completed_tasks: num(r.completed_tasks),
       budget: str(r.budget),
       module_name: str(r.modules),
-      client_name: str(r.client_id),
-      project_manager: str(r.project_manager_id),
+      client_name: str(r.client_name),
+      project_manager: str(r.project_manager_name),
       start_date: d(r.start_date),
       end_date: d(r.due_date),
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
       resources: str(r.resources),
       required_resources: str(r.required_resources),
-      department: str(r.department),
+      department: str(r.department_name),
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
-      bim_lead: str(r.lead_id),
-      bim_co_ordinator: str(r.bim_coordinator_id),
+      bim_lead: str(r.lead_name),
+      bim_co_ordinator: str(r.bim_coordinator_name),
       member: str(r.members),
       priority: str(r.priority),
       location: str(r.location),
@@ -309,16 +327,55 @@ export default function ProjectsTD() {
       .catch(() => setDepartments([]));
 
     api
-      .get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients")
+      .get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients/from-users")
       .then(({ data }) => setClientsList(data.clients ?? []))
       .catch(() => setClientsList([]));
   }, []);
 
+  // Deep-link support: keep project view on refresh using ?projectId=
+  useEffect(() => {
+    const pid = searchParams.get("projectId");
+    if (!pid) {
+      if (showProjectView || selectedProjectForView) {
+        setShowProjectView(false);
+        setSelectedProjectForView(null);
+      }
+      return;
+    }
+
+    const id = Number(pid);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    // If already showing this project, no need to reset everything
+    if (showProjectView && selectedProjectForView?.id === id) {
+      return;
+    }
+
+    // Try to find project in the already loaded list for an immediate UI update
+    const existingProject = list.find(p => p.id === id);
+    if (existingProject) {
+      setSelectedProjectForView(existingProject);
+      setShowProjectView(true);
+    } else if (!showProjectView) {
+      // If not in list and not yet showing view, set showProjectView to true to show loading
+      setShowProjectView(true);
+    }
+
+    // Always fetch fresh details to ensure data is up to date, but don't clear existing while loading
+    api
+      .get<Record<string, unknown>>(`/ api / projects / ${id} `)
+      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+      .catch(() => {
+        if (!existingProject) {
+          setSearchParams({}, { replace: true });
+          setShowProjectView(false);
+        }
+      });
+  }, [searchParams, list, setSearchParams]);
+
   // Set default module name tags when create modal opens
   useEffect(() => {
     if (showCreateModal) {
-      setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
-      setCreateModuleName('m1, m2, m3, m4');
       setSelectedMemberIds([]);
     }
   }, [showCreateModal]);
@@ -339,432 +396,98 @@ export default function ProjectsTD() {
   }, [editDropdownOpen]);
 
   // Fetch task statistics and tower data for selected project view
+  // (single source of truth to avoid races)
   useEffect(() => {
-    if (showProjectView && selectedProjectForView) {
-      setLoadingTaskStats(true);
-      const projectId = selectedProjectForView.id;
-
-      // Initialize with project table data immediately
-      const projectCompleted = selectedProjectForView.completed_tasks || 0;
-      const projectTotal = selectedProjectForView.total_tasks || 0;
-
-      // Set initial stats from project table so cards show data immediately
-      setTaskStats({
-        todo: Math.max(0, projectTotal - projectCompleted),
-        inProgress: 0,
-        paused: 0,
-        completed: projectCompleted,
-      });
-
-      api
-        .get<{
-          tasks?: Array<{
-            status?: string;
-            modules_name?: string;
-            projectid?: number | string;
-            project_id?: number | string;
-            Approval?: string;
-          }>
-        }>("/api/tasks", {
-          params: {
-            project_id: String(projectId),
-            condition: "1" // Get all company tasks (Technical Director can see all)
-          },
-        })
-        .then(({ data }) => {
-          const tasks = data.tasks ?? [];
-
-          // Helper function to normalize status - database uses "Completed", "Todo", "InProgress", "Pause"
-          const normalizeStatus = (status: string | undefined): string => {
-            if (!status) return "";
-            const s = String(status).toLowerCase().trim();
-            // Handle various status formats
-            if (s === "todo" || s === "to do") return "todo";
-            if (s === "inprogress" || s === "in progress" || s === "in_progress") return "inprogress";
-            if (s === "pause" || s === "paused") return "pause";
-            if (s === "completed" || s === "complete") return "completed";
-            return s;
-          };
-
-          // API already filters by project_id, but double-check to ensure we have the right tasks
-          const projectTasks = tasks.filter((t) => {
-            const taskProjectId = t.projectid || t.project_id;
-            if (taskProjectId == null) return false;
-            // Compare as strings and numbers to handle both cases
-            return String(taskProjectId) === String(projectId) || Number(taskProjectId) === Number(projectId);
-          });
-
-          // Debug: log tasks to see what we're getting
-          console.log("=== TASK FETCH DEBUG ===");
-          console.log("Project ID:", projectId, "Type:", typeof projectId);
-          console.log("Total tasks from API:", tasks.length);
-          console.log("Filtered project tasks:", projectTasks.length);
-          if (tasks.length > 0) {
-            console.log("Sample tasks:", tasks.slice(0, 5).map(t => ({
-              projectid: t.projectid,
-              project_id: t.project_id,
-              status: t.status,
-              statusLower: String(t.status || "").toLowerCase()
-            })));
-          }
-          if (projectTasks.length > 0) {
-            const statusCounts = projectTasks.reduce((acc, t) => {
-              const status = normalizeStatus(t.status);
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
-            console.log("Status breakdown:", statusCounts);
-            console.log("All statuses:", projectTasks.map(t => t.status));
-          } else {
-            console.warn("No tasks found for project! Check if project_id matches.");
-          }
-
-          // Calculate task statistics by status
-          const stats = {
-            todo: projectTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
-            inProgress: projectTasks.filter((t) => normalizeStatus(t.status) === "inprogress").length,
-            paused: projectTasks.filter((t) => normalizeStatus(t.status) === "pause").length,
-            completed: projectTasks.filter((t) => normalizeStatus(t.status) === "completed").length,
-          };
-
-          console.log("Final task stats:", stats);
-          console.log("Total tasks counted:", stats.todo + stats.inProgress + stats.paused + stats.completed);
-          console.log("Expected from projects table - completed:", selectedProjectForView.completed_tasks, "total:", selectedProjectForView.total_tasks);
-          console.log("========================");
-
-          // If we got tasks, use them; otherwise use project table data
-          if (projectTasks.length > 0) {
-            setTaskStats(stats);
-          } else {
-            // Fallback: Use project table data if no tasks found
-            console.warn("No tasks found from API, using project table data");
-            setTaskStats({
-              todo: Math.max(0, projectTotal - projectCompleted),
-              inProgress: 0,
-              paused: 0,
-              completed: projectCompleted,
-            });
-          }
-
-          // Parse all modules from project's modules field
-          const projectModules = selectedProjectForView.module_name || "";
-          const allModuleNames: string[] = [];
-
-          if (projectModules) {
-            // Split by comma to get individual module entries
-            // Format can be: "PD - Package1/Package 2/Package 3, DD - Package1/Package 2/Package 3, IFC - Package1/Package 2/Package 3"
-            // Or: "Tower-1, Tower-2, Tower-3"
-            // Or: "RAMP RD, NEXT TO CONE 9 PLAZA, ..."
-            const parsedModules = projectModules
-              .split(',')
-              .map(m => m.trim())
-              .filter(m => m.length > 0);
-
-            // For each module entry, extract the main module name
-            parsedModules.forEach(module => {
-              let moduleName = module.trim();
-
-              // Handle formats like "PD - Package1/Package 2/Package 3"
-              // Extract the prefix (PD, DD, IFC) as the module identifier
-              if (moduleName.includes(' - ')) {
-                const parts = moduleName.split(' - ');
-                if (parts.length > 1) {
-                  // Use the prefix (PD, DD, IFC) as the module identifier
-                  moduleName = parts[0].trim();
-                }
-              }
-
-              // Handle formats with slashes - for formats like "Package1/Package 2", keep the first part
-              // But if it's already a simple name, keep it as-is
-              if (moduleName.includes('/') && !moduleName.includes(' - ')) {
-                moduleName = moduleName.split('/')[0].trim();
-              }
-
-              // Add the module name if it's not empty and not already added
-              if (moduleName && !allModuleNames.includes(moduleName)) {
-                allModuleNames.push(moduleName);
-              }
-            });
-          }
-
-          console.log("Project modules from projects table:", allModuleNames);
-          console.log("Raw modules field:", projectModules);
-
-          // Group tasks by module/tower name from tasks
-          const moduleTaskMap = new Map<string, {
-            total: number;
-            completed: number;
-            approved: number;
-          }>();
-
-          projectTasks.forEach((task) => {
-            const taskModuleName = (task.modules_name || "").trim();
-            // Handle empty module names
-            if (!taskModuleName || taskModuleName === "") {
-              // Skip tasks without modules for now, or add to "Unassigned" later
-              return;
-            }
-
-            // Extract module prefix if it contains " - " (e.g., "PD - Package1" -> "PD")
-            let moduleKey = taskModuleName;
-            if (taskModuleName.includes(' - ')) {
-              const parts = taskModuleName.split(' - ');
-              if (parts.length > 1) {
-                moduleKey = parts[0].trim();
-              }
-            }
-
-            // Also handle slashes (e.g., "PD/Package1" -> "PD")
-            if (moduleKey.includes('/') && !moduleKey.includes(' - ')) {
-              moduleKey = moduleKey.split('/')[0].trim();
-            }
-
-            const module = moduleKey || "Default";
-            const status = normalizeStatus(task.status);
-            const approval = (task.Approval || "").toLowerCase();
-
-            if (!moduleTaskMap.has(module)) {
-              moduleTaskMap.set(module, { total: 0, completed: 0, approved: 0 });
-            }
-            const moduleData = moduleTaskMap.get(module)!;
-            moduleData.total++;
-
-            if (status === "completed") {
-              moduleData.completed++;
-            }
-            if (approval === "approved") {
-              moduleData.approved++;
-            }
-          });
-
-          // Also count unassigned tasks (tasks without modules_name)
-          const unassignedTasks = projectTasks.filter(t => {
-            const taskModuleName = (t.modules_name || "").trim();
-            return !taskModuleName || taskModuleName === "";
-          });
-
-          if (unassignedTasks.length > 0) {
-            moduleTaskMap.set("Unassigned", { total: 0, completed: 0, approved: 0 });
-            const unassignedData = moduleTaskMap.get("Unassigned")!;
-            unassignedTasks.forEach(task => {
-              unassignedData.total++;
-              const status = normalizeStatus(task.status);
-              const approval = (task.Approval || "").toLowerCase();
-              if (status === "completed") {
-                unassignedData.completed++;
-              }
-              if (approval === "approved") {
-                unassignedData.approved++;
-              }
-            });
-          }
-
-          // Convert to tower data array - show ALL modules from project
-          const towers: Array<{
-            id: number;
-            name: string;
-            progress: number;
-            completedTasks: number;
-            totalTasks: number;
-            status: 'Approved' | 'Pending' | 'Review';
-          }> = [];
-
-          // Helper to format tower/module name for display
-          const formatTowerName = (moduleName: string, index: number): string => {
-            if (!moduleName || moduleName === "Default") {
-              return `Tower ${String(index + 1).padStart(2, '0')}`;
-            }
-
-            // If module name contains "Tower" or a number, format it nicely
-            const towerMatch = moduleName.match(/tower[\s-]?(\d+)/i);
-            if (towerMatch) {
-              return `Tower ${towerMatch[1].padStart(2, '0')}`;
-            }
-
-            // Try to extract number from module name
-            const numMatch = moduleName.match(/\d+/);
-            if (numMatch && moduleName.length < 30) {
-              // If it's a simple numbered module, format as Tower
-              return `Tower ${numMatch[0].padStart(2, '0')}`;
-            }
-
-            // Otherwise, use the module name as-is (truncate if too long)
-            return moduleName.length > 25 ? moduleName.substring(0, 25) + "..." : moduleName;
-          };
-
-          // Process all modules from project
-          if (allModuleNames.length > 0) {
-            allModuleNames.forEach((moduleName, index) => {
-              // Get task data for this module (if any)
-              // Try exact match first
-              let taskData = moduleTaskMap.get(moduleName) || { total: 0, completed: 0, approved: 0 };
-
-              // If no exact match, try to find tasks where modules_name contains this module name
-              if (taskData.total === 0) {
-                for (const [taskModuleName, data] of moduleTaskMap.entries()) {
-                  // Skip "Unassigned" when matching project modules
-                  if (taskModuleName === "Unassigned") continue;
-
-                  // Check if task's modules_name contains this project module name (case-insensitive)
-                  const taskModuleLower = taskModuleName.toLowerCase();
-                  const projectModuleLower = moduleName.toLowerCase();
-
-                  // Try various matching strategies
-                  if (taskModuleLower === projectModuleLower ||
-                    taskModuleLower.startsWith(projectModuleLower) ||
-                    projectModuleLower.startsWith(taskModuleLower) ||
-                    taskModuleLower.includes(projectModuleLower) ||
-                    projectModuleLower.includes(taskModuleLower)) {
-                    taskData = {
-                      total: taskData.total + data.total,
-                      completed: taskData.completed + data.completed,
-                      approved: taskData.approved + data.approved
-                    };
-                  }
-                }
-              }
-
-              const progress = taskData.total > 0 ? Math.round((taskData.completed / taskData.total) * 100) : 0;
-
-              // Determine status based on approval and progress
-              let status: 'Approved' | 'Pending' | 'Review';
-              const approvalRate = taskData.total > 0 ? (taskData.approved / taskData.total) : 0;
-
-              if (taskData.total === 0) {
-                status = 'Review'; // No tasks yet
-              } else if (approvalRate >= 0.8 || progress >= 80) {
-                status = 'Approved';
-              } else if (progress >= 50 || approvalRate >= 0.5) {
-                status = 'Pending';
-              } else {
-                status = 'Review';
-              }
-
-              towers.push({
-                id: index + 1,
-                name: formatTowerName(moduleName, index),
-                progress,
-                completedTasks: taskData.completed,
-                totalTasks: taskData.total,
-                status,
-              });
-            });
-
-            // Add "Unassigned" module if there are tasks without modules
-            const unassignedData = moduleTaskMap.get("Unassigned");
-            if (unassignedData && unassignedData.total > 0) {
-              const unassignedProgress = unassignedData.total > 0 ? Math.round((unassignedData.completed / unassignedData.total) * 100) : 0;
-              let unassignedStatus: 'Approved' | 'Pending' | 'Review';
-              const unassignedApprovalRate = unassignedData.total > 0 ? (unassignedData.approved / unassignedData.total) : 0;
-
-              if (unassignedData.total === 0) {
-                unassignedStatus = 'Review';
-              } else if (unassignedApprovalRate >= 0.8 || unassignedProgress >= 80) {
-                unassignedStatus = 'Approved';
-              } else if (unassignedProgress >= 50 || unassignedApprovalRate >= 0.5) {
-                unassignedStatus = 'Pending';
-              } else {
-                unassignedStatus = 'Review';
-              }
-
-              towers.push({
-                id: allModuleNames.length + 1,
-                name: "Unassigned",
-                progress: unassignedProgress,
-                completedTasks: unassignedData.completed,
-                totalTasks: unassignedData.total,
-                status: unassignedStatus,
-              });
-            }
-          } else {
-            // If no modules in project, check if we have modules from tasks
-            if (moduleTaskMap.size > 0) {
-              const sortedTaskModules = Array.from(moduleTaskMap.entries()).sort((a, b) => {
-                const numA = parseInt(a[0].match(/\d+/)?.[0] || "0");
-                const numB = parseInt(b[0].match(/\d+/)?.[0] || "0");
-                return numA - numB;
-              });
-
-              sortedTaskModules.forEach(([moduleName, data], index) => {
-                const progress = data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0;
-
-                let status: 'Approved' | 'Pending' | 'Review';
-                const approvalRate = data.total > 0 ? (data.approved / data.total) : 0;
-
-                if (approvalRate >= 0.8 || progress >= 80) {
-                  status = 'Approved';
-                } else if (progress >= 50 || approvalRate >= 0.5) {
-                  status = 'Pending';
-                } else {
-                  status = 'Review';
-                }
-
-                towers.push({
-                  id: index + 1,
-                  name: formatTowerName(moduleName, index),
-                  progress,
-                  completedTasks: data.completed,
-                  totalTasks: data.total,
-                  status,
-                });
-              });
-            } else {
-              // Fallback: create default towers from project totals
-              const totalTasks = selectedProjectForView.total_tasks || 0;
-              const completedTasks = selectedProjectForView.completed_tasks || 0;
-
-              for (let i = 1; i <= 8; i++) {
-                const variation = (i % 3 === 0 ? -0.15 : i % 2 === 0 ? -0.05 : 0.05);
-                const towerTotal = Math.max(1, Math.round((totalTasks / 8) * (1 + variation)));
-                const towerCompleted = Math.max(0, Math.round((completedTasks / 8) * (1 + variation)));
-                const towerProgress = towerTotal > 0 ? Math.round((towerCompleted / towerTotal) * 100) : 0;
-
-                let status: 'Approved' | 'Pending' | 'Review';
-                if (towerProgress >= 80) {
-                  status = 'Approved';
-                } else if (towerProgress >= 50) {
-                  status = 'Pending';
-                } else {
-                  status = 'Review';
-                }
-
-                towers.push({
-                  id: i,
-                  name: `Tower ${String(i).padStart(2, '0')}`,
-                  progress: towerProgress,
-                  completedTasks: towerCompleted,
-                  totalTasks: towerTotal,
-                  status,
-                });
-              }
-            }
-          }
-
-          setTowerData(towers);
-        })
-        .catch((err) => {
-          console.error("Error fetching task stats:", err);
-          console.error("Error details:", err.response?.data || err.message);
-          // Fallback to project table data if API fails
-          const projectCompleted = selectedProjectForView.completed_tasks || 0;
-          const projectTotal = selectedProjectForView.total_tasks || 0;
-          const fallbackStats = {
-            todo: Math.max(0, projectTotal - projectCompleted),
-            inProgress: 0,
-            paused: 0,
-            completed: projectCompleted,
-          };
-          console.log("Using fallback stats from project table:", fallbackStats);
-          setTaskStats(fallbackStats);
-          setTowerData([]);
-        })
-        .finally(() => setLoadingTaskStats(false));
-    } else {
-      // Reset when project view is closed
+    let cancelled = false;
+    const projectId = showProjectView ? selectedProjectForView?.id : undefined;
+    if (!projectId) {
       setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
       setTowerData([]);
+      setLoadingTaskStats(false);
+      return;
     }
-  }, [showProjectView, selectedProjectForView]);
+
+    setLoadingTaskStats(true);
+    setTowerData([]);
+
+    api
+      .get<{
+        success?: boolean;
+        total_tasks?: number;
+        completed_tasks?: number;
+        project_completion_percentage?: number;
+        status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
+        modules?: Array<{
+          module_name?: string;
+          total_tasks?: number;
+          completed_tasks?: number;
+          completion_percentage?: number;
+        }>;
+      }>(`/ api / projects / ${projectId}/module-progress`)
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+
+        const counts = data.status_counts ?? {};
+        setTaskStats({
+          todo: Number(counts.todo ?? 0),
+          inProgress: Number(counts.inprogress ?? 0),
+          paused: Number(counts.paused ?? 0),
+          completed: Number(counts.completed ?? 0),
+        });
+
+        const mods = data.modules ?? [];
+        const towers = mods.map((m, idx) => {
+          const pct = Number(m.completion_percentage ?? 0);
+          let status: "Approved" | "Pending" | "Review";
+          if (pct >= 80) status = "Approved";
+          else if (pct >= 50) status = "Pending";
+          else status = "Review";
+          return {
+            id: idx + 1,
+            name: String(m.module_name ?? `Module ${idx + 1}`),
+            progress: Math.round(pct),
+            completedTasks: Number(m.completed_tasks ?? 0),
+            totalTasks: Number(m.total_tasks ?? 0),
+            status,
+          };
+        });
+        setTowerData(towers);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fallback: use projects table counts (already on selectedProjectForView)
+        const projectCompleted = selectedProjectForView?.completed_tasks || 0;
+        const projectTotal = selectedProjectForView?.total_tasks || 0;
+        setTaskStats({
+          todo: Math.max(0, projectTotal - projectCompleted),
+          inProgress: 0,
+          paused: 0,
+          completed: projectCompleted,
+        });
+        setTowerData([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTaskStats(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showProjectView, selectedProjectForView?.id]);
+
+  const fetchMilestones = (projectId: number) => {
+    setMilestonesLoading(true);
+    api.get<{ milestones: Milestone[] }>(`/api/milestones?project_id=${projectId}`)
+      .then(({ data }) => setMilestones(data.milestones || []))
+      .catch(() => setMilestones([]))
+      .finally(() => setMilestonesLoading(false));
+  };
+
+  useEffect(() => {
+    if (showMilestones && currentProject?.id) {
+      fetchMilestones(currentProject.id);
+    }
+  }, [showMilestones, currentProject?.id]);
 
   // Helper function to get employee name by ID
   const getEmployeeName = (id: string | number | undefined): string => {
@@ -785,13 +508,17 @@ export default function ProjectsTD() {
     <div className="bg-white min-h-screen">
       <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
         {/* Main Content View Switcher */}
-        {showProjectView && selectedProjectForView ? (
+        {showProjectView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
               <button
                 type="button"
-                onClick={() => setShowProjectView(false)}
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSelectedProjectForView(null);
+                  setSearchParams({}, { replace: true });
+                }}
                 className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
@@ -801,7 +528,7 @@ export default function ProjectsTD() {
               </button>
               <div className="min-w-0">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
-                  {selectedProjectForView.project_name ?? "Prestige Park Grove"}
+                  {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
                   <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
@@ -812,490 +539,490 @@ export default function ProjectsTD() {
               </div>
             </div>
 
-            {/* Project View Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
-              {/* Task Status Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-                {/* To Do Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=todo')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <div className="flex items-center justify-left mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">To Do Tasks</p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {loadingTaskStats ? "..." : taskStats.todo}
-                  </p>
-                </button>
-
-                {/* In Progress Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=in_progress')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                  </div>
-                  <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {loadingTaskStats ? "..." : taskStats.inProgress}
-                  </p>
-                </button>
-
-                {/* Paused Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=paused')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">Paused Tasks</p>
-                  </div>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {loadingTaskStats ? "..." : taskStats.paused}
-                  </p>
-                </button>
-
-                {/* Completed Tasks */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/teamtask?status=completed')}
-                  className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                  </div>
-                  <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {loadingTaskStats ? "..." : taskStats.completed}
-                  </p>
-                </button>
+            {!selectedProjectForView ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="flex items-center gap-3 text-[#666666] font-Gantari font-semibold">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#DD4342]" />
+                  Loading project...
+                </div>
               </div>
+            ) : (
+              /* Project View Content */
+              <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
+                {/* Task Status Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+                  {/* To Do Tasks */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/teamtask?status=todo')}
+                    className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  >
+                    <div className="flex items-center justify-left mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">To Do Tasks</p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {loadingTaskStats ? "..." : taskStats.todo}
+                    </p>
+                  </button>
 
-              {/* Tower Progress Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-200 rounded-[10px] md:rounded-[10px] p-4 md:p-6 lg:p-8 custom-scrollbar">
-                {loadingTaskStats ? (
-                  <div className="col-span-full text-center py-8 text-gray-500">
-                    Loading tower data...
-                  </div>
-                ) : towerData.length > 0 ? (
-                  towerData.map((tower) => {
-                    const statusColor =
-                      tower.status === "Review"
-                        ? "#DD4342"
-                        : tower.status === "Pending"
-                          ? "#FF9F00"
-                          : "#0A9344";
-                    const statusBg =
-                      tower.status === "Review"
-                        ? "bg-[#FFEBEC]"
-                        : tower.status === "Pending"
-                          ? "bg-[#FFF4E5]"
-                          : "bg-[#E7F6ED]";
-                    const circumference = 188.4;
+                  {/* In Progress Tasks */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/teamtask?status=in_progress')}
+                    className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                    </div>
+                    <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {loadingTaskStats ? "..." : taskStats.inProgress}
+                    </p>
+                  </button>
 
-                    return (
-                      <div
-                        key={tower.id}
-                        className="bg-white border border-slate-200 w-auto rounded-[10px] md:rounded-[10px] p-4 md:p-6"
-                      >
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">
-                            {tower.name}
-                          </span>
-                          <div
-                            className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusBg}`}
-                          >
-                            <span
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{ backgroundColor: statusColor }}
-                            ></span>
-                            <span
-                              className="text-[11px] md:text-[12px] font-bold"
-                              style={{ color: statusColor }}
+                  {/* Paused Tasks */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/teamtask?status=paused')}
+                    className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">Paused Tasks</p>
+                    </div>
+                    <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {loadingTaskStats ? "..." : taskStats.paused}
+                    </p>
+                  </button>
+
+                  {/* Completed Tasks */}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/teamtask?status=completed')}
+                    className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[#333333] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                    </div>
+                    <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                      {loadingTaskStats ? "..." : taskStats.completed}
+                    </p>
+                  </button>
+                </div>
+
+                {/* Tower Progress Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-200 rounded-[10px] md:rounded-[10px] p-4 md:p-6 lg:p-8 custom-scrollbar">
+                  {loadingTaskStats ? (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      Loading tower data...
+                    </div>
+                  ) : towerData.length > 0 ? (
+                    towerData.map((tower) => {
+                      const statusColor =
+                        tower.status === "Review"
+                          ? "#DD4342"
+                          : tower.status === "Pending"
+                            ? "#FF9F00"
+                            : "#0A9344";
+                      const statusBg =
+                        tower.status === "Review"
+                          ? "bg-[#FFEBEC]"
+                          : tower.status === "Pending"
+                            ? "bg-[#FFF4E5]"
+                            : "bg-[#E7F6ED]";
+                      const circumference = 188.4;
+
+                      return (
+                        <div
+                          key={tower.id}
+                          className="bg-white border border-slate-200 w-auto rounded-[10px] md:rounded-[10px] p-4 md:p-6"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                              {tower.name}
+                            </span>
+                            <div
+                              className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusBg}`}
                             >
-                              {tower.status}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
-                            <svg className="w-full h-full transform -rotate-90">
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r="30"
-                                stroke="#F1F5F9"
-                                strokeWidth="5"
-                                fill="transparent"
-                                className="md:r-[34] md:stroke-6"
-                              />
-                              <circle
-                                cx="50%"
-                                cy="50%"
-                                r="30"
-                                stroke={statusColor}
-                                strokeWidth="5"
-                                fill="transparent"
-                                className="md:r-[34] md:stroke-6"
-                                strokeDasharray={circumference}
-                                strokeDashoffset={
-                                  circumference - (tower.progress / 100) * circumference
-                                }
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                            <span className="absolute text-[13px] md:text-[15px] font-semibold text-[#1A1A1A]">
-                              {tower.progress}%
-                            </span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[12px] md:text-[14px] font-semibold text-[#999999] mb-1">
-                              Tasks Done
-                            </p>
-                            <p className="text-[16px] md:text-[18px] font-semibold text-[#1A1A1A]">
-                              {tower.completedTasks}
-                              <span className="text-[#999999]">/{tower.totalTasks}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="col-span-full text-center py-8 text-gray-500">
-                    No tower/module data available
-                  </div>
-                )}
-              </div>
-
-              {/* Project Description */}
-              <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
-                <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProjectForView.description ?? 'No description available'}
-                </p>
-              </div>
-
-              {/* Team Overview Section */}
-              <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 lg:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-8">
-                  Team Overview
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
-                  {/* Project Manager */}
-                  {(() => {
-                    const projectManagerId = selectedProjectForView.project_manager;
-                    const projectManager = projectManagerId
-                      ? allEmployees.find(e => Number(e.id) === Number(projectManagerId))
-                      : null;
-                    const pmProfileUrl = projectManager?.profile_picture
-                      ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
-                        ? projectManager.profile_picture
-                        : `${apiBase}/uploads/${projectManager.profile_picture}`)
-                      : null;
-
-                    return (
-                      <div className="flex items-center gap-4">
-                        {pmProfileUrl ? (
-                          <img
-                            src={pmProfileUrl}
-                            className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                            alt={projectManager?.full_name || "PM"}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${projectManagerId}`;
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                            <span className="text-slate-600 font-semibold">
-                              {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
-                            {projectManager?.full_name || "Not Assigned"}
-                          </p>
-                          <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
-                            Project Manager
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* BIM Lead */}
-                  {(() => {
-                    const bimLeadId = selectedProjectForView.bim_lead;
-                    const bimLead = bimLeadId
-                      ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
-                      : null;
-                    const bimProfileUrl = bimLead?.profile_picture
-                      ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
-                        ? bimLead.profile_picture
-                        : `${apiBase}/uploads/${bimLead.profile_picture}`)
-                      : null;
-
-                    return (
-                      <div className="flex items-center gap-4">
-                        {bimProfileUrl ? (
-                          <img
-                            src={bimProfileUrl}
-                            className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                            alt={bimLead?.full_name || "BIM Lead"}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
-                            }}
-                          />
-                        ) : (
-                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                            <span className="text-slate-600 font-bold">
-                              {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
-                            {bimLead?.full_name || "Not Assigned"}
-                          </p>
-                          <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
-                            BIM Lead
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Department Involved */}
-                  <div className="min-w-0">
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
-                      Department Involved
-                    </p>
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#616161] truncate">
-                      {selectedProjectForView.department || "Not Specified"}
-                    </p>
-                  </div>
-
-                  {/* Members Involved */}
-                  <div>
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
-                      Members Involved
-                    </p>
-                    <div className="flex -space-x-3">
-                      {(() => {
-                        // Get members from project
-                        const memberIds = selectedProjectForView.member
-                          ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
-                          : [];
-
-                        // Get employee data for members
-                        const projectMembers = memberIds
-                          .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
-                          .filter(Boolean) as Employee[];
-
-                        // Show up to 3 members, then +X for remaining
-                        const visibleMembers = projectMembers.slice(0, 3);
-                        const remainingCount = Math.max(0, projectMembers.length - 3);
-
-                        // Helper to get profile image URL
-                        const getProfileImageUrl = (emp: Employee) => {
-                          if (emp.profile_picture) {
-                            if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
-                              return emp.profile_picture;
-                            }
-                            return `${apiBase}/uploads/${emp.profile_picture}`;
-                          }
-                          return null;
-                        };
-
-                        return (
-                          <>
-                            {visibleMembers.length > 0 ? (
-                              visibleMembers.map((emp) => {
-                                const profileUrl = getProfileImageUrl(emp);
-                                return (
-                                  <div
-                                    key={emp.id}
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
-                                    title={emp.full_name || `Employee ${emp.id}`}
-                                  >
-                                    {profileUrl ? (
-                                      <img
-                                        src={profileUrl}
-                                        alt={emp.full_name || "Member"}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              // Fallback: show placeholder if no members
-                              [1, 2, 3].map((j) => (
-                                <div
-                                  key={j}
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
-                                >
-                                  <img
-                                    src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
-                                    alt="avatar"
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ))
-                            )}
-                            {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
-                              <div
-                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
-                                onClick={() => {
-                                  setAllMembersList(projectMembers);
-                                  setShowAllMembersModal(true);
-                                }}
-                                title={`Click to see all members`}
+                              <span
+                                className="w-1.5 h-1.5 rounded-full"
+                                style={{ backgroundColor: statusColor }}
+                              ></span>
+                              <span
+                                className="text-[11px] md:text-[12px] font-bold"
+                                style={{ color: statusColor }}
                               >
-                                +{remainingCount || memberIds.length}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
+                                {tower.status}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle
+                                  cx="50%"
+                                  cy="50%"
+                                  r="30"
+                                  stroke="#F1F5F9"
+                                  strokeWidth="5"
+                                  fill="transparent"
+                                  className="md:r-[34] md:stroke-6"
+                                />
+                                <circle
+                                  cx="50%"
+                                  cy="50%"
+                                  r="30"
+                                  stroke={statusColor}
+                                  strokeWidth="5"
+                                  fill="transparent"
+                                  className="md:r-[34] md:stroke-6"
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={
+                                    circumference - (tower.progress / 100) * circumference
+                                  }
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                              <span className="absolute text-[13px] md:text-[15px] font-semibold text-[#1A1A1A]">
+                                {tower.progress}%
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] md:text-[14px] font-semibold text-[#999999] mb-1">
+                                Tasks Done
+                              </p>
+                              <p className="text-[16px] md:text-[18px] font-semibold text-[#1A1A1A]">
+                                {tower.completedTasks}
+                                <span className="text-[#999999]">/{tower.totalTasks}</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center py-8 text-gray-500">
+                      No tower/module data available
                     </div>
-                  </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Project Details Section */}
-              <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">
-                  Project Details
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Client Name
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                {/* Project Description */}
+                <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-10">
+                  <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
+                  <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                    {selectedProjectForView.description ?? 'No description available'}
+                  </p>
+                </div>
+
+                {/* Team Overview Section */}
+                <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 lg:p-10">
+                  <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-8">
+                    Team Overview
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
+                    {/* Project Manager */}
+                    {(() => {
+                      const projectManagerId = selectedProjectForView.project_manager;
+                      const projectManager = projectManagerId
+                        ? allEmployees.find(e => Number(e.id) === Number(projectManagerId))
+                        : null;
+                      const pmProfileUrl = projectManager?.profile_picture
+                        ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
+                          ? projectManager.profile_picture
+                          : `${apiBase}/uploads/${projectManager.profile_picture}`)
+                        : null;
+
+                      return (
+                        <div className="flex items-center gap-4">
+                          {pmProfileUrl ? (
+                            <img
+                              src={pmProfileUrl}
+                              className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
+                              alt={projectManager?.full_name || "PM"}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${projectManagerId}`;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                              <span className="text-slate-600 font-semibold">
+                                {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
+                              {projectManager?.full_name || "Not Assigned"}
+                            </p>
+                            <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
+                              Project Manager
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* BIM Lead */}
+                    {(() => {
+                      const bimLeadId = selectedProjectForView.bim_lead;
+                      const bimLead = bimLeadId
+                        ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
+                        : null;
+                      const bimProfileUrl = bimLead?.profile_picture
+                        ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
+                          ? bimLead.profile_picture
+                          : `${apiBase}/uploads/${bimLead.profile_picture}`)
+                        : null;
+
+                      return (
+                        <div className="flex items-center gap-4">
+                          {bimProfileUrl ? (
+                            <img
+                              src={bimProfileUrl}
+                              className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
+                              alt={bimLead?.full_name || "BIM Lead"}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
+                              }}
+                            />
+                          ) : (
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                              <span className="text-slate-600 font-bold">
+                                {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
+                              {bimLead?.full_name || "Not Assigned"}
+                            </p>
+                            <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
+                              BIM Lead
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Department Involved */}
+                    <div className="min-w-0">
+                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
+                        Department Involved
+                      </p>
+                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#616161] truncate">
+                        {selectedProjectForView.department || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Members Involved */}
+                    <div>
+                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
+                        Members Involved
+                      </p>
+                      <div className="flex -space-x-3">
                         {(() => {
-                          const cid = selectedProjectForView.client_name;
-                          if (!cid) return "Not Specified";
-                          const client = clientsList.find((c) => String(c.id) === String(cid));
-                          return client?.fullName ?? client?.full_name ?? cid;
+                          // Get members from project
+                          const memberIds = selectedProjectForView.member
+                            ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                            : [];
+
+                          // Get employee data for members
+                          const projectMembers = memberIds
+                            .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                            .filter(Boolean) as Employee[];
+
+                          // Show up to 3 members, then +X for remaining
+                          const visibleMembers = projectMembers.slice(0, 3);
+                          const remainingCount = Math.max(0, projectMembers.length - 3);
+
+                          // Helper to get profile image URL
+                          const getProfileImageUrl = (emp: Employee) => {
+                            if (emp.profile_picture) {
+                              if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
+                                return emp.profile_picture;
+                              }
+                              return `${apiBase}/uploads/${emp.profile_picture}`;
+                            }
+                            return null;
+                          };
+
+                          return (
+                            <>
+                              {visibleMembers.length > 0 ? (
+                                visibleMembers.map((emp) => {
+                                  const profileUrl = getProfileImageUrl(emp);
+                                  return (
+                                    <div
+                                      key={emp.id}
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                      title={emp.full_name || `Employee ${emp.id}`}
+                                    >
+                                      {profileUrl ? (
+                                        <img
+                                          src={profileUrl}
+                                          alt={emp.full_name || "Member"}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                // Fallback: show placeholder if no members
+                                [1, 2, 3].map((j) => (
+                                  <div
+                                    key={j}
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                  >
+                                    <img
+                                      src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
+                                      alt="avatar"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ))
+                              )}
+                              {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
+                                <div
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
+                                  onClick={() => {
+                                    setAllMembersList(projectMembers);
+                                    setShowAllMembersModal(true);
+                                  }}
+                                  title={`Click to see all members`}
+                                >
+                                  +{remainingCount || memberIds.length}
+                                </div>
+                              )}
+                            </>
+                          );
                         })()}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Actual Start Date
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.start_date
-                          ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                          : "Not Set"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Total Project Hours
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "Not Set"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Budget
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : "Not Set"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Total Resources Available
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.resources || "000"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Location
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.location || "Not Specified"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Actual End Date
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.end_date
-                          ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
-                          : "Not Set"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Hours/Day
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "0:00hrs"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Total Resources Required
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.required_resources || "000"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        Required Resources
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.required_resources || "000"}
-                      </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
-                  <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                    Project Document
-                  </span>
-                  <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">
-                      No Document Available
+
+                {/* Project Details Section */}
+                <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
+                  <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">
+                    Project Details
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                    <div className="space-y-4 md:space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Client Name
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.client_name || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Actual Start Date
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.start_date
+                            ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Total Project Hours
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Budget
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Total Resources Available
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.resources || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-4 md:space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Location
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.location || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Actual End Date
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.end_date
+                            ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Hours/Day
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.required_resources || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                          Required Resources
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                        <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                          {selectedProjectForView.required_resources || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                      Project Document
                     </span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">
+                        No Document Available
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         ) : showMilestones && currentProject ? (
           <div className="flex flex-col h-full bg-white">
@@ -1356,69 +1083,134 @@ export default function ProjectsTD() {
             {/* Milestones Content - No Scroll Version */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-10 pb-10 custom-scrollbar">
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
-                  <p className="text-white text-[16px] font-Gantari font-bold opacity-90">
-                    Total Amount
-                  </p>
-                  <p className="text-white text-[32px] font-Gantari font-bold">
-                    10,000,00
-                  </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
-                  <p className="text-[#333333] text-[16px] font-Gantari font-bold">
-                    Paid Amount
-                  </p>
-                  <p className="text-[#333333] text-[32px] font-Gantari font-bold">
-                    4,000,00
-                  </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
-                  <p className="text-[#333333] text-[16px] font-Gantari font-bold">
-                    Pending Amount
-                  </p>
-                  <p className="text-[#333333] text-[32px] font-Gantari font-bold">
-                    6,000,00
-                  </p>
-                </div>
-                <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
-                  <p className="text-[#333333] text-[16px] font-Gantari font-bold">
-                    Progress
-                  </p>
-                  <p className="text-[#333333] text-[32px] font-Gantari font-bold">
-                    72%
-                  </p>
-                </div>
-              </div>
+              {(() => {
+                const totalAmount = milestones.reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+                const paidAmount = milestones.filter(m => (m.status || '').toLowerCase() === 'paid').reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+                const pendingAmount = totalAmount - paidAmount;
+                const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
-              {/* Central Box Area - Now Flexible */}
-              <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[2.5rem] bg-white px-24 flex flex-col items-center justify-center text-center">
-                <h4 className="text-[22px] font-Gantari font-bold text-[#353535] mb-2">
-                  No Payment Milestones Found
-                </h4>
-                <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-10 max-w-sm">
-                  Add your First Payment to get started with payment tracking
-                </p>
-                <button
-                  onClick={() => setShowAddMilestoneModal(true)}
-                  className="flex items-center gap-2 px-10 py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
+                      <p className="text-white text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
+                      <p className="text-white text-[32px] font-Gantari font-bold">{totalAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
+                      <p className="text-[#333333] text-[16px] font-Gantari font-bold">Paid Amount</p>
+                      <p className="text-[#333333] text-[32px] font-Gantari font-bold">{paidAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
+                      <p className="text-[#333333] text-[16px] font-Gantari font-bold">Pending Amount</p>
+                      <p className="text-[#333333] text-[32px] font-Gantari font-bold">{pendingAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[150px]">
+                      <p className="text-[#333333] text-[16px] font-Gantari font-bold">Progress</p>
+                      <p className="text-[#333333] text-[32px] font-Gantari font-bold">{progressPercent}%</p>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {milestonesLoading ? (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
+                </div>
+              ) : milestones.length === 0 ? (
+                /* Central Box Area - Now Flexible */
+                <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[2.5rem] bg-white px-24 flex flex-col items-center justify-center text-center">
+                  <h4 className="text-[22px] font-Gantari font-bold text-[#353535] mb-2">
+                    No Payment Milestones Found
+                  </h4>
+                  <p className="text-[15px] font-Gantari font-bold text-[#999999] mb-10 max-w-sm">
+                    Add your First Payment to get started with payment tracking
+                  </p>
+                  <button
+                    onClick={() => setShowAddMilestoneModal(true)}
+                    className="flex items-center gap-2 px-10 py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add Milestone
-                </button>
-              </div>
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={3}
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
+                    Add Milestone
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {milestones.map((m) => (
+                    <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">{m.milestone_name}</h5>
+                        <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Due: {m.due_date ? new Date(m.due_date).toLocaleDateString('en-GB') : '-'}</span>
+                          </div>
+                          {m.notes && (
+                            <div className="flex items-center gap-2">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                              </svg>
+                              <span className="truncate max-w-xs">{m.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-8">
+                        <div className="text-right">
+                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
+                          <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                            {m.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {m.status !== 'Paid' && (
+                            <button
+                              onClick={() => {
+                                api.post(`/api/milestones/${m.id}/mark-paid`)
+                                  .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                  .catch(() => { });
+                              }}
+                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                              title="Mark as Paid"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to delete this milestone?')) {
+                                api.delete(`/api/milestones/${m.id}`)
+                                  .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                  .catch(() => { });
+                              }
+                            }}
+                            className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
+                            title="Delete Milestone"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -1531,12 +1323,7 @@ export default function ProjectsTD() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    setShowProjectView(true);
-                                    setSelectedProjectForView(p);
-                                    api
-                                      .get<Record<string, unknown>>(`/api/projects/${p.id}`)
-                                      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
-                                      .catch(() => {});
+                                    setSearchParams({ projectId: String(p.id) });
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 >
@@ -2056,7 +1843,24 @@ export default function ProjectsTD() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                setShowAddMilestoneModal(false);
+                if (!currentProject?.id) return;
+                api.post('/api/milestones', {
+                  project_id: currentProject.id,
+                  milestone_name: milestoneName.trim(),
+                  milestone_amount: milestoneAmount,
+                  due_date: milestoneDueDate,
+                  notes: milestoneNotes.trim(),
+                  action: "add"
+                })
+                  .then(() => {
+                    setShowAddMilestoneModal(false);
+                    setMilestoneName('');
+                    setMilestoneAmount('');
+                    setMilestoneDueDate('');
+                    setMilestoneNotes('');
+                    fetchMilestones(currentProject.id);
+                  })
+                  .catch(() => { });
               }}
               className="space-y-6 px-1"
             >
@@ -2079,7 +1883,7 @@ export default function ProjectsTD() {
                   Amount ($)*
                 </label>
                 <input
-                  type="text"
+                  type="number" step="0.01"
                   value={milestoneAmount}
                   onChange={(e) => setMilestoneAmount(e.target.value)}
                   className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
@@ -2098,11 +1902,10 @@ export default function ProjectsTD() {
                 </label>
                 <div className="relative">
                   <input
-                    type="text"
+                    type="date"
                     value={milestoneDueDate}
                     onChange={(e) => setMilestoneDueDate(e.target.value)}
                     className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
-                    placeholder="dd/mm/yyyy"
                     required
                   />
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">

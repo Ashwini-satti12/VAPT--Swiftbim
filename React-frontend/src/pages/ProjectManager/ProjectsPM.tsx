@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
@@ -16,7 +16,23 @@ interface Employee {
   phone: string;
   user_role: string;
   vendor_type?: string;
+  profile_picture?: string;
 }
+
+const apiBase = (api.defaults.baseURL as string) || '';
+
+const nameToId = (name: string, employeesList: Employee[]) => {
+  if (!name || name === "Nothing Selected") return undefined;
+  if (/^\d+$/.test(name)) return Number(name);
+  const emp = employeesList.find((e) => e.full_name === name);
+  return emp ? emp.id : undefined;
+};
+
+const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
+  if (!id) return '';
+  const emp = employeesList.find((e) => String(e.id) === String(id));
+  return emp ? emp.full_name : '';
+};
 function FormSelect({
   label, placeholder, options, value, onChange,
 }: { label: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -86,15 +102,23 @@ interface Project {
   description?: string;
 }
 
+interface Milestone {
+  id: number;
+  milestone_name: string;
+  milestone_amount: number;
+  due_date: string;
+  status: string;
+  notes?: string;
+}
+
 export default function ProjectsPM() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createBudget, setCreateBudget] = useState('');
-  const [createModuleName, setCreateModuleName] = useState('');
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
   const [moduleNameInput, setModuleNameInput] = useState('');
   // Edit modal tag states
@@ -117,7 +141,6 @@ export default function ProjectsPM() {
   const [createDepartment, setCreateDepartment] = useState('');
   const [createBIMLead, setCreateBIMLead] = useState('');
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
-  const [createMember, setCreateMember] = useState('');
   const [createResources, setCreateResources] = useState('');
   const [createRequiredResources, setCreateRequiredResources] = useState('');
   const [createPriority, setCreatePriority] = useState('');
@@ -130,10 +153,12 @@ export default function ProjectsPM() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [showProjectView, setShowProjectView] = useState(false);
+  const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
   const [selectedProjectForView, setSelectedProjectForView] = useState<Project | null>(null);
-  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
-  const [selectedProjectForMilestones, setSelectedProjectForMilestones] = useState<Project | null>(null);
+  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+  const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
 
   // Add Milestone Modal State
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
@@ -141,6 +166,8 @@ export default function ProjectsPM() {
   const [milestoneAmount, setMilestoneAmount] = useState('');
   const [milestoneDueDate, setMilestoneDueDate] = useState('');
   const [milestoneNotes, setMilestoneNotes] = useState('');
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -150,7 +177,6 @@ export default function ProjectsPM() {
 
 
   // Select Options States
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
@@ -159,6 +185,7 @@ export default function ProjectsPM() {
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [clientsList, setClientsList] = useState<{ id: number; full_name: string }[]>([]);
   const priorityOptions = ['High', 'Normal'];
 
   // Fetch employees + departments once at mount so View modal can resolve names
@@ -166,18 +193,19 @@ export default function ProjectsPM() {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
       try {
-        const [empRes, depRes] = await Promise.all([
+        const [empRes, depRes, clientRes] = await Promise.all([
           api.get('/api/employees'),
-          api.get('/api/departments')
+          api.get('/api/departments'),
+          api.get('/api/clients/from-users'),
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
-          setEmployees(empData);
           setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
           setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
           setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
           setAllEmployees(empData);
           setDepartments(depRes.data.departments || []);
+          setClientsList(clientRes.data.clients || []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -190,8 +218,6 @@ export default function ProjectsPM() {
   // On Create modal open, reset tags
   useEffect(() => {
     if (showCreateModal) {
-      setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
-      setCreateModuleName('m1, m2, m3, m4');
       setSelectedMemberIds([]);
     }
   }, [showCreateModal]);
@@ -203,6 +229,39 @@ export default function ProjectsPM() {
   }, []);
 
   const panelType = user?.panel_type ?? 3;
+  const resetFormFields = () => {
+    setCreateName('');
+    setCreateBudget('');
+    setModuleNameTags([]);
+    setModuleNameInput('');
+    setEditModuleTags([]);
+    setEditModuleInput('');
+    setEditTaskTags([]);
+    setEditTaskInput('');
+    setEditPriority('');
+    setEditDepartment('');
+    setEditProjectManager('');
+    setEditBIMLead('');
+    setEditBIMCoOrd('');
+    setEditMember('');
+    setCreateClientName('');
+    setCreateProjectManager('');
+    setCreateStartDate('');
+    setCreateEndDate('');
+    setCreateTotalHours('');
+    setCreatePerDay('');
+    setCreateDepartment('');
+    setCreateBIMLead('');
+    setCreateBIMCoOrdinator('');
+    setSelectedMemberIds([]);
+    setCreateResources('');
+    setCreateRequiredResources('');
+    setCreatePriority('');
+    setCreateLocation('');
+    setCreateDescription('');
+    setCreateFile(null);
+    setCreateError('');
+  };
   const isManagement = panelType === 1;
   const isTechnicalDirector = user?.user_role === 'Technical Director';
   const canCreate = isManagement;
@@ -210,37 +269,130 @@ export default function ProjectsPM() {
   const canDelete = isManagement;
   const title = isManagement ? 'Projects' : 'Projects Involved';
 
+  // Fetch task status counts for the selected project (stable source: backend module-progress)
+  useEffect(() => {
+    const projectId = showProjectView ? selectedProjectForView?.id : undefined;
+    if (!projectId) {
+      setPmTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+      setPmTaskStatsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setPmTaskStatsLoading(true);
+    api
+      .get<{
+        status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
+      }>(`/api/projects/${projectId}/module-progress`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const c = data?.status_counts ?? {};
+        setPmTaskStats({
+          todo: Number(c.todo ?? 0),
+          inProgress: Number(c.inprogress ?? 0),
+          paused: Number(c.paused ?? 0),
+          completed: Number(c.completed ?? 0),
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // fallback to list counts
+        const completed = selectedProjectForView?.completed_tasks ?? 0;
+        const total = selectedProjectForView?.total_tasks ?? 0;
+        setPmTaskStats({ todo: Math.max(0, total - completed), inProgress: 0, paused: 0, completed });
+      })
+      .finally(() => {
+        if (!cancelled) setPmTaskStatsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showProjectView, selectedProjectForView?.id]);
+
+  const fetchMilestones = (projectId: number) => {
+    setMilestonesLoading(true);
+    api.get<{ milestones: Milestone[] }>(`/api/milestones?project_id=${projectId}`)
+      .then(({ data }) => setMilestones(data.milestones || []))
+      .catch(() => setMilestones([]))
+      .finally(() => setMilestonesLoading(false));
+  };
+
+  useEffect(() => {
+    if (showMilestones && currentProject?.id) {
+      fetchMilestones(currentProject.id);
+    }
+  }, [showMilestones, currentProject?.id]);
+
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
-        setList((res.data.projects ?? []).map((r: any) => ({
-          id: r.id,
-          project_name: r.project_name,
-          progress: r.progress ?? 0,
-          total_tasks: r.total_tasks ?? 0,
-          completed_tasks: r.completed_tasks ?? 0,
-          priority: r.priority ?? 'Normal',
-          budget: r.budget,
-          module_name: r.modules,
-          client_name: r.client_id,
-          project_manager: r.project_manager_id,
-          start_date: r.start_date,
-          end_date: r.due_date,
-          total_hours: r.totalhours,
-          per_day: r.perday,
-          department: r.department,
-          bim_lead: r.lead_id,
-          bim_co_ordinator: r.bim_coordinator_id,
-          member: r.members,
-          resources: r.resources,
-          required_resources: r.required_resources,
-          location: r.location,
-          description: r.description,
-        })));
+        setList((res.data.projects ?? []).map(mapApiProjectToProject));
       })
       .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
+
+  // Map API project to Project interface
+  const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
+    id: Number(r.id) ?? 0,
+    project_name: r.project_name != null ? String(r.project_name) : undefined,
+    progress: Number(r.progress) ?? 0,
+    total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+    completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+    priority: r.priority != null ? String(r.priority) : 'Normal',
+    budget: r.budget != null ? String(r.budget) : undefined,
+    module_name: r.modules != null ? String(r.modules) : undefined,
+    client_name: r.client_name != null ? String(r.client_name) : undefined,
+    project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
+    start_date: r.start_date != null ? String(r.start_date) : undefined,
+    end_date: r.due_date != null ? String(r.due_date) : undefined,
+    total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
+    per_day: r.perday != null ? String(r.perday) : undefined,
+    department: r.department_name != null ? String(r.department_name) : undefined,
+    bim_lead: r.lead_name != null ? String(r.lead_name) : undefined,
+    bim_co_ordinator: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
+    member: r.members != null ? String(r.members) : undefined,
+    resources: r.resources != null ? String(r.resources) : undefined,
+    required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
+    location: r.location != null ? String(r.location) : undefined,
+    description: r.description != null ? String(r.description) : undefined,
+  });
+
+  // Deep-link support: keep project view on refresh using ?projectId=
+  useEffect(() => {
+    const pid = searchParams.get("projectId");
+    if (!pid) {
+      if (showProjectView || selectedProjectForView) {
+        setShowProjectView(false);
+        setSelectedProjectForView(null);
+      }
+      return;
+    }
+
+    const id = Number(pid);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    if (showProjectView && selectedProjectForView?.id === id) {
+      return;
+    }
+
+    const existingProject = list.find(p => p.id === id);
+    if (existingProject) {
+      setSelectedProjectForView(existingProject);
+      setShowProjectView(true);
+    } else if (!showProjectView) {
+      setShowProjectView(true);
+    }
+
+    api
+      .get<Record<string, unknown>>(`/api/projects/${id}`)
+      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+      .catch(() => {
+        if (!existingProject) {
+          setSearchParams({}, { replace: true });
+          setShowProjectView(false);
+        }
+      });
+  }, [searchParams, list, setSearchParams]);
 
   if (loading) {
     return (
@@ -260,7 +412,10 @@ export default function ProjectsPM() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
             <button
               type="button"
-              onClick={() => setShowProjectView(false)}
+              onClick={() => {
+                setShowProjectView(false);
+                setSearchParams({}, { replace: true });
+              }}
               className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
               title="Close"
             >
@@ -283,7 +438,7 @@ export default function ProjectsPM() {
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
             {/* Task Status Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
               {/* Total Tasks */}
               <button
                 type="button"
@@ -303,6 +458,28 @@ export default function ProjectsPM() {
                 <p className="text-[#333333] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
                 <p className="text-[#333333] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.completed_tasks ?? 0}
+                </p>
+              </button>
+
+              {/* To Do Tasks */}
+              <button
+                type="button"
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+              >
+                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
+                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
+                </p>
+              </button>
+
+              {/* In Progress Tasks */}
+              <button
+                type="button"
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+              >
+                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                 </p>
               </button>
             </div>
@@ -407,7 +584,17 @@ export default function ProjectsPM() {
                             </div>
                           ))}
                           {memberNames.length > 3 && (
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
+                            <div
+                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                              onClick={() => {
+                                const emps = memberIdsForView
+                                  .map((id) => allEmployees.find((e) => e.id === id))
+                                  .filter(Boolean) as Employee[];
+                                setAllMembersList(emps);
+                                setShowAllMembersModal(true);
+                              }}
+                              title="View all members"
+                            >
                               +{memberNames.length - 3}
                             </div>
                           )}
@@ -429,12 +616,16 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Client Name</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.client_name || 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                      {selectedProjectForView.client_name || 'N/A'}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString() : 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                      {selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
@@ -444,7 +635,7 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.budget ? `$${selectedProjectForView.budget}` : 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : 'N/A'}</span>
                   </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
@@ -456,7 +647,9 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString() : 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                      {selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
@@ -464,7 +657,7 @@ export default function ProjectsPM() {
                     <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
                   </div>
@@ -488,6 +681,45 @@ export default function ProjectsPM() {
                 </div>
               </div>
             </div>
+
+            {/* All Members Modal */}
+            {showAllMembersModal && (
+              <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMembersModal(false)}
+                    className="absolute left-6 top-6 p-2.5 rounded-[10px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                    title="Close"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
+                    All Members ({allMembersList.length})
+                  </h3>
+
+                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                    {allMembersList.map((m) => (
+                      <div key={m.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100">
+                        <img
+                          src={m.profile_picture ? `${apiBase}/uploads/${m.profile_picture}` : `https://i.pravatar.cc/150?u=${m.id}`}
+                          onError={(e) => { (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${m.id}`; }}
+                          className="w-14 h-14 rounded-full object-cover border border-slate-100"
+                          alt={m.full_name}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">{m.full_name}</p>
+                          <p className="text-[13px] font-Gantari font-bold text-[#999999] truncate">{m.user_role}</p>
+                          <p className="text-[13px] font-Gantari font-medium text-[#666666] truncate">{m.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : showMilestones && currentProject ? (
@@ -526,41 +758,121 @@ export default function ProjectsPM() {
           {/* Milestones Content - No Scroll Version */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-6 md:px-10 pb-10 custom-scrollbar">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-              <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
-                <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">10,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">4,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">6,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">72%</p>
-              </div>
-            </div>
+            {(() => {
+              const totalAmount = milestones.reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+              const paidAmount = milestones.filter(m => (m.status || '').toLowerCase() === 'paid').reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+              const pendingAmount = totalAmount - paidAmount;
+              const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
-            {/* Central Box Area - Now Flexible */}
-            <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
-              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-              <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
-                Add your First Payment to get started with payment tracking
-              </p>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Milestone
-              </button>
-            </div>
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                  <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
+                    <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">{totalAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{paidAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{pendingAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{progressPercent}%</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {milestonesLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
+              </div>
+            ) : milestones.length === 0 ? (
+              <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
+                <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
+                  Add your First Payment to get started with payment tracking
+                </p>
+                <button
+                  onClick={() => setShowAddMilestoneModal(true)}
+                  className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Milestone
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {milestones.map((m) => (
+                  <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex-1 min-w-0">
+                      <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">{m.milestone_name}</h5>
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] font-Gantari text-[#999999]">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>Due: {m.due_date ? new Date(m.due_date).toLocaleDateString('en-GB') : '-'}</span>
+                        </div>
+                        {m.notes && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                            <span className="truncate max-w-xs">{m.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto">
+                      <div className="text-right">
+                        <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
+                        <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {m.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {m.status !== 'Paid' && (
+                          <button
+                            onClick={() => {
+                              api.post(`/api/milestones/${m.id}/mark-paid`)
+                                .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                .catch(() => { });
+                            }}
+                            className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                            title="Mark as Paid"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this milestone?')) {
+                              api.delete(`/api/milestones/${m.id}`)
+                                .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                .catch(() => { });
+                            }
+                          }}
+                          className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
+                          title="Delete Milestone"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : showCreateModal ? (
@@ -585,22 +897,14 @@ export default function ProjectsPM() {
                 e.preventDefault();
                 setCreateError('');
                 setCreateSubmitting(true);
-                // Helper: convert a name to its employee ID; if already a number, use as-is
-                const nameToId = (name: string): number | string | undefined => {
-                  if (!name) return undefined;
-                  const asNum = parseInt(name, 10);
-                  if (!isNaN(asNum)) return asNum; // already an ID
-                  const emp = allEmployees.find(e => e.full_name === name);
-                  return emp ? emp.id : name;
-                };
                 api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
                   project_name: createName.trim(),
                   budget: createBudget || undefined,
                   modules: moduleNameTags.join(', ') || undefined,
-                  client_id: createClientName || undefined,
-                  project_manager_id: nameToId(createProjectManager),
-                  lead_id: nameToId(createBIMLead),
-                  bim_coordinator_id: nameToId(createBIMCoOrdinator),
+                  client_id: clientsList.find(c => c.full_name === createClientName)?.id || undefined,
+                  project_manager_id: nameToId(createProjectManager, allEmployees),
+                  lead_id: nameToId(createBIMLead, allEmployees),
+                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
                   members: selectedMemberIds.join(',') || undefined,
                   department: createDepartment || undefined,
                   due_date: createEndDate || undefined,
@@ -616,15 +920,7 @@ export default function ProjectsPM() {
                   .then(({ data }) => {
                     if (data.success) {
                       setShowCreateModal(false);
-                      setCreateName(''); setCreateBudget(''); setCreateModuleName('');
-                      setModuleNameTags([]); setModuleNameInput('');
-                      setCreateClientName(''); setCreateProjectManager('');
-                      setCreateStartDate(''); setCreateEndDate('');
-                      setCreateTotalHours(''); setCreatePerDay('');
-                      setCreateDepartment(''); setCreateBIMLead('');
-                      setCreateBIMCoOrdinator(''); setSelectedMemberIds([]);
-                      setCreateResources(''); setCreateRequiredResources('');
-                      setCreatePriority(''); setCreateLocation(''); setCreateDescription('');
+                      resetFormFields();
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
                         .then(res => setList((res.data.projects ?? []).map((r: any) => ({ id: r.id, project_name: r.project_name, progress: r.progress ?? 0, total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0, priority: r.priority ?? 'Normal' }))))
                         .catch(() => { });
@@ -681,7 +977,6 @@ export default function ProjectsPM() {
                         const val = moduleNameInput.trim().replace(/,$/, '');
                         if (val && !moduleNameTags.includes(val)) {
                           setModuleNameTags(prev => [...prev, val]);
-                          setCreateModuleName([...moduleNameTags, val].join(', '));
                         }
                         setModuleNameInput('');
                       }
@@ -721,12 +1016,10 @@ export default function ProjectsPM() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="text" required
-                    value={createClientName}
-                    onChange={(e) => setCreateClientName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                    placeholder="Enter Client Name"
+                  <FormSelect
+                    label="Client Name" placeholder="Select Client"
+                    options={clientsList.map(c => c.full_name)} value={createClientName}
+                    onChange={setCreateClientName}
                   />
                 </div>
 
@@ -977,8 +1270,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
-                    setModuleNameTags([]);
-                    setModuleNameInput('');
+                    resetFormFields();
                   }}
                   className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
                 >
@@ -1001,7 +1293,10 @@ export default function ProjectsPM() {
           <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
             <button
               type="button"
-              onClick={() => setShowEditModal(false)}
+              onClick={() => {
+                setShowEditModal(false);
+                resetFormFields();
+              }}
               className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
@@ -1017,24 +1312,15 @@ export default function ProjectsPM() {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
                 setIsEditSubmitting(true);
-                // Helper: convert a name to its employee ID; if already a number, use as-is
-                const editNameToId = (name: string): number | string | undefined => {
-                  if (!name) return undefined;
-                  const asNum = parseInt(name, 10);
-                  if (!isNaN(asNum)) return asNum; // already an ID
-                  const emp = allEmployees.find(e => e.full_name === name);
-                  return emp ? emp.id : name;
-                };
-                // Build members from selectedMemberIds
                 const membersPayload = selectedMemberIds.length > 0 ? selectedMemberIds.join(',') : (editMember || undefined);
                 api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
                   project_name: createName.trim() || undefined,
                   budget: createBudget || undefined,
                   modules: editModuleTags.join(', ') || undefined,
-                  client_id: createClientName || undefined,
-                  project_manager_id: editNameToId(createProjectManager),
-                  lead_id: editNameToId(createBIMLead),
-                  bim_coordinator_id: editNameToId(createBIMCoOrdinator),
+                  client_id: clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName)?.id || undefined,
+                  project_manager_id: nameToId(createProjectManager, allEmployees),
+                  lead_id: nameToId(createBIMLead, allEmployees),
+                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
                   members: membersPayload,
                   department: createDepartment || undefined,
                   due_date: createEndDate || undefined,
@@ -1052,15 +1338,28 @@ export default function ProjectsPM() {
                       setShowEditModal(false);
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
                         .then(res => setList((res.data.projects ?? []).map((r: any) => ({
-                          id: r.id, project_name: r.project_name, progress: r.progress ?? 0,
-                          total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0,
-                          priority: r.priority ?? 'Normal', budget: r.budget, module_name: r.modules,
-                          client_name: r.client_id, project_manager: r.project_manager_id,
-                          start_date: r.start_date, end_date: r.due_date, total_hours: r.totalhours,
-                          per_day: r.perday, department: r.department, bim_lead: r.lead_id,
-                          bim_co_ordinator: r.bim_coordinator_id, member: r.members,
-                          resources: r.resources, required_resources: r.required_resources,
-                          location: r.location, description: r.description,
+                          id: r.id,
+                          project_name: r.project_name,
+                          progress: r.progress ?? 0,
+                          total_tasks: r.total_tasks ?? 0,
+                          completed_tasks: r.completed_tasks ?? 0,
+                          priority: r.priority ?? 'Normal',
+                          budget: r.budget,
+                          module_name: r.modules,
+                          client_name: r.client_name,
+                          project_manager: r.project_manager_name,
+                          start_date: r.start_date,
+                          end_date: r.due_date,
+                          total_hours: r.totalhours,
+                          per_day: r.perday,
+                          department: r.department_name,
+                          bim_lead: r.lead_name,
+                          bim_co_ordinator: r.bim_coordinator_name,
+                          member: r.members,
+                          resources: r.resources,
+                          required_resources: r.required_resources,
+                          location: r.location,
+                          description: r.description,
                         }))))
                         .catch(() => { });
                     }
@@ -1184,12 +1483,10 @@ export default function ProjectsPM() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="text" required
-                    value={createClientName}
-                    onChange={(e) => setCreateClientName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                    placeholder="Enter Client Name"
+                  <FormSelect
+                    label="Client Name" placeholder="Select Client"
+                    options={clientsList.map(c => c.full_name)} value={createClientName}
+                    onChange={setCreateClientName}
                   />
                 </div>
 
@@ -1427,7 +1724,10 @@ export default function ProjectsPM() {
             {canCreate && (
               <button
                 type="button"
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => {
+                  resetFormFields();
+                  setShowCreateModal(true);
+                }}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[15px] md:text-[16px] font-Gantari font-semibold transition-all hover:bg-[#c93a39]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1487,9 +1787,8 @@ export default function ProjectsPM() {
                             >
                               <button
                                 onClick={() => {
-                                  setSelectedProjectForView(p);
-                                  setShowProjectView(true);
                                   setOpenMenuId(null);
+                                  setSearchParams({ projectId: String(p.id) });
                                 }}
                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
                                 <img src={viewIcon} alt="view" className="w-6 h-6" />
@@ -1511,54 +1810,33 @@ export default function ProjectsPM() {
                               {canEdit && (
                                 <button
                                   onClick={() => {
+                                    resetFormFields();
                                     setSelectedProjectForEdit(p);
-
-                                    // Make sure we set the string name in create values by matching ID from allEmployees/departments
-                                    // if backend sends ID. Or just pass the value if it's already a string.
-                                    const mapEmpIdToName = (val: string | number | undefined) => {
-                                      if (!val) return '';
-                                      const id = parseInt(String(val), 10);
-                                      if (isNaN(id)) return String(val); // Not an ID, assume it's already a string name
-                                      const emp = allEmployees.find(e => e.id === id);
-                                      return emp ? emp.full_name : String(val);
-                                    };
-
                                     setCreateName(p.project_name ?? '');
                                     setCreateBudget(p.budget ?? '');
-                                    setCreateModuleName(p.module_name ?? '');
-                                    setCreateClientName(p.client_name ?? '');
-                                    setCreateProjectManager(mapEmpIdToName(p.project_manager));
+                                    const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
+                                    setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
+                                    setCreateProjectManager(idToName(p.project_manager, allEmployees));
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
-
-                                    // Map department ID to string if it's numeric
-                                    let deptValue = p.department ?? '';
-                                    if (deptValue && !isNaN(parseInt(String(deptValue), 10))) {
-                                      // backend department doesn't easily expose 'name' here since it's an ID without the join list
-                                      // Actually, we could map it if we had a departments ID-to-name lookup, but `departments` state is just strings.
-                                      // The user requested to see the names in the dropdown.
-                                      // Let's assume the string representation is stored in `p.department` if correctly joined or just fallback.
-                                      // Wait, ProjectsBL had the same but user didn't complain about BL missing departments. 
-                                    }
-                                    setCreateDepartment(String(p.department ?? ''));
-
-                                    setCreateBIMLead(mapEmpIdToName(p.bim_lead));
-                                    setCreateBIMCoOrdinator(mapEmpIdToName(p.bim_co_ordinator));
-                                    setCreateMember(p.member ?? '');
-
-                                    // Multi-select members
+                                    setCreateDepartment(p.department ?? '');
+                                    setEditDepartment(p.department ?? '');
+                                    setCreateBIMLead(idToName(p.bim_lead, allEmployees));
+                                    setEditBIMLead(idToName(p.bim_lead, allEmployees));
+                                    setCreateBIMCoOrdinator(idToName(p.bim_co_ordinator, allEmployees));
+                                    setEditBIMCoOrd(idToName(p.bim_co_ordinator, allEmployees));
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                                       setSelectedMemberIds(memIds);
                                     } else {
                                       setSelectedMemberIds([]);
                                     }
-
                                     setCreateResources(p.resources ?? '');
                                     setCreateRequiredResources(p.required_resources ?? '');
                                     setEditPriority(p.priority ?? '');
+                                    setCreatePriority(p.priority ?? '');
                                     setCreateLocation(p.location ?? '');
                                     setCreateDescription(p.description ?? '');
                                     setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
@@ -1691,8 +1969,30 @@ export default function ProjectsPM() {
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={(e) => { e.preventDefault(); setShowAddMilestoneModal(false); }} className="space-y-5 md:space-y-6 px-1">
-              <div className="space-y-2">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!currentProject?.id) return;
+                api.post('/api/milestones', {
+                  project_id: currentProject.id,
+                  milestone_name: milestoneName.trim(),
+                  milestone_amount: milestoneAmount,
+                  due_date: milestoneDueDate,
+                  notes: milestoneNotes.trim(),
+                  action: "add"
+                })
+                  .then(() => {
+                    setShowAddMilestoneModal(false);
+                    setMilestoneName('');
+                    setMilestoneAmount('');
+                    setMilestoneDueDate('');
+                    setMilestoneNotes('');
+                    fetchMilestones(currentProject.id);
+                  })
+                  .catch(() => { });
+              }}
+              className="space-y-5 md:space-y-6 px-1"
+            >              <div className="space-y-2">
                 <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Milestone Name*</label>
                 <input
                   type="text"
@@ -1707,7 +2007,7 @@ export default function ProjectsPM() {
               <div className="space-y-2">
                 <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Amount ($)*</label>
                 <input
-                  type="text"
+                  type="number" step="0.01"
                   value={milestoneAmount}
                   onChange={(e) => setMilestoneAmount(e.target.value)}
                   className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
@@ -1724,11 +2024,10 @@ export default function ProjectsPM() {
                 <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Due Date*</label>
                 <div className="relative">
                   <input
-                    type="text"
+                    type="date"
                     value={milestoneDueDate}
                     onChange={(e) => setMilestoneDueDate(e.target.value)}
                     className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
-                    placeholder="dd/mm/yyyy"
                     required
                   />
                   <div className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">

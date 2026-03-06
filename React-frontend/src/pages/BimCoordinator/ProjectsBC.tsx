@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
@@ -9,6 +9,8 @@ import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
 
+const apiBase = (api.defaults.baseURL as string) || '';
+
 interface Employee {
   id: number;
   full_name: string;
@@ -17,9 +19,10 @@ interface Employee {
   phone: string;
   user_role: string;
   vendor_type?: string;
+  profile_picture?: string;
 }
 function FormSelect({
-  label, placeholder, options, value, onChange,
+  placeholder, options, value, onChange,
 }: { label: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -85,17 +88,28 @@ interface Project {
   priority?: string;
   location?: string;
   description?: string;
+  project_manager_name?: string;
+  bim_lead_name?: string;
+  bim_coordinator_name?: string;
+}
+
+interface Milestone {
+  id: number;
+  milestone_name: string;
+  milestone_amount: number;
+  due_date: string;
+  status: string;
+  notes?: string;
 }
 
 export default function ProjectsBC() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createBudget, setCreateBudget] = useState('');
-  const [createModuleName, setCreateModuleName] = useState('');
   const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
   const [moduleNameInput, setModuleNameInput] = useState('');
   // Edit modal tag states
@@ -118,11 +132,6 @@ export default function ProjectsBC() {
   const [createDepartment, setCreateDepartment] = useState('');
   const [createBIMLead, setCreateBIMLead] = useState('');
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
-  const [createMember, setCreateMember] = useState('');
-  const [createResources, setCreateResources] = useState('');
-  const [createRequiredResources, setCreateRequiredResources] = useState('');
-  const [createPriority, setCreatePriority] = useState('');
-  const [createLocation, setCreateLocation] = useState('');
   const [createDescription, setCreateDescription] = useState('');
   const [createFile, setCreateFile] = useState<File | null>(null);
 
@@ -131,10 +140,16 @@ export default function ProjectsBC() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [showProjectView, setShowProjectView] = useState(false);
+  const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
   const [selectedProjectForView, setSelectedProjectForView] = useState<Project | null>(null);
-  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
-  const [selectedProjectForMilestones, setSelectedProjectForMilestones] = useState<Project | null>(null);
+  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+
+  // Add Project Form State (Restoring used ones)
+  const [createResources, setCreateResources] = useState('');
+  const [createRequiredResources, setCreateRequiredResources] = useState('');
+  const [createPriority, setCreatePriority] = useState('');
+  const [createLocation, setCreateLocation] = useState('');
 
   // Add Milestone Modal State
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
@@ -142,6 +157,8 @@ export default function ProjectsBC() {
   const [milestoneAmount, setMilestoneAmount] = useState('');
   const [milestoneDueDate, setMilestoneDueDate] = useState('');
   const [milestoneNotes, setMilestoneNotes] = useState('');
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestonesLoading, setMilestonesLoading] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -150,7 +167,6 @@ export default function ProjectsBC() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   // Select Options States
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
@@ -172,7 +188,7 @@ export default function ProjectsBC() {
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
-          setEmployees(empData);
+          // setEmployees(empData);
           setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
           setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
           setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
@@ -190,8 +206,6 @@ export default function ProjectsBC() {
   // On Create modal open, reset tags
   useEffect(() => {
     if (showCreateModal) {
-      setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
-      setCreateModuleName('m1, m2, m3, m4');
       setSelectedMemberIds([]);
     }
   }, [showCreateModal]);
@@ -210,38 +224,119 @@ export default function ProjectsBC() {
   const canEdit = panelType !== 3;
   const canDelete = isManagement;
   const title = isManagement ? 'Projects' : 'Projects Involved';
+  const mapApiProjectToProject = (r: any): Project => ({
+    id: r.id,
+    project_name: r.project_name,
+    progress: r.progress ?? 0,
+    total_tasks: r.total_tasks ?? 0,
+    completed_tasks: r.completed_tasks ?? 0,
+    priority: r.priority ?? 'Normal',
+    budget: r.budget,
+    module_name: r.modules,
+    client_name: r.client_name,
+    project_manager: r.project_manager_id,
+    project_manager_name: r.project_manager_name,
+    bim_lead: r.lead_id,
+    bim_lead_name: r.bim_lead_name,
+    bim_co_ordinator: r.bim_coordinator_id,
+    bim_coordinator_name: r.bim_coordinator_name,
+    start_date: r.start_date,
+    end_date: r.due_date,
+    total_hours: r.totalhours,
+    per_day: r.perday,
+    department: r.department,
+    member: r.members,
+    resources: r.resources,
+    required_resources: r.required_resources,
+    location: r.location,
+    description: r.description,
+  });
 
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
-        setList((res.data.projects ?? []).map((r: any) => ({
-          id: r.id,
-          project_name: r.project_name,
-          progress: r.progress ?? 0,
-          total_tasks: r.total_tasks ?? 0,
-          completed_tasks: r.completed_tasks ?? 0,
-          priority: r.priority ?? 'Normal',
-          budget: r.budget,
-          module_name: r.modules,
-          client_name: r.client_id,
-          project_manager: r.project_manager_id,
-          start_date: r.start_date,
-          end_date: r.due_date,
-          total_hours: r.totalhours,
-          per_day: r.perday,
-          department: r.department,
-          bim_lead: r.lead_id,
-          bim_co_ordinator: r.bim_coordinator_id,
-          member: r.members,
-          resources: r.resources,
-          required_resources: r.required_resources,
-          location: r.location,
-          description: r.description,
-        })));
+        setList((res.data.projects ?? []).map(mapApiProjectToProject));
       })
       .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
+
+  const fetchMilestones = (projectId: number) => {
+    setMilestonesLoading(true);
+    api.get<{ milestones: Milestone[] }>(`/api/milestones?project_id=${projectId}`)
+      .then(({ data }) => setMilestones(data.milestones || []))
+      .catch(() => setMilestones([]))
+      .finally(() => setMilestonesLoading(false));
+  };
+
+  useEffect(() => {
+    if (showMilestones && currentProject?.id) {
+      fetchMilestones(currentProject.id);
+    }
+  }, [showMilestones, currentProject?.id]);
+
+  // Deep-link support: keep project view on refresh using ?projectId=
+  useEffect(() => {
+    const pid = searchParams.get("projectId");
+    if (!pid) {
+      if (showProjectView || selectedProjectForView) {
+        setShowProjectView(false);
+        setSelectedProjectForView(null);
+      }
+      return;
+    }
+
+    const id = Number(pid);
+    if (!Number.isFinite(id) || id <= 0) return;
+
+    if (showProjectView && selectedProjectForView?.id === id) {
+      return;
+    }
+
+    const existingProject = list.find(p => p.id === id);
+    if (existingProject) {
+      setSelectedProjectForView(existingProject);
+      setShowProjectView(true);
+    } else if (!showProjectView) {
+      setShowProjectView(true);
+    }
+
+    api
+      .get<Record<string, unknown>>(`/api/projects/${id}`)
+      .then(({ data }) => {
+        const p = data as any;
+        setSelectedProjectForView({
+          id: p.id,
+          project_name: p.project_name,
+          progress: p.progress ?? 0,
+          total_tasks: p.total_tasks ?? 0,
+          completed_tasks: p.completed_tasks ?? 0,
+          priority: p.priority ?? 'Normal',
+          budget: p.budget,
+          module_name: p.modules,
+          client_name: p.client_id,
+          project_manager: p.project_manager_id,
+          start_date: p.start_date,
+          end_date: p.due_date,
+          total_hours: p.totalhours,
+          per_day: p.perday,
+          department: p.department,
+          bim_lead: p.lead_id,
+          bim_co_ordinator: p.bim_coordinator_id,
+          member: p.members,
+          resources: p.resources,
+          required_resources: p.required_resources,
+          location: p.location,
+          description: p.description,
+        });
+      })
+      .catch(() => {
+        if (!existingProject) {
+          setSearchParams({}, { replace: true });
+          setShowProjectView(false);
+        }
+      });
+  }, [searchParams, list, setSearchParams]);
 
   if (loading) {
     return (
@@ -261,7 +356,10 @@ export default function ProjectsBC() {
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
             <button
               type="button"
-              onClick={() => setShowProjectView(false)}
+              onClick={() => {
+                setShowProjectView(false);
+                setSearchParams({}, { replace: true });
+              }}
               className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
               title="Close"
             >
@@ -408,7 +506,17 @@ export default function ProjectsBC() {
                             </div>
                           ))}
                           {memberNames.length > 3 && (
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
+                            <div
+                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
+                              onClick={() => {
+                                const emps = memberIdsForView
+                                  .map((id) => allEmployees.find((e) => e.id === id))
+                                  .filter(Boolean) as Employee[];
+                                setAllMembersList(emps);
+                                setShowAllMembersModal(true);
+                              }}
+                              title="View all members"
+                            >
                               +{memberNames.length - 3}
                             </div>
                           )}
@@ -433,19 +541,26 @@ export default function ProjectsBC() {
                     <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.client_name || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Project Manager</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.project_manager_name || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">BIM Lead</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.bim_lead_name || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">BIM Co-ordinator</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.bim_coordinator_name || 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString() : 'N/A'}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : 'N/A'}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.budget ? `$${selectedProjectForView.budget}` : 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                      {selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    </span>
                   </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
@@ -457,7 +572,9 @@ export default function ProjectsBC() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString() : 'N/A'}</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                      {selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
@@ -465,7 +582,7 @@ export default function ProjectsBC() {
                     <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
+                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
                   </div>
@@ -489,6 +606,45 @@ export default function ProjectsBC() {
                 </div>
               </div>
             </div>
+
+            {/* All Members Modal */}
+            {showAllMembersModal && (
+              <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMembersModal(false)}
+                    className="absolute left-6 top-6 p-2.5 rounded-[10px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                    title="Close"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
+                    All Members ({allMembersList.length})
+                  </h3>
+
+                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                    {allMembersList.map((m) => (
+                      <div key={m.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100">
+                        <img
+                          src={m.profile_picture ? `${apiBase}/uploads/${m.profile_picture}` : `https://i.pravatar.cc/150?u=${m.id}`}
+                          onError={(e) => { (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${m.id}`; }}
+                          className="w-14 h-14 rounded-full object-cover border border-slate-100"
+                          alt={m.full_name}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">{m.full_name}</p>
+                          <p className="text-[13px] font-Gantari font-bold text-[#999999] truncate">{m.user_role}</p>
+                          <p className="text-[13px] font-Gantari font-medium text-[#666666] truncate">{m.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : showMilestones && currentProject ? (
@@ -527,41 +683,122 @@ export default function ProjectsBC() {
           {/* Milestones Content - No Scroll Version */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-6 md:px-10 pb-10 custom-scrollbar">
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-              <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
-                <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">10,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">4,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">6,000,00</p>
-              </div>
-              <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
-                <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">72%</p>
-              </div>
-            </div>
+            {(() => {
+              const totalAmount = milestones.reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+              const paidAmount = milestones.filter(m => (m.status || '').toLowerCase() === 'paid').reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+              const pendingAmount = totalAmount - paidAmount;
+              const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
-            {/* Central Box Area - Now Flexible */}
-            <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
-              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-              <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
-                Add your First Payment to get started with payment tracking
-              </p>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Milestone
-              </button>
-            </div>
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+                  <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
+                    <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">{totalAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{paidAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{pendingAmount.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
+                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
+                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{progressPercent}%</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {milestonesLoading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
+              </div>
+            ) : milestones.length === 0 ? (
+              /* Central Box Area - Now Flexible */
+              <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
+                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
+                <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
+                  Add your First Payment to get started with payment tracking
+                </p>
+                <button
+                  onClick={() => setShowAddMilestoneModal(true)}
+                  className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Milestone
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {milestones.map((m) => (
+                  <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex-1 min-w-0">
+                      <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">{m.milestone_name}</h5>
+                      <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>Due: {m.due_date ? new Date(m.due_date).toLocaleDateString('en-GB') : '-'}</span>
+                        </div>
+                        {m.notes && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                            <span className="truncate max-w-xs">{m.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div className="text-right">
+                        <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
+                        <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                          {m.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {m.status !== 'Paid' && (
+                          <button
+                            onClick={() => {
+                              api.post(`/api/milestones/${m.id}/mark-paid`)
+                                .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                .catch(() => { });
+                            }}
+                            className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                            title="Mark as Paid"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this milestone?')) {
+                              api.delete(`/api/milestones/${m.id}`)
+                                .then(() => currentProject?.id && fetchMilestones(currentProject.id))
+                                .catch(() => { });
+                            }
+                          }}
+                          className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
+                          title="Delete Milestone"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : showCreateModal ? (
@@ -607,7 +844,7 @@ export default function ProjectsBC() {
                   .then(({ data }) => {
                     if (data.success) {
                       setShowCreateModal(false);
-                      setCreateName(''); setCreateBudget(''); setCreateModuleName('');
+                      setCreateName(''); setCreateBudget('');
                       setModuleNameTags([]); setModuleNameInput('');
                       setCreateClientName(''); setCreateProjectManager('');
                       setCreateStartDate(''); setCreateEndDate('');
@@ -672,7 +909,7 @@ export default function ProjectsBC() {
                         const val = moduleNameInput.trim().replace(/,$/, '');
                         if (val && !moduleNameTags.includes(val)) {
                           setModuleNameTags(prev => [...prev, val]);
-                          setCreateModuleName([...moduleNameTags, val].join(', '));
+                          // setCreateModuleName([...moduleNameTags, val].join(', '));
                         }
                         setModuleNameInput('');
                       }
@@ -1041,17 +1278,7 @@ export default function ProjectsBC() {
                     if (data.success) {
                       setShowEditModal(false);
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({
-                          id: r.id, project_name: r.project_name, progress: r.progress ?? 0,
-                          total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0,
-                          priority: r.priority ?? 'Normal', budget: r.budget, module_name: r.modules,
-                          client_name: r.client_id, project_manager: r.project_manager_id,
-                          start_date: r.start_date, end_date: r.due_date, total_hours: r.totalhours,
-                          per_day: r.perday, department: r.department, bim_lead: r.lead_id,
-                          bim_co_ordinator: r.bim_coordinator_id, member: r.members,
-                          resources: r.resources, required_resources: r.required_resources,
-                          location: r.location, description: r.description,
-                        }))))
+                        .then(res => setList((res.data.projects ?? []).map(mapApiProjectToProject)))
                         .catch(() => { });
                     }
                   })
@@ -1437,8 +1664,6 @@ export default function ProjectsBC() {
                 </div>
               ) : (
                 list.map((p) => {
-                  const total = p.total_tasks ?? 0;
-                  const completed = p.completed_tasks ?? 0;
                   const progress = Math.round(p.progress ?? 0);
 
                   const radius = 28;
@@ -1477,8 +1702,7 @@ export default function ProjectsBC() {
                             >
                               <button
                                 onClick={() => {
-                                  setSelectedProjectForView(p);
-                                  setShowProjectView(true);
+                                  setSearchParams({ projectId: String(p.id) });
                                   setOpenMenuId(null);
                                 }}
                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
@@ -1514,7 +1738,7 @@ export default function ProjectsBC() {
 
                                     setCreateName(p.project_name ?? '');
                                     setCreateBudget(p.budget ?? '');
-                                    setCreateModuleName(p.module_name ?? '');
+                                    // setCreateModuleName(p.module_name ?? '');
                                     setCreateClientName(p.client_name ?? '');
                                     setCreateProjectManager(mapEmpIdToName(p.project_manager));
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
@@ -1524,7 +1748,7 @@ export default function ProjectsBC() {
                                     setCreateDepartment(String(p.department ?? ''));
                                     setCreateBIMLead(mapEmpIdToName(p.bim_lead));
                                     setCreateBIMCoOrdinator(mapEmpIdToName(p.bim_co_ordinator));
-                                    setCreateMember(p.member ?? '');
+                                    // setCreateMember(p.member ?? '');
 
                                     // Multi-select members
                                     if (p.member) {
@@ -1672,7 +1896,30 @@ export default function ProjectsBC() {
               </div>
 
               {/* Modal Body */}
-              <form onSubmit={(e) => { e.preventDefault(); setShowAddMilestoneModal(false); }} className="space-y-5 md:space-y-6 px-1">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!currentProject?.id) return;
+                  api.post('/api/milestones', {
+                    project_id: currentProject.id,
+                    milestone_name: milestoneName.trim(),
+                    milestone_amount: milestoneAmount,
+                    due_date: milestoneDueDate,
+                    notes: milestoneNotes.trim(),
+                    action: "add"
+                  })
+                    .then(() => {
+                      setShowAddMilestoneModal(false);
+                      setMilestoneName('');
+                      setMilestoneAmount('');
+                      setMilestoneDueDate('');
+                      setMilestoneNotes('');
+                      fetchMilestones(currentProject.id);
+                    })
+                    .catch(() => { });
+                }}
+                className="space-y-5 md:space-y-6 px-1"
+              >
                 <div className="space-y-2">
                   <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Milestone Name*</label>
                   <input
@@ -1688,7 +1935,7 @@ export default function ProjectsBC() {
                 <div className="space-y-2">
                   <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Amount ($)*</label>
                   <input
-                    type="text"
+                    type="number" step="0.01"
                     value={milestoneAmount}
                     onChange={(e) => setMilestoneAmount(e.target.value)}
                     className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
@@ -1705,11 +1952,10 @@ export default function ProjectsBC() {
                   <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">Due Date*</label>
                   <div className="relative">
                     <input
-                      type="text"
+                      type="date"
                       value={milestoneDueDate}
                       onChange={(e) => setMilestoneDueDate(e.target.value)}
                       className="w-full px-4 md:px-5 py-3 md:py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
-                      placeholder="dd/mm/yyyy"
                       required
                     />
                     <div className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
