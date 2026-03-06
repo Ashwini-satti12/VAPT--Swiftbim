@@ -17,18 +17,11 @@ type Bid = {
     currency?: string;
 };
 
-const STATUS_STYLES: Record<string, string> = {
-    submitted: 'bg-[#EFF6FF] text-[#1D4ED8]',
-    shortlisted: 'bg-[#F0FDF4] text-[#16A34A]',
-    won: 'bg-[#F0FDF4] text-[#15803D]',
-    removed: 'bg-[#FFF1F2] text-[#BE123C]',
-    lost: 'bg-[#FFF1F2] text-[#BE123C]',
-    default: 'bg-[#F2F2F2] text-[#717171]',
-};
-
 export default function MyBidsV() {
     const [loading, setLoading] = useState(true);
     const [bids, setBids] = useState<Bid[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [detailBid, setDetailBid] = useState<Bid | null>(null);
 
     useEffect(() => {
         api.get<{ bids: Bid[] }>('/api/vendors/mybids')
@@ -37,104 +30,175 @@ export default function MyBidsV() {
             .finally(() => setLoading(false));
     }, []);
 
-    const formatCurrency = (amount: number, currency = 'USD') => {
+    const formatBudget = (amount: number | undefined) => {
         if (!amount) return '—';
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
     };
 
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString();
+    const getStatusLabel = (status: string) => {
+        const s = (status || '').toLowerCase();
+        if (s === 'submitted') return 'Submitted';
+        if (s === 'shortlisted') return 'Shortlisted';
+        if (s === 'won') return 'Won';
+        if (s === 'lost') return 'Lost';
+        if (s === 'removed') return 'Removed';
+        return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
     };
 
-    const getStatusStyle = (status: string) =>
-        STATUS_STYLES[status?.toLowerCase()] ?? STATUS_STYLES.default;
+    const getStatusBadge = (status: string) => {
+        const s = (status || '').toLowerCase();
+        if (s === 'submitted') return 'bg-[#EAF0FB] text-[#1967D2]';
+        if (s === 'shortlisted') return 'bg-[#E6F4EA] text-[#1E7E34]';
+        if (s === 'won') return 'bg-[#E6F4EA] text-[#1E7E34]';
+        if (s === 'lost' || s === 'removed') return 'bg-[#FFF1F2] text-[#BE123C]';
+        return 'bg-[#F2F2F2] text-[#616161]';
+    };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center py-24">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DE3D3A]" />
-            </div>
-        );
-    }
+    const filtered = bids.filter(b =>
+        (b.project_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex items-center justify-between shrink-0 mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-800 font-gantari">My Bids</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-gantari">All bids you have submitted across active and past opportunities</p>
+        <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+                <div className="flex items-center justify-between w-full md:w-auto">
+                    <h2 className="text-2xl font-semibold text-[#000000]">My Bids</h2>
                 </div>
-                <span className="text-sm font-medium text-[#353535] bg-[#F2F2F2] px-4 py-1.5 rounded-full font-gantari">
-                    {bids.length} Total
-                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Search */}
+                    <div className="relative flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md min-w-[200px]">
+                        <svg className="w-4 h-4 text-[#616161] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Search project..."
+                            className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari"
+                        />
+                        {searchTerm && (
+                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar pb-8">
-                {bids.length === 0 ? (
-                    <div className="bg-white/50 backdrop-blur-sm rounded-[20px] p-16 text-center text-slate-500 border border-white/40">
-                        <p className="text-lg font-semibold font-gantari mb-2">No bids submitted yet</p>
-                        <p className="text-sm font-gantari">Visit the Opportunities page to find and bid on active projects.</p>
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-[20px] shadow-sm border border-[#E2E8F0] overflow-hidden">
-                        <div className="bg-[#F8FAFC] px-6 py-5 border-b border-[#E2E8F0] flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-[#1E293B] font-gantari">Bid History</h3>
-                            <div className="flex gap-2">
-                                {['submitted', 'shortlisted', 'won'].map(s => (
-                                    <span key={s} className={`text-[11px] px-2.5 py-1 rounded-full font-bold font-gantari ${getStatusStyle(s)}`}>
-                                        {s.charAt(0).toUpperCase() + s.slice(1)}: {bids.filter(b => b.status?.toLowerCase() === s).length}
-                                    </span>
-                                ))}
-                            </div>
+            {/* Table Card */}
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
+                    {loading ? (
+                        <div className="flex justify-center items-center py-20">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
                         </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse min-w-[700px]">
-                                <thead className="bg-[#F8FAFC]">
-                                    <tr>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider">Project</th>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider">Bid Amount</th>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider">Budget</th>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider">Deadline</th>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider">Submitted</th>
-                                        <th className="py-4 px-6 font-gantari text-[#64748B] text-sm uppercase tracking-wider text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#E2E8F0]">
-                                    {bids.map((bid) => (
-                                        <tr key={bid.id} className="hover:bg-[#F8FAFC] transition-colors">
-                                            <td className="py-5 px-6">
-                                                <div className="text-sm font-bold text-[#1E293B] font-gantari">{bid.project_name || `Opportunity #${bid.opportunity_id}`}</div>
-                                                {bid.timeline && <div className="text-[11px] text-[#64748B] mt-0.5 font-gantari">Timeline: {bid.timeline}</div>}
-                                                {bid.team_size ? <div className="text-[11px] text-[#64748B] font-gantari">Team: {bid.team_size} members</div> : null}
+                    ) : filtered.length === 0 ? (
+                        <div className="py-20 text-center text-[#616161] font-gantari">
+                            <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-lg font-semibold mb-1 text-[#353535]">No bids submitted yet</p>
+                            <p className="text-sm">Visit the Opportunities page to find and bid on active projects.</p>
+                        </div>
+                    ) : (
+                        <table className="min-w-full border-collapse">
+                            <thead className="sticky top-0 z-10 bg-white">
+                                <tr className="border-b border-gray-100 bg-white">
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Budget</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Deadline</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Submitted On</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filtered.map((bid, index) => {
+                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                    return (
+                                        <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {bid.project_name || `Opportunity #${bid.opportunity_id}`}
+                                                {bid.timeline && (
+                                                    <div className="text-xs text-[#616161] font-normal mt-0.5 line-clamp-1">Timeline: {bid.timeline}</div>
+                                                )}
                                             </td>
-                                            <td className="py-5 px-6">
-                                                <div className="text-sm font-bold text-[#DE3D3A] font-gantari">{formatCurrency(bid.bid_amount, bid.currency)}</div>
+                                            <td className="px-3 py-3 text-center text-sm font-bold text-[#DE3D3A] font-gantari whitespace-nowrap align-middle">
+                                                {formatBudget(bid.bid_amount)}
                                             </td>
-                                            <td className="py-5 px-6">
-                                                <div className="text-sm text-[#475569] font-gantari">{bid.outsource_budget ? formatCurrency(bid.outsource_budget, bid.currency) : '—'}</div>
+                                            <td className="px-3 py-3 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {formatBudget(bid.outsource_budget)}
                                             </td>
-                                            <td className="py-5 px-6">
-                                                <div className="text-sm text-[#475569] font-gantari">{formatDate(bid.bid_deadline || '')}</div>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {bid.bid_deadline
+                                                    ? new Date(bid.bid_deadline).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                                                    : '—'}
                                             </td>
-                                            <td className="py-5 px-6">
-                                                <div className="text-sm text-[#475569] font-gantari">{formatDate(bid.created_at)}</div>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {bid.created_at
+                                                    ? new Date(bid.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                                                    : '—'}
                                             </td>
-                                            <td className="py-5 px-6">
-                                                <div className="flex justify-center">
-                                                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold font-gantari ${getStatusStyle(bid.status)}`}>
-                                                        {bid.status ? bid.status.charAt(0).toUpperCase() + bid.status.slice(1) : 'Unknown'}
-                                                    </span>
-                                                </div>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(bid.status)}`}>
+                                                    {getStatusLabel(bid.status)}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <button
+                                                    className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100"
+                                                    onClick={() => setDetailBid(bid)}
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                    View
+                                                </button>
                                             </td>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+
+            {/* Detail Modal */}
+            {detailBid && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="text-xl font-bold text-[#12141D] font-gantari">Bid Details</h3>
+                            <button onClick={() => setDetailBid(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+                        </div>
+                        <div className="flex flex-col gap-3 text-sm font-gantari">
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Project</span><span className="text-[#353535] font-semibold">{detailBid.project_name || `Opportunity #${detailBid.opportunity_id}`}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Bid Amount</span><span className="text-[#DE3D3A] font-bold">{formatBudget(detailBid.bid_amount)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Budget</span><span className="text-[#353535] font-semibold">{formatBudget(detailBid.outsource_budget)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Status</span><span className={`inline-flex px-3 py-1 rounded-lg text-xs font-bold ${getStatusBadge(detailBid.status)}`}>{getStatusLabel(detailBid.status)}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Deadline</span><span className="text-[#353535] font-semibold">{detailBid.bid_deadline ? new Date(detailBid.bid_deadline).toLocaleDateString() : '—'}</span></div>
+                            <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Submitted</span><span className="text-[#353535] font-semibold">{detailBid.created_at ? new Date(detailBid.created_at).toLocaleDateString() : '—'}</span></div>
+                            {detailBid.timeline && <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Timeline</span><span className="text-[#353535] font-semibold">{detailBid.timeline}</span></div>}
+                            {detailBid.team_size ? <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Team Size</span><span className="text-[#353535] font-semibold">{detailBid.team_size} members</span></div> : null}
+                            {detailBid.notes && (
+                                <div className="flex flex-col gap-1 mt-1"><span className="text-[#717171] font-medium">Notes</span><p className="text-[#353535] leading-relaxed bg-[#F8F8F8] rounded-lg p-3">{detailBid.notes}</p></div>
+                            )}
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <button onClick={() => setDetailBid(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors">Close</button>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }
