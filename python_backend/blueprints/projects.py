@@ -124,10 +124,16 @@ def list_projects():
     for r in rows:
         d = dict(r)
         _serialize_row(d)
+        # Backwards-compat for frontend field names
+        if "no_resource" in d and "resources" not in d:
+            d["resources"] = d.get("no_resource")
+        if "no_resources_requried" in d and "required_resources" not in d:
+            d["required_resources"] = d.get("no_resources_requried")
         counts = task_counts.get(d["id"], {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
         projects.append(d)
+    _hydrate_project_display_fields(cur, company_id, projects)
     return jsonify({"projects": projects})
 
 
@@ -165,6 +171,141 @@ def _resolve_employee_id(cur, company_id, value):
     return int(row["id"]) if row else None
 
 
+_PROJECT_SPECIAL_DEPARTMENT_VALUES = {"Budget Ceiling", "Submission Deadline"}
+
+
+def _as_int_id(value):
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return int(value) if value == int(value) else None
+    s = str(value).strip()
+    return int(s) if s.isdigit() else None
+
+
+def _parse_csv_int_ids(value):
+    if not value:
+        return []
+    out = []
+    for part in str(value).split(","):
+        s = part.strip()
+        if s.isdigit():
+            out.append(int(s))
+    return out
+
+
+def _resolve_project_department(cur, company_id, value):
+    """
+    Normalize project `department` to store department.id (numeric) instead of name.
+
+    Notes:
+    - Some flows overload `department` as a "source" field for outsourcing.
+      We preserve those special values.
+    """
+    if value is None:
+        return ""
+    s = str(value).strip()
+    if not s:
+        return ""
+    if s in _PROJECT_SPECIAL_DEPARTMENT_VALUES:
+        return s
+    if s.isdigit():
+        return s
+    cur.execute(
+        "SELECT id FROM department WHERE name = %s AND Company_id = %s LIMIT 1",
+        (s, company_id),
+    )
+    row = cur.fetchone()
+    return str(row["id"]) if row and row.get("id") is not None else s
+
+
+def _hydrate_project_display_fields(cur, company_id, project_dicts):
+    """
+    Add display-friendly name fields while keeping ID fields unchanged.
+
+    Adds:
+    - client_name (from clientinformation.fullName)
+    - project_manager_name, lead_name, bim_coordinator_name, uploader_name (from employee.full_name)
+    - department_name (from department.name when department is numeric)
+    - members_names (list[str]) from employee.full_name for members CSV IDs
+    """
+    employee_ids = set()
+    client_ids = set()
+    department_ids = set()
+    project_members_map = {}
+
+    for d in project_dicts:
+        for k in ("project_manager_id", "lead_id", "bim_coordinator_id", "uploaderid"):
+            eid = _as_int_id(d.get(k))
+            if eid is not None:
+                employee_ids.add(eid)
+
+        mids = _parse_csv_int_ids(d.get("members"))
+        project_members_map[d.get("id")] = mids
+        for mid in mids:
+            employee_ids.add(mid)
+
+        cid = _as_int_id(d.get("client_id"))
+        if cid is not None:
+            client_ids.add(cid)
+
+        dep_id = _as_int_id(d.get("department"))
+        if dep_id is not None:
+            department_ids.add(dep_id)
+
+    employees_by_id = {}
+    if employee_ids:
+        placeholders = ",".join(["%s"] * len(employee_ids))
+        cur.execute(
+            f"SELECT id, full_name FROM employee WHERE Company_id = %s AND id IN ({placeholders})",
+            (company_id, *list(employee_ids)),
+        )
+        for r in cur.fetchall():
+            employees_by_id[int(r["id"])] = r.get("full_name") or ""
+
+    clients_by_id = {}
+    if client_ids:
+        placeholders = ",".join(["%s"] * len(client_ids))
+        cur.execute(
+            f"SELECT id, fullName FROM clientinformation WHERE Company_id = %s AND id IN ({placeholders})",
+            (company_id, *list(client_ids)),
+        )
+        for r in cur.fetchall():
+            clients_by_id[int(r["id"])] = r.get("fullName") or ""
+
+    departments_by_id = {}
+    if department_ids:
+        placeholders = ",".join(["%s"] * len(department_ids))
+        cur.execute(
+            f"SELECT id, name FROM department WHERE Company_id = %s AND id IN ({placeholders})",
+            (company_id, *list(department_ids)),
+        )
+        for r in cur.fetchall():
+            departments_by_id[int(r["id"])] = r.get("name") or ""
+
+    for d in project_dicts:
+        cid = _as_int_id(d.get("client_id"))
+        d["client_name"] = clients_by_id.get(cid, "") if cid is not None else ""
+
+        pm = _as_int_id(d.get("project_manager_id"))
+        lead = _as_int_id(d.get("lead_id"))
+        bc = _as_int_id(d.get("bim_coordinator_id"))
+        up = _as_int_id(d.get("uploaderid"))
+        d["project_manager_name"] = employees_by_id.get(pm, "") if pm is not None else ""
+        d["lead_name"] = employees_by_id.get(lead, "") if lead is not None else ""
+        d["bim_coordinator_name"] = employees_by_id.get(bc, "") if bc is not None else ""
+        d["uploader_name"] = employees_by_id.get(up, "") if up is not None else ""
+
+        dep_id = _as_int_id(d.get("department"))
+        if dep_id is not None:
+            d["department_name"] = departments_by_id.get(dep_id, "")
+        else:
+            d["department_name"] = d.get("department") if d.get("department") in _PROJECT_SPECIAL_DEPARTMENT_VALUES else ""
+
+        mids = project_members_map.get(d.get("id"), [])
+        d["members_names"] = [employees_by_id.get(mid, "") for mid in mids if employees_by_id.get(mid, "")]
+
+
 @bp.route("/<int:project_id>", methods=["GET"])
 @project_app_required
 def get_project(project_id):
@@ -193,7 +334,146 @@ def get_project(project_id):
         d["start_date"] = d["start_date"].isoformat()
     if d.get("bidding_end_date") and hasattr(d["bidding_end_date"], "isoformat"):
         d["bidding_end_date"] = d["bidding_end_date"].isoformat()
+    # Backwards-compat for frontend field names
+    if "no_resource" in d and "resources" not in d:
+        d["resources"] = d.get("no_resource")
+    if "no_resources_requried" in d and "required_resources" not in d:
+        d["required_resources"] = d.get("no_resources_requried")
+    _hydrate_project_display_fields(cur, g.company_id, [d])
     return jsonify(d)
+
+
+def _normalize_module_key(module_name: str) -> str:
+    """
+    Normalize modules_name values so different panels group consistently.
+    Examples:
+    - "PD - Package1" -> "PD"
+    - "PD/Package1" -> "PD"
+    - "m1" -> "m1"
+    """
+    s = (module_name or "").strip()
+    if not s:
+        return ""
+    if " - " in s:
+        return s.split(" - ", 1)[0].strip()
+    if "/" in s:
+        return s.split("/", 1)[0].strip()
+    return s
+
+
+def _normalize_task_status(status: str) -> str:
+    s = (status or "").strip().lower()
+    if s in {"todo", "to do", "to_do"}:
+        return "todo"
+    if s in {"inprogress", "in progress", "in_progress"}:
+        return "inprogress"
+    if s in {"pause", "paused"}:
+        return "paused"
+    if s in {"completed", "complete"}:
+        return "completed"
+    return s
+
+
+@bp.route("/<int:project_id>/module-progress", methods=["GET"])
+@project_app_required
+def project_module_progress(project_id):
+    """
+    Returns module-wise completion percentage and overall project completion percentage.
+
+    Completion % = (Completed / Total) * 100
+    Completed = tasks.status == 'Completed'
+    Total = all tasks for that module
+    """
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id, modules FROM projects WHERE id = %s AND Company_id = %s",
+        (project_id, g.company_id),
+    )
+    proj = cur.fetchone()
+    if not proj:
+        return jsonify({"success": False, "message": "Project not found"}), 404
+
+    # Fetch tasks for project (only needed columns)
+    cur.execute(
+        "SELECT status, modules_name FROM tasks WHERE projectid = %s AND Company_id = %s",
+        (project_id, g.company_id),
+    )
+    tasks = cur.fetchall()
+
+    # Aggregate overall
+    total_tasks = len(tasks)
+    completed_tasks = sum(1 for t in tasks if _normalize_task_status(str(t.get("status") or "")) == "completed")
+    project_completion_percentage = round((completed_tasks / total_tasks) * 100, 2) if total_tasks else 0.0
+
+    status_counts = {"todo": 0, "inprogress": 0, "paused": 0, "completed": 0}
+    for t in tasks:
+        ns = _normalize_task_status(str(t.get("status") or ""))
+        if ns in status_counts:
+            status_counts[ns] += 1
+
+    # Determine module list: prefer projects.modules, otherwise derive from tasks
+    raw_modules = (proj.get("modules") or "").strip()
+    module_names = []
+    if raw_modules:
+        module_names = [m.strip() for m in raw_modules.split(",") if m.strip()]
+    else:
+        derived = {_normalize_module_key(t.get("modules_name") or "") for t in tasks}
+        module_names = [m for m in sorted(derived) if m]
+
+    # Aggregate by normalized module key
+    module_totals = {}
+    module_completed = {}
+    for t in tasks:
+        key = _normalize_module_key(t.get("modules_name") or "")
+        if not key:
+            key = "Unassigned"
+        module_totals[key] = module_totals.get(key, 0) + 1
+        if _normalize_task_status(str(t.get("status") or "")) == "completed":
+            module_completed[key] = module_completed.get(key, 0) + 1
+
+    modules_out = []
+    for name in module_names:
+        # use normalized key for lookups, but keep original name for display
+        key = _normalize_module_key(name)
+        tot = int(module_totals.get(key, 0))
+        comp = int(module_completed.get(key, 0))
+        pct = round((comp / tot) * 100, 2) if tot else 0.0
+        modules_out.append(
+            {
+                "module_name": name,
+                "total_tasks": tot,
+                "completed_tasks": comp,
+                "completion_percentage": pct,
+            }
+        )
+
+    # Include Unassigned if exists
+    if module_totals.get("Unassigned"):
+        tot = int(module_totals.get("Unassigned", 0))
+        comp = int(module_completed.get("Unassigned", 0))
+        pct = round((comp / tot) * 100, 2) if tot else 0.0
+        modules_out.append(
+            {
+                "module_name": "Unassigned",
+                "total_tasks": tot,
+                "completed_tasks": comp,
+                "completion_percentage": pct,
+            }
+        )
+
+    return jsonify(
+        {
+            "success": True,
+            "project_id": project_id,
+            "total_tasks": total_tasks,
+            "completed_tasks": completed_tasks,
+            "project_completion_percentage": project_completion_percentage,
+            "status_counts": status_counts,
+            "modules": modules_out,
+        }
+    )
 
 
 @bp.route("", methods=["POST"])
@@ -216,8 +496,9 @@ def create_project():
     location = data.get("location") or None
     description = data.get("description") or None
     start_date = data.get("start_date") or None
-    resources = data.get("resources") or None
-    required_resources = data.get("required_resources") or None
+    # DB columns are `no_resource` and `no_resources_requried` (legacy naming).
+    resources = data.get("resources") or data.get("no_resource") or None
+    required_resources = data.get("required_resources") or data.get("no_resources_requried") or None
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
     conn = get_db()
@@ -227,9 +508,10 @@ def create_project():
     project_manager_id = _resolve_employee_id(cur, g.company_id, raw_pm)
     lead_id = _resolve_employee_id(cur, g.company_id, raw_lead)
     bim_coordinator_id = _resolve_employee_id(cur, g.company_id, raw_bim_co)
+    department = _resolve_project_department(cur, g.company_id, department)
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, resources, required_resources)
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried)
            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
          client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
@@ -255,9 +537,17 @@ def update_project(project_id):
         data["lead_id"] = _resolve_employee_id(cur, g.company_id, data["lead_id"])
     if data.get("bim_coordinator_id") is not None:
         data["bim_coordinator_id"] = _resolve_employee_id(cur, g.company_id, data["bim_coordinator_id"])
+    if data.get("department") is not None:
+        data["department"] = _resolve_project_department(cur, g.company_id, data["department"])
+    # Map API field names -> DB column names for resource fields
+    if data.get("resources") is not None and data.get("no_resource") is None:
+        data["no_resource"] = data.get("resources")
+    if data.get("required_resources") is not None and data.get("no_resources_requried") is None:
+        data["no_resources_requried"] = data.get("required_resources")
+
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
-               "budget_ceiling", "bidding_end_date", "resources", "required_resources")
+               "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried")
     sets = []
     params = []
     for key in allowed:

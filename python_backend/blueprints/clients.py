@@ -1,8 +1,23 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required, require_not_roles
+import mysql.connector as mysql_connector
 
 bp = Blueprint("clients", __name__, url_prefix="/api/clients")
+
+
+def _get_users_db():
+    """
+    Connection to the marketing portal DB (new_swiftbim) where `users` live.
+    """
+    conn = mysql_connector.connect(
+        host=current_app.config["MYSQL_HOST"],
+        user=current_app.config["MYSQL_USER"],
+        password=current_app.config["MYSQL_PASSWORD"],
+        database="new_swiftbim",
+        port=current_app.config.get("MYSQL_PORT", 3306),
+    )
+    return conn
 
 
 @bp.route("", methods=["GET"])
@@ -23,6 +38,26 @@ def list_clients():
             if hasattr(v, "isoformat"):
                 c[k] = v.isoformat()
     return jsonify({"clients": clients})
+
+
+@bp.route("/from-users", methods=["GET"])
+@project_app_required
+def list_clients_from_users():
+    """
+    Return clients from new_swiftbim.users where role='client'.
+    This is used for project creation dropdowns.
+    """
+    conn = _get_users_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "SELECT id, full_name, email, company_details, phone_number, role "
+            "FROM users WHERE role = 'client' ORDER BY full_name"
+        )
+        rows = cur.fetchall()
+        return jsonify({"clients": rows})
+    finally:
+        conn.close()
 
 
 @bp.route("", methods=["POST"])
