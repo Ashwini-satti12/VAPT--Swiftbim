@@ -480,11 +480,6 @@ export default function ManageLeave() {
                             {/* Rows with fixed label width so colons align vertically (like second image) */}
                             <div className="space-y-3 text-sm">
                                 <div className="flex items-center gap-1">
-                                    <span className="w-[140px] shrink-0 font-semibold text-black">Sl.No</span>
-                                    <span className="shrink-0 text-black">:</span>
-                                    <span className="text-[#8B8B8B]">{selectedLeave.slNo}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Employee Name</span>
                                     <span className="shrink-0 text-black">:</span>
                                     <span className="text-[#8B8B8B]">{selectedLeave.employeeName}</span>

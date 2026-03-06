@@ -1,26 +1,24 @@
-import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import api from '../../lib/api';
+import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
+import api from "../../../lib/api";
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
 );
 
 type DashboardStats = {
-    totalProjects: number;
-    completedProjects: number;
-    inProgressTasks: number;
-    completedTasks: number;
+    active_opportunities: number;
+    bids_submitted: number;
+    proposals_awaiting: number;
+    active_projects: number;
 };
 
-const defaultStats: DashboardStats = {
-    totalProjects: 0,
-    completedProjects: 0,
-    inProgressTasks: 0,
-    completedTasks: 0,
+type InvolvedPerson = {
+    id: number;
+    full_name: string;
+    profile_picture: string | null;
 };
 
-type InvolvedPerson = { id: number; full_name: string; profile_picture: string | null };
 type PriorityTask = {
     id: number;
     task_name: string;
@@ -34,41 +32,6 @@ type PriorityTask = {
     involved_persons: InvolvedPerson[];
 };
 
-function formatDateOnly(isoOrDate: string | null | undefined): string {
-    if (!isoOrDate) return '—';
-    const d = new Date(isoOrDate);
-    if (isNaN(d.getTime())) return '—';
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-}
-function parseTaskDateTime(dateStr: string, timeStr: string | null | undefined): Date | null {
-    if (!dateStr || !(timeStr || '').trim()) return null;
-    const t = (timeStr || '').trim();
-    const normalized = t.length === 5 ? t + ':00' : t;
-    const date = new Date(dateStr + 'T' + normalized);
-    return isNaN(date.getTime()) ? null : date;
-}
-function formatTimeStringToAMPM(timeStr: string | null | undefined): string {
-    if (!timeStr || !timeStr.trim()) return '—';
-    const parts = timeStr.trim().split(':');
-    const h = parseInt(parts[0], 10);
-    const m = parts.length >= 2 ? parseInt(parts[1], 10) : 0;
-    if (isNaN(h)) return '—';
-    return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-}
-function taskProgressAndCountdown(dueDate: string, startTime: string | null | undefined, endTime: string | null | undefined, nowMs: number = Date.now()): { progress: number; countdown: string } {
-    const start = parseTaskDateTime(dueDate, startTime);
-    const end = parseTaskDateTime(dueDate, endTime);
-    if (!start || !end || end.getTime() <= start.getTime()) return { progress: 0, countdown: '—' };
-    const startMs = start.getTime(), endMs = end.getTime();
-    let progress = 0;
-    if (nowMs >= endMs) progress = 100;
-    else if (nowMs > startMs) progress = Math.round(((nowMs - startMs) / (endMs - startMs)) * 100);
-    const remaining = Math.floor((endMs - nowMs) / 1000);
-    const countdown = remaining <= 0 ? '0:00:00' : `${Math.floor(remaining / 3600)}:${String(Math.floor((remaining % 3600) / 60)).padStart(2, '0')}:${String(remaining % 60).padStart(2, '0')}`;
-    return { progress, countdown };
-}
-const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
-
 type CelebrationEvent = {
     type: 'birthday' | 'work_anniversary' | 'project_due';
     full_name?: string;
@@ -78,13 +41,115 @@ type CelebrationEvent = {
     due_date?: string;
 };
 
-export default function DashboardBL() {
+const defaultStats: DashboardStats = {
+    active_opportunities: 0,
+    bids_submitted: 0,
+    proposals_awaiting: 0,
+    active_projects: 0,
+};
+
+function formatDateOnly(isoOrDate: string | null | undefined): string {
+    if (!isoOrDate) return '—';
+    const d = new Date(isoOrDate);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function parseTaskDateTime(dateStr: string, timeStr: string | null | undefined): Date | null {
+    if (!dateStr) return null;
+    const t = (timeStr || '').trim();
+    if (!t) return null;
+    const normalized = t.length === 5 ? t + ':00' : t;
+    const date = new Date(dateStr + 'T' + normalized);
+    return isNaN(date.getTime()) ? null : date;
+}
+
+function formatTimeStringToAMPM(timeStr: string | null | undefined): string {
+    if (!timeStr || !timeStr.trim()) return '—';
+    const t = timeStr.trim();
+    const parts = t.split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parts.length >= 2 ? parseInt(parts[1], 10) : 0;
+    if (isNaN(h)) return '—';
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour12 = h % 12 || 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function taskProgressAndCountdown(
+    dueDate: string,
+    startTime: string | null | undefined,
+    endTime: string | null | undefined,
+    nowMs: number = Date.now()
+): { progress: number; countdown: string } {
+    const start = parseTaskDateTime(dueDate, startTime);
+    const end = parseTaskDateTime(dueDate, endTime);
+    const now = nowMs;
+    if (!start || !end || end.getTime() <= start.getTime()) {
+        return { progress: 0, countdown: '—' };
+    }
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+    let progress = 0;
+    if (now <= startMs) progress = 0;
+    else if (now >= endMs) progress = 100;
+    else progress = Math.round(((now - startMs) / (endMs - startMs)) * 100);
+
+    let countdown = '—';
+    const remaining = Math.floor((endMs - now) / 1000);
+    if (remaining <= 0) {
+        countdown = '0:00:00';
+    } else {
+        const h = Math.floor(remaining / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+        countdown = `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    return { progress, countdown };
+}
+
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
+
+export default function DashboardPMV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
-    const [nowMs, setNowMs] = useState(() => Date.now());
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
+    const [nowMs, setNowMs] = useState(() => Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => setNowMs(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, []);
+
+    // GET /api/vendors/dashboard/stats → KPI cards
+    useEffect(() => {
+        api.get<DashboardStats>('/api/vendors/dashboard/stats')
+            .then(({ data }) => setStats({
+                active_opportunities: Number(data?.active_opportunities) || 0,
+                bids_submitted: Number(data?.bids_submitted) || 0,
+                proposals_awaiting: Number(data?.proposals_awaiting) || 0,
+                active_projects: Number(data?.active_projects) || 0,
+            }))
+            .catch(() => setStats(defaultStats))
+            .finally(() => setLoading(false));
+    }, []);
+
+    // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
+    useEffect(() => {
+        api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
+            .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
+            .catch(() => setPriorityTasks([]));
+    }, []);
+
+    // Celebrations
     const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
+    const [celebrationsRequested, setCelebrationsRequested] = useState(false);
+
+    // Calendar state
     const today = new Date();
     const [displayMonth, setDisplayMonth] = useState(today.getMonth());
     const [displayYear, setDisplayYear] = useState(today.getFullYear());
@@ -92,32 +157,18 @@ export default function DashboardBL() {
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
-    // KPI cards: fetch from dashboard API (same as TD, BC, PM)
     useEffect(() => {
-        api.get<DashboardStats>('/api/dashboard/stats')
-            .then(({ data }) => setStats({
-                totalProjects: Number(data?.totalProjects) || 0,
-                completedProjects: Number(data?.completedProjects) || 0,
-                inProgressTasks: Number(data?.inProgressTasks) || 0,
-                completedTasks: Number(data?.completedTasks) || 0,
-            }))
-            .catch(() => setStats(defaultStats))
-            .finally(() => setLoading(false));
-    }, []);
-
-    useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
-    useEffect(() => {
-        api.get<{ tasks: PriorityTask[] }>('/api/dashboard/priority-tasks')
-            .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
-            .catch(() => setPriorityTasks([]));
-    }, []);
+        setCelebrations([]);
+        setCelebrationsRequested(false);
+    }, [selectedDate]);
 
     useEffect(() => {
+        if (!celebrationsRequested) return;
         const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
         api.get<{ events: CelebrationEvent[] }>('/api/calendar/events', { params: { selectedDate: dateStr } })
-            .then(({ data }) => setCelebrations(data.events ?? []))
+            .then(({ data }) => setCelebrations(Array.isArray(data.events) ? data.events : []))
             .catch(() => setCelebrations([]));
-    }, [selectedDate]);
+    }, [selectedDate, celebrationsRequested]);
 
     useEffect(() => {
         if (!monthDropdownOpen) return;
@@ -166,7 +217,8 @@ export default function DashboardBL() {
         return new Date(nextY, nextM, cell.day);
     };
 
-    const isSameDay = (a: Date, b: Date) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    const isSameDay = (a: Date, b: Date) =>
+        a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
     const goPrevMonth = () => {
         if (displayMonth === 0) {
@@ -188,6 +240,38 @@ export default function DashboardBL() {
         setDisplayYear(d.getFullYear());
     };
 
+    // KPI card definitions — vendor-specific metrics
+    const kpiCards = [
+        {
+            title: 'Active\nOpportunities',
+            value: stats.active_opportunities,
+            barColor: '#DE3D3A',
+            label: 'Active Opportunities',
+            percent: 75,
+        },
+        {
+            title: 'Bids\nSubmitted',
+            value: stats.bids_submitted,
+            barColor: '#3B82F6',
+            label: 'Total Bids Submitted',
+            percent: 50,
+        },
+        {
+            title: 'Proposals\nAwaiting',
+            value: stats.proposals_awaiting,
+            barColor: '#E47E00',
+            label: 'Proposals Awaiting',
+            percent: 30,
+        },
+        {
+            title: 'Active\nProjects',
+            value: stats.active_projects,
+            barColor: '#00882E',
+            label: 'Active Projects',
+            percent: 20,
+        },
+    ];
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
@@ -202,92 +286,30 @@ export default function DashboardBL() {
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Total Projects - Red Card */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-6 shadow-lg flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Total<br />Projects</h3>
+                    {kpiCards.map((card, i) => (
+                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-6 shadow-lg flex flex-col min-h-[140px] lg:h-[100px] transition-all">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight whitespace-pre-line">{card.title}</h3>
+                                </div>
+                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{card.value}</p>
                             </div>
-                            <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{stats.totalProjects}</p>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Completed Projects */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Projects</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
+                            <div className="mt-auto w-full">
+                                <div className="flex justify-between items-center mb-1">
+                                    <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">{card.label}</p>
+                                    <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{card.percent}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
+                                    <div className="h-1 rounded-full" style={{ backgroundColor: card.barColor, width: `${card.percent}%` }} />
+                                </div>
                             </div>
                         </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* In-Progress Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">In-Progress<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total In-Progress Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Completed Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
-                    </div>
+                    ))}
                 </div>
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
-                {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
+                {/* Today's Priority */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
@@ -296,6 +318,7 @@ export default function DashboardBL() {
                         </button>
                     </div>
                     <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
+
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
                             <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
@@ -303,7 +326,7 @@ export default function DashboardBL() {
                             <>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                    <Link to="/bl/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                    <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
@@ -313,10 +336,11 @@ export default function DashboardBL() {
                                         if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
                                         byProject.get(pid)!.tasks.push(task);
                                     }
-                                    return Array.from(byProject.entries()).map(([id, { projectName, tasks: projectTasks }]) => (
+                                    const projectList = Array.from(byProject.entries()).map(([id, { projectName, tasks }]) => ({ id, projectName, tasks }));
+                                    return projectList.map(({ id, projectName, tasks: projectTasks }) => (
                                         <div key={id} className="mb-6">
                                             <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                <Link to="/bl/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
+                                                <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {
@@ -325,7 +349,9 @@ export default function DashboardBL() {
                                                     const dateLabel = formatDateOnly(task.due_date);
                                                     const hasStart = (task.perferstart_time || '').trim().length > 0;
                                                     const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                                    const timeRangeLabel = hasStart || hasEnd ? `${hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—'} — ${hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—'}` : '—';
+                                                    const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
+                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                    const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
                                                     return (
                                                         <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
                                                             <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
@@ -345,7 +371,11 @@ export default function DashboardBL() {
                                                             <div className="absolute bottom-4 right-4 flex -space-x-4">
                                                                 {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
                                                                     <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
-                                                                        {person.profile_picture ? <img src={person.profile_picture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
+                                                                        {person.profile_picture ? (
+                                                                            <img src={person.profile_picture} alt="" className="w-full h-full object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>
+                                                                        )}
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -361,9 +391,10 @@ export default function DashboardBL() {
                     </div>
                 </div>
 
-                {/* Calendar & Celebrations — same design as DashboardTD */}
+                {/* Calendar & Celebrations */}
                 <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
                     <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+                        {/* Calendar Header */}
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
                             <div className="flex flex-col items-start min-w-[70px]">
                                 <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>
@@ -377,6 +408,7 @@ export default function DashboardBL() {
                             </div>
                         </div>
 
+                        {/* Month & Year navigation */}
                         <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
                             <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -394,7 +426,10 @@ export default function DashboardBL() {
                                     <svg className={`w-3.5 h-3.5 text-slate-500 absolute right-0 top-1/2 -translate-y-1/2 transition-transform ${monthDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </button>
                                 {monthDropdownOpen && (
-                                    <div className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 overflow-hidden" role="listbox">
+                                    <div
+                                        className="absolute left-0 top-full z-30 mt-2 min-w-[140px] rounded-lg bg-white py-1 shadow-lg ring-1 ring-black/5 overflow-hidden"
+                                        role="listbox"
+                                    >
                                         <div className="overflow-y-auto custom-scrollbar overscroll-contain" style={{ maxHeight: '160px' }}>
                                             {MONTH_NAMES.map((name, m) => {
                                                 const isSelected = m === displayMonth;
@@ -404,7 +439,10 @@ export default function DashboardBL() {
                                                         type="button"
                                                         role="option"
                                                         aria-selected={isSelected}
-                                                        onClick={() => { setDisplayMonth(m); setMonthDropdownOpen(false); }}
+                                                        onClick={() => {
+                                                            setDisplayMonth(m);
+                                                            setMonthDropdownOpen(false);
+                                                        }}
                                                         className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
                                                     >
                                                         {name}
@@ -431,6 +469,7 @@ export default function DashboardBL() {
                             </button>
                         </div>
 
+                        {/* Scrollable: calendar grid + toggle + celebrations */}
                         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar pl-2 pr-2">
                             {isCalendarExpanded && (
                                 <div className="mb-2 py-2 animate-in fade-in duration-200">
@@ -457,11 +496,16 @@ export default function DashboardBL() {
                                 </div>
                             )}
 
+                            {/* Toggle arrow */}
                             <div className="flex justify-center mt-0 mb-2">
                                 <button
-                                    onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+                                    type="button"
+                                    onClick={() => {
+                                        setCelebrationsRequested(true);
+                                        setIsCalendarExpanded(!isCalendarExpanded);
+                                    }}
                                     className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
-                                    aria-label={isCalendarExpanded ? 'Collapse calendar' : 'Expand calendar'}
+                                    aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar'}
                                 >
                                     <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
@@ -469,15 +513,22 @@ export default function DashboardBL() {
                                 </button>
                             </div>
 
+                            {/* Celebrations */}
                             <div className="space-y-4 pr-1">
-                                {celebrations.length === 0 ? (
+                                {!celebrationsRequested ? (
+                                    <p className="text-sm text-slate-400 font-gantari py-4 text-center">Click the up arrow above to load celebrations.</p>
+                                ) : celebrations.length === 0 ? (
                                     <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
                                 ) : (
                                     celebrations.map((event, i) => (
                                         <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
                                             <div className="flex justify-between items-center mb-2">
                                                 <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
-                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday' ? 'bg-[#FFF3E0] text-[#E65100]' : event.type === 'work_anniversary' ? 'bg-[#E7F6EA] text-[#2D8A39]' : 'bg-[#E3F2FD] text-[#1565C0]'
+                                                <span className={`text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-widest leading-none font-gantari ${event.type === 'birthday'
+                                                    ? 'bg-[#FFF3E0] text-[#E65100]'
+                                                    : event.type === 'work_anniversary'
+                                                        ? 'bg-[#E7F6EA] text-[#2D8A39]'
+                                                        : 'bg-[#E3F2FD] text-[#1565C0]'
                                                     }`}>
                                                     {event.type === 'birthday' ? 'BIRTHDAY' : event.type === 'work_anniversary' ? 'CELEBRATIONS' : 'PROJECT DUE'}
                                                 </span>
@@ -485,21 +536,27 @@ export default function DashboardBL() {
                                             {event.type === 'birthday' && (
                                                 <>
                                                     <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Happy Birthday 🎂</p>
-                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">Wishing you a wonderful birthday! May this year bring you happiness and success.</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        Wishing you a wonderful birthday! May this year bring you happiness and success.
+                                                    </p>
                                                 </>
                                             )}
                                             {event.type === 'work_anniversary' && (
                                                 <>
                                                     <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Congratulations</p>
                                                     <p className="text-sm text-slate-400 leading-relaxed font-gantari">
-                                                        {event.working_years === 1 ? 'Congratulations for your first anniversary! Marking a great year of excellence.' : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
+                                                        {event.working_years === 1
+                                                            ? 'Congratulations for your first anniversary! Marking a great year of excellence.'
+                                                            : `You have completed ${event.working_years} years in our company. Marking another year of excellence.`}
                                                     </p>
                                                 </>
                                             )}
                                             {event.type === 'project_due' && (
                                                 <>
                                                     <p className="text-[15px] font-semibold text-slate-700 mb-1 font-gantari">Project Due</p>
-                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">Project "{event.project_name}" is due on {event.due_date}.</p>
+                                                    <p className="text-sm text-slate-400 leading-relaxed font-gantari">
+                                                        Project "{event.project_name}" is due on {event.due_date}.
+                                                    </p>
                                                 </>
                                             )}
                                         </div>

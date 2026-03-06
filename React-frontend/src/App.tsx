@@ -13,7 +13,7 @@ import Clients from './pages/Client/Clients';
 import ProjectsPM from './pages/ProjectManager/ProjectsPM';
 import MyTasksPM from './pages/ProjectManager/MyTasksPM';
 import MytaskViewPM from './pages/ProjectManager/MytaskViewPM';
-import CreateTeamPM from './pages/ProjectManager/CreateTeamPM';
+import CreateteamPM from './pages/ProjectManager/CreateteamPM';
 import TeamtaskPM from './pages/ProjectManager/TeamtaskPM';
 import TrackerPM from './pages/ProjectManager/TrackerPM';
 import TimesheetPM from './pages/ProjectManager/TeamreportPM';
@@ -48,6 +48,7 @@ import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
 import BiddingTD from './pages/TechnicalDirector/BiddingTD';
 import ProposalTD from './pages/TechnicalDirector/ProposalTD';
 import CreateProposalTD from './pages/TechnicalDirector/CreateProposalTD';
+import ManageLeaveTD from './pages/TechnicalDirector/ManageLeaveTD';
 
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
@@ -63,6 +64,7 @@ import ChatBL from './pages/BimLead/ChatBL';
 import MytaskViewBL from './pages/BimLead/MytaskViewBL';
 import ClientBL from './pages/BimLead/ClientBL';
 import PartnerBL from './pages/BimLead/PartnerBL';
+import MangeLeaveBL from './pages/BimLead/MangeLeaveBL';
 
 /* Bim Coordinator */
 import DashboardBC from './pages/BimCoordinator/DashboardBC';
@@ -76,6 +78,7 @@ import TrackerBC from './pages/BimCoordinator/TrackerBC';
 import TeamReportBC from './pages/BimCoordinator/TeamReportBC';
 import ChatBC from './pages/BimCoordinator/ChatBC';
 import MytaskViewBC from './pages/BimCoordinator/MytaskViewBC';
+import ManageLeaveBC from './pages/BimCoordinator/ManageLeaveBC';
 
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
@@ -100,6 +103,20 @@ import MytaskViewV from './pages/Vendor/MytaskViewV';
 import OpportunitiesV from './pages/Vendor/OpportunitiesV';
 import MyBidsV from './pages/Vendor/MyBidsV';
 import ProposalsV from './pages/Vendor/ProposalsV';
+import CompanyProfileV from './pages/Vendor/CompanyProfileV';
+import MilestonesV from './pages/Vendor/MilestonesV';
+import CommunicationV from './pages/Vendor/CommunicationV';
+import PerformanceV from './pages/Vendor/PerformanceV';
+
+/* Vendor PM */
+import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
+import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
+import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
+import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
+
+/* Vendor Employee */
+import DashboardEV from './pages/Vendor/Employee/DashboardEV';
+import MytaskEV from './pages/Vendor/Employee/MytaskEV';
 
 function App() {
   return (
@@ -130,7 +147,7 @@ function App() {
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
             <Route path="teamtask" element={<TeamtaskPM />} />
-            <Route path="create-team" element={<CreateTeamPM />} />
+            <Route path="create-team" element={<CreateteamPM />} />
             <Route path="tracker" element={<TrackerPM />} />
             <Route path="timesheet" element={<TimesheetPM />} />
             <Route path="chat" element={<ChatPM />} />
@@ -156,6 +173,7 @@ function App() {
             <Route path="td/manage-proposal" element={<ProposalTD />} />
             <Route path="td/proposals" element={<ProposalTD />} />
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
+            <Route path="td/manage-leave" element={<ManageLeaveTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
@@ -172,6 +190,7 @@ function App() {
             <Route path="bl/partner" element={<PartnerBL />} />
             <Route path="bl/partner/:id" element={<PartnerView />} />
             <Route path="bl/bidding" element={<BiddingTD />} />
+            <Route path="bl/manage-leave" element={<MangeLeaveBL />} />
 
             {/* Bim Coordinator Routes */}
             <Route path="bc/dashboard" element={<DashboardBC />} />
@@ -185,6 +204,7 @@ function App() {
             <Route path="bc/teamreport" element={<TeamReportBC />} />
             <Route path="bc/chat" element={<ChatBC />} />
             <Route path="bc/mytasks/view" element={<MytaskViewBC />} />
+            <Route path="bc/manage-leave" element={<ManageLeaveBC />} />
 
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
@@ -209,6 +229,23 @@ function App() {
             <Route path="v/teamreport" element={<TeamReportV />} />
             <Route path="v/chat" element={<ChatV />} />
             <Route path="v/mytasks/view" element={<MytaskViewV />} />
+            <Route path="v/company-profile" element={<CompanyProfileV />} />
+            <Route path="v/milestones" element={<MilestonesV />} />
+            <Route path="v/communication" element={<CommunicationV />} />
+            <Route path="v/performance" element={<PerformanceV />} />
+
+            {/* Vendor PM Routes */}
+            <Route path="vpm/dashboard" element={<DashboardPMV />} />
+            <Route path="vpm/projects" element={<ProjectsPMV />} />
+            <Route path="vpm/mytasks" element={<MytaskPMV />} />
+            <Route path="vpm/opportunities" element={<OpportunitiesV />} />
+            <Route path="vpm/mybids" element={<MyBidsV />} />
+            <Route path="vpm/createteam" element={<CreateteamPMV />} />
+
+            {/* Vendor Employee Routes */}
+            <Route path="ve/dashboard" element={<DashboardEV />} />
+            <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks" element={<TeamtaskV />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

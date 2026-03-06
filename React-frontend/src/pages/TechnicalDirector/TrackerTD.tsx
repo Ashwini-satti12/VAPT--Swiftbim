@@ -24,7 +24,7 @@ export default function TrackerTD() {
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
-    const statusOptions = ['', 'Online', 'Offline'];
+    const statusOptions = ['', 'Available', 'Busy'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +43,7 @@ export default function TrackerTD() {
     const PAGINATION_VISIBLE = 4; // show 4 page buttons at a time
     const [currentPage, setCurrentPage] = useState(1);
     const [paginationWindowStart, setPaginationWindowStart] = useState(1); // 1-based start of visible 4 buttons
+    const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -121,18 +122,16 @@ export default function TrackerTD() {
                 // Ignore calculation errors
             }
         }
-        return 'N/A';
+        return '-';
     };
 
     useEffect(() => {
         api
             .get<{ records?: LocationEntry[] }>('/api/attendance/tracker')
             .then(({ data }) => {
-                const records = (data.records ?? []).map((item) => {
-                    const statusValue = (item.status || '').toString().toLowerCase() === 'online' ? 'Online' : 'Offline';
-                    return { ...item, status: statusValue };
-                });
-
+                const records = (data.records ?? []).map((item) => ({
+                    ...item,
+                }));
                 setList(records);
             })
             .catch(() => {
@@ -140,6 +139,48 @@ export default function TrackerTD() {
             })
             .finally(() => setLoading(false));
     }, []);
+
+    // Fetch tasks for selected date to determine Availability / Busy
+    useEffect(() => {
+        const fetchTasksForDate = async () => {
+            if (!selectedDate) {
+                setBusyMap({});
+                return;
+            }
+            try {
+                const params: { condition: string } = { condition: '1' }; // management/team view
+                const { data } = await api.get<{ tasks?: any[] }>('/api/tasks', { params });
+                const tasks = data.tasks || [];
+                const targetDate = selectedDate; // YYYY-MM-DD
+                const busy: Record<string, boolean> = {};
+
+                tasks.forEach((t) => {
+                    const status = String(t.status || '').toLowerCase();
+                    if (status === 'completed') return;
+
+                    const rawDate: string =
+                        t.start_time ||
+                        t.Actual_start_time ||
+                        t.due_date ||
+                        '';
+                    if (!rawDate) return;
+
+                    const isoPart = String(rawDate).split('T')[0].split(' ')[0];
+                    if (!isoPart || isoPart !== targetDate) return;
+
+                    const name = (t.assigned_full_name || '').trim();
+                    if (name) busy[name] = true;
+                });
+
+                setBusyMap(busy);
+            } catch (err) {
+                console.error('Error fetching tasks for TrackerTD:', err);
+                setBusyMap({});
+            }
+        };
+
+        fetchTasksForDate();
+    }, [selectedDate]);
 
     // Close status dropdown when clicking outside
     useEffect(() => {
@@ -189,7 +230,9 @@ export default function TrackerTD() {
         }
 
         if (selectedStatus) {
-            matchesStatus = item.status === selectedStatus;
+            const name = (item.full_name || '').trim();
+            const status = name && busyMap[name] ? 'Busy' : 'Available';
+            matchesStatus = status === selectedStatus;
         }
 
         return matchesDate && matchesStatus;
@@ -235,14 +278,17 @@ export default function TrackerTD() {
             const rawTimeOut = pickTime(loc.time_out) || '';
             const totalHours = formatTotalHours(loc.total_hours, rawTimeIn, rawTimeOut);
 
+            const name = (loc.full_name || '').trim();
+            const statusLabel = name && busyMap[name] ? 'Busy' : 'Available';
+
             return [
                 slNo,
                 formattedDate,
-                loc.full_name || 'N/A',
+                loc.full_name || '-',
                 rawTimeIn,
                 rawTimeOut,
                 totalHours,
-                loc.status || '-'
+                statusLabel
             ].map(val => `"${val || ''}"`).join(',');
         });
 
@@ -450,14 +496,24 @@ export default function TrackerTD() {
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? 'N/A'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
-                                                    {loc.status || 'Offline'}
-                                                </span>
+                                                {(() => {
+                                                    const name = (loc.full_name || '').trim();
+                                                    const statusLabel = name && busyMap[name] ? 'Busy' : 'Available';
+                                                    const colorClass =
+                                                        statusLabel === 'Busy'
+                                                            ? 'bg-[#FCE8E8] text-[#D93025]'
+                                                            : 'bg-[#E6F4EA] text-[#1E7E34]';
+                                                    return (
+                                                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${colorClass}`}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                         </tr>
                                     );

@@ -89,6 +89,18 @@ export default function TeamReportTD() {
             });
     }, []);
 
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0].split(' ')[0];
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yyyy] = s.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return '';
+    };
+
     // Format date from ISO string to DD/MM/YYYY
     const formatDateDisplay = (date: Date | null): string => {
         if (!date) return '-';
@@ -113,8 +125,16 @@ export default function TeamReportTD() {
     useEffect(() => {
         setLoading(true);
         const payload: any = {};
-        if (startDate) payload.startDate = startDate;
-        if (endDate) payload.endDate = endDate;
+
+        // If user picks only one side of the range, treat it as a single-day filter.
+        // Also fix accidental reversed ranges (start > end).
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+        if (effectiveStart) payload.startDate = effectiveStart;
+        if (effectiveEnd) payload.endDate = effectiveEnd;
 
         const loadFilters = async () => {
             try {
@@ -217,17 +237,17 @@ export default function TeamReportTD() {
         return list.filter(item => {
             // Date Range Filter Logic
             if (startDate || endDate) {
-                const [d, m, y] = (item.start_date || '').split('/');
-                const itemDate = new Date(`${y}-${m}-${d}`);
+                // Use string comparisons in YYYY-MM-DD to avoid timezone issues
+                let effectiveStart = startDate || endDate;
+                let effectiveEnd = endDate || startDate;
+                if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+                    [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+                }
 
-                if (startDate) {
-                    const start = new Date(startDate);
-                    if (itemDate < start) return false;
-                }
-                if (endDate) {
-                    const end = new Date(endDate);
-                    if (itemDate > end) return false;
-                }
+                const itemKey = toYmd(item.start_date);
+                if (!itemKey) return false;
+                if (effectiveStart && itemKey < effectiveStart) return false;
+                if (effectiveEnd && itemKey > effectiveEnd) return false;
             }
 
             // Employee Filter
@@ -277,9 +297,9 @@ export default function TeamReportTD() {
             const slNo = (index + 1).toString().padStart(2, '0');
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
-                row.start_date || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
+                row.start_date && row.start_date.trim() !== '' ? row.start_date : '-',
                 row.end_date || '-',
                 row.duration || 'hh:mm:ss'
             ].map(val => `"${val}"`).join(',');
@@ -543,9 +563,9 @@ export default function TeamReportTD() {
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.start_date ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.start_date && row.start_date.trim() !== '' ? row.start_date : '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.end_date ?? '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{row.duration ?? 'hh:mm:ss'}</td>
                                         </tr>

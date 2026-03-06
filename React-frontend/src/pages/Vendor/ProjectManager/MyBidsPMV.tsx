@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import api from '../../lib/api';
+import { useEffect, useState } from "react";
+import api from "../../../lib/api";
 
 type Bid = {
     id: number;
@@ -17,7 +17,7 @@ type Bid = {
     currency?: string;
 };
 
-export default function MyBidsV() {
+export default function MyBidsPMV() {
     const [loading, setLoading] = useState(true);
     const [bids, setBids] = useState<Bid[]>([]);
     const [searchTerm, setSearchTerm] = useState('');

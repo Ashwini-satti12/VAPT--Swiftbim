@@ -60,7 +60,10 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isBimLead = userRole === 'BIM Lead';
   const isBimCoordinator = userRole === 'BIM Coordinator';
   const isBimModeler = userRole === 'BIM Modeler';
-  const isVendor = userRole === 'Vendor';
+  const isVendor = userRole === 'Vendor' || userRole === 'Vendor Admin' || userRole === 'Vendor PM' || userRole === 'Vendor Employee';
+  const isVendorAdmin = userRole === 'Vendor' || userRole === 'Vendor Admin';
+  const isVendorPM = userRole === 'Vendor PM';
+  const isVendorEmployee = userRole === 'Vendor Employee';
 
   const getNavItems = (): NavItem[] => {
     if (isTechnicalDirector) {
@@ -133,6 +136,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           path: "/td/createteam",
           iconSrc: createTeamIcon,
           activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Manage Leave",
+          path: "/td/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
         {
@@ -232,6 +242,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Manage Leave",
+          path: "/bl/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
           name: "Tracker",
           path: "/bl/tracker",
           iconSrc: trackerIcon,
@@ -307,6 +324,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Manage Leave",
+          path: "/bc/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
           name: "Tracker",
           path: "/bc/tracker",
           iconSrc: trackerIcon,
@@ -331,71 +355,44 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     }
 
     if (isVendor) {
-      return [
-        {
-          name: "Dashboard",
-          path: "/v/dashboard",
-          iconSrc: dashboardIcon,
-          activeIconSrc: whiteDashboardIcon,
-          isVisible: true,
-        },
-        {
-          name: "Opportunities",
-          path: "/v/opportunities",
-          iconSrc: projectIcon,
-          activeIconSrc: whiteProjectIcon,
-          isVisible: true,
-        },
-        {
-          name: "My Bids",
-          path: "/v/mybids",
-          iconSrc: myTaskIcon,
-          activeIconSrc: whiteMyTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Proposals",
-          path: "/v/proposals",
-          iconSrc: teamTaskIcon,
-          activeIconSrc: whiteTeamTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Projects",
-          path: "/v/projects",
-          iconSrc: projectIcon,
-          activeIconSrc: whiteProjectIcon,
-          isVisible: true,
-        },
-        {
-          name: "My Task",
-          path: "/v/mytasks",
-          iconSrc: myTaskIcon,
-          activeIconSrc: whiteMyTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Team Task",
-          path: "/v/teamtasks",
-          iconSrc: teamTaskIcon,
-          activeIconSrc: whiteTeamTaskIcon,
-          isVisible: true,
-        },
-        {
-          name: "Create Team",
-          path: "/v/createteam",
-          iconSrc: createTeamIcon,
-          activeIconSrc: whiteCreateTeamIcon,
-          isVisible: true,
-        },
-        // {
-        //   name: "Chat",
-        //   path: "/v/chat",
-        //   iconSrc: chatIcon,
-        //   activeIconSrc: whiteChatIcon,
-        //   isVisible: true,
-        // },
-      ];
+      if (isVendorAdmin) {
+        return [
+          { name: "Dashboard", path: "/v/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
+          { name: "Opportunities", path: "/v/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
+          { name: "My Bids", path: "/v/mybids", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
+          { name: "Proposals", path: "/v/proposals", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Projects", path: "/v/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
+          { name: "My Task", path: "/v/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
+          { name: "Team Task", path: "/v/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Create Team", path: "/v/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
+          { name: "Company Profile", path: "/v/company-profile", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
+          { name: "Milestones", path: "/v/milestones", iconSrc: trackerIcon, activeIconSrc: whiteTrackerIcon, isVisible: true },
+          { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
+        ];
+      }
+
+      if (isVendorPM) {
+        return [
+          { name: "Dashboard", path: "/vpm/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
+          { name: "Projects", path: "/vpm/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
+          { name: "My Task", path: "/vpm/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
+          { name: "Team Task", path: "/vpm/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Create Team", path: "/vpm/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
+          { name: "Opportunities", path: "/vpm/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
+          { name: "My Bids", path: "/vpm/mybids", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
+          { name: "Communication", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+        ];
+      }
+
+      if (isVendorEmployee) {
+        return [
+          { name: "Dashboard", path: "/ve/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
+          { name: "My Task", path: "/ve/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
+          { name: "Team Task", path: "/ve/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+        ];
+      }
     }
 
     if (isBimModeler) {

@@ -2,36 +2,32 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
-
-const apiBase = (api.defaults.baseURL as string) || '';
 import { VscEye } from "react-icons/vsc";
-import { BiDotsVerticalRounded, BiEdit } from "react-icons/bi";
+import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import { FiX } from "react-icons/fi";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import { FaCircleDollarToSlot } from "react-icons/fa6";
 
 interface Project {
     id: number;
     project_name?: string;
-    progress?: number;
+    progress?: string;
     total_tasks?: number;
     completed_tasks?: number;
     budget?: string;
-    module_name?: string;
-    client_name?: string;
-    project_manager?: string;
+    modules?: string;
+    client_id?: string;
+    project_manager_id?: string;
     start_date?: string;
-    end_date?: string;
-    total_hours?: string;
-    per_day?: string;
-    client_id?: number;
+    due_date?: string;
+    totalhours?: string;
+    perday?: string;
     department?: string;
-    bim_lead?: string;
-    bim_co_ordinator?: string;
-    member?: string;
-    resources?: string;
-    required_resources?: string;
+    lead_id?: string;
+    bim_coordinator_id?: string;
+    members?: string;
+    no_resource?: string;
+    no_resources_required?: string;
     priority?: string;
     location?: string;
     description?: string;
@@ -55,15 +51,8 @@ interface Employee {
     id: number;
     full_name?: string;
     user_role?: string;
-    empid?: string;
     profile_picture?: string;
     email?: string;
-    phone_number?: string;
-    dob?: string;
-    doj?: string;
-    user_type?: string;
-    address?: string;
-    department?: string;
 }
 
 export default function ProjectsV() {
@@ -89,7 +78,7 @@ export default function ProjectsV() {
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [milestonesLoading, setMilestonesLoading] = useState(false);
 
-    // Edit Project Modal State
+    // Edit Project
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedProjectForEdit, setSelectedProjectForEdit] =
         useState<Project | null>(null);
@@ -108,12 +97,9 @@ export default function ProjectsV() {
     const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
     const [departments, setDepartments] = useState<string[]>([]);
 
-    // All employees for member lookup
-    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
-
-    // Profile modal state
-    const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
-    const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+    // Member selection for create/edit
+    const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+    const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
 
     // All members modal state
     const [showAllMembersModal, setShowAllMembersModal] = useState(false);
@@ -191,22 +177,78 @@ export default function ProjectsV() {
     }, [showMilestones, currentProject?.id]);
 
     useEffect(() => {
-        // Fetch employees for member lookup
-        api
-            .get<{ employees?: Employee[] }>("/api/employees")
-            .then(({ data }) => {
-                setAllEmployees(data.employees ?? []);
-            })
-            .catch(() => {
-                setAllEmployees([]);
-            });
+        fetchProjects();
+        api.get<{ employees?: Employee[] }>("/api/employees")
+            .then(({ data }) => setAllEmployees(data.employees ?? []))
+            .catch(() => setAllEmployees([]));
+    }, []);
 
-        // Fetch projects - use data directly from projects table
-        api
-            .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
+    const getEmployeeName = (id: string | number | undefined): string => {
+        if (!id) return "";
+        const emp = allEmployees.find(e => e.id === Number(id));
+        return emp?.full_name || "";
+    };
+
+    const formatDate = (d: string | undefined) => {
+        if (!d) return "—";
+        return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+    };
+
+    const handleCreate = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreateSubmitting(true);
+        api.post("/api/vendors/vendor-projects", {
+            ...createForm,
+            members: selectedMemberIds.join(","),
+        })
             .then(({ data }) => {
-                const projects = (data.projects ?? []).map(mapApiProjectToProject);
-                setList(projects);
+                if (data.success) {
+                    setShowCreateModal(false);
+                    setCreateForm({ project_name: "", description: "", budget: "", priority: "Medium", start_date: "", due_date: "", location: "", modules: "", totalhours: "", perday: "", members: "" });
+                    setSelectedMemberIds([]);
+                    setSuccessMsg("Project created!");
+                    setTimeout(() => setSuccessMsg(null), 3000);
+                    fetchProjects();
+                }
+            })
+            .catch(() => { })
+            .finally(() => setCreateSubmitting(false));
+    };
+
+    const openEdit = (p: Project) => {
+        setEditId(p.id);
+        setEditForm({
+            project_name: p.project_name || "",
+            description: p.description || "",
+            budget: p.budget || "",
+            priority: p.priority || "Medium",
+            start_date: p.start_date ? p.start_date.split("T")[0] : "",
+            due_date: p.due_date || "",
+            location: p.location || "",
+            modules: p.modules || "",
+            totalhours: p.totalhours || "",
+            perday: p.perday || "",
+            members: p.members || "",
+        });
+        setSelectedMemberIds(p.members ? p.members.split(",").filter(Boolean).map(Number) : []);
+        setShowEditModal(true);
+    };
+
+    const handleEdit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editId) return;
+        setEditSubmitting(true);
+        api.patch(`/api/vendors/vendor-projects/${editId}`, {
+            ...editForm,
+            members: selectedMemberIds.join(","),
+        })
+            .then(({ data }) => {
+                if (data.success) {
+                    setShowEditModal(false);
+                    setSuccessMsg("Project updated!");
+                    setTimeout(() => setSuccessMsg(null), 3000);
+                    fetchProjects();
+                }
             })
             .catch(() => { })
             .finally(() => setLoading(false));
@@ -257,267 +299,128 @@ export default function ProjectsV() {
             .catch(() => setAllEmployees([]));
     }, []);
 
-    // Fetch employees and departments when create or edit modal opens
-    useEffect(() => {
-        if (showEditModal || showCreateModal) {
-            api
-                .get<{ employees?: Employee[] }>("/api/employees")
-                .then(({ data }) => {
-                    const allEmployees = data.employees ?? [];
-                    setEmployees(allEmployees);
-                    setProjectManagers(
-                        allEmployees.filter((e) => e.user_role === "Project Manager")
-                    );
-                    setBimLeads(
-                        allEmployees.filter((e) => e.user_role === "BIM Lead")
-                    );
-                    setBimCoordinators(
-                        allEmployees.filter((e) => e.user_role === "BIM Coordinator")
-                    );
-                })
-                .catch(() => {
-                    setEmployees([]);
-                    setProjectManagers([]);
-                    setBimLeads([]);
-                    setBimCoordinators([]);
-                });
-
-            api
-                .get<{ departments?: string[] }>("/api/departments")
-                .then(({ data }) => setDepartments(data.departments ?? []))
-                .catch(() => setDepartments([]));
-        }
-    }, [showEditModal, showCreateModal]);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
-            // Check if click is outside any dropdown
-            if (!target.closest('.dropdown-container')) {
-                setEditDropdownOpen(null);
-            }
-        };
-        if (editDropdownOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-            return () => document.removeEventListener("mousedown", handleClickOutside);
-        }
-    }, [editDropdownOpen]);
-
-    // Fetch task statistics and tower data for selected project view
-    useEffect(() => {
-        if (showProjectView && selectedProjectForView) {
-            setLoadingTaskStats(true);
-            const projectId = selectedProjectForView.id;
-
-            // Initialize with project table data immediately
-            const projectCompleted = selectedProjectForView.completed_tasks || 0;
-            const projectTotal = selectedProjectForView.total_tasks || 0;
-
-            // Set initial stats from project table so cards show data immediately
-            setTaskStats({
-                todo: Math.max(0, projectTotal - projectCompleted),
-                inProgress: 0,
-                paused: 0,
-                completed: projectCompleted,
+    const handleDelete = () => {
+        if (!deleteId) return;
+        api.delete(`/api/vendors/vendor-projects/${deleteId}`)
+            .then(() => {
+                setList(prev => prev.filter(p => p.id !== deleteId));
+                setDeleteId(null);
+                setSuccessMsg("Project deleted!");
+                setTimeout(() => setSuccessMsg(null), 3000);
             });
+    };
 
-            api
-                .get<{
-                    tasks?: Array<{
-                        status?: string;
-                        modules_name?: string;
-                        projectid?: number | string;
-                        project_id?: number | string;
-                        Approval?: string;
-                    }>
-                }>("/api/tasks", {
-                    params: {
-                        project_id: String(projectId),
-                        condition: "1"
-                    },
-                })
-                .then(({ data }) => {
-                    const tasks = data.tasks ?? [];
+    const toggleMember = (id: number) => {
+        setSelectedMemberIds(prev =>
+            prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+        );
+    };
 
-                    const normalizeStatus = (status: string | undefined): string => {
-                        if (!status) return "";
-                        const s = String(status).toLowerCase().trim();
-                        if (s === "todo" || s === "to do") return "todo";
-                        if (s === "inprogress" || s === "in progress" || s === "in_progress") return "inprogress";
-                        if (s === "pause" || s === "paused") return "pause";
-                        if (s === "completed" || s === "complete") return "completed";
-                        return s;
-                    };
+    // Member selection dropdown used in both Create + Edit
+    const renderMemberSelector = () => (
+        <div className="space-y-2 relative">
+            <label className="text-[14px] font-bold text-[#475569] block">Team Members</label>
+            <div onClick={() => setMemberDropdownOpen(!memberDropdownOpen)}
+                className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center">
+                {selectedMemberIds.length === 0 ? (
+                    <span className="text-gray-400 font-medium">Select members</span>
+                ) : (
+                    selectedMemberIds.map(id => (
+                        <span key={id} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
+                            {getEmployeeName(id)}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-500">×</button>
+                        </span>
+                    ))
+                )}
+            </div>
+            {memberDropdownOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
+                    {allEmployees.map(emp => (
+                        <div key={emp.id} onClick={() => toggleMember(emp.id)}
+                            className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedMemberIds.includes(emp.id) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
+                                {selectedMemberIds.includes(emp.id) && <span className="text-white text-xs font-bold">✓</span>}
+                            </div>
+                            <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
 
-                    const projectTasks = tasks.filter((t) => {
-                        const taskProjectId = t.projectid || t.project_id;
-                        if (taskProjectId == null) return false;
-                        return String(taskProjectId) === String(projectId) || Number(taskProjectId) === Number(projectId);
-                    });
-
-                    const stats = {
-                        todo: projectTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
-                        inProgress: projectTasks.filter((t) => normalizeStatus(t.status) === "inprogress").length,
-                        paused: projectTasks.filter((t) => normalizeStatus(t.status) === "pause").length,
-                        completed: projectTasks.filter((t) => normalizeStatus(t.status) === "completed").length,
-                    };
-
-                    if (projectTasks.length > 0) {
-                        setTaskStats(stats);
-                    } else {
-                        setTaskStats({
-                            todo: Math.max(0, projectTotal - projectCompleted),
-                            inProgress: 0,
-                            paused: 0,
-                            completed: projectCompleted,
-                        });
-                    }
-
-                    const projectModules = selectedProjectForView.module_name || "";
-                    const allModuleNames: string[] = [];
-
-                    if (projectModules) {
-                        const parsedModules = projectModules
-                            .split(',')
-                            .map(m => m.trim())
-                            .filter(m => m.length > 0);
-
-                        parsedModules.forEach(module => {
-                            let moduleName = module.trim();
-                            if (moduleName.includes(' - ')) {
-                                const parts = moduleName.split(' - ');
-                                if (parts.length > 1) {
-                                    moduleName = parts[0].trim();
-                                }
-                            }
-                            if (moduleName.includes('/') && !moduleName.includes(' - ')) {
-                                moduleName = moduleName.split('/')[0].trim();
-                            }
-                            if (moduleName && !allModuleNames.includes(moduleName)) {
-                                allModuleNames.push(moduleName);
-                            }
-                        });
-                    }
-
-                    const moduleTaskMap = new Map<string, {
-                        total: number;
-                        completed: number;
-                        approved: number;
-                    }>();
-
-                    projectTasks.forEach((task) => {
-                        const taskModuleName = (task.modules_name || "").trim();
-                        if (!taskModuleName || taskModuleName === "") return;
-
-                        let moduleKey = taskModuleName;
-                        if (taskModuleName.includes(' - ')) {
-                            const parts = taskModuleName.split(' - ');
-                            if (parts.length > 1) {
-                                moduleKey = parts[0].trim();
-                            }
-                        }
-                        if (moduleKey.includes('/') && !moduleKey.includes(' - ')) {
-                            moduleKey = moduleKey.split('/')[0].trim();
-                        }
-
-                        const module = moduleKey || "Default";
-                        const status = normalizeStatus(task.status);
-                        const approval = (task.Approval || "").toLowerCase();
-
-                        if (!moduleTaskMap.has(module)) {
-                            moduleTaskMap.set(module, { total: 0, completed: 0, approved: 0 });
-                        }
-                        const moduleData = moduleTaskMap.get(module)!;
-                        moduleData.total++;
-                        if (status === "completed") moduleData.completed++;
-                        if (approval === "approved") moduleData.approved++;
-                    });
-
-                    const towers: Array<{
-                        id: number;
-                        name: string;
-                        progress: number;
-                        completedTasks: number;
-                        totalTasks: number;
-                        status: 'Approved' | 'Pending' | 'Review';
-                    }> = [];
-
-                    const formatTowerName = (moduleName: string, index: number): string => {
-                        if (!moduleName || moduleName === "Default") {
-                            return `Tower ${String(index + 1).padStart(2, '0')}`;
-                        }
-                        const towerMatch = moduleName.match(/tower[\s-]?(\d+)/i);
-                        if (towerMatch) return `Tower ${towerMatch[1].padStart(2, '0')}`;
-                        const numMatch = moduleName.match(/\d+/);
-                        if (numMatch && moduleName.length < 30) return `Tower ${numMatch[0].padStart(2, '0')}`;
-                        return moduleName.length > 25 ? moduleName.substring(0, 25) + "..." : moduleName;
-                    };
-
-                    if (allModuleNames.length > 0) {
-                        allModuleNames.forEach((moduleName, index) => {
-                            let taskData = moduleTaskMap.get(moduleName) || { total: 0, completed: 0, approved: 0 };
-                            if (taskData.total === 0) {
-                                for (const [taskModuleName, data] of moduleTaskMap.entries()) {
-                                    if (taskModuleName === "Unassigned") continue;
-                                    const taskModuleLower = taskModuleName.toLowerCase();
-                                    const projectModuleLower = moduleName.toLowerCase();
-                                    if (taskModuleLower === projectModuleLower ||
-                                        taskModuleLower.startsWith(projectModuleLower) ||
-                                        projectModuleLower.startsWith(taskModuleLower) ||
-                                        taskModuleLower.includes(projectModuleLower) ||
-                                        projectModuleLower.includes(taskModuleLower)) {
-                                        taskData = {
-                                            total: taskData.total + data.total,
-                                            completed: taskData.completed + data.completed,
-                                            approved: taskData.approved + data.approved
-                                        };
-                                    }
-                                }
-                            }
-                            const progress = taskData.total > 0 ? Math.round((taskData.completed / taskData.total) * 100) : 0;
-                            let status: 'Approved' | 'Pending' | 'Review';
-                            const approvalRate = taskData.total > 0 ? (taskData.approved / taskData.total) : 0;
-                            if (taskData.total === 0) status = 'Review';
-                            else if (approvalRate >= 0.8 || progress >= 80) status = 'Approved';
-                            else if (progress >= 50 || approvalRate >= 0.5) status = 'Pending';
-                            else status = 'Review';
-
-                            towers.push({
-                                id: index + 1,
-                                name: formatTowerName(moduleName, index),
-                                progress,
-                                completedTasks: taskData.completed,
-                                totalTasks: taskData.total,
-                                status,
-                            });
-                        });
-                    }
-
-                    setTowerData(towers);
-                })
-                .catch(() => {
-                    const projectCompleted = selectedProjectForView.completed_tasks || 0;
-                    const projectTotal = selectedProjectForView.total_tasks || 0;
-                    setTaskStats({
-                        todo: Math.max(0, projectTotal - projectCompleted),
-                        inProgress: 0,
-                        paused: 0,
-                        completed: projectCompleted,
-                    });
-                    setTowerData([]);
-                })
-                .finally(() => setLoadingTaskStats(false));
-        } else {
-            setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
-            setTowerData([]);
-        }
-    }, [showProjectView, selectedProjectForView]);
+    // Render form fields for Create/Edit
+    const renderFormFields = (form: typeof createForm, setForm: (f: typeof createForm) => void) => (
+        <div className="space-y-5">
+            <div className="space-y-2">
+                <label className="text-[14px] font-bold text-[#475569] block">Project Name *</label>
+                <input type="text" value={form.project_name} onChange={e => setForm({ ...form, project_name: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter project name" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Start Date</label>
+                    <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
+                    <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
+                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Budget</label>
+                    <input type="text" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. 50000" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
+                    <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Urgent">Urgent</option>
+                    </select>
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="text-[14px] font-bold text-[#475569] block">Location</label>
+                <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Project location" />
+            </div>
+            <div className="space-y-2">
+                <label className="text-[14px] font-bold text-[#475569] block">Modules (comma-separated)</label>
+                <input type="text" value={form.modules} onChange={e => setForm({ ...form, modules: e.target.value })}
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. m1, m2, m3" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Total Hours</label>
+                    <input type="text" value={form.totalhours} onChange={e => setForm({ ...form, totalhours: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Total project hours" />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-[14px] font-bold text-[#475569] block">Per Day</label>
+                    <input type="text" value={form.perday} onChange={e => setForm({ ...form, perday: e.target.value })}
+                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Hours per day" />
+                </div>
+            </div>
+            {renderMemberSelector()}
+            <div className="space-y-2">
+                <label className="text-[14px] font-bold text-[#475569] block">Description</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Project description" />
+            </div>
+        </div>
+    );
 
     if (loading) {
         return (
             <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
             </div>
         );
     }
@@ -525,7 +428,18 @@ export default function ProjectsV() {
     return (
         <div className="bg-white min-h-screen">
             <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
-                {showProjectView && selectedProjectForView ? (
+                {/* Toast */}
+                {successMsg && (
+                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
+                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{successMsg}</span>
+                    </div>
+                )}
+
+                {/* Project View */}
+                {showProjectView && selectedProject ? (
                     <div className="flex flex-col h-full bg-white">
                         <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
                             <button
@@ -541,65 +455,66 @@ export default function ProjectsV() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
-                            <div>
-                                <h3 className="text-[22px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A]">
-                                    {selectedProjectForView.project_name ?? "Prestige Park Grove"}
+                            <div className="min-w-0">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                                    {selectedProject.project_name ?? "Untitled Project"}
                                 </h3>
-                                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                                    <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">Tower 1 to 09</p>
-                                    <span className="hidden md:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                                    <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999]">Overall Progress Tracker</p>
-                                </div>
+                                <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
                             </div>
                         </div>
+                        <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
+                            {/* Task Status Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
+                                {[
+                                    { label: "To Do Tasks", value: taskStats.todo },
+                                    { label: "In Progress", value: taskStats.inProgress },
+                                    { label: "Paused", value: taskStats.paused },
+                                    { label: "Completed", value: taskStats.completed },
+                                ].map((stat, i) => (
+                                    <div key={i} className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] transition-colors group">
+                                        <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
+                                        <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
+                                    </div>
+                                ))}
+                            </div>
 
-                        <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 space-y-8">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-[#DD4342] p-6 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px]">
-                                    <p className="text-white text-[17px] font-bold opacity-90">To Do Tasks</p>
-                                    <p className="text-white text-[48px] font-bold">{taskStats.todo}</p>
-                                </div>
-                                <div className="bg-[#F4F5F7] p-6 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px]">
-                                    <p className="text-[#333333] text-[17px] font-bold opacity-90">In Progress Tasks</p>
-                                    <p className="text-[#333333] text-[48px] font-bold">{taskStats.inProgress}</p>
-                                </div>
-                                <div className="bg-[#F4F5F7] p-6 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px]">
-                                    <p className="text-[#333333] text-[17px] font-bold opacity-90">Paused Tasks</p>
-                                    <p className="text-[#333333] text-[48px] font-bold">{taskStats.paused}</p>
-                                </div>
-                                <div className="bg-[#F4F5F7] p-6 rounded-[1.5rem] shadow-sm flex flex-col justify-between h-[160px]">
-                                    <p className="text-[#333333] text-[17px] font-bold opacity-90">Completed Tasks</p>
-                                    <p className="text-[#333333] text-[48px] font-bold">{taskStats.completed}</p>
+                            {/* Project Details */}
+                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
+                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-4">Project Details</h4>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm font-gantari">
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Priority</span><span className="text-[#1A1A1A] font-bold">{selectedProject.priority || "—"}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Budget</span><span className="text-[#1A1A1A] font-bold">{selectedProject.budget || "—"}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Start Date</span><span className="text-[#1A1A1A] font-bold">{formatDate(selectedProject.start_date)}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Due Date</span><span className="text-[#1A1A1A] font-bold">{formatDate(selectedProject.due_date)}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Location</span><span className="text-[#1A1A1A] font-bold">{selectedProject.location || "—"}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Total Hours</span><span className="text-[#1A1A1A] font-bold">{selectedProject.totalhours || "—"}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Per Day</span><span className="text-[#1A1A1A] font-bold">{selectedProject.perday || "—"}</span></div>
+                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Modules</span><span className="text-[#1A1A1A] font-bold">{selectedProject.modules || "—"}</span></div>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 border border-slate-100 rounded-[2rem] p-6 md:p-8">
-                                {towerData.length > 0 ? (
-                                    towerData.map((tower) => {
-                                        const statusColor = tower.status === "Review" ? "#DD4342" : tower.status === "Pending" ? "#FF9F00" : "#0A9344";
-                                        const statusBg = tower.status === "Review" ? "bg-[#FFEBEC]" : tower.status === "Pending" ? "bg-[#FFF4E5]" : "bg-[#E7F6ED]";
-                                        const circ = 2 * Math.PI * 34;
-                                        return (
-                                            <div key={tower.id} className="bg-white border border-slate-100 rounded-[1.5rem] p-6">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <span className="text-[18px] font-bold text-[#1A1A1A]">{tower.name}</span>
-                                                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}>
-                                                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                                                        <span className="text-[12px] font-bold" style={{ color: statusColor }}>{tower.status}</span>
-                                                    </div>
+                            {/* Description */}
+                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
+                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
+                                <p className="text-[16px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                                    {selectedProject.description ?? "No description available"}
+                                </p>
+                            </div>
+
+                            {/* Team Members */}
+                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
+                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-6">Team Overview</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
+                                        const emp = allEmployees.find(e => e.id === Number(id));
+                                        return emp ? (
+                                            <div key={id} className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
+                                                    {(emp.full_name || "?")[0]}
                                                 </div>
-                                                <div className="flex items-center gap-4">
-                                                    <div className="relative flex items-center justify-center w-20 h-20">
-                                                        <svg className="w-full h-full transform -rotate-90">
-                                                            <circle cx="40" cy="40" r="34" stroke="#F1F5F9" strokeWidth="6" fill="transparent" />
-                                                            <circle cx="40" cy="40" r="34" stroke={statusColor} strokeWidth="6" fill="transparent" strokeDasharray={circ} strokeDashoffset={circ - (tower.progress / 100) * circ} strokeLinecap="round" />
-                                                        </svg>
-                                                        <span className="absolute text-[15px] font-bold">{tower.progress}%</span>
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <p className="text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
-                                                        <p className="text-[18px] font-bold">{tower.completedTasks}<span className="text-[#999999]">/{tower.totalTasks}</span></p>
-                                                    </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-[#1E293B]">{emp.full_name}</p>
+                                                    <p className="text-xs text-[#999]">{emp.user_role || "Member"}</p>
                                                 </div>
                                             </div>
                                         );
@@ -687,7 +602,8 @@ export default function ProjectsV() {
                             </div>
                         </div>
                     </div>
-                ) : showMilestones && currentProject ? (
+                ) : showMilestones && milestonesProject ? (
+                    /* Milestones View */
                     <div className="flex flex-col h-full bg-white">
                         {/* Milestones Header */}
                         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 md:px-10 py-6 md:py-8 border-b border-slate-50">
@@ -847,30 +763,36 @@ export default function ProjectsV() {
                         </div>
                     </div>
                 ) : (
+                    /* Project List */
                     <>
                         <div className="flex items-center justify-between pb-6">
-                            <h2 className="text-[24px] font-semibold text-[#000000]">{title}</h2>
+                            <h2 className="text-[24px] font-semibold text-[#000000]">Projects</h2>
+                            <button onClick={() => { setShowCreateModal(true); setSelectedMemberIds([]); }}
+                                className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                Create Project
+                            </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8">
+                        <div className="flex-1 overflow-y-auto pt-4 pb-4 px-4 space-y-8 custom-scrollbar">
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                                 {list.length === 0 ? (
-                                    <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">No projects found.</div>
+                                    <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                                        No projects found. Create your first project or accept a proposal.
+                                    </div>
                                 ) : (
-                                    list.map((p) => {
-                                        const total = p.total_tasks ?? 0;
-                                        const completed = p.completed_tasks ?? 0;
-                                        const progress = Math.round(p.progress ?? 0);
-                                        const memberIds = p.member ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number) : [];
+                                    list.map(p => {
+                                        const progress = Math.round(Number(p.progress) || 0);
+                                        const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
                                         const rad = 28;
                                         const circ = 2 * Math.PI * rad;
                                         return (
                                             <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between">
                                                 <div>
                                                     <div className="flex justify-between items-start mb-6">
-                                                        <h3 className="text-[20px] font-semibold text-[#353535] leading-tight">{p.project_name ?? "Untitled Project"}</h3>
+                                                        <h3 className="text-[20px] font-semibold text-[#353535] leading-tight">{p.project_name ?? "Untitled"}</h3>
                                                         <div className="relative">
                                                             <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full">
-                                                                <img src={Dot} alt="Dot" className="w-6 h-6" />
+                                                                <img src={Dot} alt="" className="w-6 h-6" />
                                                             </button>
                                                             <div className={`absolute -right-40 w-50 bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] z-20 transition-all ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible"}`}>
                                                                 <button onClick={() => { setOpenMenuProjectId(null); setSearchParams({ projectId: String(p.id) }); }} className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><VscEye /> View</button>
@@ -884,14 +806,15 @@ export default function ProjectsV() {
                                                         <div className="relative flex items-center justify-center w-20 h-20">
                                                             <svg className="w-full h-full transform -rotate-90">
                                                                 <circle cx="40" cy="40" r={rad} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                                                <circle cx="40" cy="40" r={rad} stroke="#0a9344" strokeWidth="6" fill="transparent" strokeDasharray={circ} strokeDashoffset={circ - (progress / 100) * circ} strokeLinecap="round" />
+                                                                <circle cx="40" cy="40" r={rad} stroke="#0a9344" strokeWidth="6" fill="transparent"
+                                                                    strokeDasharray={circ} strokeDashoffset={circ - (progress / 100) * circ} strokeLinecap="round" />
                                                             </svg>
                                                             <span className="absolute font-bold">{progress}%</span>
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex justify-between mb-2">
-                                                                <span className="text-[15px] font-bold text-[#8B8B8B]">Tasks Done</span>
-                                                                <span className="text-[15px] font-bold">{completed}/{total}</span>
+                                                                <span className="text-[15px] font-bold text-[#8B8B8B]">Progress</span>
+                                                                <span className="text-[15px] font-bold">{progress}%</span>
                                                             </div>
                                                             <div className="h-2 w-full bg-[#F1F4F9] rounded-full overflow-hidden">
                                                                 <div className="h-full bg-[#0a9344]" style={{ width: `${progress}%` }}></div>
@@ -902,8 +825,8 @@ export default function ProjectsV() {
                                                 <div className="border-t border-[#F1F1F1] pt-5 mt-auto flex items-center justify-between">
                                                     <div className="flex -space-x-4">
                                                         {memberIds.slice(0, 3).map(id => (
-                                                            <div key={id} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center overflow-hidden">
-                                                                <img src={`https://i.pravatar.cc/150?u=${id}`} alt="avatar" />
+                                                            <div key={id} className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
+                                                                {(getEmployeeName(id) || "?")[0]}
                                                             </div>
                                                         ))}
                                                         {memberIds.length > 3 && (
@@ -912,6 +835,11 @@ export default function ProjectsV() {
                                                             </div>
                                                         )}
                                                     </div>
+                                                    {p.priority && (
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.priority === "High" || p.priority === "Urgent" ? "bg-[#FFF1F2] text-[#BE123C]" : p.priority === "Medium" ? "bg-[#FFF8E7] text-[#92400E]" : "bg-[#E6F4EA] text-[#1E7E34]"}`}>
+                                                            {p.priority}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -923,6 +851,61 @@ export default function ProjectsV() {
                 )}
             </div>
 
+            {/* Create Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
+                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-center mb-8">
+                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
+                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <form onSubmit={handleCreate}>
+                                {renderFormFields(createForm, setCreateForm)}
+                                <div className="flex gap-4 pt-6">
+                                    <button type="button" onClick={() => setShowCreateModal(false)}
+                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                    <button type="submit" disabled={createSubmitting}
+                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
+                                        {createSubmitting ? "Creating..." : "Create Project"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
+                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                            <div className="flex justify-between items-center mb-8">
+                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Project</h3>
+                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <form onSubmit={handleEdit}>
+                                {renderFormFields(editForm, setEditForm as any)}
+                                <div className="flex gap-4 pt-6">
+                                    <button type="button" onClick={() => setShowEditModal(false)}
+                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                    <button type="submit" disabled={editSubmitting}
+                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
+                                        {editSubmitting ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation */}
             {deleteId !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/20">
                     <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
@@ -930,12 +913,7 @@ export default function ProjectsV() {
                         <p className="text-gray-600 mb-8">Are you sure you want to delete this project? This action cannot be undone.</p>
                         <div className="flex gap-4 justify-center">
                             <button onClick={() => setDeleteId(null)} className="px-6 py-2 rounded-xl bg-gray-100 font-bold">Cancel</button>
-                            <button onClick={() => {
-                                api.delete(`/api/projects/${deleteId}`).then(() => {
-                                    setList(prev => prev.filter(p => p.id !== deleteId));
-                                    setDeleteId(null);
-                                });
-                            }} className="px-6 py-2 rounded-xl bg-red-500 text-white font-bold">Delete</button>
+                            <button onClick={handleDelete} className="px-6 py-2 rounded-xl bg-red-500 text-white font-bold">Delete</button>
                         </div>
                     </div>
                 </div>

@@ -48,7 +48,9 @@ def list_employees():
             COALESCE(d.name, e.department) AS department,
             e.active,
             e.status,
-            e.Allpannel
+            e.Allpannel,
+            e.salary,
+            e.accountnumber
         FROM employee e
         LEFT JOIN department d ON d.id = e.department
         WHERE e.Company_id = %s
