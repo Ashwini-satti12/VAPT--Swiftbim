@@ -19,7 +19,7 @@ export default function TrackerBC() {
     const [selectedDate, setSelectedDate] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
-    const statusOptions = ['', 'Online', 'Offline'];
+    const statusOptions = ['', 'Available', 'Busy'];
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
         { value: '0-100', label: '0-100', start: 0, end: 100 },
         { value: '101-200', label: '101-200', start: 100, end: 200 },
@@ -35,6 +35,7 @@ export default function TrackerBC() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return 'Select Date';
@@ -42,16 +43,12 @@ export default function TrackerBC() {
         return `${day}/${month}/${year}`;
     };
 
-    // Determine status from attendance data
-    const getStatus = (entry: AttendanceEntry): 'Online' | 'Offline' => {
-        const statusStr = String(entry.status || '').trim();
-        if (statusStr.toLowerCase() === 'online') return 'Online';
-        if (statusStr.toLowerCase() === 'offline') return 'Offline';
-        // If status is not set, determine from time_out
-        if (!entry.time_out || entry.time_out.trim() === '' || entry.time_out === 'null') {
-            return 'Online';
-        }
-        return 'Offline';
+    // Determine status from tasks: if employee has at least one non-completed task
+    // on the selected date -> Busy, else Available.
+    const getStatus = (entry: AttendanceEntry): 'Available' | 'Busy' => {
+        const name = (entry.full_name || '').trim();
+        if (name && busyMap[name]) return 'Busy';
+        return 'Available';
     };
 
     // Extract pure time (HH:MM:SS) from a time or datetime string
@@ -143,6 +140,48 @@ export default function TrackerBC() {
                 setList([]);
             })
             .finally(() => setLoading(false));
+    }, [selectedDate]);
+
+    // Fetch tasks for selected date to determine Availability / Busy
+    useEffect(() => {
+        const fetchTasksForDate = async () => {
+            if (!selectedDate) {
+                setBusyMap({});
+                return;
+            }
+            try {
+                const params: { condition: string } = { condition: '1' }; // management/team view
+                const { data } = await api.get<{ tasks?: any[] }>('/api/tasks', { params });
+                const tasks = data.tasks || [];
+                const targetDate = selectedDate; // YYYY-MM-DD
+                const busy: Record<string, boolean> = {};
+
+                tasks.forEach((t) => {
+                    const status = String(t.status || '').toLowerCase();
+                    if (status === 'completed') return;
+
+                    const rawDate: string =
+                        t.start_time ||
+                        t.Actual_start_time ||
+                        t.due_date ||
+                        '';
+                    if (!rawDate) return;
+
+                    const isoPart = String(rawDate).split('T')[0].split(' ')[0];
+                    if (!isoPart || isoPart !== targetDate) return;
+
+                    const name = (t.assigned_full_name || '').trim();
+                    if (name) busy[name] = true;
+                });
+
+                setBusyMap(busy);
+            } catch (err) {
+                console.error('Error fetching tasks for TrackerBC:', err);
+                setBusyMap({});
+            }
+        };
+
+        fetchTasksForDate();
     }, [selectedDate]);
 
     useEffect(() => {
@@ -379,7 +418,7 @@ export default function TrackerBC() {
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${status === 'Busy' ? 'bg-[#FCE8E8] text-[#D93025]' : 'bg-[#E6F4EA] text-[#1E7E34]'}`}>
                                                     {status}
                                                 </span>
                                             </td>

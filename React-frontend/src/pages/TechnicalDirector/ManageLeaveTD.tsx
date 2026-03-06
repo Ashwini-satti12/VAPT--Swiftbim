@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
@@ -40,10 +42,29 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
+/** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
+function formatApiDate(value: string | undefined | null): string {
+    if (!value) return '';
+    const s = String(value);
+    // Already DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    try {
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return s;
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch {
+        return s;
+    }
+}
+
 export default function ManageLeave() {
+    const { user } = useAuth();
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
-    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
     const [selectedEmployee, setSelectedEmployee] = useState<string>('All');
     const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
@@ -55,6 +76,39 @@ export default function ManageLeave() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
+
+    // Load leave applications from backend
+    useEffect(() => {
+        const fetchLeaves = async () => {
+            try {
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = data.applications || [];
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to load leaves from backend', err);
+                setLeaves(DUMMY_LEAVES);
+            }
+        };
+
+        fetchLeaves();
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -114,6 +168,40 @@ export default function ManageLeave() {
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
         setViewModalOpen(true);
+    };
+
+    const updateLeaveStatus = (id: number, statusLabel: 'Approved' | 'Rejected') => {
+        setLeaves(prev =>
+            prev.map(l => (l.id === id ? { ...l, currentStatus: statusLabel } : l))
+        );
+    };
+
+    const handleApproveBackend = async (row: LeaveEntry) => {
+        try {
+            await api.post(`/api/leave/applications/${row.id}/approve`);
+            updateLeaveStatus(row.id, 'Approved');
+        } catch (err) {
+            console.error('Failed to approve leave', err);
+            alert('Failed to approve leave. Please try again.');
+        }
+    };
+
+    const handleRejectBackend = async (row: LeaveEntry) => {
+        try {
+            await api.post(`/api/leave/applications/${row.id}/reject`);
+            updateLeaveStatus(row.id, 'Rejected');
+        } catch (err) {
+            console.error('Failed to reject leave', err);
+            alert('Failed to reject leave. Please try again.');
+        }
+    };
+
+    // Technical Director can approve/reject all leaves except their own
+    const canActOnLeave = (row: LeaveEntry): boolean => {
+        const currentName = (user?.full_name || '').trim();
+        if (!currentName) return false;
+        // Do not act on own leave applications
+        return row.employeeName.trim() !== currentName;
     };
 
     return (
@@ -265,10 +353,15 @@ export default function ManageLeave() {
                                                         <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
                                                     </button>
-                                                    {row.currentStatus === 'Pending' ? (
+                                                    {row.currentStatus === 'Pending' && canActOnLeave(row) ? (
                                                         <>
                                                             <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Approve" className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                <button 
+                                                                    type="button" 
+                                                                    aria-label="Approve"
+                                                                    onClick={() => handleApproveBackend(row)}
+                                                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform"
+                                                                >
                                                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
                                                                 </button>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
@@ -281,7 +374,12 @@ export default function ManageLeave() {
                                                                 </div>
                                                             </div>
                                                             <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Reject" className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                <button 
+                                                                    type="button" 
+                                                                    aria-label="Reject"
+                                                                    onClick={() => handleRejectBackend(row)}
+                                                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform"
+                                                                >
                                                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                                                 </button>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
@@ -375,11 +473,6 @@ export default function ManageLeave() {
                         </div>
                         <div className="px-6 py-6">
                             <div className="space-y-4">
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
-                                </div>
                                 <div className="flex items-start gap-2">
                                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
                                     <span className="shrink-0 text-[#616161]">:</span>

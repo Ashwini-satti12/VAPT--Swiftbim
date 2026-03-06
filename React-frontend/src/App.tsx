@@ -13,7 +13,7 @@ import Clients from './pages/Client/Clients';
 import ProjectsPM from './pages/ProjectManager/ProjectsPM';
 import MyTasksPM from './pages/ProjectManager/MyTasksPM';
 import MytaskViewPM from './pages/ProjectManager/MytaskViewPM';
-import CreateTeamPM from './pages/ProjectManager/CreateTeamPM';
+import CreateteamPM from './pages/ProjectManager/CreateteamPM';
 import TeamtaskPM from './pages/ProjectManager/TeamtaskPM';
 import TrackerPM from './pages/ProjectManager/TrackerPM';
 import TimesheetPM from './pages/ProjectManager/TeamreportPM';
@@ -108,6 +108,16 @@ import MilestonesV from './pages/Vendor/MilestonesV';
 import CommunicationV from './pages/Vendor/CommunicationV';
 import PerformanceV from './pages/Vendor/PerformanceV';
 
+/* Vendor PM */
+import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
+import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
+import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
+import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
+
+/* Vendor Employee */
+import DashboardEV from './pages/Vendor/Employee/DashboardEV';
+import MytaskEV from './pages/Vendor/Employee/MytaskEV';
+
 function App() {
   return (
     <AuthProvider>
@@ -137,7 +147,7 @@ function App() {
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
             <Route path="teamtask" element={<TeamtaskPM />} />
-            <Route path="create-team" element={<CreateTeamPM />} />
+            <Route path="create-team" element={<CreateteamPM />} />
             <Route path="tracker" element={<TrackerPM />} />
             <Route path="timesheet" element={<TimesheetPM />} />
             <Route path="chat" element={<ChatPM />} />
@@ -224,6 +234,19 @@ function App() {
             <Route path="v/milestones" element={<MilestonesV />} />
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />
+
+            {/* Vendor PM Routes */}
+            <Route path="vpm/dashboard" element={<DashboardPMV />} />
+            <Route path="vpm/projects" element={<ProjectsPMV />} />
+            <Route path="vpm/mytasks" element={<MytaskPMV />} />
+            <Route path="vpm/opportunities" element={<OpportunitiesV />} />
+            <Route path="vpm/mybids" element={<MyBidsV />} />
+            <Route path="vpm/createteam" element={<CreateteamPMV />} />
+
+            {/* Vendor Employee Routes */}
+            <Route path="ve/dashboard" element={<DashboardEV />} />
+            <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks" element={<TeamtaskV />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
