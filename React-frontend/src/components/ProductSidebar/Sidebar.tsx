@@ -321,6 +321,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Manage Leave",
+          path: "/bc/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
           name: "Tracker",
           path: "/bc/tracker",
           iconSrc: trackerIcon,

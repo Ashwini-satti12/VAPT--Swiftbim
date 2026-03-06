@@ -78,6 +78,7 @@ import TrackerBC from './pages/BimCoordinator/TrackerBC';
 import TeamReportBC from './pages/BimCoordinator/TeamReportBC';
 import ChatBC from './pages/BimCoordinator/ChatBC';
 import MytaskViewBC from './pages/BimCoordinator/MytaskViewBC';
+import ManageLeaveBC from './pages/BimCoordinator/ManageLeaveBC';
 
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
@@ -193,6 +194,8 @@ function App() {
             <Route path="bc/teamreport" element={<TeamReportBC />} />
             <Route path="bc/chat" element={<ChatBC />} />
             <Route path="bc/mytasks/view" element={<MytaskViewBC />} />
+            <Route path="bc/manage-leave" element={<ManageLeave />} />
+            <Route path="bc/manage-leave" element={<ManageLeaveBC />} />
 
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
