@@ -340,7 +340,20 @@ export default function EmployeesPM() {
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
-    const rows = list.map((e) => [e.full_name, e.email, e.user_role || '', e.active || '', e.phone_number || '', e.department || ''].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
+    const rows = list.map((e) =>
+      [
+        e.full_name,
+        e.email,
+        e.user_role || '',
+        e.active || '',
+        e.phone_number || '',
+        e.department || '',
+        e.accountnumber || '',
+        e.salary || '',
+      ]
+        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+        .join(',')
+    );
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -982,15 +995,6 @@ export default function EmployeesPM() {
                       placeholder="Select Department"
                     />
                   </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={form.active}
-                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
-                    />
-                  </div>
                 </div>
 
                 {/* Column 2 */}
@@ -1151,15 +1155,6 @@ export default function EmployeesPM() {
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={editForm.active}
-                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
                     />
                   </div>
                   <div>
