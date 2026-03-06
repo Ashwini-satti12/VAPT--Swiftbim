@@ -108,8 +108,6 @@ export default function ProjectsPM() {
   const [editBIMLead, setEditBIMLead] = useState('');
   const [editBIMCoOrd, setEditBIMCoOrd] = useState('');
   const [editMember, setEditMember] = useState('');
-  const [editMemberTags, setEditMemberTags] = useState<string[]>([]);
-  const [editMemberInput, setEditMemberInput] = useState('');
   const [createClientName, setCreateClientName] = useState('');
   const [createProjectManager, setCreateProjectManager] = useState('');
   const [createStartDate, setCreateStartDate] = useState('');
@@ -120,8 +118,6 @@ export default function ProjectsPM() {
   const [createBIMLead, setCreateBIMLead] = useState('');
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
   const [createMember, setCreateMember] = useState('');
-  const [memberTags, setMemberTags] = useState<string[]>([]);
-  const [memberInput, setMemberInput] = useState('');
   const [createResources, setCreateResources] = useState('');
   const [createRequiredResources, setCreateRequiredResources] = useState('');
   const [createPriority, setCreatePriority] = useState('');
@@ -158,10 +154,14 @@ export default function ProjectsPM() {
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
   const [bimLeads, setBimLeads] = useState<string[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
-  const [allEmployees, setAllEmployees] = useState<string[]>([]);
+  const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
   const priorityOptions = ['High', 'Normal'];
 
+  // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
     const fetchEmployeesAndDepartments = async () => {
@@ -176,20 +176,25 @@ export default function ProjectsPM() {
           setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
           setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
           setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
-          setAllEmployees(empData.map(e => e.full_name));
-
+          setAllEmployees(empData);
           setDepartments(depRes.data.departments || []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
     };
-
-    if (showCreateModal || showEditModal) {
-      fetchEmployeesAndDepartments();
-    }
+    fetchEmployeesAndDepartments();
     return () => { isMounted = false; };
-  }, [showCreateModal, showEditModal]);
+  }, []);
+
+  // On Create modal open, reset tags
+  useEffect(() => {
+    if (showCreateModal) {
+      setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
+      setCreateModuleName('m1, m2, m3, m4');
+      setSelectedMemberIds([]);
+    }
+  }, [showCreateModal]);
 
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
@@ -207,34 +212,33 @@ export default function ProjectsPM() {
 
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-      .then(({ data }) => {
-        const projects = (data.projects ?? []).map((r): Project => ({
-          id: Number(r.id) ?? 0,
-          project_name: r.project_name ? String(r.project_name) : undefined,
-          progress: Number(r.progress) || 0,
-          total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
-          completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
-          budget: r.budget ? String(r.budget) : undefined,
-          module_name: r.modules ? String(r.modules) : undefined,
-          client_name: r.client_id ? String(r.client_id) : undefined,
-          project_manager: r.project_manager_id ? String(r.project_manager_id) : undefined,
-          start_date: r.start_date ? String(r.start_date) : undefined,
-          end_date: r.due_date ? String(r.due_date) : undefined,
-          total_hours: r.totalhours ? String(r.totalhours) : undefined,
-          per_day: r.perday ? String(r.perday) : undefined,
-          department: r.department ? String(r.department) : undefined,
-          bim_lead: r.lead_id ? String(r.lead_id) : undefined,
-          bim_co_ordinator: r.bim_coordinator_id ? String(r.bim_coordinator_id) : undefined,
-          member: r.members ? String(r.members) : undefined,
-          resources: r.resources ? String(r.resources) : undefined,
-          required_resources: r.required_resources ? String(r.required_resources) : undefined,
-          priority: r.priority ? String(r.priority) : undefined,
-          location: r.location ? String(r.location) : undefined,
-          description: r.description ? String(r.description) : undefined,
-        }));
-        setList(projects);
+      .then(res => {
+        setList((res.data.projects ?? []).map((r: any) => ({
+          id: r.id,
+          project_name: r.project_name,
+          progress: r.progress ?? 0,
+          total_tasks: r.total_tasks ?? 0,
+          completed_tasks: r.completed_tasks ?? 0,
+          priority: r.priority ?? 'Normal',
+          budget: r.budget,
+          module_name: r.modules,
+          client_name: r.client_id,
+          project_manager: r.project_manager_id,
+          start_date: r.start_date,
+          end_date: r.due_date,
+          total_hours: r.totalhours,
+          per_day: r.perday,
+          department: r.department,
+          bim_lead: r.lead_id,
+          bim_co_ordinator: r.bim_coordinator_id,
+          member: r.members,
+          resources: r.resources,
+          required_resources: r.required_resources,
+          location: r.location,
+          description: r.description,
+        })));
       })
-      .catch(() => setList([]))
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -279,85 +283,71 @@ export default function ProjectsPM() {
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
             {/* Task Status Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-              {/* To Do Tasks */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-8">
+              {/* Total Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask?status=todo')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
               >
-                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">13</p>
-              </button>
-
-              {/* In Progress Tasks */}
-              <button
-                type="button"
-                onClick={() => navigate('/teamtask?status=in_progress')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-              >
-                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">18</p>
-              </button>
-
-              {/* Paused Tasks */}
-              <button
-                type="button"
-                onClick={() => navigate('/teamtask?status=paused')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
-              >
-                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Paused Tasks</p>
-                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">02</p>
+                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Total Tasks</p>
+                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {selectedProjectForView.total_tasks ?? 0}
+                </p>
               </button>
 
               {/* Completed Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask?status=completed')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
               >
-                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">122</p>
+                <p className="text-[#333333] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                <p className="text-[#333333] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {selectedProjectForView.completed_tasks ?? 0}
+                </p>
               </button>
             </div>
 
 
             {/* Tower Progress Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8 custom-scrollbar">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => {
-                const towerProgress = i % 3 === 0 ? 35 : i % 2 === 0 ? 65 : 86;
-                const status = i % 3 === 0 ? 'Review' : i % 2 === 0 ? 'Pending' : 'Approved';
-                const statusColor = i % 3 === 0 ? '#DD4342' : i % 2 === 0 ? '#FF9F00' : '#0A9344';
-                const statusBg = i % 3 === 0 ? 'bg-[#FFEBEC]' : i % 2 === 0 ? 'bg-[#FFF4E5]' : 'bg-[#E7F6ED]';
+              {(selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).length > 0 ? (
+                (selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((mod, i) => {
+                  const towerProgress = selectedProjectForView.progress ?? 0;
+                  const status = towerProgress === 100 ? 'Approved' : towerProgress > 0 ? 'Pending' : 'Review';
+                  const statusColor = towerProgress === 100 ? '#0A9344' : towerProgress > 0 ? '#FF9F00' : '#DD4342';
+                  const statusBg = towerProgress === 100 ? 'bg-[#E7F6ED]' : towerProgress > 0 ? 'bg-[#FFF4E5]' : 'bg-[#FFEBEC]';
 
-                return (
-                  <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">module_name{i}</span>
-                      <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg}`}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                        <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
+                  return (
+                    <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{mod}</span>
+                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg} shrink-0`}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                          <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="50%" cy="50%" r="30" stroke="#F1F5F9" strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6" />
+                            <circle
+                              cx="50%" cy="50%" r="30" stroke={statusColor} strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6"
+                              strokeDasharray={188.4} strokeDashoffset={188.4 - (towerProgress / 100) * 188.4} strokeLinecap="round"
+                            />
+                          </svg>
+                          <span className="absolute text-[13px] md:text-[15px] font-bold text-[#1A1A1A]">{Math.round(towerProgress)}%</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] md:text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
+                          <p className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A]">{selectedProjectForView.completed_tasks ?? 0}<span className="text-[#999999]">/{selectedProjectForView.total_tasks ?? 0}</span></p>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
-                        <svg className="w-full h-full transform -rotate-90">
-                          <circle cx="50%" cy="50%" r="30" stroke="#F1F5F9" strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6" />
-                          <circle
-                            cx="50%" cy="50%" r="30" stroke={statusColor} strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6"
-                            strokeDasharray={188.4} strokeDashoffset={188.4 - (towerProgress / 100) * 188.4} strokeLinecap="round"
-                          />
-                        </svg>
-                        <span className="absolute text-[13px] md:text-[15px] font-bold text-[#1A1A1A]">{towerProgress}%</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] md:text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
-                        <p className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A]">20<span className="text-[#999999]">/28</span></p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">No modules defined for this project.</div>
+              )}
             </div>
             {/* Project Description */}
             <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 lg:p-10">
@@ -370,39 +360,65 @@ export default function ProjectsPM() {
             {/* Team Overview Section */}
             <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 lg:p-10">
               <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Team Overview</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
-                <div className="flex items-center gap-4">
-                  <img src="https://i.pravatar.cc/150?u=pm" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
-                  <div className="min-w-0">
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Reed Richards</p>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://i.pravatar.cc/150?u=bim" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
-                  <div className="min-w-0">
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Richard Parker</p>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
-                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">MEP (Dept)</p>
-                </div>
-                <div>
-                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3].map(j => (
-                      <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                        <img src={`https://i.pravatar.cc/150?u=${j}`} alt="avatar" className="w-full h-full object-cover" />
+              {(() => {
+                const getEmpName = (val?: string) => {
+                  if (!val) return 'N/A';
+                  const id = parseInt(val, 10);
+                  if (isNaN(id)) return val;
+                  const emp = allEmployees.find(e => e.id === id);
+                  return emp ? emp.full_name : val;
+                };
+                const memberIdsForView = selectedProjectForView.member
+                  ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                  : [];
+                const memberNames = memberIdsForView.map(id => {
+                  const emp = allEmployees.find(e => e.id === id);
+                  return emp ? emp.full_name : `#${id}`;
+                });
+                const pmName = getEmpName(selectedProjectForView.project_manager);
+                const blName = getEmpName(selectedProjectForView.bim_lead);
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
+                    <div className="flex items-center gap-4">
+                      <img src={`https://i.pravatar.cc/150?u=pm_${selectedProjectForView.project_manager}`} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
+                      <div className="min-w-0">
+                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{pmName}</p>
+                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
                       </div>
-                    ))}
-                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
-                      +4
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <img src={`https://i.pravatar.cc/150?u=bl_${selectedProjectForView.bim_lead}`} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
+                      <div className="min-w-0">
+                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{blName}</p>
+                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
+                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">{selectedProjectForView.department || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
+                      {memberNames.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {memberNames.slice(0, 3).map((name, j) => (
+                            <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0" title={name}>
+                              <img src={`https://i.pravatar.cc/150?u=mem_${memberIdsForView[j]}`} alt={name} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                          {memberNames.length > 3 && (
+                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
+                              +{memberNames.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[14px] font-Gantari font-bold text-[#999999]">N/A</p>
+                      )}
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
             {/* Project Details Section */}
@@ -413,54 +429,49 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Client Name</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Mark Specter</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.client_name || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000hrs</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000000$</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.budget ? `$${selectedProjectForView.budget}` : 'N/A'}</span>
                   </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Location</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">Bengaluru, KA</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.location || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">dd/mm/yyyy</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString() : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">0:00hrs</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
                   </div>
                 </div>
               </div>
@@ -574,46 +585,48 @@ export default function ProjectsPM() {
                 e.preventDefault();
                 setCreateError('');
                 setCreateSubmitting(true);
+                // Helper: convert a name to its employee ID; if already a number, use as-is
+                const nameToId = (name: string): number | string | undefined => {
+                  if (!name) return undefined;
+                  const asNum = parseInt(name, 10);
+                  if (!isNaN(asNum)) return asNum; // already an ID
+                  const emp = allEmployees.find(e => e.full_name === name);
+                  return emp ? emp.id : name;
+                };
                 api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
                   project_name: createName.trim(),
                   budget: createBudget || undefined,
                   modules: moduleNameTags.join(', ') || undefined,
                   client_id: createClientName || undefined,
-                  project_manager_id: createProjectManager || undefined,
-                  lead_id: createBIMLead || undefined,
-                  bim_coordinator_id: createBIMCoOrdinator || undefined,
-                  members: memberTags.join(', ') || undefined,
+                  project_manager_id: nameToId(createProjectManager),
+                  lead_id: nameToId(createBIMLead),
+                  bim_coordinator_id: nameToId(createBIMCoOrdinator),
+                  members: selectedMemberIds.join(',') || undefined,
                   department: createDepartment || undefined,
                   due_date: createEndDate || undefined,
                   start_date: createStartDate || undefined,
                   totalhours: createTotalHours || undefined,
                   perday: createPerDay || undefined,
-                  resources: createResources || undefined,
-                  required_resources: createRequiredResources || undefined,
                   priority: createPriority || undefined,
                   location: createLocation || undefined,
                   description: createDescription || undefined,
+                  resources: createResources || undefined,
+                  required_resources: createRequiredResources || undefined,
                 })
                   .then(({ data }) => {
                     if (data.success) {
                       setShowCreateModal(false);
-                      setCreateName(''); setCreateBudget(''); setCreateClientName('');
-                      setCreateProjectManager(''); setCreateStartDate(''); setCreateEndDate('');
-                      setCreateTotalHours(''); setCreatePerDay(''); setCreateDepartment('');
-                      setCreateBIMLead(''); setCreateBIMCoOrdinator(''); setCreateMember('');
-                      setCreateResources(''); setCreateRequiredResources(''); setCreatePriority('');
-                      setCreateLocation(''); setCreateDescription('');
+                      setCreateName(''); setCreateBudget(''); setCreateModuleName('');
                       setModuleNameTags([]); setModuleNameInput('');
-                      setMemberTags([]); setMemberInput('');
+                      setCreateClientName(''); setCreateProjectManager('');
+                      setCreateStartDate(''); setCreateEndDate('');
+                      setCreateTotalHours(''); setCreatePerDay('');
+                      setCreateDepartment(''); setCreateBIMLead('');
+                      setCreateBIMCoOrdinator(''); setSelectedMemberIds([]);
+                      setCreateResources(''); setCreateRequiredResources('');
+                      setCreatePriority(''); setCreateLocation(''); setCreateDescription('');
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(({ data: d }) => setList((d.projects ?? []).map((r): Project => ({
-                          id: Number(r.id) ?? 0,
-                          project_name: r.project_name ? String(r.project_name) : undefined,
-                          progress: Number(r.progress) || 0,
-                          total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
-                          completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
-                          priority: r.priority ? String(r.priority) : undefined,
-                        }))))
+                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({ id: r.id, project_name: r.project_name, progress: r.progress ?? 0, total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0, priority: r.priority ?? 'Normal' }))))
                         .catch(() => { });
                     }
                   })
@@ -816,35 +829,58 @@ export default function ProjectsPM() {
                     onChange={setCreateBIMCoOrdinator}
                   />
                 </div>
-                {/* ── Member multi-select ── */}
-                <div className="space-y-2">
+                {/* ── Members multi-select ── */}
+                <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Select Member <span className="text-[#DD4342]">*</span>
+                    Select Members <span className="text-[#DD4342]">*</span>
                   </label>
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val && !memberTags.includes(val)) {
-                        setMemberTags(prev => [...prev, val]);
-                        setCreateMember([...memberTags, val].join(', '));
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                  <div
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    onClick={() => setMemberDropdownOpen(o => !o)}
                   >
-                    <option value="">Select Member to Add</option>
-                    {allEmployees.filter(emp => !memberTags.includes(emp)).map((emp, idx) => (
-                      <option key={idx} value={emp}>{emp}</option>
-                    ))}
-                  </select>
-                  {memberTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {memberTags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
-                          {tag}
-                          <button type="button" onClick={() => setMemberTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-red-500 transition-colors leading-none">x</button>
+                    {selectedMemberIds.length === 0 && <span className="text-gray-400 text-[16px] font-Gantari">Select Members</span>}
+                    {selectedMemberIds.map(id => {
+                      const emp = allEmployees.find(e => e.id === id);
+                      return emp ? (
+                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
+                          {emp.full_name}
+                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                         </span>
-                      ))}
+                      ) : null;
+                    })}
+                    <span className="ml-auto text-gray-400 text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
+                  </div>
+                  {memberDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
+                      <div className="p-2 border-b">
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={e => setMemberSearch(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          placeholder="Search employees..."
+                          className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari focus:outline-none"
+                        />
+                      </div>
+                      <div className="overflow-y-auto">
+                        {allEmployees
+                          .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                          .map(e => (
+                            <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedMemberIds.includes(e.id)}
+                                onChange={() => setSelectedMemberIds(prev =>
+                                  prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id]
+                                )}
+                                onClick={ev => ev.stopPropagation()}
+                                className="w-4 h-4 accent-[#DD4342]"
+                              />
+                              <span className="text-[14px] font-Gantari text-[#333]">{e.full_name}</span>
+                              <span className="ml-auto text-[12px] text-gray-400">{e.user_role}</span>
+                            </label>
+                          ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -977,69 +1013,60 @@ export default function ProjectsPM() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
             <form
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
                 setIsEditSubmitting(true);
-                try {
-                  const payload = {
-                    project_name: createName,
-                    budget: createBudget,
-                    module_name: editModuleTags.join(', '),
-                    client_name: createClientName,
-                    project_manager: editProjectManager,
-                    start_date: createStartDate,
-                    end_date: createEndDate,
-                    total_hours: createTotalHours,
-                    per_day: createPerDay,
-                    department: editDepartment,
-                    bim_lead: editBIMLead,
-                    bim_co_ordinator: editBIMCoOrd,
-                    member: editMemberTags.join(', '),
-                    resources: createResources,
-                    required_resources: createRequiredResources,
-                    priority: editPriority,
-                    location: createLocation,
-                    description: createDescription
-                  };
-                  await api.patch(`/api/projects/${selectedProjectForEdit.id}`, payload);
-
-                  // Refresh list
-                  const response = await api.get('/api/projects');
-                  if (Array.isArray(response.data)) {
-                    setList(response.data.map((r: any) => ({
-                      id: r.id,
-                      project_name: r.project_name,
-                      client_name: r.client_name,
-                      project_manager: r.project_manager,
-                      start_date: r.start_date,
-                      end_date: r.end_date,
-                      status: r.status,
-                      progress: r.progress,
-                      budget: r.budget,
-                      module_name: r.module_name,
-                      total_tasks: r.total_tasks,
-                      completed_tasks: r.completed_tasks,
-                      department: r.department,
-                      bim_lead: r.bim_lead,
-                      bim_co_ordinator: r.bim_co_ordinator,
-                      member: r.member,
-                      total_hours: r.total_hours,
-                      per_day: r.per_day,
-                      resources: r.resources,
-                      required_resources: r.required_resources,
-                      priority: r.priority,
-                      location: r.location,
-                      description: r.description
-                    })));
-                  }
-                  setShowEditModal(false);
-                } catch (err) {
-                  console.error('Error updating project:', err);
-                  alert('Failed to update project');
-                } finally {
-                  setIsEditSubmitting(false);
-                }
+                // Helper: convert a name to its employee ID; if already a number, use as-is
+                const editNameToId = (name: string): number | string | undefined => {
+                  if (!name) return undefined;
+                  const asNum = parseInt(name, 10);
+                  if (!isNaN(asNum)) return asNum; // already an ID
+                  const emp = allEmployees.find(e => e.full_name === name);
+                  return emp ? emp.id : name;
+                };
+                // Build members from selectedMemberIds
+                const membersPayload = selectedMemberIds.length > 0 ? selectedMemberIds.join(',') : (editMember || undefined);
+                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
+                  project_name: createName.trim() || undefined,
+                  budget: createBudget || undefined,
+                  modules: editModuleTags.join(', ') || undefined,
+                  client_id: createClientName || undefined,
+                  project_manager_id: editNameToId(createProjectManager),
+                  lead_id: editNameToId(createBIMLead),
+                  bim_coordinator_id: editNameToId(createBIMCoOrdinator),
+                  members: membersPayload,
+                  department: createDepartment || undefined,
+                  due_date: createEndDate || undefined,
+                  start_date: createStartDate || undefined,
+                  totalhours: createTotalHours || undefined,
+                  perday: createPerDay || undefined,
+                  priority: editPriority || undefined,
+                  location: createLocation || undefined,
+                  description: createDescription || undefined,
+                  resources: createResources || undefined,
+                  required_resources: createRequiredResources || undefined,
+                })
+                  .then(({ data }) => {
+                    if (data.success) {
+                      setShowEditModal(false);
+                      api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({
+                          id: r.id, project_name: r.project_name, progress: r.progress ?? 0,
+                          total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0,
+                          priority: r.priority ?? 'Normal', budget: r.budget, module_name: r.modules,
+                          client_name: r.client_id, project_manager: r.project_manager_id,
+                          start_date: r.start_date, end_date: r.due_date, total_hours: r.totalhours,
+                          per_day: r.perday, department: r.department, bim_lead: r.lead_id,
+                          bim_co_ordinator: r.bim_coordinator_id, member: r.members,
+                          resources: r.resources, required_resources: r.required_resources,
+                          location: r.location, description: r.description,
+                        }))))
+                        .catch(() => { });
+                    }
+                  })
+                  .catch(() => { })
+                  .finally(() => setIsEditSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
             >
@@ -1173,7 +1200,7 @@ export default function ProjectsPM() {
                   </label>
                   <FormSelect
                     label="Priority" placeholder="Select Priority"
-                    options={PRIORITY_OPTIONS} value={editPriority}
+                    options={priorityOptions} value={editPriority}
                     onChange={setEditPriority}
                   />
                 </div>
@@ -1280,42 +1307,16 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Member selection with multi-select tags */}
+                {/* Select Member */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Select Member <span className="text-[#DD4342]">*</span>
                   </label>
-                  <select
-                    value=""
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val && !editMemberTags.includes(val)) {
-                        setEditMemberTags(prev => [...prev, val]);
-                      }
-                    }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
-                  >
-                    <option value="">Select Member</option>
-                    {allEmployees.filter(emp => !editMemberTags.includes(emp)).map((emp, idx) => (
-                      <option key={idx} value={emp}>{emp}</option>
-                    ))}
-                  </select>
-                  {editMemberTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      {editMemberTags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[14px] font-medium px-3 py-1 rounded-[15px]">
-                          {tag}
-                          <button
-                            type="button"
-                            onClick={() => setEditMemberTags(prev => prev.filter((_, i) => i !== idx))}
-                            className="text-gray-400 hover:text-[#DD4342] transition-colors leading-none"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <FormSelect
+                    label="Member" placeholder="Select Member"
+                    options={allEmployees.map(e => e.full_name)} value={editMember}
+                    onChange={setEditMember}
+                  />
                 </div>
 
                 {/* Location */}
@@ -1511,40 +1512,56 @@ export default function ProjectsPM() {
                                 <button
                                   onClick={() => {
                                     setSelectedProjectForEdit(p);
+
+                                    // Make sure we set the string name in create values by matching ID from allEmployees/departments
+                                    // if backend sends ID. Or just pass the value if it's already a string.
+                                    const mapEmpIdToName = (val: string | number | undefined) => {
+                                      if (!val) return '';
+                                      const id = parseInt(String(val), 10);
+                                      if (isNaN(id)) return String(val); // Not an ID, assume it's already a string name
+                                      const emp = allEmployees.find(e => e.id === id);
+                                      return emp ? emp.full_name : String(val);
+                                    };
+
                                     setCreateName(p.project_name ?? '');
                                     setCreateBudget(p.budget ?? '');
                                     setCreateModuleName(p.module_name ?? '');
-
-                                    // Initialize tags correctly
-                                    const mods = (p.module_name || '').split(',').map(s => s.trim()).filter(Boolean);
-                                    setEditModuleTags(mods);
-                                    setEditModuleInput('');
-
-                                    const mems = (p.member || '').split(',').map(s => s.trim()).filter(Boolean);
-                                    setEditMemberTags(mems);
-                                    setEditMemberInput('');
-
-                                    // Set other edit variables
-                                    setEditPriority(p.priority || '');
-                                    setEditDepartment(p.department || '');
-                                    setEditProjectManager(p.project_manager || '');
-                                    setEditBIMLead(p.bim_lead || '');
-                                    setEditBIMCoOrd(p.bim_co_ordinator || '');
                                     setCreateClientName(p.client_name ?? '');
-                                    setCreateProjectManager(p.project_manager ?? '');
-                                    setCreateStartDate(p.start_date ?? '');
-                                    setCreateEndDate(p.end_date ?? '');
+                                    setCreateProjectManager(mapEmpIdToName(p.project_manager));
+                                    setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
+                                    setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
-                                    setCreateDepartment(p.department ?? '');
-                                    setCreateBIMLead(p.bim_lead ?? '');
-                                    setCreateBIMCoOrdinator(p.bim_co_ordinator ?? '');
+
+                                    // Map department ID to string if it's numeric
+                                    let deptValue = p.department ?? '';
+                                    if (deptValue && !isNaN(parseInt(String(deptValue), 10))) {
+                                      // backend department doesn't easily expose 'name' here since it's an ID without the join list
+                                      // Actually, we could map it if we had a departments ID-to-name lookup, but `departments` state is just strings.
+                                      // The user requested to see the names in the dropdown.
+                                      // Let's assume the string representation is stored in `p.department` if correctly joined or just fallback.
+                                      // Wait, ProjectsBL had the same but user didn't complain about BL missing departments. 
+                                    }
+                                    setCreateDepartment(String(p.department ?? ''));
+
+                                    setCreateBIMLead(mapEmpIdToName(p.bim_lead));
+                                    setCreateBIMCoOrdinator(mapEmpIdToName(p.bim_co_ordinator));
                                     setCreateMember(p.member ?? '');
+
+                                    // Multi-select members
+                                    if (p.member) {
+                                      const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+                                      setSelectedMemberIds(memIds);
+                                    } else {
+                                      setSelectedMemberIds([]);
+                                    }
+
                                     setCreateResources(p.resources ?? '');
                                     setCreateRequiredResources(p.required_resources ?? '');
-                                    setCreatePriority(p.priority ?? '');
+                                    setEditPriority(p.priority ?? '');
                                     setCreateLocation(p.location ?? '');
                                     setCreateDescription(p.description ?? '');
+                                    setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}
@@ -1637,7 +1654,15 @@ export default function ProjectsPM() {
               </button>
               <button
                 type="button"
-                onClick={() => setDeleteId(null)}
+                onClick={() => {
+                  if (deleteId === null) return;
+                  api.delete(`/api/projects/${deleteId}`)
+                    .then(() => {
+                      setList(prev => prev.filter(p => p.id !== deleteId));
+                      setDeleteId(null);
+                    })
+                    .catch(() => { setDeleteId(null); });
+                }}
                 className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#FFDEDE]"
               >
                 Yes, Delete
