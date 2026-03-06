@@ -66,18 +66,27 @@ export default function TeamReportBL() {
         [teams]
     );
 
-    // Format ISO date to DD/MM/YYYY
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0].split(' ')[0];
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yyyy] = s.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return '';
+    };
+
+    // Format date (avoid timezone shifts by not using `new Date(...)` for ISO strings)
     const formatDate = (dateStr: string | undefined): string => {
         if (!dateStr) return '-';
-        try {
-            const date = new Date(dateStr);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch {
-            return dateStr;
+        const ymd = toYmd(dateStr);
+        if (ymd) {
+            const [yyyy, mm, dd] = ymd.split('-');
+            return `${dd}/${mm}/${yyyy}`;
         }
+        return String(dateStr);
     };
 
     // Calculate duration from start_time / end_time and pause / restart
@@ -130,8 +139,15 @@ export default function TeamReportBL() {
             selectteam?: string;
         } = {};
 
-        if (startDate) payload.startDate = startDate;
-        if (endDate) payload.endDate = endDate;
+        // If user picks only one side of the range, treat it as a single-day filter.
+        // Also fix accidental reversed ranges (start > end).
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+        if (effectiveStart) payload.startDate = effectiveStart;
+        if (effectiveEnd) payload.endDate = effectiveEnd;
 
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);

@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
@@ -63,7 +65,27 @@ function toStoredDate(d: string): string {
     return `${day}/${m}/${y}`;
 }
 
+/** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
+function formatApiDate(value: string | undefined | null): string {
+    if (!value) return '';
+    const s = String(value);
+    // Already DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    try {
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return s;
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch {
+        return s;
+    }
+}
+
 export default function ManageLeave() {
+    const { user } = useAuth();
+
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -92,6 +114,41 @@ export default function ManageLeave() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
+
+    // Load leave applications from backend (tblleaves) for this company
+    useEffect(() => {
+        const fetchLeaves = async () => {
+            try {
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = data.applications || [];
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                if (mapped.length) {
+                    setLeaves(mapped);
+                }
+            } catch (err) {
+                console.error('Failed to load leaves from backend, using fallback data.', err);
+                // keep existing dummy data as fallback
+            }
+        };
+
+        fetchLeaves();
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -191,17 +248,73 @@ export default function ManageLeave() {
         return Object.keys(err).length === 0;
     };
 
-    const handleSubmitApply = (e: React.FormEvent) => {
+    const handleSubmitApply = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateApplyForm()) return;
-        // TODO: API submit
-        setEmployeeName('');
-        setLeaveType('');
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-        setApplyFormErrors({});
-        setApplyModalOpen(false);
+
+        try {
+            const payload: any = {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            // Optional: send days_count if both dates are present
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.post<{ success: boolean; id?: number; message?: string }>('/api/leave/applications', payload);
+            if (data.success === false) {
+                alert(data.message || 'Failed to apply leave.');
+                return;
+            }
+
+            // Reload latest leaves from backend so list reflects the new application
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = resp.data.applications || [];
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                if (mapped.length) {
+                    setLeaves(mapped);
+                }
+            } catch (err) {
+                console.error('Failed to refresh leaves after apply.', err);
+            }
+
+            setLeaveType('');
+            setLeaveFrom('');
+            setLeaveTo('');
+            setReason('');
+            setApplyFormErrors({});
+            setApplyModalOpen(false);
+        } catch (err: any) {
+            console.error('Apply leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to apply leave. Please try again.');
+        }
     };
 
     const handleCloseModal = () => {
@@ -236,29 +349,124 @@ export default function ManageLeave() {
         setApplyFormErrors({});
     };
 
-    const handleSubmitEdit = (e: React.FormEvent) => {
+    const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLeave || !validateApplyForm()) return;
-        setLeaves((prev) =>
-            prev.map((l) =>
-                l.id === editingLeave.id
-                    ? {
-                          ...l,
-                          employeeName: employeeName.trim(),
-                          leaveType,
-                          fromDate: toStoredDate(leaveFrom),
-                          toDate: toStoredDate(leaveTo),
-                          description: reason.trim(),
-                      }
-                    : l
-            )
-        );
-        handleCloseEditModal();
+
+        try {
+            const payload: any = {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.patch<{ success: boolean; message?: string }>(
+                `/api/leave/applications/${editingLeave.id}`,
+                payload
+            );
+
+            if (data.success === false) {
+                alert(data.message || 'Failed to update leave.');
+                return;
+            }
+
+            // Refresh leaves from backend so table reflects latest values
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = resp.data.applications || [];
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                if (mapped.length) {
+                    setLeaves(mapped);
+                }
+            } catch (err) {
+                console.error('Failed to refresh leaves after edit.', err);
+            }
+
+            handleCloseEditModal();
+        } catch (err: any) {
+            console.error('Update leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to update leave. Please try again.');
+        }
     };
 
     const handleDelete = (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
+        // Currently only local delete; no backend endpoint to delete leaves safely.
         setLeaves((prev) => prev.filter((l) => l.id !== row.id));
+    };
+
+    const updateLeaveStatus = (id: number, statusLabel: 'Approved' | 'Rejected') => {
+        setLeaves(prev =>
+            prev.map(l => (l.id === id ? { ...l, currentStatus: statusLabel } : l))
+        );
+    };
+
+    const handleApproveBackend = async (row: LeaveEntry) => {
+        try {
+            await api.post(`/api/leave/applications/${row.id}/approve`);
+            updateLeaveStatus(row.id, 'Approved');
+        } catch (err) {
+            console.error('Failed to approve leave', err);
+            alert('Failed to approve leave. Please try again.');
+        }
+    };
+
+    const handleRejectBackend = async (row: LeaveEntry) => {
+        try {
+            await api.post(`/api/leave/applications/${row.id}/reject`);
+            updateLeaveStatus(row.id, 'Rejected');
+        } catch (err) {
+            console.error('Failed to reject leave', err);
+            alert('Failed to reject leave. Please try again.');
+        }
+    };
+
+    // Only allow BIM Lead to approve/reject leaves for BIM Modeler / BIM Coordinator,
+    // and never for their own applications.
+    const canActOnLeave = (row: LeaveEntry): boolean => {
+        const currentName = (user?.full_name || '').trim();
+        const role = (row.role || '').toLowerCase();
+        if (!currentName) return false;
+
+        // Do not act on own leave applications
+        if (row.employeeName.trim() === currentName) return false;
+
+        return role === 'bim modeler' || role === 'bim coordinator';
+    };
+
+    // Only the person who applied the leave can edit/delete their own application,
+    // and only while it is still Pending.
+    const canEditLeave = (row: LeaveEntry): boolean => {
+        const currentName = (user?.full_name || '').trim();
+        if (!currentName) return false;
+        return row.employeeName.trim() === currentName && row.currentStatus === 'Pending';
     };
 
     return (
@@ -351,7 +559,10 @@ export default function ManageLeave() {
                         </div>
                     <button
                         type="button"
-                        onClick={() => setApplyModalOpen(true)}
+                        onClick={() => {
+                            setEmployeeName(user?.full_name || '');
+                            setApplyModalOpen(true);
+                        }}
                         className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold text-sm active:scale-[0.98] transition-all shadow-sm"
                     >
                         Apply Leave
@@ -428,10 +639,15 @@ export default function ManageLeave() {
                                                         <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
                                                     </button>
-                                                    {row.currentStatus === 'Pending' ? (
+                                                    {row.currentStatus === 'Pending' && canActOnLeave(row) && (
                                                         <>
                                                             <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Approve" className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label="Approve"
+                                                                    onClick={() => handleApproveBackend(row)}
+                                                                    className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform"
+                                                                >
                                                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
                                                                 </button>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
@@ -444,7 +660,12 @@ export default function ManageLeave() {
                                                                 </div>
                                                             </div>
                                                             <div className="relative group inline-flex shrink-0">
-                                                                <button type="button" aria-label="Reject" className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                <button
+                                                                    type="button"
+                                                                    aria-label="Reject"
+                                                                    onClick={() => handleRejectBackend(row)}
+                                                                    className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform"
+                                                                >
                                                                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                                                 </button>
                                                                 <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
@@ -457,41 +678,44 @@ export default function ManageLeave() {
                                                                 </div>
                                                             </div>
                                                         </>
-                                                    ) : (
-                                                        <>
-                                                            <div className="relative group inline-flex shrink-0">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEdit(row)}
-                                                                    aria-label="Edit"
-                                                                    className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-[#353535] bg-[#E8E8E8] hover:bg-[#D2D2D2] active:scale-[0.98] transition-all"
-                                                                >
-                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                                                </button>
-                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                                                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                                                        <span className="font-gantari text-xs font-medium text-[#353535] text-center block">Edit</span>
-                                                                    </div>
+                                                    )}
+
+                                                    {canEditLeave(row) && (
+                                                        <div className="relative group inline-flex shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEdit(row)}
+                                                                aria-label="Edit"
+                                                                className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-[#353535] bg-[#E8E8E8] hover:bg-[#D2D2D2] active:scale-[0.98] transition-all"
+                                                            >
+                                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                                            </button>
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                                                <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                                                <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                                                    <span className="font-gantari text-xs font-medium text-[#353535] text-center block">Edit</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="relative group inline-flex shrink-0">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDelete(row)}
-                                                                    aria-label="Delete"
-                                                                    className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-white bg-[#C62828] hover:bg-[#B71C1C] active:scale-[0.98] transition-all"
-                                                                >
-                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
-                                                                </button>
-                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
-                                                                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
-                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
-                                                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">Delete</span>
-                                                                    </div>
+                                                        </div>
+                                                    )}
+
+                                                    {canEditLeave(row) && (
+                                                        <div className="relative group inline-flex shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(row)}
+                                                                aria-label="Delete"
+                                                                className="inline-flex items-center justify-center p-2 rounded-lg font-medium text-white bg-[#C62828] hover:bg-[#B71C1C] active:scale-[0.98] transition-all"
+                                                            >
+                                                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                                            </button>
+                                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                                                <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                                                <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                                                    <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">Delete</span>
                                                                 </div>
                                                             </div>
-                                                        </>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </td>
@@ -576,14 +800,10 @@ export default function ManageLeave() {
                                 </label>
                                 <input
                                     type="text"
-                                    value={employeeName}
-                                    onChange={(e) => {
-                                        const next = normalizeNameAndReason(e.target.value);
-                                        setEmployeeName(next);
-                                        if (applyFormErrors.employeeName) setApplyFormErrors((prev) => ({ ...prev, employeeName: '' }));
-                                    }}
-                                    placeholder="Enter employee name"
-                                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
+                                    value={employeeName || user?.full_name || ''}
+                                    readOnly
+                                    placeholder="Employee name"
+                                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
                                 />
                                 {applyFormErrors.employeeName && (
                                     <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>
@@ -969,7 +1189,6 @@ export default function ManageLeave() {
                         <div className="px-6 py-6">
                             <div className="space-y-4">
                                 <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
                                     <span className="shrink-0 text-[#616161]">:</span>
                                     <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
                                 </div>

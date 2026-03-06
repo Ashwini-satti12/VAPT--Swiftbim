@@ -67,18 +67,34 @@ export default function TeamReportBC() {
         [teams]
     );
 
-    // Format date from ISO to DD/MM/YYYY
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+
+        // If it's ISO-ish: "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD HH:mm:ss"
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+            return s.split('T')[0].split(' ')[0];
+        }
+
+        // If already "DD/MM/YYYY"
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yyyy] = s.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        return '';
+    };
+
+    // Format date (avoid timezone shifts by not using `new Date(...)` for ISO strings)
     const formatDate = (dateStr: string | undefined): string => {
         if (!dateStr) return '-';
-        try {
-            const date = new Date(dateStr);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch {
-            return dateStr;
+        const ymd = toYmd(dateStr);
+        if (ymd) {
+            const [yyyy, mm, dd] = ymd.split('-');
+            return `${dd}/${mm}/${yyyy}`;
         }
+        return String(dateStr);
     };
 
     // Calculate task duration from start_time, end_time, Pause, and restart
@@ -132,8 +148,16 @@ export default function TeamReportBC() {
             selectteam?: string;
         } = {};
 
-        if (startDate) payload.startDate = startDate;
-        if (endDate) payload.endDate = endDate;
+        // If user picks only one side of the range, treat it as a single-day filter.
+        // This matches the common expectation: selecting one date should show that day only.
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+
+        if (effectiveStart) payload.startDate = effectiveStart;
+        if (effectiveEnd) payload.endDate = effectiveEnd;
 
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);
@@ -195,7 +219,27 @@ export default function TeamReportBC() {
         setPaginationWindowStart(1);
     }, [selectedShowEntries]);
 
-    const filteredList = list; // API already filters, so we use list directly
+    // Backend filtering uses due_date when present, but the UI shows "Start Date" from start_time.
+    // To make the date filter match what the user sees, we filter by the displayed Start Date client-side.
+    const filteredList = useMemo(() => {
+        if (!startDate && !endDate) return list;
+
+        // If user picks only one date, treat as single-day filter.
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+
+        return list.filter((row) => {
+            const startKey = toYmd(row.start_time || row.Actual_start_time);
+            if (!startKey) return false;
+
+            if (effectiveStart && startKey < effectiveStart) return false;
+            if (effectiveEnd && startKey > effectiveEnd) return false;
+            return true;
+        });
+    }, [list, startDate, endDate]);
 
     // Sort by id then start_time so serial numbers are in stable order
     const sortedList = useMemo(() => {

@@ -58,9 +58,11 @@ export default function TrackerBC() {
     const extractTime = (value: string): string => {
         const trimmed = value.trim();
         if (!trimmed) return trimmed;
-        // Match the first occurrence of H:MM:SS or HH:MM:SS
-        const match = trimmed.match(/(\d{1,2}:\d{2}:\d{2})/);
-        return match ? match[1] : trimmed;
+        // Some DBs store datetime like "2024:06:18 10:19:37" (note ':' in date).
+        // We want the *actual* time, so take the LAST HH:MM:SS occurrence.
+        const matches = trimmed.match(/(\d{1,2}:\d{2}:\d{2})/g);
+        if (!matches || matches.length === 0) return trimmed;
+        return matches[matches.length - 1];
     };
 
     // Format time to HH:MM:SS (24‑hour) for display
@@ -91,8 +93,10 @@ export default function TrackerBC() {
         // If no total_hours, try to calculate from time_in and time_out
         if (timeIn && timeOut) {
             try {
-                const [h1, m1, s1] = timeIn.split(':').map(Number);
-                const [h2, m2, s2] = timeOut.split(':').map(Number);
+                const pureIn = extractTime(timeIn);
+                const pureOut = extractTime(timeOut);
+                const [h1, m1, s1] = pureIn.split(':').map(Number);
+                const [h2, m2, s2] = pureOut.split(':').map(Number);
                 const totalSeconds = (h2 * 3600 + m2 * 60 + s2) - (h1 * 3600 + m1 * 60 + s1);
                 if (totalSeconds > 0) {
                     const h = Math.floor(totalSeconds / 3600);
