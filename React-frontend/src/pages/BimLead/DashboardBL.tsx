@@ -6,6 +6,20 @@ const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
 );
 
+type DashboardStats = {
+    totalProjects: number;
+    completedProjects: number;
+    inProgressTasks: number;
+    completedTasks: number;
+};
+
+const defaultStats: DashboardStats = {
+    totalProjects: 0,
+    completedProjects: 0,
+    inProgressTasks: 0,
+    completedTasks: 0,
+};
+
 type InvolvedPerson = { id: number; full_name: string; profile_picture: string | null };
 type PriorityTask = {
     id: number;
@@ -66,6 +80,7 @@ type CelebrationEvent = {
 
 export default function DashboardBL() {
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
@@ -77,8 +92,17 @@ export default function DashboardBL() {
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
+    // KPI cards: fetch from dashboard API (same as TD, BC, PM)
     useEffect(() => {
-        setLoading(false);
+        api.get<DashboardStats>('/api/dashboard/stats')
+            .then(({ data }) => setStats({
+                totalProjects: Number(data?.totalProjects) || 0,
+                completedProjects: Number(data?.completedProjects) || 0,
+                inProgressTasks: Number(data?.inProgressTasks) || 0,
+                completedTasks: Number(data?.completedTasks) || 0,
+            }))
+            .catch(() => setStats(defaultStats))
+            .finally(() => setLoading(false));
     }, []);
 
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
@@ -184,15 +208,15 @@ export default function DashboardBL() {
                             <div className="flex flex-col gap-1">
                                 <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Total<br />Projects</h3>
                             </div>
-                            <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">115</p>
+                            <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{stats.totalProjects}</p>
                         </div>
                         <div className="mt-auto w-full">
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">35%</span>
+                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
                             </div>
                             <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: '35%' }}></div>
+                                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
                             </div>
                         </div>
                     </div>
@@ -204,16 +228,16 @@ export default function DashboardBL() {
                                 <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Projects</h3>
                             </div>
                             <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
+                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                             </div>
                         </div>
                         <div className="mt-auto w-full">
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
+                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
                             </div>
                             <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: '35%' }}></div>
+                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
                             </div>
                         </div>
                     </div>
@@ -225,16 +249,16 @@ export default function DashboardBL() {
                                 <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">In-Progress<br />Task</h3>
                             </div>
                             <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
+                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                             </div>
                         </div>
                         <div className="mt-auto w-full">
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total In-Progress Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
+                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
                             </div>
                             <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: '35%' }}></div>
+                                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
                             </div>
                         </div>
                     </div>
@@ -246,16 +270,16 @@ export default function DashboardBL() {
                                 <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Task</h3>
                             </div>
                             <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
+                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                             </div>
                         </div>
                         <div className="mt-auto w-full">
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
+                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
                             </div>
                             <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: '35%' }}></div>
+                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
                             </div>
                         </div>
                     </div>
