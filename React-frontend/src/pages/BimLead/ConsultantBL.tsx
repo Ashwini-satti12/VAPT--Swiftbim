@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
@@ -35,6 +35,65 @@ const PANEL_ROLES = [
     'Project Manager', 'Technical Director',
     'Client', 'Sales', 'Admin', 'BIM Lead', 'Employee', 'All'
 ];
+
+function StatusDropdown({
+    value,
+    onChange,
+}: {
+    value: 'Active' | 'Deactivate';
+    onChange: (val: 'Active' | 'Deactivate') => void;
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const isActive = value === 'Active';
+
+    return (
+        <div className="relative inline-block min-w-[140px]" ref={dropdownRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`flex items-center justify-between gap-2 px-4 py-2.5 w-full rounded-[5px] border font-bold text-[14px] font-Gantari transition-colors ${
+                    isActive
+                        ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]'
+                        : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'
+                }`}
+            >
+                <span>{value}</span>
+                <FiChevronDown
+                    className={`w-4 h-4 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+            </button>
+            {isOpen && (
+                <div className="absolute z-20 mt-1 w-full bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden">
+                    {(['Active', 'Deactivate'] as const).map((option) => (
+                        <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                                onChange(option);
+                                setIsOpen(false);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-[14px] text-[#353535] font-Gantari hover:bg-[#F4F4F4]"
+                        >
+                            {option}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function ConsultantBL() {
     const { user } = useAuth();
@@ -221,6 +280,15 @@ export default function ConsultantBL() {
             setShowInactiveModal(false);
             setInactiveIds([]);
         }).catch(() => { }).finally(() => setInactiveSubmitting(false));
+    }
+
+    function handleStatusToggle(id: number, newStatus: string) {
+        const status = newStatus.toLowerCase() === 'active' ? 'active' : 'inactive';
+        // Optimistic UI update
+        setList(prev => prev.map(e => e.id === id ? { ...e, active: status } : e));
+        api.post('/api/employees/bulk-status', { ids: [id], action: status }).catch((err) => {
+            console.error('Failed to update status:', err);
+        });
     }
 
     function handleEditSubmit(e: React.FormEvent) {
@@ -736,10 +804,10 @@ export default function ConsultantBL() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center">
-                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${emp.active === 'active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
-                                                            {emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                                            <FiChevronDown className="w-5 h-5 opacity-70" />
-                                                        </button>
+                                                        <StatusDropdown
+                                                            value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                                            onChange={(val) => handleStatusToggle(emp.id, val)}
+                                                        />
                                                     </div>
                                                 </td>
                                             </tr>
@@ -884,20 +952,6 @@ export default function ConsultantBL() {
                                                 {departments.map((dept) => (
                                                     <option key={dept} value={dept}>{dept}</option>
                                                 ))}
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
-                                        </div>
-                                    </div>
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Status</label>
-                                        <div className="relative">
-                                            <select
-                                                value={form.active}
-                                                onChange={(e) => setForm((f) => ({ ...f, active: e.target.value }))}
-                                                className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="Active">Active</option>
-                                                <option value="Deactivate">Deactivate</option>
                                             </select>
                                             <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
                                         </div>
@@ -1245,21 +1299,6 @@ export default function ConsultantBL() {
                                         </div>
                                     </div>
 
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.active}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, active: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="Active">Active</option>
-                                                <option value="Deactivate">Deactivate</option>
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
                                     <div>
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
                                         <input
@@ -1434,12 +1473,22 @@ export default function ConsultantBL() {
 
                         {/* Profile Section */}
                         <div className="flex items-center gap-6 px-4">
-                            <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
-                                <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
-                                    alt={selectedEmployee.full_name}
-                                    className="w-full h-full object-cover"
-                                />
+                            <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 flex items-center justify-center">
+                                {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
+                                    <img
+                                        src={`/uploads/employee/${selectedEmployee.profile_picture.replace(/\\/g, '/')}`}
+                                        alt={selectedEmployee.full_name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            const target = e.target as HTMLImageElement;
+                                            target.style.display = 'none';
+                                        }}
+                                    />
+                                ) : (
+                                    <span className="text-[32px] font-bold text-[#000000]">
+                                        {selectedEmployee.full_name?.charAt(0) || 'U'}
+                                    </span>
+                                )}
                             </div>
                             <div className="flex flex-col gap-1">
                                 <h4 className="text-[24px] font-bold text-[#000000]">{selectedEmployee.full_name}</h4>
