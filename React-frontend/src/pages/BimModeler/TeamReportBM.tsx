@@ -72,7 +72,7 @@ export default function TeamReportBM() {
 
     // Calculate task duration from start_time, end_time, Pause, and restart
     const calculateDuration = (entry: TimesheetEntry): string => {
-        if (!entry.start_time || !entry.end_time) return '00:00:00';
+        if (!entry.start_time || !entry.end_time) return '-';
         
         try {
             const start = new Date(entry.start_time);
@@ -196,8 +196,8 @@ export default function TeamReportBM() {
             
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
                 startDate,
                 endDate,
                 duration
@@ -400,8 +400,8 @@ export default function TeamReportBM() {
                                         return (
                                             <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                                 <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
+                                                <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                                <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
                                                 <td className="px-6 py-3 text-center text-sm text-gray-600">{startDate}</td>
                                                 <td className="px-6 py-3 text-center text-sm text-gray-600">{endDate}</td>
                                                 <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{duration}</td>

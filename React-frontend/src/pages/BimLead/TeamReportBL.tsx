@@ -91,7 +91,7 @@ export default function TeamReportBL() {
 
     // Calculate duration from start_time / end_time and pause / restart
     const calculateDuration = (entry: TimesheetEntry): string => {
-        if (!entry.start_time || !entry.end_time) return '00:00:00';
+        if (!entry.start_time || !entry.end_time) return '-';
 
         try {
             const start = new Date(entry.start_time);
@@ -249,8 +249,8 @@ export default function TeamReportBL() {
 
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
                 start,
                 end,
                 duration
@@ -451,8 +451,8 @@ export default function TeamReportBL() {
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{start}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{end}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{duration}</td>

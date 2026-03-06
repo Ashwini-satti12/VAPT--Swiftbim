@@ -297,9 +297,9 @@ export default function TeamReportTD() {
             const slNo = (index + 1).toString().padStart(2, '0');
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
-                row.start_date || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
+                row.start_date && row.start_date.trim() !== '' ? row.start_date : '-',
                 row.end_date || '-',
                 row.duration || 'hh:mm:ss'
             ].map(val => `"${val}"`).join(',');
@@ -563,9 +563,9 @@ export default function TeamReportTD() {
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.start_date ?? '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.start_date && row.start_date.trim() !== '' ? row.start_date : '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.end_date ?? '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{row.duration ?? 'hh:mm:ss'}</td>
                                         </tr>
