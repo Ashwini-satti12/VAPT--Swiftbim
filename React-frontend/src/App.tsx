@@ -48,6 +48,7 @@ import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
 import BiddingTD from './pages/TechnicalDirector/BiddingTD';
 import ProposalTD from './pages/TechnicalDirector/ProposalTD';
 import CreateProposalTD from './pages/TechnicalDirector/CreateProposalTD';
+import ManageLeaveTD from './pages/TechnicalDirector/ManageLeaveTD';
 
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
@@ -63,6 +64,7 @@ import ChatBL from './pages/BimLead/ChatBL';
 import MytaskViewBL from './pages/BimLead/MytaskViewBL';
 import ClientBL from './pages/BimLead/ClientBL';
 import PartnerBL from './pages/BimLead/PartnerBL';
+import MangeLeaveBL from './pages/BimLead/MangeLeaveBL';
 
 /* Bim Coordinator */
 import DashboardBC from './pages/BimCoordinator/DashboardBC';
@@ -156,6 +158,7 @@ function App() {
             <Route path="td/manage-proposal" element={<ProposalTD />} />
             <Route path="td/proposals" element={<ProposalTD />} />
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
+            <Route path="td/manage-leave" element={<ManageLeaveTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
@@ -172,6 +175,7 @@ function App() {
             <Route path="bl/partner" element={<PartnerBL />} />
             <Route path="bl/partner/:id" element={<PartnerView />} />
             <Route path="bl/bidding" element={<BiddingTD />} />
+            <Route path="bl/manage-leave" element={<MangeLeaveBL />} />
 
             {/* Bim Coordinator Routes */}
             <Route path="bc/dashboard" element={<DashboardBC />} />

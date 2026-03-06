@@ -136,6 +136,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
+          name: "Manage Leave",
+          path: "/td/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
+        {
           name: "Tracker",
           path: "/td/tracker",
           iconSrc: trackerIcon,
@@ -229,6 +236,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           path: "/bl/createteam",
           iconSrc: createTeamIcon,
           activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        {
+          name: "Manage Leave",
+          path: "/bl/manage-leave",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
         {
