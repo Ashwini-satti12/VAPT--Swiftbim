@@ -168,3 +168,17 @@ def reject_leave(app_id):
     if cur.rowcount:
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Not found"}), 404
+
+
+@bp.route("/applications/<int:app_id>", methods=["DELETE"])
+@project_app_required
+def delete_application(app_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM tblleaves WHERE id = %s AND Company_id = %s AND empid = %s",
+        (app_id, g.company_id, g.user_id)
+    )
+    if cur.rowcount:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "message": "Not found or not authorized"}), 404
