@@ -174,6 +174,38 @@ def get_vendor(vendor_id):
     return jsonify(vendor)
 
 
+@bp.route("/by-email", methods=["GET"])
+@login_required
+def get_vendor_by_email():
+    """
+    GET /api/vendors/by-email?email=<email>
+    Cross-database lookup: the bid stores vendor_email from the main DB
+    (employee.email).  This endpoint finds the matching vendor_onboarding
+    record in new_swiftbim by checking both the `email` column and the
+    `contact_email` column so the frontend can navigate to /td/partner/:id.
+    Returns { vendor: { id, company_name, email, ... } } or { vendor: null }.
+    """
+    email = request.args.get("email", "").strip()
+    if not email:
+        return jsonify({"vendor": None, "error": "email param required"}), 400
+
+    cur = vendor_cursor()
+    try:
+        cur.execute(
+            """SELECT * FROM vendor_onboarding
+               WHERE contact_email = %s
+               ORDER BY id DESC LIMIT 1""",
+            (email,),
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"vendor": None})
+        vendor = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"vendor": vendor})
+    except Exception as e:
+        return jsonify({"vendor": None, "error": str(e)}), 500
+
+
 @bp.route("/<int:vendor_id>/approve", methods=["POST"])
 @login_required
 def approve_vendor(vendor_id):
@@ -452,7 +484,9 @@ def my_bids():
 def vendor_proposals():
     """
     GET /api/vendors/proposals
-    Returns proposals sent to the current vendor from Technical Director.
+    Returns proposals sent to the current vendor — merges:
+      1. vendor_proposals (original table)
+      2. td_proposals (TD-created proposals via bid acceptance flow)
     """
     email = getattr(g, "user_email", None)
     cur = vendor_cursor()
@@ -470,16 +504,39 @@ def vendor_proposals():
     if not vendor_id:
         return jsonify({"proposals": []})
 
+    proposals = []
+    # 1. Original vendor_proposals table
     try:
         cur.execute(
             """SELECT * FROM vendor_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
             (vendor_id,),
         )
-        rows = cur.fetchall()
-        proposals = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        for r in cur.fetchall():
+            p = {k: _serialize(v) for k, v in r.items()}
+            p["source"] = "vendor_proposals"
+            proposals.append(p)
     except Exception:
-        proposals = []
+        pass
 
+    # 2. TD-created proposals (td_proposals table)
+    try:
+        _ensure_td_proposals_table()
+        cur.execute(
+            """SELECT * FROM td_proposals WHERE vendor_onboarding_id = %s ORDER BY created_at DESC""",
+            (vendor_id,),
+        )
+        for r in cur.fetchall():
+            p = {k: _serialize(v) for k, v in r.items()}
+            p["source"] = "td_proposals"
+            # normalise field names to match existing Proposal type in frontend
+            if "project_name" not in p or not p.get("project_name"):
+                p["project_name"] = p.get("project_name") or ""
+            proposals.append(p)
+    except Exception:
+        pass
+
+    # Sort all proposals by created_at descending
+    proposals.sort(key=lambda x: x.get("created_at") or "", reverse=True)
     return jsonify({"proposals": proposals})
 
 
@@ -609,3 +666,222 @@ def bidding_bids(bidding_id):
         bids = []
 
     return jsonify({"opportunity": opportunity, "bids": bids})
+
+
+# ---------------------------------------------------------------------------
+# Bid Accept / Reject (Technical Director actions)
+# ---------------------------------------------------------------------------
+
+@bp.route("/bidding/<int:bidding_id>/bids/<int:bid_id>/accept", methods=["POST"])
+@login_required
+def accept_bid(bidding_id, bid_id):
+    """
+    POST /api/vendors/bidding/<bidding_id>/bids/<bid_id>/accept
+    TD accepts a vendor bid — marks it as 'shortlisted'.
+    Returns full bid info to pre-fill the proposal creation form.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "UPDATE vendor_bids SET status = 'shortlisted' WHERE id = %s AND opportunity_id = %s",
+            (bid_id, bidding_id),
+        )
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Bid not found"}), 404
+        conn.commit()
+
+        # Return bid + vendor info for proposal pre-fill
+        cur.execute(
+            """
+            SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
+                   e.full_name AS vendor_name, e.email AS vendor_email, e.phone_number AS vendor_phone
+            FROM vendor_bids vb
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            LEFT JOIN employee e ON e.id = vb.vendor_id
+            WHERE vb.id = %s
+            """,
+            (bid_id,),
+        )
+        row = cur.fetchone()
+        bid_info = {k: _serialize(v) for k, v in row.items()} if row else {}
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    return jsonify({"success": True, "bid": bid_info})
+
+
+@bp.route("/bidding/<int:bidding_id>/bids/<int:bid_id>/reject", methods=["POST"])
+@login_required
+def reject_bid(bidding_id, bid_id):
+    """
+    POST /api/vendors/bidding/<bidding_id>/bids/<bid_id>/reject
+    TD rejects a vendor bid — marks it as 'lost'.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            "UPDATE vendor_bids SET status = 'lost' WHERE id = %s AND opportunity_id = %s",
+            (bid_id, bidding_id),
+        )
+        if cur.rowcount == 0:
+            return jsonify({"success": False, "message": "Bid not found"}), 404
+        conn.commit()
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+    return jsonify({"success": True})
+
+
+# ---------------------------------------------------------------------------
+# Vendor lookup by email (for View Vendor modal in ViewBidsTD)
+# ---------------------------------------------------------------------------
+
+@bp.route("/by-email", methods=["GET"])
+@login_required
+def vendor_by_email():
+    """
+    GET /api/vendors/by-email?email=<email>
+    Returns the vendor_onboarding id + basic info for the given email.
+    Used by the View Vendor modal to resolve employee email → vendor profile id.
+    """
+    email = request.args.get("email", "").strip()
+    if not email:
+        return jsonify({"vendor": None}), 400
+
+    cur = vendor_cursor()
+    cur.execute(
+        "SELECT id FROM vendor_onboarding WHERE contact_email = %s OR email = %s LIMIT 1",
+        (email, email),
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"vendor": None})
+    vendor = _fetch_vendor_full(row["id"])
+    return jsonify({"vendor": vendor})
+
+
+# ---------------------------------------------------------------------------
+# Accepted bids list — for ProposalTD page
+# ---------------------------------------------------------------------------
+
+@bp.route("/bidding/accepted-bids", methods=["GET"])
+@login_required
+def accepted_bids():
+    """
+    GET /api/vendors/bidding/accepted-bids
+    Returns all bids with status 'shortlisted' across all opportunities.
+    Used by ProposalTD.tsx to list accepted vendors awaiting a proposal.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
+                   e.full_name AS vendor_name, e.email AS vendor_email,
+                   (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
+            FROM vendor_bids vb
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            LEFT JOIN employee e ON e.id = vb.vendor_id
+            WHERE vb.status = 'shortlisted'
+            ORDER BY vb.created_at DESC
+            """
+        )
+        rows = cur.fetchall()
+        bids = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+    except Exception as e:
+        bids = []
+    return jsonify({"bids": bids})
+
+
+@bp.route("/proposals/td-create", methods=["POST"])
+@login_required
+def td_create_proposal():
+    """
+    POST /api/vendors/proposals/td-create
+    Technical Director creates a formal proposal for an accepted vendor bid.
+    Data is stored in new_swiftbim.td_proposals.
+    """
+    data = request.get_json() or {}
+    
+    # Required IDs
+    bid_id = data.get("bid_id")
+    opportunity_id = data.get("opportunity_id")
+    vendor_id = data.get("vendor_employee_id") # employee id from main DB
+    
+    if not all([bid_id, opportunity_id, vendor_id]):
+        return jsonify({"success": False, "message": "Missing required IDs (bid_id, opportunity_id, vendor_id)"}), 400
+
+    import json
+    
+    conn = get_db() # main database connection
+    cur = conn.cursor(dictionary=True)
+    
+    try:
+        # 1. Ensure table exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS td_proposals (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                bid_id INT NOT NULL,
+                opportunity_id INT NOT NULL,
+                vendor_id INT NOT NULL,
+                project_name VARCHAR(255),
+                vendor_name VARCHAR(255),
+                executive_summary TEXT,
+                about_us TEXT,
+                address TEXT,
+                website_url VARCHAR(255),
+                email_address VARCHAR(255),
+                selected_currency VARCHAR(10),
+                scope_of_work TEXT,
+                technologies_used JSON,
+                deliverables TEXT,
+                exclusions TEXT,
+                commercial_offer JSON,
+                payment_terms JSON,
+                status VARCHAR(50) DEFAULT 'Sent',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 2. Insert proposal
+        sql = """
+            INSERT INTO td_proposals (
+                bid_id, opportunity_id, vendor_id, project_name, vendor_name,
+                executive_summary, about_us, address, website_url, email_address,
+                selected_currency, scope_of_work, technologies_used, deliverables,
+                exclusions, commercial_offer, payment_terms
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        
+        params = (
+            bid_id,
+            opportunity_id,
+            vendor_id,
+            data.get("project_name"),
+            data.get("vendor_name"),
+            data.get("executive_summary"),
+            data.get("aboutus"),
+            data.get("address"),
+            data.get("website_url"),
+            data.get("email_address"),
+            data.get("selected_currency"),
+            data.get("scope_of_work"),
+            json.dumps(data.get("technologies_used", [])),
+            data.get("deliverables"),
+            data.get("exclusions"),
+            json.dumps(data.get("commercial_offer", [])),
+            json.dumps(data.get("payment_terms", []))
+        )
+        
+        cur.execute(sql, params)
+        conn.commit()
+        
+        return jsonify({"success": True, "message": "Proposal created and sent to vendor."})
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+

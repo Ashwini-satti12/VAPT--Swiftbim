@@ -90,7 +90,7 @@ export default function OpportunitiesV() {
             <div className="flex items-center justify-between shrink-0 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 font-gantari">Opportunities</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-gantari">Active bidding opportunities — submit your bid before the deadline</p>
+                    {/* <p className="text-sm text-slate-500 mt-1 font-gantari">Active bidding opportunities — submit your bid before the deadline</p> */}
                 </div>
                 <span className="text-sm font-medium text-[#DE3D3A] bg-[#FFE5E5] px-4 py-1.5 rounded-full font-gantari">
                     {opportunities.filter(o => o.status === 'active').length} Active

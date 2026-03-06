@@ -154,6 +154,7 @@ function App() {
             <Route path="td/partner/:id" element={<PartnerView />} />
             <Route path="td/bidding" element={<BiddingTD />} />
             <Route path="td/manage-proposal" element={<ProposalTD />} />
+            <Route path="td/proposals" element={<ProposalTD />} />
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
