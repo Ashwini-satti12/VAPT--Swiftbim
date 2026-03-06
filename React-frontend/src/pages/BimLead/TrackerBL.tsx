@@ -61,16 +61,17 @@ export default function TrackerBL() {
 
     // Format time to HH:MM:SS (24‑hour) for display
     const formatTime = (timeStr: string | null | undefined): string => {
-        if (!timeStr || timeStr.trim() === '') return 'N/A';
+        if (!timeStr || timeStr.trim() === '') return '-';
         try {
             const pure = extractTime(timeStr);
+            if (!pure || pure.trim() === '') return '-';
             const [hours, minutes, seconds = '00'] = pure.split(':');
             const h = hours.padStart(2, '0');
             const m = minutes.padStart(2, '0');
             const s = seconds.padStart(2, '0');
             return `${h}:${m}:${s}`;
         } catch {
-            return timeStr;
+            return '-';
         }
     };
 
@@ -104,7 +105,7 @@ export default function TrackerBL() {
                 // Ignore calculation errors
             }
         }
-        return 'N/A';
+        return '-';
     };
 
     // Fetch attendance data whenever selectedDate changes
@@ -226,7 +227,7 @@ export default function TrackerBL() {
         const headers = ['Sl.No', 'Date', 'Employee Name', 'Time In', 'Time Out', 'Total Hours', 'Status'];
         const csvData = filteredList.map((entry, index) => {
             const slNo = (index + 1).toString().padStart(2, '0');
-            const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : 'N/A';
+            const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : '-';
             const timeIn = formatTime(entry.time_in);
             const timeOut = formatTime(entry.time_out || null);
             const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
@@ -235,7 +236,7 @@ export default function TrackerBL() {
             return [
                 slNo,
                 formattedDate,
-                entry.full_name || 'N/A',
+                entry.full_name || '-',
                 timeIn,
                 timeOut,
                 totalHours,
@@ -388,7 +389,7 @@ export default function TrackerBL() {
                                 displayedList.map((entry, index) => {
                                     const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
                                     const slNo = (baseIndex + 1).toString().padStart(2, '0');
-                                    const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : 'N/A';
+                                    const formattedDate = entry.date ? entry.date.replace(/-/g, '/') : '-';
                                     const timeIn = formatTime(entry.time_in);
                                     const timeOut = formatTime(entry.time_out || null);
                                     const totalHours = formatTotalHours(entry.total_hours, entry.time_in, entry.time_out);
@@ -397,7 +398,7 @@ export default function TrackerBL() {
                                         <tr key={entry.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? 'N/A'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{entry.full_name ?? '-'}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
