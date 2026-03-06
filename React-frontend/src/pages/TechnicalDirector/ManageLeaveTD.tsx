@@ -1,9 +1,433 @@
-import React from 'react'
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
-function ManageLeaveTD() {
-  return (
-    <div>ManageLeaveTD</div>
-  )
+interface LeaveEntry {
+    id: number;
+    slNo: number;
+    employeeName: string;
+    role?: string;
+    leaveType: string;
+    appliedOn: string;
+    appliedTo?: string;
+    currentStatus: string;
+    fromDate?: string;
+    toDate?: string;
+    description?: string;
 }
 
-export default ManageLeaveTD
+const DUMMY_LEAVES: LeaveEntry[] = [
+    { id: 1, slNo: 1, employeeName: 'John Doe', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '01/03/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '02/03/2026', toDate: '03/03/2026', description: 'Medical appointment' },
+    { id: 2, slNo: 2, employeeName: 'Jane Smith', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '28/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '05/03/2026', toDate: '06/03/2026', description: 'Family event' },
+    { id: 3, slNo: 3, employeeName: 'Mike Johnson', role: 'BIM Lead', leaveType: 'Earned Leave', appliedOn: '25/02/2026', appliedTo: 'Project Manager', currentStatus: 'Approved', fromDate: '10/03/2026', toDate: '12/03/2026', description: 'Personal' },
+    { id: 4, slNo: 4, employeeName: 'Sarah Williams', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '20/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '21/02/2026', toDate: '22/02/2026', description: 'Fever' },
+    { id: 5, slNo: 5, employeeName: 'David Brown', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '15/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '18/02/2026', toDate: '19/02/2026', description: 'Travel' },
+    { id: 6, slNo: 6, employeeName: 'Emma Wilson', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '12/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '13/02/2026', toDate: '14/02/2026', description: 'Recovery' },
+    { id: 7, slNo: 7, employeeName: 'James Davis', role: 'BIM Modeler', leaveType: 'Earned Leave', appliedOn: '10/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '20/03/2026', toDate: '22/03/2026', description: 'Vacation' },
+    { id: 8, slNo: 8, employeeName: 'Olivia Martinez', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '08/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '09/02/2026', toDate: '10/02/2026', description: 'Personal work' },
+    { id: 9, slNo: 9, employeeName: 'William Taylor', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '05/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '06/02/2026', toDate: '07/02/2026', description: 'Doctor visit' },
+    { id: 10, slNo: 10, employeeName: 'Sophia Anderson', role: 'BIM Modeler', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '15/02/2026', toDate: '15/05/2026', description: 'Maternity' },
+];
+
+const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: '0-100', label: '0-100', start: 0, end: 100 },
+    { value: '101-200', label: '101-200', start: 100, end: 200 },
+    { value: '201-300', label: '201-300', start: 200, end: 300 },
+    { value: '301-400', label: '301-400', start: 300, end: 400 },
+    { value: 'all', label: 'All', start: 0, end: null },
+];
+
+const PER_PAGE = 10;
+const PAGINATION_VISIBLE = 4;
+
+export default function ManageLeave() {
+    const [viewModalOpen, setViewModalOpen] = useState(false);
+    const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
+    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+
+    const [selectedEmployee, setSelectedEmployee] = useState<string>('All');
+    const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
+    const employeeDropdownRef = useRef<HTMLDivElement>(null);
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+
+    const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeDropdownOpen(false);
+            }
+        };
+        if (employeeDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [employeeDropdownOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
+        };
+        if (showEntriesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEntriesOpen]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries, selectedEmployee]);
+
+    const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
+    const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+    const rangeStart = selectedRange.start;
+    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+
+    const handleView = (row: LeaveEntry) => {
+        setSelectedLeave(row);
+        setViewModalOpen(true);
+    };
+
+    return (
+        <div className="pt-4 px-4 md:pt-6 md:px-6 lg:pt-8 lg:px-8 pb-0 flex flex-col h-full font-gantari overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <div
+                className="flex flex-col flex-1 min-h-0"
+                style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%' }}
+            >
+            {/* Page header: heading left; Employee + Show entries right */}
+            <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
+                <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">Manage Leaves</h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="relative" ref={employeeDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEmployeeDropdownOpen((o) => !o);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between ${employeeDropdownOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                        >
+                            <span>Employee:</span>
+                            <span className="truncate max-w-[100px]">{selectedEmployee}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                className={`shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? 'rotate-180' : ''}`}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {employeeDropdownOpen && (
+                            <div
+                                className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[160px] max-h-[240px] overflow-y-auto py-1.5 custom-scrollbar"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {employeeOptions.map((name) => {
+                                    const isSelected = selectedEmployee === name;
+                                    return (
+                                        <button
+                                            key={name}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedEmployee(name);
+                                                setEmployeeDropdownOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors truncate ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                        >
+                                            {name}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowEntriesOpen((o) => !o);
+                                }}
+                                className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                            >
+                                <span>Show:</span>
+                                <span>{selectedRange.label}</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                    className={`transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}>
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </button>
+                            {showEntriesOpen && (
+                                <div
+                                    className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[140px] py-1.5"
+                                    onMouseDown={(e) => e.preventDefault()}
+                                >
+                                    {showEntriesOptions.map((opt) => {
+                                        const isSelected = selectedShowEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedShowEntries(opt.value);
+                                                    setShowEntriesOpen(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                </div>
+            </div>
+
+            {/* Table Section - same design as TrackerTD; no min-height so card fits content and no extra padding below */}
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
+                <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
+                    <table className="min-w-full border-collapse">
+                        <thead className="sticky top-0 z-10 bg-[#FFFFFF]">
+                            <tr className="border-b border-gray-100 bg-[#FFFFFF]">
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {displayedList.length === 0 ? (
+                                <tr>
+                                    <td colSpan={8} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
+                                        No leave records found
+                                    </td>
+                                </tr>
+                            ) : (
+                                displayedList.map((row, index) => {
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = baseIndex + 1;
+                                    return (
+                                        <tr
+                                            key={row.id}
+                                            className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
+                                        >
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
+                                                    {row.currentStatus}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <div className="flex items-center justify-center gap-4 flex-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleView(row)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DD4346] text-white rounded-lg font-medium text-xs hover:bg-[#c43a39] active:scale-[0.98] transition-all shrink-0"
+                                                    >
+                                                        <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
+                                                        View
+                                                    </button>
+                                                    {row.currentStatus === 'Pending' ? (
+                                                        <>
+                                                            <div className="relative group inline-flex shrink-0">
+                                                                <button type="button" aria-label="Approve" className="inline-flex items-center justify-center p-2 bg-[#008F22] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                                                                </button>
+                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                                                    <div className="relative z-10">
+                                                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                                                    </div>
+                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                                                        <span className="font-gantari text-xs font-medium text-[#008F22] text-center block">Approve</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="relative group inline-flex shrink-0">
+                                                                <button type="button" aria-label="Reject" className="inline-flex items-center justify-center p-2 bg-[#C62828] text-white rounded-lg font-medium active:scale-[0.98] transition-transform">
+                                                                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                                                </button>
+                                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 flex flex-col items-center">
+                                                                    <div className="relative z-10">
+                                                                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[8px] border-l-transparent border-r-transparent border-b-gray-300 drop-shadow-[0_-2px_4px_rgba(0,0,0,0.15)]"></div>
+                                                                    </div>
+                                                                    <div className="bg-gray-100 border border-[#C1C1C1]/50 rounded-lg shadow-[inset_0_0_0_1px_rgba(193,193,193,0.35),0_6px_16px_rgba(0,0,0,0.18)] px-4 py-2 -mt-[1px]">
+                                                                        <span className="font-gantari text-xs font-medium text-[#E00100] text-center block">Reject</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    ) : null}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Pagination bar - same as TrackerTD: pinned to bottom; right-aligned */}
+            {totalInRange > 0 && (
+                <div className="flex flex-wrap items-center justify-end mt-4 pt-0 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={goPrevWindow}
+                            disabled={!canPrevWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                            Prev
+                        </button>
+                        {visiblePageRanges.map((pr) => {
+                            const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
+                            const isActive = pageNum === activePage;
+                            return (
+                                <button
+                                    key={pr.label}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
+                                >
+                                    {pr.label}
+                                </button>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={goNextWindow}
+                            disabled={!canNextWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            </div>
+            </div>
+
+            {/* View Leave Modal */}
+            {viewModalOpen && selectedLeave && createPortal(
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                    onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
+                >
+                    <div
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                            <button
+                                type="button"
+                                onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
+                                aria-label="Close"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <h3 className="text-xl font-bold text-[#353535]">Leave Details</h3>
+                        </div>
+                        <div className="px-6 py-6">
+                            <div className="space-y-4">
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Role</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.role ?? '–'}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Leave Type</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.leaveType}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">From Date</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.fromDate ?? '–'}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">To Date</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.toDate ?? '–'}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Applied On</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.appliedOn}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Reason</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.description ?? '–'}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Current Status</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
+                                        {selectedLeave.currentStatus}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+}
