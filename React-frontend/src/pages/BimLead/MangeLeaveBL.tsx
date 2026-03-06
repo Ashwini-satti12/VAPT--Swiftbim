@@ -1189,10 +1189,6 @@ export default function ManageLeave() {
                         <div className="px-6 py-6">
                             <div className="space-y-4">
                                 <div className="flex items-start gap-2">
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
                                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
                                     <span className="shrink-0 text-[#616161]">:</span>
                                     <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>
