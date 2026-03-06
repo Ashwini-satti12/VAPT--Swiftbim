@@ -131,6 +131,40 @@ def list_projects():
     return jsonify({"projects": projects})
 
 
+def _resolve_client_id(cur, company_id, value):
+    """Resolve client by fullName to id. Stores ID only."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return int(value) if value == int(value) else None
+    s = str(value).strip()
+    if not s or s.isdigit():
+        return int(s) if s.isdigit() else None
+    cur.execute(
+        "SELECT id FROM clientinformation WHERE fullName = %s AND Company_id = %s LIMIT 1",
+        (s, company_id),
+    )
+    row = cur.fetchone()
+    return int(row["id"]) if row else None
+
+
+def _resolve_employee_id(cur, company_id, value):
+    """Resolve employee by full_name to id."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return int(value) if value == int(value) else None
+    s = str(value).strip()
+    if not s or s.isdigit():
+        return int(s) if s.isdigit() else None
+    cur.execute(
+        "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s LIMIT 1",
+        (s, company_id),
+    )
+    row = cur.fetchone()
+    return int(row["id"]) if row else None
+
+
 @bp.route("/<int:project_id>", methods=["GET"])
 @project_app_required
 def get_project(project_id):
@@ -144,6 +178,15 @@ def get_project(project_id):
     if not row:
         return jsonify({"success": False, "message": "Project not found"}), 404
     d = dict(row)
+    cur.execute(
+        """SELECT COUNT(*) AS total_tasks,
+           SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
+           FROM tasks WHERE projectid = %s AND Company_id = %s""",
+        (project_id, g.company_id),
+    )
+    counts = cur.fetchone() or {}
+    d["total_tasks"] = int(counts.get("total_tasks") or 0)
+    d["completed_tasks"] = int(counts.get("completed_tasks") or 0)
     if d.get("due_date") and hasattr(d["due_date"], "isoformat"):
         d["due_date"] = d["due_date"].isoformat()
     if d.get("start_date") and hasattr(d["start_date"], "isoformat"):
@@ -164,25 +207,33 @@ def create_project():
     priority = data.get("priority") or "Low"
     budget = data.get("budget") or "0"
     modules = data.get("modules") or ""
-    client_id = data.get("client_id") or None
-    project_manager_id = data.get("project_manager_id") or None
-    lead_id = data.get("lead_id") or None
-    bim_coordinator_id = data.get("bim_coordinator_id") or None
+    raw_client = data.get("client_id") or None
+    raw_pm = data.get("project_manager_id") or None
+    raw_lead = data.get("lead_id") or None
+    raw_bim_co = data.get("bim_coordinator_id") or None
     totalhours = data.get("totalhours") or data.get("total_hours") or None
     perday = data.get("perday") or data.get("per_day") or None
     location = data.get("location") or None
     description = data.get("description") or None
     start_date = data.get("start_date") or None
+    resources = data.get("resources") or None
+    required_resources = data.get("required_resources") or None
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
     conn = get_db()
     cur = conn.cursor()
+    # Resolve names to IDs so we always store IDs in DB
+    client_id = _resolve_client_id(cur, g.company_id, raw_client)
+    project_manager_id = _resolve_employee_id(cur, g.company_id, raw_pm)
+    lead_id = _resolve_employee_id(cur, g.company_id, raw_lead)
+    bim_coordinator_id = _resolve_employee_id(cur, g.company_id, raw_bim_co)
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, resources, required_resources)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
-         client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date),
+         client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
+         resources, required_resources),
     )
     project_id = cur.lastrowid
     return jsonify({"success": True, "project_id": project_id})
@@ -191,12 +242,22 @@ def create_project():
 @bp.route("/<int:project_id>", methods=["PUT", "PATCH"])
 @project_app_required
 def update_project(project_id):
-    data = request.get_json() or request.form
+    raw = request.get_json() or request.form
+    data = dict(raw) if raw else {}
     conn = get_db()
     cur = conn.cursor()
+    # Resolve names to IDs so we always store IDs
+    if data.get("client_id") is not None:
+        data["client_id"] = _resolve_client_id(cur, g.company_id, data["client_id"])
+    if data.get("project_manager_id") is not None:
+        data["project_manager_id"] = _resolve_employee_id(cur, g.company_id, data["project_manager_id"])
+    if data.get("lead_id") is not None:
+        data["lead_id"] = _resolve_employee_id(cur, g.company_id, data["lead_id"])
+    if data.get("bim_coordinator_id") is not None:
+        data["bim_coordinator_id"] = _resolve_employee_id(cur, g.company_id, data["bim_coordinator_id"])
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
-               "budget_ceiling", "bidding_end_date")
+               "budget_ceiling", "bidding_end_date", "resources", "required_resources")
     sets = []
     params = []
     for key in allowed:
@@ -223,7 +284,6 @@ def update_project(project_id):
 
     if is_outsource:
         try:
-            # Fetch the updated project name + budget from snh6_swiftproject
             cur.execute("SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
                         (project_id, g.company_id))
             proj = cur.fetchone()
@@ -231,10 +291,7 @@ def update_project(project_id):
                 project_name = proj["project_name"]
                 outsource_budget = proj["budget"]
                 description = proj.get("description") or ""
-                # Bidding tables are now in the main snh6_swiftproject database
-                # so we can use the same connection `conn`
-                vcur = conn.cursor()
-                vcur.execute(
+                cur.execute(
                     """INSERT INTO vendor_bidding
                          (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
                        VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
@@ -250,9 +307,7 @@ def update_project(project_id):
                     (project_id, project_name, description, outsource_budget,
                      budget_ceiling or outsource_budget, bidding_end_date, g.company_id),
                 )
-                vendor_conn.close()
         except Exception:
-            # Don't fail the whole update if vendor bridge has an issue
             pass
 
     return jsonify({"success": True})

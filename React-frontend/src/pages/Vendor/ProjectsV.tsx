@@ -212,7 +212,7 @@ export default function ProjectsV() {
                 const projects = (data.projects ?? []).map(mapApiProjectToProject);
                 setList(projects);
             })
-            .catch(() => setList([]))
+            .catch(() => { })
             .finally(() => setLoading(false));
     }, []);
 
