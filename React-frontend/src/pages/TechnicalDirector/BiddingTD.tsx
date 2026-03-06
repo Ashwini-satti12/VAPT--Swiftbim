@@ -31,19 +31,18 @@ export default function BiddingTD() {
             .finally(() => setLoading(false));
     }, []);
 
-    const getStatusStyles = (status: string) => {
-        const s = (status || '').toLowerCase();
-        if (s === 'active') return 'bg-blue-50 text-blue-600 border-blue-100';
-        if (s === 'closed') return 'bg-gray-50 text-gray-500 border-gray-100';
-        if (s === 'awarded') return 'bg-green-50 text-green-600 border-green-100';
-        return 'bg-gray-50 text-gray-500 border-gray-100';
-    };
-
     const getStatusLabel = (entry: BiddingEntry) => {
         const s = (entry.computed_status || entry.status || 'active').toLowerCase();
         if (s === 'active') return 'Open';
         if (s === 'awarded') return 'Awarded';
         return 'Closed';
+    };
+
+    const getStatusBadge = (status: string) => {
+        const s = (status || '').toLowerCase();
+        if (s === 'active') return 'bg-[#EAF0FB] text-[#1967D2]';
+        if (s === 'awarded') return 'bg-[#E6F4EA] text-[#1E7E34]';
+        return 'bg-[#F2F2F2] text-[#616161]';
     };
 
     const formatBudget = (amount: number | undefined) => {
@@ -60,118 +59,114 @@ export default function BiddingTD() {
     }
 
     return (
-        <div className="h-full flex flex-col px-4 py-2">
-            <div className="flex items-center justify-between flex-shrink-0 mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-[#353535] font-gantari">Bidding Process</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-gantari">Projects sent for outsource — track vendor bids in real time</p>
+        <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+                <div className="flex items-center justify-between w-full md:w-auto">
+                    <h2 className="text-2xl font-semibold text-[#000000]">Bidding</h2>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="relative">
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Search */}
+                    <div className="relative flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md min-w-[200px]">
+                        <svg className="w-4 h-4 text-[#616161] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
                             placeholder="Search project..."
-                            className="pl-9 pr-4 py-2 border border-[#E2E8F0] rounded-xl text-sm font-gantari text-[#353535] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/20 bg-white shadow-sm w-56"
+                            className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari"
                         />
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                        {searchTerm && (
+                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar pb-8">
-                <div className="bg-white rounded-[20px] shadow-sm border border-[#E2E8F0] overflow-hidden">
-                    <div className="bg-[#F8FAFC] px-6 py-5 border-b border-[#E2E8F0] flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-[#353535] font-gantari">
-                            All Outsourced Projects
-                            <span className="ml-2 text-sm font-semibold text-[#94A3B8]">({filtered.length})</span>
-                        </h3>
-                    </div>
-
+            {/* Table Card */}
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
                     {loading ? (
-                        <div className="flex justify-center py-20">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
+                        <div className="flex justify-center items-center py-20">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="py-20 text-center text-slate-400 font-gantari">
-                            <svg className="w-14 h-14 mx-auto mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="py-20 text-center text-[#616161] font-gantari">
+                            <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <p className="text-lg font-semibold mb-1">No outsourced projects yet</p>
+                            <p className="text-lg font-semibold mb-1 text-[#353535]">No outsourced projects yet</p>
                             <p className="text-sm">When a project is marked as Outsource, it will appear here.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse min-w-[900px]">
-                                <thead className="bg-[#F8FAFC]">
-                                    <tr>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider">Sl.No</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider">Project Name</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider text-center">Outsourcing Budget</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider text-center">Bidding End Date</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider text-center">Total Bids</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider text-center">Status</th>
-                                        <th className="py-4 px-6 font-gantari text-[#353535] text-xs uppercase tracking-wider text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[#E2E8F0]">
-                                    {filtered.map((project, index) => {
-                                        const label = getStatusLabel(project);
-                                        const isOpen = label === 'Open';
-                                        return (
-                                            <tr key={project.id} className="transition-colors hover:bg-[#F8FAFC]">
-                                                <td className="py-5 px-6 text-sm font-medium text-[#64748B]">{index + 1}</td>
-                                                <td className="py-5 px-6">
-                                                    <div className="text-sm font-bold text-[#1E293B] font-gantari">{project.project_name}</div>
-                                                    {project.description && (
-                                                        <div className="text-xs text-[#94A3B8] mt-0.5 line-clamp-1">{project.description}</div>
-                                                    )}
-                                                </td>
-                                                <td className="py-5 px-6 text-center">
-                                                    <div className="text-sm font-bold text-[#1E293B] font-gantari">
-                                                        {formatBudget(project.budget_ceiling || project.outsource_budget)}
-                                                    </div>
-                                                </td>
-                                                <td className="py-5 px-6 text-center">
-                                                    <div className="text-sm text-[#475569] font-gantari">
-                                                        {project.bid_deadline
-                                                            ? new Date(project.bid_deadline).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })
-                                                            : '—'}
-                                                    </div>
-                                                </td>
-                                                <td className="py-5 px-6 text-center">
-                                                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${project.total_bids > 0 ? 'bg-[#FFF3E0] text-[#E65100]' : 'bg-[#F1F5F9] text-[#94A3B8]'
-                                                        }`}>
-                                                        {project.total_bids ?? 0}
-                                                    </span>
-                                                </td>
-                                                <td className="py-5 px-6 text-center">
-                                                    <span className={`px-3 py-1 rounded-full text-[11px] font-bold border ${getStatusStyles(project.computed_status || project.status)}`}>
-                                                        {label}
-                                                    </span>
-                                                </td>
-                                                <td className="py-5 px-6 text-center">
-                                                    <button
-                                                        className={`flex items-center justify-center gap-2 mx-auto px-5 py-2 rounded-lg text-xs font-bold transition-all ${isOpen && project.total_bids === 0
-                                                            ? 'bg-white text-[#94A3B8] border border-[#E2E8F0] cursor-not-allowed opacity-60'
-                                                            : 'bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100'
-                                                            }`}
-                                                        onClick={() => setSelectedProject(project)}
-                                                        disabled={isOpen && project.total_bids === 0}
-                                                    >
-                                                        <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
-                                                        View bids
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                        <table className="min-w-full border-collapse">
+                            <thead className="sticky top-0 z-10 bg-white">
+                                <tr className="border-b border-gray-100 bg-white">
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Outsourcing Budget</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bidding End Date</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Bids</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filtered.map((project, index) => {
+                                    const label = getStatusLabel(project);
+                                    const isOpen = label === 'Open';
+                                    const slNo = (index + 1).toString().padStart(2, '0');
+                                    return (
+                                        <tr key={project.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]': 'bg-white'} transition-colors`}>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {project.project_name}
+                                                {project.description && (
+                                                    <div className="text-xs text-[#616161] font-normal mt-0.5 line-clamp-1">{project.description}</div>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-3 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {formatBudget(project.budget_ceiling || project.outsource_budget)}
+                                            </td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                {project.bid_deadline
+                                                    ? new Date(project.bid_deadline).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                                                    : '—'}
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-gantari`}>
+                                                    {project.total_bids ?? 0}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(project.computed_status || project.status)}`}>
+                                                    {label}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                                <button
+                                                    className={`flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari transition-all ${isOpen && project.total_bids === 0
+                                                        ? 'bg-[#F2F2F2] text-[#616161] cursor-not-allowed opacity-60'
+                                                        : 'bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100'
+                                                        }`}
+                                                    onClick={() => setSelectedProject(project)}
+                                                    disabled={isOpen && project.total_bids === 0}
+                                                >
+                                                    <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
+                                                    View Bids
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     )}
                 </div>
             </div>

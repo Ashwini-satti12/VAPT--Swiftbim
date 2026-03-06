@@ -65,13 +65,13 @@ export default function PartnerTD() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-slate-800 font-gantari">Partners</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p>
+                    {/* <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p> */}
                 </div>
             </div>
 
             {/* Search + Filter Tabs */}
-            <div className="flex flex-col sm:flex-row gap-4 shrink-0 mb-6">
-                {/* Search */}
+            {/* <div className="flex flex-col sm:flex-row gap-4 shrink-0 mb-6">
+                
                 <div className="relative flex-1 max-w-sm">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -85,7 +85,7 @@ export default function PartnerTD() {
                     />
                 </div>
 
-                {/* Status Tabs */}
+               
                 <div className="flex items-center gap-1 bg-[#F2F2F2] rounded-xl p-1">
                     {tabs.map(tab => (
                         <button
@@ -103,7 +103,7 @@ export default function PartnerTD() {
                         </button>
                     ))}
                 </div>
-            </div>
+            </div> */}
 
             {/* Grid */}
             <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
@@ -124,9 +124,9 @@ export default function PartnerTD() {
                                         <h3 className="text-[17px] font-bold text-slate-800 font-sora line-clamp-2 flex-1 pr-2">
                                             {displayName(partner)}
                                         </h3>
-                                        <span className={`shrink-0 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border ${STATUS_BADGE[partner.status] ?? 'bg-[#F2F2F2] text-[#717171] border-transparent'}`}>
+                                        {/* <span className={`shrink-0 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border ${STATUS_BADGE[partner.status] ?? 'bg-[#F2F2F2] text-[#717171] border-transparent'}`}>
                                             {partner.status}
-                                        </span>
+                                        </span> */}
                                     </div>
 
                                     <div className="mt-1 flex flex-col gap-1.5 flex-1">

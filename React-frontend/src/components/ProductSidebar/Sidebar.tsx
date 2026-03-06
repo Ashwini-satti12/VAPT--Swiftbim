@@ -361,12 +361,40 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           isVisible: true,
         },
         {
-          name: "Chat",
-          path: "/v/chat",
-          iconSrc: chatIcon,
-          activeIconSrc: whiteChatIcon,
+          name: "Projects",
+          path: "/v/projects",
+          iconSrc: projectIcon,
+          activeIconSrc: whiteProjectIcon,
           isVisible: true,
         },
+        {
+          name: "My Task",
+          path: "/v/mytasks",
+          iconSrc: myTaskIcon,
+          activeIconSrc: whiteMyTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Team Task",
+          path: "/v/teamtasks",
+          iconSrc: teamTaskIcon,
+          activeIconSrc: whiteTeamTaskIcon,
+          isVisible: true,
+        },
+        {
+          name: "Create Team",
+          path: "/v/createteam",
+          iconSrc: createTeamIcon,
+          activeIconSrc: whiteCreateTeamIcon,
+          isVisible: true,
+        },
+        // {
+        //   name: "Chat",
+        //   path: "/v/chat",
+        //   iconSrc: chatIcon,
+        //   activeIconSrc: whiteChatIcon,
+        //   isVisible: true,
+        // },
       ];
     }
 
@@ -400,7 +428,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteTeamReportIcon,
           isVisible: true,
         },
-        
+
 
       ];
     }

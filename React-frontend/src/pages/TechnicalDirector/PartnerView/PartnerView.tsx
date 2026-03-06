@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import toast, { Toaster } from 'react-hot-toast';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import api from '../../../lib/api';
 
 import PartnerSidebar from './PartnerSidebar';
@@ -16,7 +16,6 @@ import type { Vendor } from './types';
 const PartnerView = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const location = useLocation();
 
     const [activeTab, setActiveTab] = useState('Company Details');
     const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -79,20 +78,12 @@ const PartnerView = () => {
                     <div className="grid grid-cols-3 items-center mb-8">
                         {/* Left: Back button */}
                         <button
-                            onClick={() => {
-                                if (location.pathname.startsWith('/td/')) {
-                                    navigate('/td/partner');
-                                } else if (location.pathname.startsWith('/bl/')) {
-                                    navigate('/bl/partner');
-                                } else {
-                                    navigate('/super-admin/partners');
-                                }
-                            }}
+                            onClick={() => navigate(-1)}
                             className="flex items-center text-gray-600 hover:text-gray-900 font-medium text-lg"
                             style={{ fontFamily: 'Montserrat, sans-serif' }}
                         >
                             <img src="/src/assets/Vector.svg" alt="Back" className="mr-2 w-5 h-5" />
-                            Back to list
+                            Back
                         </button>
 
                         {/* Centre: Title */}
