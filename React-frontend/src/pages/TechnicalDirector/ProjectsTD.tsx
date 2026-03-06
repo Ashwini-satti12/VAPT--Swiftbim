@@ -10,13 +10,13 @@ import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMil
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
 const apiBase = (api.defaults.baseURL as string) || '';
 
-
-const PM_OPTIONS = ['Reed Richards', 'Tony Stark', 'Bruce Banner', 'Natasha Romanoff'];
-const DEPARTMENT_OPTIONS = ['MEP', 'BIM', 'Structural', 'Architectural', 'Civil', 'IT'];
-const BIM_LEAD_OPTIONS = ['Richard Parker', 'Peter Parker', 'Miles Morales', 'Gwen Stacy', 'dygdg', 'yyfrd', 'jfgdgf', 'yftdf'];
-const BIM_COORD_OPTIONS = ['Mary Jane', 'Harry Osborn', 'Eddie Brock', 'Felicia Hardy'];
-const CLIENT_OPTIONS = ['Mark Specter', 'Steven Grant', 'Jake Lockley', 'Arthur Harrow'];
-const PRIORITY_OPTIONS = ['High', 'Normal'];
+const nameToId = (name: string, employeesList: Employee[]) => {
+  if (!name || name === "Nothing Selected") return undefined;
+  // If it's already an ID string (digits only), return it directly
+  if (/^\d+$/.test(name)) return Number(name);
+  const emp = employeesList.find((e) => e.full_name === name);
+  return emp ? emp.id : undefined;
+};
 
 function FormSelect({
   label,
@@ -199,6 +199,7 @@ export default function ProjectsTD() {
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
   // All employees for member lookup
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -258,6 +259,8 @@ export default function ProjectsTD() {
       end_date: d(r.due_date),
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
+      resources: str(r.resources),
+      required_resources: str(r.required_resources),
       department: str(r.department),
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
@@ -271,14 +274,23 @@ export default function ProjectsTD() {
   };
 
   useEffect(() => {
-    // Fetch employees for member lookup
+    // Fetch employees for member lookup and dropdowns
     api
       .get<{ employees?: Employee[] }>("/api/employees")
       .then(({ data }) => {
-        setAllEmployees(data.employees ?? []);
+        const allEmp = data.employees ?? [];
+        setAllEmployees(allEmp);
+        setEmployees(allEmp);
+        setProjectManagers(allEmp.filter((e) => e.user_role === "Project Manager"));
+        setBimLeads(allEmp.filter((e) => e.user_role === "BIM Lead"));
+        setBimCoordinators(allEmp.filter((e) => e.user_role === "BIM Coordinator"));
       })
       .catch(() => {
         setAllEmployees([]);
+        setEmployees([]);
+        setProjectManagers([]);
+        setBimLeads([]);
+        setBimCoordinators([]);
       });
 
     // Fetch projects - use data directly from projects table
@@ -290,44 +302,26 @@ export default function ProjectsTD() {
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
+
+    api
+      .get<{ departments?: string[] }>("/api/departments")
+      .then(({ data }) => setDepartments(data.departments ?? []))
+      .catch(() => setDepartments([]));
+
+    api
+      .get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients")
+      .then(({ data }) => setClientsList(data.clients ?? []))
+      .catch(() => setClientsList([]));
   }, []);
 
-  // Fetch employees and departments when create or edit modal opens
+  // Set default module name tags when create modal opens
   useEffect(() => {
-    if (showEditModal || showCreateModal) {
-      api
-        .get<{ employees?: Employee[] }>("/api/employees")
-        .then(({ data }) => {
-          const allEmployees = data.employees ?? [];
-          setEmployees(allEmployees);
-          setProjectManagers(
-            allEmployees.filter((e) => e.user_role === "Project Manager")
-          );
-          setBimLeads(
-            allEmployees.filter((e) => e.user_role === "BIM Lead")
-          );
-          setBimCoordinators(
-            allEmployees.filter((e) => e.user_role === "BIM Coordinator")
-          );
-        })
-        .catch(() => {
-          setEmployees([]);
-          setProjectManagers([]);
-          setBimLeads([]);
-          setBimCoordinators([]);
-        });
-
-      api
-        .get<{ departments?: string[] }>("/api/departments")
-        .then(({ data }) => setDepartments(data.departments ?? []))
-        .catch(() => setDepartments([]));
-    }
     if (showCreateModal) {
       setModuleNameTags(['m1', 'm2', 'm3', 'm4']);
       setCreateModuleName('m1, m2, m3, m4');
       setSelectedMemberIds([]);
     }
-  }, [showEditModal, showCreateModal]);
+  }, [showCreateModal]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -1192,7 +1186,12 @@ export default function ProjectsTD() {
                       </span>
                       <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                       <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                        {selectedProjectForView.client_name || "Not Specified"}
+                        {(() => {
+                          const cid = selectedProjectForView.client_name;
+                          if (!cid) return "Not Specified";
+                          const client = clientsList.find((c) => String(c.id) === String(cid));
+                          return client?.fullName ?? client?.full_name ?? cid;
+                        })()}
                       </span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
@@ -1522,8 +1521,8 @@ export default function ProjectsTD() {
                                 }}
                                 className="p-2 rounded-full text-[#8B8B8B] transition-colors"
                               >
-                                <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]"  />
-                               
+                                <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
+
                               </button>
                               <div
                                 className={`absolute -right-25 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-[10px] border border-[#FFFFFF] shadow-xl transition-all origin-top-right ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
@@ -1532,8 +1531,12 @@ export default function ProjectsTD() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    setSelectedProjectForView(p);
                                     setShowProjectView(true);
+                                    setSelectedProjectForView(p);
+                                    api
+                                      .get<Record<string, unknown>>(`/api/projects/${p.id}`)
+                                      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+                                      .catch(() => {});
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 >
@@ -1567,7 +1570,11 @@ export default function ProjectsTD() {
                                       setCreateName(p.project_name ?? "");
                                       setCreateBudget(p.budget ? `${p.budget}` : "Fetching...");
                                       setCreateModuleName(p.module_name ?? "");
-                                      setCreateClientName(p.client_name ?? "");
+                                      setCreateClientName(
+                                        clientsList.find((c) => String(c.id) === String(p.client_name))?.fullName ??
+                                        clientsList.find((c) => String(c.id) === String(p.client_name))?.full_name ??
+                                        p.client_name ?? ""
+                                      );
                                       setCreateProjectManager(p.project_manager ?? "");
                                       setCreateStartDate(p.start_date ?? "");
                                       setCreateEndDate(p.end_date ?? "");
@@ -1614,7 +1621,7 @@ export default function ProjectsTD() {
                                   </button>
                                 )}
                                 {canDelete && (
-                                   <button
+                                  <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setOpenMenuProjectId(null);
@@ -1628,9 +1635,9 @@ export default function ProjectsTD() {
                                     </span>
                                   </button>
                                 )}
-                                </div>
                               </div>
                             </div>
+                          </div>
 
                           <div className="mb-4 ml-6 -mt-2">
                             <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
@@ -1768,16 +1775,24 @@ export default function ProjectsTD() {
                         project_name: createName.trim(),
                         budget: createBudget || undefined,
                         modules: createModuleName || undefined,
-                        client_id: createClientName || undefined,
-                        project_manager_id: createProjectManager || undefined,
-                        lead_id: createBIMLead || undefined,
-                        bim_coordinator_id: createBIMCoOrdinator || undefined,
+                        client_id: (() => {
+                          if (!createClientName) return undefined;
+                          const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                          if (byName) return byName.id;
+                          if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                          return undefined;
+                        })(),
+                        project_manager_id: nameToId(createProjectManager, projectManagers),
+                        lead_id: nameToId(createBIMLead, bimLeads),
+                        bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
                         members: selectedMemberIds.join(',') || createMember || undefined,
                         department: createDepartment || undefined,
                         due_date: createEndDate || undefined,
                         start_date: createStartDate || undefined,
                         totalhours: createTotalHours || undefined,
                         perday: createPerDay || undefined,
+                        resources: createResources || undefined,
+                        required_resources: createRequiredResources || undefined,
                         priority: createPriority || undefined,
                         location: createLocation || undefined,
                         description: createDescription || undefined,
@@ -1872,7 +1887,7 @@ export default function ProjectsTD() {
                     <FormSelect
                       label="Client Name"
                       placeholder="Nothing selected"
-                      options={CLIENT_OPTIONS}
+                      options={clientsList.map((c) => (c.fullName ?? c.full_name ?? "")).filter(Boolean) as string[]}
                       value={createClientName}
                       onChange={setCreateClientName}
                     />
@@ -1884,7 +1899,7 @@ export default function ProjectsTD() {
                     <FormSelect
                       label="Select Project Manager"
                       placeholder="Nothing Selected"
-                      options={PM_OPTIONS}
+                      options={projectManagers.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createProjectManager}
                       onChange={setCreateProjectManager}
                     />
@@ -1898,7 +1913,7 @@ export default function ProjectsTD() {
                     <FormSelect
                       label="Select BIM Lead"
                       placeholder="Nothing Selected"
-                      options={BIM_LEAD_OPTIONS}
+                      options={bimLeads.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createBIMLead}
                       onChange={setCreateBIMLead}
                     />
@@ -1910,7 +1925,7 @@ export default function ProjectsTD() {
                     <FormSelect
                       label="Select BIM Coordinator"
                       placeholder="Nothing Selected"
-                      options={BIM_COORD_OPTIONS}
+                      options={bimCoordinators.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createBIMCoOrdinator}
                       onChange={setCreateBIMCoOrdinator}
                     />
@@ -2210,10 +2225,16 @@ export default function ProjectsTD() {
                       project_name: createName.trim(),
                       budget: createBudget || undefined,
                       modules: createModuleName || undefined,
-                      client_id: createClientName || undefined,
-                      project_manager_id: createProjectManager || undefined,
-                      lead_id: createBIMLead || undefined,
-                      bim_coordinator_id: createBIMCoOrdinator || undefined,
+                      client_id: (() => {
+                        if (!createClientName) return undefined;
+                        const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                        if (byName) return byName.id;
+                        if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                        return undefined;
+                      })(),
+                      project_manager_id: nameToId(createProjectManager, projectManagers),
+                      lead_id: nameToId(createBIMLead, bimLeads),
+                      bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
                       members: createMember || undefined,
                       department: createDepartment || undefined,
                       ...(isEditSourceOutsource
@@ -2226,6 +2247,8 @@ export default function ProjectsTD() {
                       start_date: createStartDate || undefined,
                       totalhours: createTotalHours || undefined,
                       perday: createPerDay || undefined,
+                      resources: createResources || undefined,
+                      required_resources: createRequiredResources || undefined,
                       priority: createPriority || undefined,
                       location: createLocation || undefined,
                       description: createDescription || undefined,

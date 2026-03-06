@@ -16,8 +16,18 @@ interface Employee {
   email: string;
   phone: string;
   user_role: string;
-  vendor_type?: string;
+  profile_picture?: string;
 }
+
+const apiBase = (api.defaults.baseURL as string) || '';
+
+const nameToId = (name: string, employeesList: Employee[]) => {
+  if (!name || name === "Nothing Selected") return undefined;
+  if (/^\d+$/.test(name)) return Number(name);
+  const emp = employeesList.find((e) => e.full_name === name);
+  return emp ? emp.id : undefined;
+};
+
 function FormSelect({
   label, placeholder, options, value, onChange,
 }: { label: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -210,6 +220,31 @@ export default function ProjectsBL() {
   const canDelete = isManagement;
   const title = isManagement ? 'Projects' : 'Projects Involved';
 
+  const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
+    id: Number(r.id) ?? 0,
+    project_name: r.project_name != null ? String(r.project_name) : undefined,
+    progress: Number(r.progress) ?? 0,
+    total_tasks: r.total_tasks != null ? Number(r.total_tasks) : undefined,
+    completed_tasks: r.completed_tasks != null ? Number(r.completed_tasks) : undefined,
+    priority: r.priority != null ? String(r.priority) : 'Normal',
+    budget: r.budget != null ? String(r.budget) : undefined,
+    module_name: r.modules != null ? String(r.modules) : undefined,
+    client_name: r.client_id != null ? String(r.client_id) : undefined,
+    project_manager: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
+    start_date: r.start_date != null ? String(r.start_date) : undefined,
+    end_date: r.due_date != null ? String(r.due_date) : undefined,
+    total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
+    per_day: r.perday != null ? String(r.perday) : undefined,
+    department: r.department != null ? String(r.department) : undefined,
+    bim_lead: r.lead_id != null ? String(r.lead_id) : undefined,
+    bim_co_ordinator: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    member: r.members != null ? String(r.members) : undefined,
+    resources: r.resources != null ? String(r.resources) : undefined,
+    required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
+    location: r.location != null ? String(r.location) : undefined,
+    description: r.description != null ? String(r.description) : undefined,
+  });
+
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
@@ -232,6 +267,8 @@ export default function ProjectsBL() {
           bim_lead: r.lead_id,
           bim_co_ordinator: r.bim_coordinator_id,
           member: r.members,
+          resources: r.resources,
+          required_resources: r.required_resources,
           location: r.location,
           description: r.description,
         })));
@@ -378,35 +415,181 @@ export default function ProjectsBL() {
             <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 lg:p-10">
               <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Team Overview</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
-                <div className="flex items-center gap-4">
-                  <img src="https://i.pravatar.cc/150?u=pm" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
-                  <div className="min-w-0">
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Reed Richards</p>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <img src="https://i.pravatar.cc/150?u=bim" className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
-                  <div className="min-w-0">
-                    <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">Richard Parker</p>
-                    <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
-                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">MEP (Dept)</p>
-                </div>
-                <div>
-                  <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3].map(j => (
-                      <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                        <img src={`https://i.pravatar.cc/150?u=${j}`} alt="avatar" className="w-full h-full object-cover" />
+                {/* Project Manager */}
+                {(() => {
+                  const pmId = selectedProjectForView.project_manager;
+                  const projectManager = pmId
+                    ? allEmployees.find(e => Number(e.id) === Number(pmId))
+                    : null;
+                  const pmProfileUrl = projectManager?.profile_picture
+                    ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
+                      ? projectManager.profile_picture
+                      : `${apiBase}/uploads/${projectManager.profile_picture}`)
+                    : null;
+
+                  return (
+                    <div className="flex items-center gap-4">
+                      {pmProfileUrl ? (
+                        <img
+                          src={pmProfileUrl}
+                          className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
+                          alt={projectManager?.full_name || "PM"}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${pmId}`;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                          <span className="text-slate-600 font-semibold">
+                            {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
+                          {projectManager?.full_name || "Not Assigned"}
+                        </p>
+                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
+                          Project Manager
+                        </p>
                       </div>
-                    ))}
-                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0">
-                      +4
                     </div>
+                  );
+                })()}
+
+                {/* BIM Lead */}
+                {(() => {
+                  const bimLeadId = selectedProjectForView.bim_lead;
+                  const bimLead = bimLeadId
+                    ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
+                    : null;
+                  const bimProfileUrl = bimLead?.profile_picture
+                    ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
+                      ? bimLead.profile_picture
+                      : `${apiBase}/uploads/${bimLead.profile_picture}`)
+                    : null;
+
+                  return (
+                    <div className="flex items-center gap-4">
+                      {bimProfileUrl ? (
+                        <img
+                          src={bimProfileUrl}
+                          className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
+                          alt={bimLead?.full_name || "BIM Lead"}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                          <span className="text-slate-600 font-bold">
+                            {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] truncate">
+                          {bimLead?.full_name || "Not Assigned"}
+                        </p>
+                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#616161] truncate">
+                          BIM Lead
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Department Involved */}
+                <div className="min-w-0">
+                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
+                    Department Involved
+                  </p>
+                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#616161] truncate">
+                    {selectedProjectForView.department || "Not Specified"}
+                  </p>
+                </div>
+
+                {/* Members Involved */}
+                <div>
+                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
+                    Members Involved
+                  </p>
+                  <div className="flex -space-x-3">
+                    {(() => {
+                      const memberIds = selectedProjectForView.member
+                        ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                        : [];
+
+                      const projectMembers = memberIds
+                        .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                        .filter(Boolean) as Employee[];
+
+                      const visibleMembers = projectMembers.slice(0, 3);
+                      const remainingCount = Math.max(0, projectMembers.length - 3);
+
+                      const getProfileImageUrl = (emp: Employee) => {
+                        if (emp.profile_picture) {
+                          if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
+                            return emp.profile_picture;
+                          }
+                          return `${apiBase}/uploads/${emp.profile_picture}`;
+                        }
+                        return null;
+                      };
+
+                      return (
+                        <>
+                          {visibleMembers.length > 0 ? (
+                            visibleMembers.map((emp) => {
+                              const profileUrl = getProfileImageUrl(emp);
+                              return (
+                                <div
+                                  key={emp.id}
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                  title={emp.full_name || `Employee ${emp.id}`}
+                                >
+                                  {profileUrl ? (
+                                    <img
+                                      src={profileUrl}
+                                      alt={emp.full_name || "Member"}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            [1, 2, 3].map((j) => (
+                              <div
+                                key={j}
+                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                              >
+                                <img
+                                  src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
+                                  alt="avatar"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))
+                          )}
+                          {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
+                            <div
+                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0"
+                              title={`Click to see all members`}
+                            >
+                              +{remainingCount || memberIds.length}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -440,7 +623,7 @@ export default function ProjectsBL() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.resources || '000'}</span>
                   </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
@@ -462,12 +645,12 @@ export default function ProjectsBL() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Required</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.required_resources || '000'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">000</span>
+                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.required_resources || '000'}</span>
                   </div>
                 </div>
               </div>
@@ -586,15 +769,17 @@ export default function ProjectsBL() {
                   budget: createBudget || undefined,
                   modules: moduleNameTags.join(', ') || undefined,
                   client_id: createClientName || undefined,
-                  project_manager_id: createProjectManager || undefined,
-                  lead_id: createBIMLead || undefined,
-                  bim_coordinator_id: createBIMCoOrdinator || undefined,
+                  project_manager_id: nameToId(createProjectManager, allEmployees),
+                  lead_id: nameToId(createBIMLead, allEmployees),
+                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
                   members: selectedMemberIds.join(',') || undefined,
                   department: createDepartment || undefined,
                   due_date: createEndDate || undefined,
                   start_date: createStartDate || undefined,
                   totalhours: createTotalHours || undefined,
                   perday: createPerDay || undefined,
+                  resources: createResources || undefined,
+                  required_resources: createRequiredResources || undefined,
                   priority: createPriority || undefined,
                   location: createLocation || undefined,
                   description: createDescription || undefined,
@@ -1008,9 +1193,9 @@ export default function ProjectsBL() {
                   budget: createBudget || undefined,
                   modules: editModuleTags.join(', ') || undefined,
                   client_id: createClientName || undefined,
-                  project_manager_id: createProjectManager || undefined,
-                  lead_id: createBIMLead || undefined,
-                  bim_coordinator_id: createBIMCoOrdinator || undefined,
+                  project_manager_id: nameToId(createProjectManager, allEmployees),
+                  lead_id: nameToId(createBIMLead, allEmployees),
+                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
                   members: editMember || undefined,
                   department: createDepartment || undefined,
                   due_date: createEndDate || undefined,
@@ -1018,6 +1203,8 @@ export default function ProjectsBL() {
                   totalhours: createTotalHours || undefined,
                   perday: createPerDay || undefined,
                   priority: editPriority || undefined,
+                  resources: createResources || undefined,
+                  required_resources: createRequiredResources || undefined,
                   location: createLocation || undefined,
                   description: createDescription || undefined,
                 })
@@ -1460,9 +1647,12 @@ export default function ProjectsBL() {
                             >
                               <button
                                 onClick={() => {
-                                  setSelectedProjectForView(p);
                                   setShowProjectView(true);
+                                  setSelectedProjectForView(p);
                                   setOpenMenuId(null);
+                                  api.get<Record<string, unknown>>(`/api/projects/${p.id}`)
+                                    .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+                                    .catch(() => {});
                                 }}
                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
                                 <img src={viewIcon} alt="view" className="w-6 h-6" />
