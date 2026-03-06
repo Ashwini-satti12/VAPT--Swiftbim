@@ -31,7 +31,7 @@ def list_applications():
     cur.execute(
         """SELECT tblleaves.id AS lid, tblleaves.empid, tblleaves.leave_type, tblleaves.posting_date, tblleaves.description,
                   tblleaves.status, tblleaves.from_date, tblleaves.to_date, tblleaves.starttime, tblleaves.endtime,
-                  employee.full_name, employee.id AS employee_id,
+                  employee.full_name, employee.id AS employee_id, employee.user_role AS role,
                   CASE WHEN holiday.id IS NULL THEN 'Others' ELSE holiday.title END AS title
            FROM tblleaves
            JOIN employee ON tblleaves.empid = employee.id
@@ -84,6 +84,60 @@ def apply_leave():
         return jsonify({"success": True, "id": cur.lastrowid})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
+
+
+@bp.route("/applications/<int:app_id>", methods=["PUT", "PATCH"])
+@project_app_required
+def update_leave(app_id: int):
+    """
+    Allow an employee to edit their own pending leave application.
+    Only a subset of fields can be updated; status changes are handled
+    separately by the approve/reject endpoints.
+    """
+    data = request.get_json() or request.form
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Map incoming keys to actual DB columns
+    col_updates = {}
+    if "leavetype" in data:
+        col_updates["leave_type"] = data["leavetype"]
+    if "leave_type" in data:
+        col_updates["leave_type"] = data["leave_type"]
+    if "leave_type_id" in data:
+        col_updates["leave_type"] = data["leave_type_id"]
+
+    if "from_date" in data:
+        col_updates["from_date"] = data["from_date"]
+    if "to_date" in data:
+        col_updates["to_date"] = data["to_date"]
+    if "description" in data:
+        col_updates["description"] = data["description"]
+    if "days_count" in data:
+        col_updates["days_count"] = data["days_count"]
+    if "leave_lop" in data:
+        col_updates["leave_lop"] = data["leave_lop"]
+
+    if not col_updates:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    set_clauses = []
+    params = []
+    for col, val in col_updates.items():
+        set_clauses.append(f"{col} = %s")
+        params.append(val)
+
+    # Only allow editing own pending leaves
+    params.extend([app_id, g.user_id, g.company_id])
+    cur.execute(
+        "UPDATE tblleaves SET "
+        + ", ".join(set_clauses)
+        + " WHERE id = %s AND empid = %s AND Company_id = %s AND status = '0'",
+        params,
+    )
+    if cur.rowcount:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "message": "Not found or not editable"}), 404
 
 
 @bp.route("/applications/<int:app_id>/approve", methods=["POST"])
