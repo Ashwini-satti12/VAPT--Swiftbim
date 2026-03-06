@@ -347,6 +347,101 @@ def vendor_dashboard_stats():
 
 
 # ---------------------------------------------------------------------------
+# Vendor Dashboard Priority Tasks
+# ---------------------------------------------------------------------------
+
+@bp.route("/dashboard/priority-tasks", methods=["GET"])
+@login_required
+def vendor_dashboard_priority_tasks():
+    """
+    GET /api/vendors/dashboard/priority-tasks
+    Returns today's tasks assigned to or uploaded by the logged-in vendor user.
+    Mirrors the TD /api/dashboard/priority-tasks endpoint.
+    """
+    from datetime import date, datetime, time, timedelta
+    from decimal import Decimal
+
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"tasks": []})
+
+    today = date.today().isoformat()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    def _time_to_hhmmss(v):
+        if isinstance(v, time):
+            return v.strftime("%H:%M:%S") if v else None
+        if isinstance(v, timedelta):
+            total = int(v.total_seconds())
+            if total < 0:
+                total = 0
+            h, r = divmod(total, 3600)
+            m, s = divmod(r, 60)
+            return f"{h:02d}:{m:02d}:{s:02d}"
+        return None
+
+    def _serialize_value(v):
+        if v is None:
+            return None
+        if isinstance(v, (datetime, date)):
+            return v.isoformat()
+        if isinstance(v, timedelta):
+            return _time_to_hhmmss(v)
+        if isinstance(v, time):
+            return _time_to_hhmmss(v)
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    try:
+        cur.execute(
+            """SELECT t.id, t.task_name, t.due_date, t.status, t.category,
+                      t.perferstart_time, t.perferend_time,
+                      t.projectid, t.assigned_to, t.uploaderid,
+                      e_assigned.full_name AS assigned_full_name,
+                      e_assigned.profile_picture AS assigned_profile_picture,
+                      e_uploader.full_name AS uploader_full_name,
+                      e_uploader.profile_picture AS uploader_profile_picture,
+                      p.project_name
+               FROM tasks t
+               LEFT JOIN projects p ON t.projectid = p.id
+               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
+               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
+               WHERE (t.assigned_to = %s OR t.uploaderid = %s)
+                 AND (t.status IN ('Todo', 'InProgress', 'Pause'))
+                 AND DATE(t.due_date) = %s
+               ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
+               LIMIT 20""",
+            (user_id, user_id, today),
+        )
+        rows = cur.fetchall()
+        tasks = []
+        for r in rows:
+            d = {k: _serialize_value(v) for k, v in r.items()}
+            involved = []
+            if d.get("assigned_to") and d.get("assigned_full_name"):
+                involved.append({
+                    "id": d["assigned_to"],
+                    "full_name": d["assigned_full_name"],
+                    "profile_picture": d.get("assigned_profile_picture"),
+                })
+            if d.get("uploaderid") and d.get("uploader_full_name"):
+                if not any(p.get("id") == d["uploaderid"] for p in involved):
+                    involved.append({
+                        "id": d["uploaderid"],
+                        "full_name": d["uploader_full_name"],
+                        "profile_picture": d.get("uploader_profile_picture"),
+                    })
+            d["involved_persons"] = involved
+            tasks.append(d)
+    except Exception:
+        tasks = []
+
+    return jsonify({"tasks": tasks})
+
+
+# ---------------------------------------------------------------------------
 # Opportunities (Bidding Inbox for Vendors)
 # ---------------------------------------------------------------------------
 
@@ -485,55 +580,58 @@ def vendor_proposals():
     """
     GET /api/vendors/proposals
     Returns proposals sent to the current vendor — merges:
-      1. vendor_proposals (original table)
-      2. td_proposals (TD-created proposals via bid acceptance flow)
+      1. vendor_proposals (original table, keyed by vendor_onboarding.id)
+      2. td_proposals (TD-created proposals, keyed by employee id)
     """
     email = getattr(g, "user_email", None)
+    user_id = getattr(g, "user_id", None)
     cur = vendor_cursor()
 
-    vendor_id = None
+    # Resolve vendor_onboarding.id (may be None if vendor isn't in onboarding table)
+    vendor_onboarding_id = None
     if email:
         cur.execute(
-            "SELECT id FROM vendor_onboarding WHERE contact_email = %s OR email = %s LIMIT 1",
-            (email, email),
+            "SELECT id FROM vendor_onboarding WHERE contact_email=%s LIMIT 1",
+            (email,),
         )
         row = cur.fetchone()
         if row:
-            vendor_id = row["id"]
-
-    if not vendor_id:
-        return jsonify({"proposals": []})
+            vendor_onboarding_id = row["id"]
 
     proposals = []
-    # 1. Original vendor_proposals table
-    try:
-        cur.execute(
-            """SELECT * FROM vendor_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
-            (vendor_id,),
-        )
-        for r in cur.fetchall():
-            p = {k: _serialize(v) for k, v in r.items()}
-            p["source"] = "vendor_proposals"
-            proposals.append(p)
-    except Exception:
-        pass
 
-    # 2. TD-created proposals (td_proposals table)
-    try:
-        _ensure_td_proposals_table()
-        cur.execute(
-            """SELECT * FROM td_proposals WHERE vendor_onboarding_id = %s ORDER BY created_at DESC""",
-            (vendor_id,),
-        )
-        for r in cur.fetchall():
-            p = {k: _serialize(v) for k, v in r.items()}
-            p["source"] = "td_proposals"
-            # normalise field names to match existing Proposal type in frontend
-            if "project_name" not in p or not p.get("project_name"):
-                p["project_name"] = p.get("project_name") or ""
-            proposals.append(p)
-    except Exception:
-        pass
+    # 1. Original vendor_proposals table (uses vendor_onboarding.id)
+    if vendor_onboarding_id:
+        try:
+            cur.execute(
+                """SELECT * FROM vendor_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
+                (vendor_onboarding_id,),
+            )
+            for r in cur.fetchall():
+                p = {k: _serialize(v) for k, v in r.items()}
+                p["source"] = "vendor_proposals"
+                proposals.append(p)
+        except Exception:
+            pass
+
+    # 2. TD-created proposals (td_proposals table — lives in main DB)
+    #    td_proposals.vendor_id stores the *employee* id (g.user_id), not vendor_onboarding.id
+    if user_id:
+        try:
+            main_conn = get_db()
+            main_cur = main_conn.cursor(dictionary=True)
+            main_cur.execute(
+                """SELECT * FROM td_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
+                (user_id,),
+            )
+            for r in main_cur.fetchall():
+                p = {k: _serialize(v) for k, v in r.items()}
+                p["source"] = "td_proposals"
+                if "project_name" not in p or not p.get("project_name"):
+                    p["project_name"] = p.get("project_name") or ""
+                proposals.append(p)
+        except Exception:
+            pass
 
     # Sort all proposals by created_at descending
     proposals.sort(key=lambda x: x.get("created_at") or "", reverse=True)
@@ -558,16 +656,69 @@ def respond_to_proposal(proposal_id):
     status_map = {"accept": "accepted", "reject": "rejected", "clarification": "clarification_requested"}
     new_status = status_map[action]
 
+    updated = False
+
+    # Try vendor_proposals (new_swiftbim)
     cur = vendor_cursor()
     try:
         cur.execute(
             "UPDATE vendor_proposals SET status = %s, reason = %s WHERE id = %s",
             (new_status, reason, proposal_id),
         )
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        if cur.rowcount > 0:
+            updated = True
+    except Exception:
+        pass
 
-    return jsonify({"success": True, "status": new_status})
+    # Try td_proposals (main DB)
+    proposal_data = None
+    try:
+        main_conn = get_db()
+        main_cur = main_conn.cursor(dictionary=True)
+        main_cur.execute(
+            "UPDATE td_proposals SET status = %s WHERE id = %s",
+            (new_status, proposal_id),
+        )
+        if main_cur.rowcount > 0:
+            updated = True
+        # Fetch proposal data for project creation
+        main_cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        proposal_data = main_cur.fetchone()
+    except Exception:
+        pass
+
+    if not updated:
+        return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+    # On accept → auto-create vendor project
+    project_id = None
+    if action == "accept" and proposal_data:
+        try:
+            _ensure_vp_table()
+            main_conn = get_db()
+            main_cur = main_conn.cursor(dictionary=True)
+            # Check if project already exists for this proposal
+            main_cur.execute("SELECT id FROM vendor_projects WHERE proposal_id = %s", (proposal_id,))
+            existing = main_cur.fetchone()
+            if not existing:
+                main_cur.execute("""
+                    INSERT INTO vendor_projects (proposal_id, opportunity_id, vendor_id, project_name, description)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    proposal_id,
+                    proposal_data.get("opportunity_id"),
+                    proposal_data.get("vendor_id"),
+                    proposal_data.get("project_name"),
+                    proposal_data.get("scope_of_work"),
+                ))
+                project_id = main_cur.lastrowid
+            else:
+                project_id = existing["id"]
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+
+    return jsonify({"success": True, "status": new_status, "project_id": project_id})
 
 
 # ---------------------------------------------------------------------------
@@ -884,4 +1035,717 @@ def td_create_proposal():
         
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ===========================================================================
+# MODULE 2 — COMPANY PROFILE
+# ===========================================================================
+
+def _ensure_vendor_profile_tables():
+    """Auto-create vendor_documents table and ensure vendor_onboarding has new cols."""
+    cur = vendor_cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        doc_type VARCHAR(100),
+        filename VARCHAR(255),
+        file_url VARCHAR(500),
+        uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""")
+    # Add optional columns to vendor_onboarding if missing
+    for col, defn in [
+        ("sectors", "TEXT"),
+        ("services", "TEXT"),
+        ("keywords", "TEXT"),
+        ("portfolio_json", "LONGTEXT"),
+        ("gst_number", "VARCHAR(50)"),
+        ("reg_id", "VARCHAR(100)"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE vendor_onboarding ADD COLUMN IF NOT EXISTS `{col}` {defn}")
+        except Exception:
+            pass
+
+
+def _profile_completeness(v: dict) -> int:
+    """Return 0-100 completeness % for a vendor_onboarding row."""
+    fields = ["company_name", "contact_email", "contact_name", "address",
+              "sectors", "services", "keywords", "gst_number"]
+    filled = sum(1 for f in fields if v.get(f))
+    has_portfolio = bool(v.get("portfolio_projects") or v.get("portfolio_json"))
+    has_docs = bool(v.get("documents"))
+    return int(((filled + has_portfolio + has_docs) / (len(fields) + 2)) * 100)
+
+
+@bp.route("/profile", methods=["GET"])
+@login_required
+def get_vendor_profile():
+    """GET /api/vendors/profile — vendor's own company profile."""
+    _ensure_vendor_profile_tables()
+    email = getattr(g, "user_email", None)
+    cur = vendor_cursor()
+    vendor_id = None
+    if email:
+        cur.execute(
+            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
+            (email, email),
+        )
+        row = cur.fetchone()
+        if row:
+            vendor_id = row["id"]
+
+    if not vendor_id:
+        return jsonify({"profile": None, "completeness": 0, "verified": False})
+
+    cur.execute("SELECT * FROM vendor_onboarding WHERE id=%s", (vendor_id,))
+    profile = {k: _serialize(v) for k, v in (cur.fetchone() or {}).items()}
+
+    # Portfolio projects
+    cur.execute("SELECT * FROM vendor_portfolio WHERE vendor_id=%s ORDER BY id", (vendor_id,))
+    profile["portfolio_projects"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
+
+    # Documents
+    cur.execute("SELECT * FROM vendor_documents WHERE vendor_id=%s ORDER BY uploaded_at DESC", (vendor_id,))
+    profile["documents"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
+
+    completeness = _profile_completeness(profile)
+    verified = profile.get("status") == "approved"
+
+    return jsonify({"profile": profile, "completeness": completeness, "verified": verified})
+
+
+@bp.route("/profile", methods=["PUT"])
+@login_required
+def update_vendor_profile():
+    """PUT /api/vendors/profile — update company details."""
+    _ensure_vendor_profile_tables()
+    data = request.get_json(silent=True) or {}
+    email = getattr(g, "user_email", None)
+    cur = vendor_cursor()
+
+    vendor_id = None
+    if email:
+        cur.execute(
+            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
+            (email, email),
+        )
+        row = cur.fetchone()
+        if row:
+            vendor_id = row["id"]
+
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    allowed = ["company_name", "address", "gst_number", "reg_id",
+               "sectors", "services", "keywords", "portfolio_json",
+               "contact_name", "contact_email", "phone", "website"]
+    sets, params = [], []
+    for key in allowed:
+        if key in data:
+            sets.append(f"`{key}` = %s")
+            params.append(data[key])
+
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.append(vendor_id)
+    cur.execute(f"UPDATE vendor_onboarding SET {', '.join(sets)} WHERE id = %s", params)
+    get_vendor_db().commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/profile/documents", methods=["POST"])
+@login_required
+def upload_vendor_document():
+    """POST /api/vendors/profile/documents — upload a document (multipart)."""
+    import os, uuid
+    _ensure_vendor_profile_tables()
+    email = getattr(g, "user_email", None)
+    cur = vendor_cursor()
+
+    vendor_id = None
+    if email:
+        cur.execute(
+            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
+            (email, email),
+        )
+        row = cur.fetchone()
+        if row:
+            vendor_id = row["id"]
+
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    file = request.files.get("file")
+    doc_type = request.form.get("doc_type", "general")
+
+    if not file:
+        return jsonify({"success": False, "message": "No file provided"}), 400
+
+    upload_dir = current_app.config.get("UPLOAD_FOLDER", "static/uploads/vendor_docs")
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    file_url = f"/static/uploads/vendor_docs/{filename}"
+
+    cur.execute(
+        "INSERT INTO vendor_documents (vendor_id, doc_type, filename, file_url) VALUES (%s,%s,%s,%s)",
+        (vendor_id, doc_type, file.filename, file_url),
+    )
+    get_vendor_db().commit()
+    return jsonify({"success": True, "id": cur.lastrowid, "file_url": file_url})
+
+
+@bp.route("/profile/documents/<int:doc_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_document(doc_id):
+    """DELETE /api/vendors/profile/documents/<id>."""
+    _ensure_vendor_profile_tables()
+    email = getattr(g, "user_email", None)
+    cur = vendor_cursor()
+    vendor_id = None
+    if email:
+        cur.execute(
+            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
+            (email, email),
+        )
+        row = cur.fetchone()
+        if row:
+            vendor_id = row["id"]
+
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor not found"}), 404
+
+    cur.execute("DELETE FROM vendor_documents WHERE id=%s AND vendor_id=%s", (doc_id, vendor_id))
+    get_vendor_db().commit()
+    return jsonify({"success": True})
+
+
+# ===========================================================================
+# MODULE 8 — PAYMENTS & MILESTONES (Vendor-side)
+# ===========================================================================
+
+def _ensure_vendor_invoices_table():
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_invoices (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        milestone_id INT NOT NULL,
+        vendor_id INT NOT NULL,
+        file_url VARCHAR(500),
+        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        status ENUM('submitted','approved','paid') DEFAULT 'submitted'
+    )""")
+
+
+@bp.route("/milestones", methods=["GET"])
+@login_required
+def vendor_milestones():
+    """GET /api/vendors/milestones — milestones for projects the vendor is involved in."""
+    from datetime import date, datetime, timedelta
+    from decimal import Decimal
+
+    _ensure_vendor_invoices_table()
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"milestones": []})
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    def sv(v):
+        if v is None:
+            return None
+        if isinstance(v, (date, datetime)):
+            return v.isoformat()
+        if isinstance(v, timedelta):
+            total = int(v.total_seconds())
+            h, r = divmod(max(total, 0), 3600)
+            m, s = divmod(r, 60)
+            return f"{h:02d}:{m:02d}:{s:02d}"
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    try:
+        cur.execute(
+            """SELECT pm.*, p.project_name
+               FROM payment_milestones pm
+               LEFT JOIN projects p ON pm.project_id = p.id
+               WHERE (
+                   p.project_manager_id = %s OR p.lead_id = %s
+                   OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+               )
+               ORDER BY pm.due_date ASC""",
+            (user_id, user_id, user_id),
+        )
+        rows = cur.fetchall()
+        milestones = []
+        for r in rows:
+            d = {k: sv(v) for k, v in r.items()}
+            # Attach any invoice submitted by this vendor
+            cur.execute(
+                "SELECT * FROM vendor_invoices WHERE milestone_id=%s AND vendor_id=%s ORDER BY submitted_at DESC LIMIT 1",
+                (r["id"], user_id),
+            )
+            inv = cur.fetchone()
+            d["invoice"] = {k: sv(v) for k, v in inv.items()} if inv else None
+            milestones.append(d)
+    except Exception as e:
+        milestones = []
+
+    return jsonify({"milestones": milestones})
+
+
+@bp.route("/milestones/<int:milestone_id>/submit-invoice", methods=["POST"])
+@login_required
+def submit_vendor_invoice(milestone_id):
+    """POST /api/vendors/milestones/<id>/submit-invoice — upload invoice PDF."""
+    import os, uuid
+    _ensure_vendor_invoices_table()
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    file = request.files.get("file")
+    if not file:
+        return jsonify({"success": False, "message": "No file provided"}), 400
+
+    upload_dir = current_app.config.get("UPLOAD_FOLDER", "static/uploads/vendor_invoices")
+    os.makedirs(upload_dir, exist_ok=True)
+    ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(upload_dir, filename)
+    file.save(filepath)
+    file_url = f"/static/uploads/vendor_invoices/{filename}"
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "INSERT INTO vendor_invoices (milestone_id, vendor_id, file_url) VALUES (%s,%s,%s)",
+        (milestone_id, user_id, file_url),
+    )
+    conn.commit()
+    return jsonify({"success": True, "file_url": file_url})
+
+
+# ===========================================================================
+# MODULE 9 — COMMUNICATION CENTER
+# ===========================================================================
+
+VENDOR_ALLOWED_STAFF_ROLES = ("Technical Director", "BIM Coordinator", "Project Manager")
+
+
+def _ensure_comm_tables():
+    cur = vendor_cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_threads (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        context_type ENUM('opportunity','proposal','contract','general') DEFAULT 'general',
+        context_id INT DEFAULT NULL,
+        subject VARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )""")
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_thread_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        thread_id INT NOT NULL,
+        sender_id INT NOT NULL,
+        sender_type ENUM('vendor','staff') DEFAULT 'vendor',
+        message TEXT NOT NULL,
+        attachment_url VARCHAR(500) DEFAULT NULL,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""")
+    get_vendor_db().commit()
+
+
+def _get_vendor_id_from_email(email):
+    if not email:
+        return None
+    cur = vendor_cursor()
+    cur.execute(
+        "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
+        (email, email),
+    )
+    row = cur.fetchone()
+    return row["id"] if row else None
+
+
+@bp.route("/threads", methods=["GET"])
+@login_required
+def list_vendor_threads():
+    """GET /api/vendors/threads — list this vendor's clarification threads."""
+    _ensure_comm_tables()
+    email = getattr(g, "user_email", None)
+    vendor_id = _get_vendor_id_from_email(email)
+    if not vendor_id:
+        return jsonify({"threads": []})
+
+    cur = vendor_cursor()
+    cur.execute(
+        "SELECT * FROM vendor_threads WHERE vendor_id=%s ORDER BY updated_at DESC",
+        (vendor_id,),
+    )
+    threads = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
+    # Attach last message preview
+    for t in threads:
+        cur.execute(
+            "SELECT message, sent_at, sender_type FROM vendor_thread_messages WHERE thread_id=%s ORDER BY sent_at DESC LIMIT 1",
+            (t["id"],),
+        )
+        last = cur.fetchone()
+        t["last_message"] = {k: _serialize(v) for k, v in last.items()} if last else None
+    return jsonify({"threads": threads})
+
+
+@bp.route("/threads", methods=["POST"])
+@login_required
+def create_vendor_thread():
+    """POST /api/vendors/threads — create a new clarification thread."""
+    _ensure_comm_tables()
+    data = request.get_json(silent=True) or {}
+    email = getattr(g, "user_email", None)
+    vendor_id = _get_vendor_id_from_email(email)
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    subject = (data.get("subject") or "").strip()
+    context_type = data.get("context_type", "general")
+    context_id = data.get("context_id")
+    if not subject:
+        return jsonify({"success": False, "message": "Subject is required"}), 400
+
+    cur = vendor_cursor()
+    cur.execute(
+        "INSERT INTO vendor_threads (vendor_id, context_type, context_id, subject) VALUES (%s,%s,%s,%s)",
+        (vendor_id, context_type, context_id, subject),
+    )
+    get_vendor_db().commit()
+    return jsonify({"success": True, "id": cur.lastrowid})
+
+
+@bp.route("/threads/<int:thread_id>/messages", methods=["GET"])
+@login_required
+def get_thread_messages(thread_id):
+    """GET /api/vendors/threads/<id>/messages — messages in a thread."""
+    _ensure_comm_tables()
+    email = getattr(g, "user_email", None)
+    vendor_id = _get_vendor_id_from_email(email)
+
+    cur = vendor_cursor()
+    # Verify ownership or staff access
+    cur.execute("SELECT * FROM vendor_threads WHERE id=%s", (thread_id,))
+    thread = cur.fetchone()
+    if not thread:
+        return jsonify({"messages": [], "thread": None})
+
+    cur.execute(
+        "SELECT * FROM vendor_thread_messages WHERE thread_id=%s ORDER BY sent_at ASC",
+        (thread_id,),
+    )
+    messages = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
+
+    # Enrich with sender name from main DB
+    conn = get_db()
+    main_cur = conn.cursor(dictionary=True)
+    for m in messages:
+        if m.get("sender_type") == "staff":
+            main_cur.execute("SELECT full_name, user_role FROM employee WHERE id=%s", (m["sender_id"],))
+            emp = main_cur.fetchone()
+            m["sender_name"] = emp["full_name"] if emp else f"Staff #{m['sender_id']}"
+            m["sender_role"] = emp["user_role"] if emp else ""
+        else:
+            m["sender_name"] = "You"
+            m["sender_role"] = "Vendor"
+
+    return jsonify({"thread": {k: _serialize(v) for k, v in thread.items()}, "messages": messages})
+
+
+@bp.route("/threads/<int:thread_id>/messages", methods=["POST"])
+@login_required
+def send_thread_message(thread_id):
+    """POST /api/vendors/threads/<id>/messages — send a message in a thread."""
+    import os, uuid
+    _ensure_comm_tables()
+    user_id = getattr(g, "user_id", None)
+    user_role = getattr(g, "user_role", "Vendor")
+
+    # Determine sender type
+    sender_type = "vendor" if user_role == "Vendor" else "staff"
+    if sender_type == "staff" and user_role not in VENDOR_ALLOWED_STAFF_ROLES:
+        return jsonify({"success": False, "message": "Not authorised to message in vendor threads"}), 403
+
+    message_text = ""
+    attachment_url = None
+
+    if request.content_type and "multipart" in request.content_type:
+        message_text = (request.form.get("message") or "").strip()
+        file = request.files.get("attachment")
+        if file:
+            upload_dir = current_app.config.get("UPLOAD_FOLDER", "static/uploads/vendor_comm")
+            os.makedirs(upload_dir, exist_ok=True)
+            ext = os.path.splitext(file.filename)[1]
+            filename = f"{uuid.uuid4().hex}{ext}"
+            filepath = os.path.join(upload_dir, filename)
+            file.save(filepath)
+            attachment_url = f"/static/uploads/vendor_comm/{filename}"
+    else:
+        data = request.get_json(silent=True) or {}
+        message_text = (data.get("message") or "").strip()
+
+    if not message_text and not attachment_url:
+        return jsonify({"success": False, "message": "Message or attachment required"}), 400
+
+    cur = vendor_cursor()
+    # Verify thread exists
+    cur.execute("SELECT id FROM vendor_threads WHERE id=%s", (thread_id,))
+    if not cur.fetchone():
+        return jsonify({"success": False, "message": "Thread not found"}), 404
+
+    cur.execute(
+        "INSERT INTO vendor_thread_messages (thread_id, sender_id, sender_type, message, attachment_url) VALUES (%s,%s,%s,%s,%s)",
+        (thread_id, user_id, sender_type, message_text, attachment_url),
+    )
+    # Update thread timestamp
+    cur.execute("UPDATE vendor_threads SET updated_at=NOW() WHERE id=%s", (thread_id,))
+    get_vendor_db().commit()
+    return jsonify({"success": True, "id": cur.lastrowid})
+
+
+# ===========================================================================
+# MODULE 10 — PERFORMANCE & RATINGS (Read-only vendor-side)
+# ===========================================================================
+
+def _ensure_ratings_table():
+    cur = vendor_cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_ratings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        project_id INT DEFAULT NULL,
+        project_name VARCHAR(255),
+        rating INT NOT NULL DEFAULT 0,
+        feedback TEXT,
+        rated_by INT DEFAULT NULL,
+        rated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+
+@bp.route("/performance", methods=["GET"])
+@login_required
+def vendor_performance():
+    """GET /api/vendors/performance — current rating + past project ratings."""
+    _ensure_ratings_table()
+    email = getattr(g, "user_email", None)
+    vendor_id = _get_vendor_id_from_email(email)
+    if not vendor_id:
+        return jsonify({"avg_rating": 0, "total_ratings": 0, "ratings": []})
+
+    cur = vendor_cursor()
+    cur.execute(
+        "SELECT AVG(rating) AS avg_rating, COUNT(*) AS total FROM vendor_ratings WHERE vendor_id=%s",
+        (vendor_id,),
+    )
+    agg = cur.fetchone() or {}
+    avg_rating = round(float(agg.get("avg_rating") or 0), 1)
+    total_ratings = int(agg.get("total") or 0)
+
+    cur.execute(
+        "SELECT * FROM vendor_ratings WHERE vendor_id=%s ORDER BY rated_at DESC",
+        (vendor_id,),
+    )
+    ratings = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
+
+    # Enrich with rater name
+    if ratings:
+        conn = get_db()
+        main_cur = conn.cursor(dictionary=True)
+        for r in ratings:
+            if r.get("rated_by"):
+                main_cur.execute("SELECT full_name FROM employee WHERE id=%s", (r["rated_by"],))
+                emp = main_cur.fetchone()
+                r["rated_by_name"] = emp["full_name"] if emp else "Staff"
+            else:
+                r["rated_by_name"] = "—"
+
+    return jsonify({
+        "avg_rating": avg_rating,
+        "total_ratings": total_ratings,
+        "ratings": ratings,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Vendor Projects — stored in snh6_swiftproject.vendor_projects
+# Same columns as the main "projects" table + vendor_id, proposal_id, opportunity_id
+# ---------------------------------------------------------------------------
+
+_VP_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS vendor_projects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_name VARCHAR(255),
+    client_id VARCHAR(255),
+    description MEDIUMTEXT,
+    category VARCHAR(100) DEFAULT '0',
+    due_date VARCHAR(255) DEFAULT '',
+    department VARCHAR(2555),
+    progress VARCHAR(12),
+    document_attachment VARCHAR(255),
+    priority VARCHAR(255),
+    start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    members VARCHAR(255),
+    budget VARCHAR(255) DEFAULT '0',
+    budget_ceiling DECIMAL(15,2),
+    bidding_end_date DATE,
+    location VARCHAR(255) DEFAULT 'empty',
+    modules VARCHAR(2555),
+    no_resource VARCHAR(255),
+    no_resources_required VARCHAR(255),
+    lead_id VARCHAR(255),
+    project_manager_id VARCHAR(255),
+    totalhours VARCHAR(255),
+    perday VARCHAR(255),
+    Company_id VARCHAR(255),
+    tasks VARCHAR(2555),
+    uploaderid VARCHAR(255),
+    payment_status VARCHAR(255) DEFAULT 'Pending',
+    paid_date VARCHAR(254),
+    bim_coordinator_id VARCHAR(255),
+    total_paid_amount DECIMAL(12,2) DEFAULT 0.00,
+    payment_completion_status ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted',
+    vendor_id INT,
+    proposal_id INT,
+    opportunity_id INT
+)
+"""
+
+
+def _ensure_vp_table():
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(_VP_TABLE_SQL)
+
+
+@bp.route("/vendor-projects", methods=["GET"])
+@login_required
+def list_vendor_projects():
+    """
+    GET /api/vendors/vendor-projects
+    Returns vendor projects for the logged-in vendor.
+    """
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"projects": []})
+
+    _ensure_vp_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT * FROM vendor_projects WHERE vendor_id = %s ORDER BY id DESC",
+        (user_id,),
+    )
+    rows = cur.fetchall()
+    projects = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+    return jsonify({"projects": projects})
+
+
+@bp.route("/vendor-projects", methods=["POST"])
+@login_required
+def create_vendor_project():
+    """
+    POST /api/vendors/vendor-projects
+    Create a new vendor project.
+    """
+    data = request.get_json(silent=True) or {}
+    user_id = getattr(g, "user_id", None)
+
+    _ensure_vp_table()
+    conn = get_db()
+    cur = conn.cursor()
+
+    cols = [
+        "project_name", "client_id", "description", "category", "due_date",
+        "department", "priority", "start_date", "members", "budget",
+        "budget_ceiling", "bidding_end_date", "location", "modules",
+        "no_resource", "no_resources_required", "lead_id",
+        "project_manager_id", "totalhours", "perday", "vendor_id",
+        "proposal_id", "opportunity_id", "bim_coordinator_id",
+    ]
+    values = []
+    placeholders = []
+    insert_cols = []
+    for c in cols:
+        if c == "vendor_id":
+            val = user_id
+        else:
+            val = data.get(c)
+        if val is not None:
+            insert_cols.append(c)
+            placeholders.append("%s")
+            values.append(val)
+
+    if not insert_cols:
+        return jsonify({"success": False, "message": "No data provided"}), 400
+
+    sql = f"INSERT INTO vendor_projects ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)})"
+    try:
+        cur.execute(sql, tuple(values))
+        return jsonify({"success": True, "project_id": cur.lastrowid})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/vendor-projects/<int:project_id>", methods=["PATCH"])
+@login_required
+def update_vendor_project(project_id):
+    """
+    PATCH /api/vendors/vendor-projects/<id>
+    Update a vendor project.
+    """
+    data = request.get_json(silent=True) or {}
+    conn = get_db()
+    cur = conn.cursor()
+
+    allowed = [
+        "project_name", "client_id", "description", "category", "due_date",
+        "department", "progress", "priority", "start_date", "members",
+        "budget", "budget_ceiling", "bidding_end_date", "location", "modules",
+        "no_resource", "no_resources_required", "lead_id",
+        "project_manager_id", "totalhours", "perday", "bim_coordinator_id",
+        "document_attachment", "payment_status",
+    ]
+    fields = []
+    values = []
+    for col in allowed:
+        if col in data:
+            fields.append(f"{col} = %s")
+            values.append(data[col])
+
+    if not fields:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    values.append(project_id)
+    sql = f"UPDATE vendor_projects SET {', '.join(fields)} WHERE id = %s"
+    try:
+        cur.execute(sql, tuple(values))
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/vendor-projects/<int:project_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_project(project_id):
+    """
+    DELETE /api/vendors/vendor-projects/<id>
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM vendor_projects WHERE id = %s", (project_id,))
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 

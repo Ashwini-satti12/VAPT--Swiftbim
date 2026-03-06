@@ -388,13 +388,34 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteCreateTeamIcon,
           isVisible: true,
         },
-        // {
-        //   name: "Chat",
-        //   path: "/v/chat",
-        //   iconSrc: chatIcon,
-        //   activeIconSrc: whiteChatIcon,
-        //   isVisible: true,
-        // },
+        {
+          name: "Company Profile",
+          path: "/v/company-profile",
+          iconSrc: consultantIcon,
+          activeIconSrc: whiteConsultantIcon,
+          isVisible: true,
+        },
+        {
+          name: "Milestones",
+          path: "/v/milestones",
+          iconSrc: trackerIcon,
+          activeIconSrc: whiteTrackerIcon,
+          isVisible: true,
+        },
+        {
+          name: "Communication",
+          path: "/v/communication",
+          iconSrc: chatIcon,
+          activeIconSrc: whiteChatIcon,
+          isVisible: true,
+        },
+        {
+          name: "Performance",
+          path: "/v/performance",
+          iconSrc: teamReportIcon,
+          activeIconSrc: whiteTeamReportIcon,
+          isVisible: true,
+        },
       ];
     }
 
