@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import api from '../../lib/api';
+import { useEffect, useState } from "react";
+import api from "../../../lib/api";
 
 type Opportunity = {
     id: number;
@@ -56,7 +56,7 @@ function formatBudget(amount: number) {
     return `₹ ${amount}`;
 }
 
-export default function OpportunitiesV() {
+export default function OpportunitiesPMV() {
     const [loading, setLoading] = useState(true);
     const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
     const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
