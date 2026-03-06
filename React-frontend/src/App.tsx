@@ -29,6 +29,7 @@ import ClientDashboard from './pages/Client/ClientDashboard';
 import ClientProjectDetail from './pages/Client/ClientProjectDetail';
 import ClientMilestones from './pages/Client/ClientMilestones';
 import ClientChat from './pages/Client/ClientChat';
+import ManageLeavePM from './pages/ProjectManager/ManageLeavePM';
 
 /*Technical Director */
 import DashboardTD from './pages/TechnicalDirector/DashboardTD';
@@ -153,6 +154,7 @@ function App() {
             <Route path="chat" element={<ChatPM />} />
             <Route path="leave" element={<LeavePM />} />
             <Route path="profile" element={<ProfilePM />} />
+            <Route path="pm/manage-leave" element={<ManageLeavePM />} />
 
             {/* Technical Director Routes */}
             <Route path="td/dashboard" element={<DashboardTD />} />

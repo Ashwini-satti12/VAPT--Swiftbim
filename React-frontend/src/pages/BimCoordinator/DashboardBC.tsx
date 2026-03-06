@@ -442,13 +442,14 @@ export default function DashboardBC() {
                                         {calendarDays.map((cell, i) => {
                                             const cellDate = getCellDate(cell);
                                             const isSelected = isSameDay(cellDate, selectedDate);
+                                            const isToday = isSameDay(cellDate, today);
                                             const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
                                             return (
                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>
