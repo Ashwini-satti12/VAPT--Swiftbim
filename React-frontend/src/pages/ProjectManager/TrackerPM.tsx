@@ -19,7 +19,7 @@ export default function TrackerPM() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusOpen, setStatusOpen] = useState(false);
-  const statusOptions = ['', 'Online', 'Offline'];
+  const statusOptions = ['', 'Available', 'Busy'];
   const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: '0-100', label: '0-100', start: 0, end: 100 },
     { value: '101-200', label: '101-200', start: 100, end: 200 },
@@ -36,6 +36,7 @@ export default function TrackerPM() {
 
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Select Date';
@@ -54,20 +55,12 @@ export default function TrackerPM() {
     return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
   };
 
-  // Determine status from attendance data
-  const getStatus = (entry: AttendanceEntry): 'Online' | 'Offline' => {
-    // Check status field - "1" means Online, "0" means Offline
-    const statusStr = String(entry.status || '').trim();
-    if (statusStr === '1') return 'Online';
-    if (statusStr === '0') return 'Offline';
-    
-    // If status is not set, determine from time_out
-    // If time_out is null or empty, employee is still Online (hasn't checked out)
-    if (!entry.time_out || entry.time_out.trim() === '' || entry.time_out === 'null') {
-      return 'Online';
-    }
-    // Otherwise, they've checked out, so Offline
-    return 'Offline';
+  // Determine status from tasks: if employee has at least one non-completed task
+  // on the selected date -> Busy, else Available.
+  const getStatus = (entry: AttendanceEntry): 'Available' | 'Busy' => {
+    const name = (entry.full_name || '').trim();
+    if (name && busyMap[name]) return 'Busy';
+    return 'Available';
   };
 
   // Extract pure time (HH:MM:SS) from a time or datetime string
@@ -150,6 +143,48 @@ export default function TrackerPM() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Fetch tasks for selected date to determine Availability / Busy
+  useEffect(() => {
+    const fetchTasksForDate = async () => {
+      if (!selectedDate) {
+        setBusyMap({});
+        return;
+      }
+      try {
+        const params: { condition: string } = { condition: '1' }; // management/team view
+        const { data } = await api.get<{ tasks?: any[] }>('/api/tasks', { params });
+        const tasks = data.tasks || [];
+        const targetDate = selectedDate; // YYYY-MM-DD
+        const busy: Record<string, boolean> = {};
+
+        tasks.forEach((t) => {
+          const status = String(t.status || '').toLowerCase();
+          if (status === 'completed') return;
+
+          const rawDate: string =
+            t.start_time ||
+            t.Actual_start_time ||
+            t.due_date ||
+            '';
+          if (!rawDate) return;
+
+          const isoPart = String(rawDate).split('T')[0].split(' ')[0];
+          if (!isoPart || isoPart !== targetDate) return;
+
+          const name = (t.assigned_full_name || '').trim();
+          if (name) busy[name] = true;
+        });
+
+        setBusyMap(busy);
+      } catch (err) {
+        console.error('Error fetching tasks for TrackerPM:', err);
+        setBusyMap({});
+      }
+    };
+
+    fetchTasksForDate();
+  }, [selectedDate]);
 
   useEffect(() => {
     setCurrentPage(1);
