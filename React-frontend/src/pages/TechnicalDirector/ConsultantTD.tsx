@@ -1148,15 +1148,6 @@ export default function ConsultantTD() {
                       placeholder="Select Department"
                     />
                   </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={form.active}
-                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
-                    />
-                  </div>
                 </div>
 
                 {/* Column 2 */}
@@ -1317,15 +1308,6 @@ export default function ConsultantTD() {
                       value={editForm.department}
                       onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
                       placeholder="Select Department"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={editForm.active}
-                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
                     />
                   </div>
                   <div>
@@ -1683,8 +1665,13 @@ export default function ConsultantTD() {
                 { label: 'Address', value: selectedEmployee.address },
                 { label: 'Joined Date', value: selectedEmployee.doj },
                 { label: 'Department', value: selectedEmployee.department },
+                { label: 'Salary', value: selectedEmployee.salary },
+                { label: 'Account Number', value: selectedEmployee.accountnumber },
               ].map((item, idx) => (
-                <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
+                <div
+                  key={idx}
+                  className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
+                >
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
                   <span className="hidden sm:inline text-[#353535] font-Gantari text-center">:</span>
                   <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>

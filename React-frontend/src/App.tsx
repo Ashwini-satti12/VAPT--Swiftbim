@@ -102,6 +102,10 @@ import MytaskViewV from './pages/Vendor/MytaskViewV';
 import OpportunitiesV from './pages/Vendor/OpportunitiesV';
 import MyBidsV from './pages/Vendor/MyBidsV';
 import ProposalsV from './pages/Vendor/ProposalsV';
+import CompanyProfileV from './pages/Vendor/CompanyProfileV';
+import MilestonesV from './pages/Vendor/MilestonesV';
+import CommunicationV from './pages/Vendor/CommunicationV';
+import PerformanceV from './pages/Vendor/PerformanceV';
 
 function App() {
   return (
@@ -213,6 +217,10 @@ function App() {
             <Route path="v/teamreport" element={<TeamReportV />} />
             <Route path="v/chat" element={<ChatV />} />
             <Route path="v/mytasks/view" element={<MytaskViewV />} />
+            <Route path="v/company-profile" element={<CompanyProfileV />} />
+            <Route path="v/milestones" element={<MilestonesV />} />
+            <Route path="v/communication" element={<CommunicationV />} />
+            <Route path="v/performance" element={<PerformanceV />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
