@@ -60,7 +60,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isBimLead = userRole === 'BIM Lead';
   const isBimCoordinator = userRole === 'BIM Coordinator';
   const isBimModeler = userRole === 'BIM Modeler';
-  const isVendor = userRole === 'Vendor' || userRole === 'Vendor Admin' || userRole === 'Vendor PM' || userRole === 'Vendor Employee';
+  const isVendor = userRole === 'Vendor' || userRole === 'Vendor Admin' || userRole === 'Vendor PM' || userRole === 'Vendor Employee' || userRole === 'Vendor BIM Lead';
   const isVendorAdmin = userRole === 'Vendor' || userRole === 'Vendor Admin';
   const isVendorPM = userRole === 'Vendor PM';
   const isVendorEmployee = userRole === 'Vendor Employee';
@@ -403,6 +403,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Bidding", path: "/vendor-bim-lead/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "Create Team", path: "/vendor-bim-lead/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vendor-bim-lead/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
+          { name: "Team Task", path: "/vendor-bim-lead/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Communication", path: "/vendor-bim-lead/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
     }

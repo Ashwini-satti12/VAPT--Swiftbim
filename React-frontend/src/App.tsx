@@ -124,6 +124,8 @@ import VendorBimLeadDashboard from './pages/Vendor/VendorBimLead/VendorBimLeadDa
 import VendorBimLeadProjects from './pages/Vendor/VendorBimLead/VendorBimLeadProjects';
 import VendorBimLeadTasks from './pages/Vendor/VendorBimLead/VendorBimLeadTasks';
 import VendorBimLeadCreateTeam from './pages/Vendor/VendorBimLead/VendorBimLeadCreateTeam';
+import VendorBimLeadTeamTasks from './pages/Vendor/VendorBimLead/VendorBimLeadTeamTasks';
+import VendorBimLeadCommunication from './pages/Vendor/VendorBimLead/VendorBimLeadCommunication';
 
 function App() {
   return (
@@ -264,8 +266,10 @@ function App() {
             <Route path="vendor-bim-lead/mybids" element={<BiddingV />} />
             <Route path="vendor-bim-lead/createteam" element={<VendorBimLeadCreateTeam />} />
             <Route path="vendor-bim-lead/resources" element={<ResourcesV />} />
-            <Route path="ve/mytasks" element={<MytaskEV />} />
-            <Route path="ve/teamtasks" element={<TeamtaskV />} />
+            <Route path="vendor-bim-lead/communication" element={<VendorBimLeadCommunication />} />
+            <Route path="vendor-bim-lead/teamtasks" element={<VendorBimLeadTeamTasks />} />
+            {/* <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks" element={<TeamtaskV />} /> */}
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

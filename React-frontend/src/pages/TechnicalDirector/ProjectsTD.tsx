@@ -1596,7 +1596,6 @@ export default function ProjectsTD() {
                         setCreateBIMCoOrdinator("");
                         setCreateMember("");
                         setSelectedMemberIds([]);
-                        setModuleNameTags([]);
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
