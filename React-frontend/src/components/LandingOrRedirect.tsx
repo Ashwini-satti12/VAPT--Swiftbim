@@ -19,6 +19,7 @@ export default function LandingOrRedirect() {
     if (role === 'BIM Lead') return <Navigate to="/bl/dashboard" replace />;
     if (role === 'BIM Coordinator') return <Navigate to="/bc/dashboard" replace />;
     if (role === 'BIM Modeler') return <Navigate to="/bm/dashboard" replace />;
+    if (role === 'Vendor BIM Lead') return <Navigate to="/vendor-bim-lead/dashboard" replace />;
     return <Navigate to="/dashboard" replace />;
   }
   return <Landing />;

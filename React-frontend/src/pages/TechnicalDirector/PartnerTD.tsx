@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from './PartnerView/types';
 
-type StatusFilter = 'approved' | 'pending' | 'rejected' | 'all';
+
 
 
 export default function PartnerTD() {
@@ -22,9 +22,6 @@ export default function PartnerTD() {
     }, []);
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
-
-    return v.status === 'approved';
-
 
     if (loading) {
         return (
@@ -83,12 +80,12 @@ export default function PartnerTD() {
             {/* Grid */}
             <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filtered.length === 0 ? (
+                    {allList.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No partners found.
                         </div>
                     ) : (
-                        filtered.map((partner) => (
+                        allList.map((partner) => (
                             <div
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col"
