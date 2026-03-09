@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../../contexts/AuthContext";
 import api from "../../../lib/api";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
@@ -46,8 +44,6 @@ interface Employee {
 }
 
 export default function ProjectsPMV() {
-    const { user } = useAuth();
-    const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
@@ -57,7 +53,7 @@ export default function ProjectsPMV() {
     // View Project
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [taskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
 
     // Create Project
     const [showCreateModal, setShowCreateModal] = useState(false);

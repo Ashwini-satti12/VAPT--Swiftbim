@@ -5,17 +5,10 @@ import type { Vendor } from './PartnerView/types';
 
 type StatusFilter = 'approved' | 'pending' | 'rejected' | 'all';
 
-const STATUS_BADGE: Record<string, string> = {
-    approved: 'bg-[#F0FDF4] text-[#16A34A] border-[#22C55E]/20',
-    pending: 'bg-[#FFF8E7] text-[#92400E] border-[#F59E0B]/20',
-    rejected: 'bg-[#FFF1F2] text-[#BE123C] border-[#F43F5E]/20',
-};
 
 export default function PartnerTD() {
     const [allList, setAllList] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('approved');
 
     useEffect(() => {
         // Fetch all vendors (no status filter) so we can switch tabs without refetching
@@ -30,26 +23,8 @@ export default function PartnerTD() {
 
     const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
 
-    const filtered = allList.filter(v => {
-        const matchesStatus = statusFilter === 'all' || v.status === statusFilter;
-        const q = search.toLowerCase();
-        const matchesSearch = !q ||
-            displayName(v).toLowerCase().includes(q) ||
-            (v.contact_name || '').toLowerCase().includes(q) ||
-            (v.city || '').toLowerCase().includes(q) ||
-            (v.country || '').toLowerCase().includes(q);
-        return matchesStatus && matchesSearch;
-    });
+    return v.status === 'approved';
 
-    const tabs: { label: string; value: StatusFilter }[] = [
-        { label: 'Approved', value: 'approved' },
-        { label: 'Pending', value: 'pending' },
-        { label: 'Rejected', value: 'rejected' },
-        { label: 'All', value: 'all' },
-    ];
-
-    const countBy = (status: StatusFilter) =>
-        status === 'all' ? allList.length : allList.filter(v => v.status === status).length;
 
     if (loading) {
         return (
@@ -110,7 +85,7 @@ export default function PartnerTD() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filtered.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
-                            {search ? `No partners found for "${search}"` : `No ${statusFilter === 'all' ? '' : statusFilter} partners found.`}
+                            No partners found.
                         </div>
                     ) : (
                         filtered.map((partner) => (

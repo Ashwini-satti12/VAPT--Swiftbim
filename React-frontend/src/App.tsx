@@ -98,11 +98,11 @@ import MytaskV from './pages/Vendor/MytaskV';
 import TeamtaskV from './pages/Vendor/TeamtaskV';
 import CreateteamV from './pages/Vendor/CreateteamV';
 import TrackerV from './pages/Vendor/TrackerV';
+import ResourcesV from './pages/Vendor/ResourcesV';
 import TeamReportV from './pages/Vendor/TeamReportV';
 import ChatV from './pages/Vendor/ChatV';
 import MytaskViewV from './pages/Vendor/MytaskViewV';
-import OpportunitiesV from './pages/Vendor/OpportunitiesV';
-import MyBidsV from './pages/Vendor/MyBidsV';
+import BiddingV from './pages/Vendor/BiddingV';
 import ProposalsV from './pages/Vendor/ProposalsV';
 import CompanyProfileV from './pages/Vendor/CompanyProfileV';
 import MilestonesV from './pages/Vendor/MilestonesV';
@@ -118,6 +118,12 @@ import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
 /* Vendor Employee */
 import DashboardEV from './pages/Vendor/Employee/DashboardEV';
 import MytaskEV from './pages/Vendor/Employee/MytaskEV';
+
+/* Vendor BIM Lead */
+import VendorBimLeadDashboard from './pages/Vendor/VendorBimLead/VendorBimLeadDashboard';
+import VendorBimLeadProjects from './pages/Vendor/VendorBimLead/VendorBimLeadProjects';
+import VendorBimLeadTasks from './pages/Vendor/VendorBimLead/VendorBimLeadTasks';
+import VendorBimLeadCreateTeam from './pages/Vendor/VendorBimLead/VendorBimLeadCreateTeam';
 
 function App() {
   return (
@@ -217,8 +223,8 @@ function App() {
 
             {/* Vendor Routes */}
             <Route path="v/dashboard" element={<DashboardV />} />
-            <Route path="v/opportunities" element={<OpportunitiesV />} />
-            <Route path="v/mybids" element={<MyBidsV />} />
+            <Route path="v/opportunities" element={<BiddingV />} />
+            <Route path="v/mybids" element={<BiddingV />} />
             <Route path="v/proposals" element={<ProposalsV />} />
             <Route path="v/consultants" element={<ConsultantV />} />
             <Route path="v/consultants/:id" element={<ConsultantdetailsV />} />
@@ -235,17 +241,29 @@ function App() {
             <Route path="v/milestones" element={<MilestonesV />} />
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />
+            <Route path="v/resources" element={<ResourcesV />} />
 
             {/* Vendor PM Routes */}
             <Route path="vpm/dashboard" element={<DashboardPMV />} />
             <Route path="vpm/projects" element={<ProjectsPMV />} />
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
-            <Route path="vpm/opportunities" element={<OpportunitiesV />} />
-            <Route path="vpm/mybids" element={<MyBidsV />} />
+            <Route path="vpm/opportunities" element={<BiddingV />} />
+            <Route path="vpm/mybids" element={<BiddingV />} />
             <Route path="vpm/createteam" element={<CreateteamPMV />} />
+            <Route path="vpm/resources" element={<ResourcesV />} />
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
+            <Route path="ve/mytasks" element={<MytaskEV />} />
+
+            {/* Vendor BIM Lead Routes */}
+            <Route path="vendor-bim-lead/dashboard" element={<VendorBimLeadDashboard />} />
+            <Route path="vendor-bim-lead/projects" element={<VendorBimLeadProjects />} />
+            <Route path="vendor-bim-lead/tasks" element={<VendorBimLeadTasks />} />
+            <Route path="vendor-bim-lead/opportunities" element={<BiddingV />} />
+            <Route path="vendor-bim-lead/mybids" element={<BiddingV />} />
+            <Route path="vendor-bim-lead/createteam" element={<VendorBimLeadCreateTeam />} />
+            <Route path="vendor-bim-lead/resources" element={<ResourcesV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskV />} />
           </Route>
