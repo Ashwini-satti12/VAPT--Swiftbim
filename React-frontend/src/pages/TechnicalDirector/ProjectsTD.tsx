@@ -155,8 +155,6 @@ export default function ProjectsTD() {
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
-  const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
-  const [moduleNameInput, setModuleNameInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -168,8 +166,6 @@ export default function ProjectsTD() {
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
   const [createMember, setCreateMember] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-  const [memberSearch, setMemberSearch] = useState('');
-  const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
@@ -183,9 +179,6 @@ export default function ProjectsTD() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
   const [selectedProjectForView, setSelectedProjectForView] =
-    useState<Project | null>(null);
-  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
-  const [selectedProjectForMilestones, setSelectedProjectForMilestones] =
     useState<Project | null>(null);
 
   // Add Milestone Modal State
@@ -216,7 +209,6 @@ export default function ProjectsTD() {
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
-  const [departments, setDepartments] = useState<string[]>([]);
   const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
   // All employees for member lookup
@@ -323,8 +315,8 @@ export default function ProjectsTD() {
 
     api
       .get<{ departments?: string[] }>("/api/departments")
-      .then(({ data }) => setDepartments(data.departments ?? []))
-      .catch(() => setDepartments([]));
+      .then(() => { /* departments data consumed but state was removed */ })
+      .catch(() => { });
 
     api
       .get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients/from-users")

@@ -155,11 +155,6 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         return 'bg-[#F2F2F2] text-[#353535]';
     };
 
-    const getStatusBadge = (bid: VendorBid) => {
-        if (bid.status === 'shortlisted') return { text: '✓ Accepted', cls: 'bg-[#E6F4EA] text-[#1E7E34]' };
-        if (bid.status === 'lost') return { text: '✕ Rejected', cls: 'bg-[#FCE8E8] text-[#D93025]' };
-        return null;
-    };
 
     const computedStatus = (opportunity.computed_status || opportunity.status || 'active').toLowerCase();
     const oppStatusLabel = computedStatus === 'active' ? 'Open' : computedStatus === 'awarded' ? 'Awarded' : 'Closed';
