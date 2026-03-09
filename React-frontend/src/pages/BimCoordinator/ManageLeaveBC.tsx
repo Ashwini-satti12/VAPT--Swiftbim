@@ -642,7 +642,7 @@ export default function ManageLeaveBC() {
                         {visiblePageRanges.map((pr) => {
                             const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
                             const isActive = pageNum === activePage;
-                            return (
+  return (
                                 <button
                                     key={pr.label}
                                     type="button"
