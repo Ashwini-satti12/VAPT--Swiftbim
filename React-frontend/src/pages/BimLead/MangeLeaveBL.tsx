@@ -59,11 +59,11 @@ function toInputDate(d: string | undefined): string {
     return `${yy}-${mm}-${dd}`;
 }
 /** Convert YYYY-MM-DD to DD/MM/YYYY for storage. */
-function toStoredDate(d: string): string {
+/* function toStoredDate(d: string): string {
     if (!d) return '';
     const [y, m, day] = d.split('-');
     return `${day}/${m}/${y}`;
-}
+} */
 
 /** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
 function formatApiDate(value: string | undefined | null): string {
@@ -135,8 +135,8 @@ export default function ManageLeave() {
                         app.status === 1
                             ? 'Approved'
                             : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
+                                ? 'Rejected'
+                                : 'Pending',
                 }));
                 if (mapped.length) {
                     setLeaves(mapped);
@@ -295,8 +295,8 @@ export default function ManageLeave() {
                         app.status === 1
                             ? 'Approved'
                             : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
+                                ? 'Rejected'
+                                : 'Pending',
                 }));
                 if (mapped.length) {
                     setLeaves(mapped);
@@ -399,8 +399,8 @@ export default function ManageLeave() {
                         app.status === 1
                             ? 'Approved'
                             : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
+                                ? 'Rejected'
+                                : 'Pending',
                 }));
                 if (mapped.length) {
                     setLeaves(mapped);
@@ -517,46 +517,46 @@ export default function ManageLeave() {
                         )}
                     </div>
                     <div className="relative" ref={showEntriesDropdownRef}>
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowEntriesOpen((o) => !o);
-                                }}
-                                className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowEntriesOpen((o) => !o);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                        >
+                            <span>Show:</span>
+                            <span>{selectedRange.label}</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                className={`transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {showEntriesOpen && (
+                            <div
+                                className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[140px] py-1.5"
+                                onMouseDown={(e) => e.preventDefault()}
                             >
-                                <span>Show:</span>
-                                <span>{selectedRange.label}</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                    className={`transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}>
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
-                            </button>
-                            {showEntriesOpen && (
-                                <div
-                                    className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[140px] py-1.5"
-                                    onMouseDown={(e) => e.preventDefault()}
-                                >
-                                    {showEntriesOptions.map((opt) => {
-                                        const isSelected = selectedShowEntries === opt.value;
-                                        return (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedShowEntries(opt.value);
-                                                    setShowEntriesOpen(false);
-                                                }}
-                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                                {showEntriesOptions.map((opt) => {
+                                    const isSelected = selectedShowEntries === opt.value;
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedShowEntries(opt.value);
+                                                setShowEntriesOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                     <button
                         type="button"
                         onClick={() => {

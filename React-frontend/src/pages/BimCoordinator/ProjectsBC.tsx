@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import api from '../../lib/api';
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-
-const apiBase = (api.defaults.baseURL as string) || '';
 
 interface Employee {
   id: number;
@@ -479,14 +479,14 @@ export default function ProjectsBC() {
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
                     <div className="flex items-center gap-4">
-                      <img src={`https://i.pravatar.cc/150?u=pm_${selectedProjectForView.project_manager}`} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
+                      <img src={ProfileIcon} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
                       <div className="min-w-0">
                         <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{pmName}</p>
                         <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <img src={`https://i.pravatar.cc/150?u=bl_${selectedProjectForView.bim_lead}`} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
+                      <img src={ProfileIcon} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
                       <div className="min-w-0">
                         <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{blName}</p>
                         <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
@@ -502,7 +502,7 @@ export default function ProjectsBC() {
                         <div className="flex flex-wrap gap-1">
                           {memberNames.slice(0, 3).map((name, j) => (
                             <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0" title={name}>
-                              <img src={`https://i.pravatar.cc/150?u=mem_${memberIdsForView[j]}`} alt={name} className="w-full h-full object-cover" />
+                              <img src={ProfileIcon} alt={name} className="w-full h-full object-cover" />
                             </div>
                           ))}
                           {memberNames.length > 3 && (
@@ -629,8 +629,8 @@ export default function ProjectsBC() {
                     {allMembersList.map((m) => (
                       <div key={m.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100">
                         <img
-                          src={m.profile_picture ? `${apiBase}/uploads/${m.profile_picture}` : `https://i.pravatar.cc/150?u=${m.id}`}
-                          onError={(e) => { (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${m.id}`; }}
+                          src={m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : ProfileIcon}
+                          onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
                           className="w-14 h-14 rounded-full object-cover border border-slate-100"
                           alt={m.full_name}
                         />
@@ -1800,7 +1800,7 @@ export default function ProjectsBC() {
                         <div className="flex -space-x-5">
                           {[1, 2, 3].map((i) => (
                             <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                              <img src={`https://i.pravatar.cc/150?u=${p.id + i}`} alt="avatar" className="w-full h-full object-cover" />
+                              <img src={ProfileIcon} alt="avatar" className="w-full h-full object-cover" />
                             </div>
                           ))}
                           <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">

@@ -90,8 +90,55 @@ def create_app(config_class=Config):
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
-    return app
+    @app.route("/api/view_profile_picture/<int:emp_id>")
+    def view_profile_picture(emp_id):
+        from flask import current_app, jsonify, send_file
+        import os
+        import mimetypes
+        from werkzeug.utils import safe_join
+        from db import get_db
+        
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute("SELECT profile_picture FROM employee WHERE id = %s", (emp_id,))
+            row = cur.fetchone()
+            
+            if not row or not row.get("profile_picture"):
+                return jsonify({"error": "No profile picture found for this employee"}), 404
+                
+            profile_picture = row["profile_picture"]
+            
+            upload_dir = current_app.config.get("UPLOAD_FOLDER")
+            if not upload_dir:
+                return jsonify({"error": "UPLOAD_FOLDER not configured"}), 500
 
+            # Find physical file (try employee dir first, then root upload dir)
+            employee_dir = os.path.join(upload_dir, "employee")
+            file_path = safe_join(employee_dir, profile_picture)
+            
+            if not (file_path and os.path.isfile(file_path)):
+                file_path = safe_join(upload_dir, profile_picture)
+
+            if not (file_path and os.path.isfile(file_path)):
+                return jsonify({
+                    "error": "File not found on server",
+                    "path_checked": file_path
+                }), 404
+
+            # Force correct mimetype so images render in browser
+            mime_type, _ = mimetypes.guess_type(file_path)
+            if not mime_type:
+                mime_type = "application/octet-stream"
+
+            resp = send_file(file_path, mimetype=mime_type, as_attachment=False)
+            resp.headers["Content-Disposition"] = f'inline; filename="{profile_picture}"'
+            return resp
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    return app
 
 app = create_app()
 

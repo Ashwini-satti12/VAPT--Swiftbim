@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import api from "../../lib/api";
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-
-const apiBase = (api.defaults.baseURL as string) || '';
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected") return undefined;
@@ -355,7 +355,7 @@ export default function ProjectsTD() {
 
     // Always fetch fresh details to ensure data is up to date, but don't clear existing while loading
     api
-      .get<Record<string, unknown>>(`/ api / projects / ${id} `)
+      .get<Record<string, unknown>>(`/api/projects/${id}`)
       .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
       .catch(() => {
         if (!existingProject) {
@@ -415,7 +415,7 @@ export default function ProjectsTD() {
           completed_tasks?: number;
           completion_percentage?: number;
         }>;
-      }>(`/ api / projects / ${projectId}/module-progress`)
+      }>(`/api/projects/${projectId}/module-progress`)
       .then(({ data }) => {
         if (cancelled || !data) return;
 
@@ -713,14 +713,12 @@ export default function ProjectsTD() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
                     {/* Project Manager */}
                     {(() => {
-                      const projectManagerId = selectedProjectForView.project_manager;
-                      const projectManager = projectManagerId
-                        ? allEmployees.find(e => Number(e.id) === Number(projectManagerId))
+                      const projectManagerIdentifier = selectedProjectForView.project_manager;
+                      const projectManager = projectManagerIdentifier
+                        ? allEmployees.find(e => Number(e.id) === Number(projectManagerIdentifier) || e.full_name === projectManagerIdentifier)
                         : null;
                       const pmProfileUrl = projectManager?.profile_picture
-                        ? (projectManager.profile_picture.startsWith('http://') || projectManager.profile_picture.startsWith('https://')
-                          ? projectManager.profile_picture
-                          : `${apiBase}/uploads/${projectManager.profile_picture}`)
+                        ? getGlobalProfileUrl(projectManager.id, projectManager.profile_picture)
                         : null;
 
                       return (
@@ -731,7 +729,7 @@ export default function ProjectsTD() {
                               className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
                               alt={projectManager?.full_name || "PM"}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=pm${projectManagerId}`;
+                                (e.target as HTMLImageElement).src = ProfileIcon;
                               }}
                             />
                           ) : (
@@ -755,14 +753,12 @@ export default function ProjectsTD() {
 
                     {/* BIM Lead */}
                     {(() => {
-                      const bimLeadId = selectedProjectForView.bim_lead;
-                      const bimLead = bimLeadId
-                        ? allEmployees.find(e => Number(e.id) === Number(bimLeadId))
+                      const bimLeadIdentifier = selectedProjectForView.bim_lead;
+                      const bimLead = bimLeadIdentifier
+                        ? allEmployees.find(e => Number(e.id) === Number(bimLeadIdentifier) || e.full_name === bimLeadIdentifier)
                         : null;
                       const bimProfileUrl = bimLead?.profile_picture
-                        ? (bimLead.profile_picture.startsWith('http://') || bimLead.profile_picture.startsWith('https://')
-                          ? bimLead.profile_picture
-                          : `${apiBase}/uploads/${bimLead.profile_picture}`)
+                        ? getGlobalProfileUrl(bimLead.id, bimLead.profile_picture)
                         : null;
 
                       return (
@@ -773,7 +769,7 @@ export default function ProjectsTD() {
                               className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
                               alt={bimLead?.full_name || "BIM Lead"}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=bim${bimLeadId}`;
+                                (e.target as HTMLImageElement).src = ProfileIcon;
                               }}
                             />
                           ) : (
@@ -828,13 +824,7 @@ export default function ProjectsTD() {
 
                           // Helper to get profile image URL
                           const getProfileImageUrl = (emp: Employee) => {
-                            if (emp.profile_picture) {
-                              if (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://')) {
-                                return emp.profile_picture;
-                              }
-                              return `${apiBase}/uploads/${emp.profile_picture}`;
-                            }
-                            return null;
+                            return getGlobalProfileUrl(emp.id, emp.profile_picture);
                           };
 
                           return (
@@ -854,7 +844,7 @@ export default function ProjectsTD() {
                                           alt={emp.full_name || "Member"}
                                           className="w-full h-full object-cover"
                                           onError={(e) => {
-                                            (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                            (e.target as HTMLImageElement).src = ProfileIcon;
                                           }}
                                         />
                                       ) : (
@@ -873,7 +863,7 @@ export default function ProjectsTD() {
                                     className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
                                   >
                                     <img
-                                      src={`https://i.pravatar.cc/150?u=${selectedProjectForView.id + j}`}
+                                      src={ProfileIcon}
                                       alt="avatar"
                                       className="w-full h-full object-cover"
                                     />
@@ -1439,9 +1429,7 @@ export default function ProjectsTD() {
                                 <>
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
-                                      ? (emp.profile_picture.startsWith('http'))
-                                        ? emp.profile_picture
-                                        : `${apiBase}/uploads/${emp.profile_picture}`
+                                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
                                       : null;
 
                                     return (
@@ -1460,7 +1448,7 @@ export default function ProjectsTD() {
                                             alt={emp.full_name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
-                                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                                              (e.target as HTMLImageElement).src = ProfileIcon;
                                             }}
                                           />
                                         ) : (
@@ -2465,9 +2453,7 @@ export default function ProjectsTD() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {allMembersList.map((emp) => {
                     const profileUrl = emp.profile_picture
-                      ? (emp.profile_picture.startsWith('http://') || emp.profile_picture.startsWith('https://'))
-                        ? emp.profile_picture
-                        : `${apiBase}/uploads/${emp.profile_picture}`
+                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
                       : null;
 
                     return (
@@ -2486,7 +2472,7 @@ export default function ProjectsTD() {
                             alt={emp.full_name || "Member"}
                             className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${emp.id}`;
+                              (e.target as HTMLImageElement).src = ProfileIcon;
                             }}
                           />
                         ) : (
@@ -2564,15 +2550,11 @@ export default function ProjectsTD() {
               <div className="flex flex-col items-center">
                 {selectedMember.profile_picture ? (
                   <img
-                    src={
-                      selectedMember.profile_picture.startsWith('http://') || selectedMember.profile_picture.startsWith('https://')
-                        ? selectedMember.profile_picture
-                        : `${apiBase}/uploads/${selectedMember.profile_picture}`
-                    }
+                    src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
                     alt={selectedMember.full_name || "Member"}
                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = `https://i.pravatar.cc/150?u=${selectedMember.id}`;
+                      (e.target as HTMLImageElement).src = ProfileIcon;
                     }}
                   />
                 ) : (
