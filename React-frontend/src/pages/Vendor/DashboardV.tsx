@@ -285,24 +285,12 @@ export default function DashboardV() {
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* KPI Grid — same style as DashboardTD */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-6 shadow-lg flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex flex-col gap-1">
-                                    <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight whitespace-pre-line">{card.title}</h3>
-                                </div>
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{card.value}</p>
-                            </div>
-                            <div className="mt-auto w-full">
-                                <div className="flex justify-between items-center mb-1">
-                                    <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">{card.label}</p>
-                                    <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{card.percent}%</span>
-                                </div>
-                                <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                    <div className="h-1 rounded-full" style={{ backgroundColor: card.barColor, width: `${card.percent}%` }} />
-                                </div>
-                            </div>
+                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
+                            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
                         </div>
                     ))}
                 </div>

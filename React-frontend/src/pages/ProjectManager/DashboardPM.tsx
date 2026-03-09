@@ -210,95 +210,31 @@ export default function DashboardPM() {
   return (
     <div className="flex flex-col lg:h-full lg:overflow-hidden">
 
-      {/* Header and KPI Cards */}
-      <div className="bg-white pb-4 pt-0 border-b border-transparent shrink-0">
-        <h1 className="text-lg sm:text-xl font-medium font-gantari text-slate-800 mb-4 sm:mb-6">Dashboard</h1>
-
-        {/* KPI Grid: 1 col → 2 col → 4 col */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-
+      {/* Header and KPI Cards — same as DashboardTD */}
+      <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
+        <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
+        {/* KPI Grid: compact cards — label left, number right (match DashboardTD) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Total Projects */}
-          <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-4 sm:p-6 shadow-lg flex flex-col min-h-[120px] lg:min-h-[100px] transition-all">
-            <div className="flex justify-between items-start mb-3 sm:mb-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base sm:text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Total<br />Projects</h3>
-              </div>
-              <p className="text-[24px] sm:text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{stats.totalProjects}</p>
-            </div>
-            <div className="mt-auto w-full">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-[11px] sm:text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Projects</p>
-                <span className="text-[11px] sm:text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-              </div>
-              <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-              </div>
-            </div>
+          <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
           </div>
-
           {/* Completed Projects */}
-          <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col min-h-[120px] lg:min-h-[100px] transition-all">
-            <div className="flex justify-between items-start mb-3 sm:mb-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base sm:text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Projects</h3>
-              </div>
-              <div className="flex flex-col items-end">
-                <p className="text-[24px] sm:text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
-              </div>
-            </div>
-            <div className="mt-auto w-full">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-[11px] sm:text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Projects</p>
-                <span className="text-[11px] sm:text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-              </div>
-              <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-              </div>
-            </div>
+          <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
+            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
           </div>
-
           {/* In-Progress Tasks */}
-          <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col min-h-[120px] lg:min-h-[100px] transition-all">
-            <div className="flex justify-between items-start mb-3 sm:mb-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base sm:text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">In-Progress<br />Task</h3>
-              </div>
-              <div className="flex flex-col items-end">
-                <p className="text-[24px] sm:text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
-              </div>
-            </div>
-            <div className="mt-auto w-full">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-[11px] sm:text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total In-Progress Task</p>
-                <span className="text-[11px] sm:text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-              </div>
-              <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-              </div>
-            </div>
+          <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
+            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
           </div>
-
           {/* Completed Tasks */}
-          <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col min-h-[120px] lg:min-h-[100px] transition-all">
-            <div className="flex justify-between items-start mb-3 sm:mb-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-base sm:text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Task</h3>
-              </div>
-              <div className="flex flex-col items-end">
-                <p className="text-[24px] sm:text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
-              </div>
-            </div>
-            <div className="mt-auto w-full">
-              <div className="flex justify-between items-center mb-1">
-                <p className="text-[11px] sm:text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Task</p>
-                <span className="text-[11px] sm:text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-              </div>
-              <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-              </div>
-            </div>
+          <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
+            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
           </div>
-
         </div>
       </div>
 
