@@ -77,6 +77,14 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                     };
                     setProfileData(updated);
                     setEditData(updated);
+                    if (data.profile_picture) {
+                        const url = getGlobalProfileUrl(data.id, data.profile_picture);
+                        setProfilePicture(url);
+                        localStorage.setItem("userProfilePicture", url);
+                    } else {
+                        setProfilePicture(null);
+                        localStorage.removeItem("userProfilePicture");
+                    }
                 }
             } catch {
                 // keep defaults if profile endpoint fails

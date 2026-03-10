@@ -1,10 +1,86 @@
-import { useEffect, useState } from "react";
+import { useRef, useEffect, useState } from "react";
 import api from "../../lib/api";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import { FaCircleDollarToSlot } from "react-icons/fa6";
+
+function FormSelect({
+    placeholder,
+    options,
+    value,
+    onChange,
+}: {
+    label: string;
+    placeholder: string;
+    options: string[];
+    value: string;
+    onChange: (v: string) => void;
+}) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    return (
+        <div className="relative w-full" ref={ref}>
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-[#F4F5F7] rounded-[5px] text-left transition-all focus:outline-none"
+            >
+                <span
+                    className={
+                        value
+                            ? "text-[#000000] font-medium text-[16px]"
+                            : "text-gray-400 font-medium text-[16px]"
+                    }
+                >
+                    {value || placeholder}
+                </span>
+                <svg
+                    className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
+            </button>
+            {open && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+                    {options.map((opt) => (
+                        <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                                onChange(opt);
+                                setOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
+                  ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 interface Project {
     id: number;
@@ -33,6 +109,7 @@ interface Project {
     bidding_end_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
+    deliverables?: string;
 }
 
 interface Employee {
@@ -53,36 +130,46 @@ export default function ProjectsV() {
     // View Project
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [taskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
 
-    // Create Project
+    // Create/Edit Project Fields (Matching ProjectsTD)
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [createForm, setCreateForm] = useState({
-        project_name: "", description: "", budget: "", priority: "Medium",
-        start_date: "", due_date: "", location: "", modules: "",
-        totalhours: "", perday: "", members: "",
-    });
-    const [createSubmitting, setCreateSubmitting] = useState(false);
-
-    // Edit Project
     const [showEditModal, setShowEditModal] = useState(false);
-    const [editForm, setEditForm] = useState({
-        project_name: "", description: "", budget: "", priority: "",
-        start_date: "", due_date: "", location: "", modules: "",
-        totalhours: "", perday: "", members: "",
-    });
     const [editId, setEditId] = useState<number | null>(null);
+
+    const [createName, setCreateName] = useState("");
+    const [createBudget, setCreateBudget] = useState("");
+    const [createModuleName, setCreateModuleName] = useState("");
+    const [createClientName, setCreateClientName] = useState("");
+    const [createProjectManager, setCreateProjectManager] = useState("");
+    const [createStartDate, setCreateStartDate] = useState("");
+    const [createEndDate, setCreateEndDate] = useState("");
+    const [createTotalHours, setCreateTotalHours] = useState("");
+    const [createPerDay, setCreatePerDay] = useState("");
+    const [createBIMLead, setCreateBIMLead] = useState("");
+    const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
+    const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+    const [createResources, setCreateResources] = useState("");
+    const [createRequiredResources, setCreateRequiredResources] = useState("");
+    const [createPriority, setCreatePriority] = useState("");
+    const [createLocation, setCreateLocation] = useState("");
+    const [createDescription, setCreateDescription] = useState("");
+    const [createDeliverables, setCreateDeliverables] = useState("");
+    const [createDepartment, setCreateDepartment] = useState(""); // Linked to project type in some views
+
+    const [createSubmitting, setCreateSubmitting] = useState(false);
     const [editSubmitting, setEditSubmitting] = useState(false);
 
-    // Member selection for create/edit
-    const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
-    const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+    // Lists for dropdowns
+    const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
+    const [bimLeads, setBimLeads] = useState<Employee[]>([]);
+    const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
+    const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
     // Milestones view
     const [showMilestones, setShowMilestones] = useState(false);
     const [milestonesProject, setMilestonesProject] = useState<Project | null>(null);
 
-    // Success message
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
     const fetchProjects = () => {
@@ -94,9 +181,27 @@ export default function ProjectsV() {
 
     useEffect(() => {
         fetchProjects();
+
+        // Fetch employees and categorize them
         api.get<{ employees?: Employee[] }>("/api/employees")
-            .then(({ data }) => setAllEmployees(data.employees ?? []))
-            .catch(() => setAllEmployees([]));
+            .then(({ data }) => {
+                const allEmp = data.employees ?? [];
+                setAllEmployees(allEmp);
+                setProjectManagers(allEmp.filter((e) => e.user_role === "Project Manager"));
+                setBimLeads(allEmp.filter((e) => e.user_role === "BIM Lead"));
+                setBimCoordinators(allEmp.filter((e) => e.user_role === "BIM Coordinator"));
+            })
+            .catch(() => {
+                setAllEmployees([]);
+                setProjectManagers([]);
+                setBimLeads([]);
+                setBimCoordinators([]);
+            });
+
+        // Fetch clients
+        api.get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients/from-users")
+            .then(({ data }) => setClientsList(data.clients ?? []))
+            .catch(() => setClientsList([]));
     }, []);
 
     const getEmployeeName = (id: string | number | undefined): string => {
@@ -110,18 +215,51 @@ export default function ProjectsV() {
         return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
     };
 
+    const nameToId = (name: string, list: Employee[]) => {
+        const found = list.find(e => e.full_name === name);
+        return found ? String(found.id) : "";
+    };
+
+    const idToName = (id: string | number | undefined, list: Employee[]) => {
+        if (!id) return "";
+        const found = list.find(e => e.id === Number(id));
+        return found?.full_name || "";
+    };
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-projects", {
-            ...createForm,
+            project_name: createName,
+            budget: createBudget,
+            modules: createModuleName,
+            client_id: createClientName, // TD style uses client_id/name interchangeably in some contexts
+            project_manager_id: nameToId(createProjectManager, projectManagers),
+            lead_id: nameToId(createBIMLead, bimLeads),
+            bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
+            start_date: createStartDate,
+            due_date: createEndDate,
+            totalhours: createTotalHours,
+            perday: createPerDay,
             members: selectedMemberIds.join(","),
+            resources: createResources,
+            required_resources: createRequiredResources,
+            priority: createPriority,
+            location: createLocation,
+            description: createDescription,
+            deliverables: createDeliverables,
         })
             .then(({ data }) => {
                 if (data.success) {
                     setShowCreateModal(false);
-                    setCreateForm({ project_name: "", description: "", budget: "", priority: "Medium", start_date: "", due_date: "", location: "", modules: "", totalhours: "", perday: "", members: "" });
-                    setSelectedMemberIds([]);
+                    // Reset fields
+                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
+                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
+                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
+                    setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
+                    setCreateDescription(""); setCreateDeliverables("");
+
                     setSuccessMsg("Project created!");
                     setTimeout(() => setSuccessMsg(null), 3000);
                     fetchProjects();
@@ -133,19 +271,24 @@ export default function ProjectsV() {
 
     const openEdit = (p: Project) => {
         setEditId(p.id);
-        setEditForm({
-            project_name: p.project_name || "",
-            description: p.description || "",
-            budget: p.budget || "",
-            priority: p.priority || "Medium",
-            start_date: p.start_date ? p.start_date.split("T")[0] : "",
-            due_date: p.due_date || "",
-            location: p.location || "",
-            modules: p.modules || "",
-            totalhours: p.totalhours || "",
-            perday: p.perday || "",
-            members: p.members || "",
-        });
+        setCreateName(p.project_name || "");
+        setCreateBudget(p.budget || "");
+        setCreateModuleName(p.modules || "");
+        setCreateClientName(p.client_id || "");
+        setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
+        setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
+        setCreateEndDate(p.due_date || "");
+        setCreateTotalHours(p.totalhours || "");
+        setCreatePerDay(p.perday || "");
+        setCreateBIMLead(idToName(p.lead_id, allEmployees));
+        setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
+        setCreateResources(p.no_resource || "");
+        setCreateRequiredResources(p.no_resources_required || "");
+        setCreatePriority(p.priority || "");
+        setCreateLocation(p.location || "");
+        setCreateDescription(p.description || "");
+        setCreateDeliverables(p.deliverables || "");
+
         setSelectedMemberIds(p.members ? p.members.split(",").filter(Boolean).map(Number) : []);
         setShowEditModal(true);
     };
@@ -155,8 +298,24 @@ export default function ProjectsV() {
         if (!editId) return;
         setEditSubmitting(true);
         api.patch(`/api/vendors/vendor-projects/${editId}`, {
-            ...editForm,
+            project_name: createName,
+            budget: createBudget,
+            modules: createModuleName,
+            client_id: createClientName,
+            project_manager_id: nameToId(createProjectManager, projectManagers),
+            lead_id: nameToId(createBIMLead, bimLeads),
+            bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
+            start_date: createStartDate,
+            due_date: createEndDate,
+            totalhours: createTotalHours,
+            perday: createPerDay,
             members: selectedMemberIds.join(","),
+            resources: createResources,
+            required_resources: createRequiredResources,
+            priority: createPriority,
+            location: createLocation,
+            description: createDescription,
+            deliverables: createDeliverables,
         })
             .then(({ data }) => {
                 if (data.success) {
@@ -170,123 +329,117 @@ export default function ProjectsV() {
             .finally(() => setEditSubmitting(false));
     };
 
-    const handleDelete = () => {
-        if (!deleteId) return;
-        api.delete(`/api/vendors/vendor-projects/${deleteId}`)
-            .then(() => {
-                setList(prev => prev.filter(p => p.id !== deleteId));
-                setDeleteId(null);
-                setSuccessMsg("Project deleted!");
-                setTimeout(() => setSuccessMsg(null), 3000);
-            });
-    };
-
     const toggleMember = (id: number) => {
-        setSelectedMemberIds(prev =>
-            prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-        );
+        setSelectedMemberIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
 
-    // Member selection dropdown used in both Create + Edit
     const renderMemberSelector = () => (
-        <div className="space-y-2 relative">
-            <label className="text-[14px] font-bold text-[#475569] block">Team Members</label>
-            <div onClick={() => setMemberDropdownOpen(!memberDropdownOpen)}
-                className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center">
-                {selectedMemberIds.length === 0 ? (
-                    <span className="text-gray-400 font-medium">Select members</span>
-                ) : (
-                    selectedMemberIds.map(id => (
-                        <span key={id} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                            {getEmployeeName(id)}
-                            <button type="button" onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-500">×</button>
-                        </span>
-                    ))
-                )}
-            </div>
-            {memberDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-[#E2E8F0] p-3 z-50 max-h-[220px] overflow-y-auto custom-scrollbar">
-                    {allEmployees.map(emp => (
-                        <div key={emp.id} onClick={() => toggleMember(emp.id)}
-                            className="flex items-center gap-3 p-2.5 hover:bg-[#F8FAFC] rounded-lg cursor-pointer transition-colors">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedMemberIds.includes(emp.id) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-[#CBD5E1]'}`}>
-                                {selectedMemberIds.includes(emp.id) && <span className="text-white text-xs font-bold">✓</span>}
-                            </div>
-                            <span className="text-[15px] font-medium text-[#334155]">{emp.full_name}</span>
+        <div className="space-y-4">
+            <label className="block text-[15px] font-bold text-[#353535]">Team Members</label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 bg-[#F4F5F7] rounded-xl max-h-48 overflow-y-auto custom-scrollbar">
+                {allEmployees.map(emp => (
+                    <button key={emp.id} type="button" onClick={() => toggleMember(emp.id)}
+                        className={`flex items-center gap-2 p-2 rounded-lg transition-all border ${selectedMemberIds.includes(emp.id) ? "bg-white border-[#DD4342] shadow-sm text-[#DD4342]" : "border-transparent text-slate-600 hover:bg-white/50"}`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${selectedMemberIds.includes(emp.id) ? "bg-[#DD4342] text-white" : "bg-slate-200"}`}>
+                            {(emp.full_name || "?")[0]}
                         </div>
-                    ))}
-                </div>
-            )}
+                        <span className="text-xs font-semibold truncate">{emp.full_name}</span>
+                    </button>
+                ))}
+            </div>
         </div>
     );
 
-    // Render form fields for Create/Edit
-    const renderFormFields = (form: typeof createForm, setForm: (f: typeof createForm) => void) => (
-        <div className="space-y-5">
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Project Name *</label>
-                <input type="text" value={form.project_name} onChange={e => setForm({ ...form, project_name: e.target.value })} required
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter project name" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+    const renderFormFields = () => (
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                 <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Start Date</label>
-                    <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
+                    <label className="block text-[15px] font-bold text-[#353535]">Project Name <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createName} onChange={e => setCreateName(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Enter Your Project Name" />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
-                    <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
-                </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Budget</label>
-                    <input type="text" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. 50000" />
+                    <label className="block text-[15px] font-bold text-[#353535]">Budget <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createBudget} onChange={e => setCreateBudget(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Enter Project Budget" />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
-                    <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                        <option value="Urgent">Urgent</option>
-                    </select>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Location</label>
-                <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Project location" />
-            </div>
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Modules (comma-separated)</label>
-                <input type="text" value={form.modules} onChange={e => setForm({ ...form, modules: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. m1, m2, m3" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Total Hours</label>
-                    <input type="text" value={form.totalhours} onChange={e => setForm({ ...form, totalhours: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Total project hours" />
+                    <label className="block text-[15px] font-bold text-[#353535]">Module Name <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createModuleName} onChange={e => setCreateModuleName(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Enter Module Name" />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Per Day</label>
-                    <input type="text" value={form.perday} onChange={e => setForm({ ...form, perday: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Hours per day" />
+                    <label className="block text-[15px] font-bold text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
+                    <FormSelect label="Client Name" placeholder="Nothing selected" options={clientsList.map(c => c.fullName || c.full_name || "").filter(Boolean)} value={createClientName} onChange={setCreateClientName} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Start Date <span className="text-[#DD4342]">*</span></label>
+                    <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">End Date <span className="text-[#DD4342]">*</span></label>
+                    <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Per Day <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Select Project Manager <span className="text-[#DD4342]">*</span></label>
+                    <FormSelect label="Select Project Manager" placeholder="Nothing Selected" options={projectManagers.map(m => m.full_name || "").filter(Boolean)} value={createProjectManager} onChange={setCreateProjectManager} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Lead <span className="text-[#DD4342]">*</span></label>
+                    <FormSelect label="Select BIM Lead" placeholder="Nothing Selected" options={bimLeads.map(l => l.full_name || "").filter(Boolean)} value={createBIMLead} onChange={setCreateBIMLead} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Coordinator</label>
+                    <FormSelect label="Select BIM Coordinator" placeholder="Nothing Selected" options={bimCoordinators.map(c => c.full_name || "").filter(Boolean)} value={createBIMCoOrdinator} onChange={setCreateBIMCoOrdinator} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
+                    <FormSelect label="Priority" placeholder="Nothing Selected" options={["High", "Urgent", "Medium", "Low"]} value={createPriority} onChange={setCreatePriority} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Deliverables <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createDeliverables} onChange={e => setCreateDeliverables(e.target.value)} required
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Key Deliverables" />
                 </div>
             </div>
-            {renderMemberSelector()}
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Description</label>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Project description" />
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
+                    <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} required rows={4}
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] rounded-xl focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
+                </div>
+                {renderMemberSelector()}
             </div>
-        </div>
+        </>
     );
+
 
     if (loading) {
         return (
@@ -506,23 +659,28 @@ export default function ProjectsV() {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
-                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <form onSubmit={handleCreate}>
-                                {renderFormFields(createForm, setCreateForm)}
-                                <div className="flex gap-4 pt-6">
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
+                            <button type="button" onClick={() => setShowCreateModal(false)}
+                                className="absolute left-10 p-3 rounded-xl bg-[#F2F2F2] text-gray-800 hover:bg-gray-200 transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <h3 className="text-2xl font-bold text-[#1A1A1A]">Add New Project</h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
+                            <form onSubmit={handleCreate} className="space-y-10">
+                                {renderFormFields()}
+
+                                <div className="flex justify-center gap-6 pt-6 pb-4">
                                     <button type="button" onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
                                     <button type="submit" disabled={createSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
-                                        {createSubmitting ? "Creating..." : "Create Project"}
+                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
+                                        {createSubmitting ? "Creating..." : "Submit"}
                                     </button>
                                 </div>
                             </form>
@@ -533,23 +691,28 @@ export default function ProjectsV() {
 
             {/* Edit Modal */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
-                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Project</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <form onSubmit={handleEdit}>
-                                {renderFormFields(editForm, setEditForm as any)}
-                                <div className="flex gap-4 pt-6">
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
+                            <button type="button" onClick={() => setShowEditModal(false)}
+                                className="absolute left-10 p-3 rounded-xl bg-[#F2F2F2] text-gray-800 hover:bg-gray-200 transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <h3 className="text-2xl font-bold text-[#1A1A1A]">Edit Project</h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
+                            <form onSubmit={handleEdit} className="space-y-10">
+                                {renderFormFields()}
+
+                                <div className="flex justify-center gap-6 pt-6 pb-4">
                                     <button type="button" onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
                                     <button type="submit" disabled={editSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
-                                        {editSubmitting ? "Saving..." : "Save Changes"}
+                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
+                                        {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
                                 </div>
                             </form>
@@ -557,16 +720,18 @@ export default function ProjectsV() {
                     </div>
                 </div>
             )}
-
             {/* Delete Confirmation */}
             {deleteId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/20">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-                        <h3 className="text-xl font-bold mb-4">Delete Project</h3>
-                        <p className="text-gray-600 mb-8">Are you sure you want to delete this project? This action cannot be undone.</p>
-                        <div className="flex gap-4 justify-center">
-                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 rounded-xl bg-gray-100 font-bold">Cancel</button>
-                            <button onClick={handleDelete} className="px-6 py-2 rounded-xl bg-red-500 text-white font-bold">Delete</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                            <RiDeleteBin5Fill size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-[#1E293B] mb-2 font-gantari">Delete Project</h3>
+                        <p className="text-slate-500 mb-8 font-gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+                        <div className="flex gap-4">
+                            <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200">Cancel</button>
+                            <button onClick={handleDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100">Delete</button>
                         </div>
                     </div>
                 </div>
