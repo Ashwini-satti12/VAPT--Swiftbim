@@ -3,11 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-
-// Get API base URL for image URLs
-const getApiBaseUrl = () => {
-    return import.meta.env.VITE_API_URL || '';
-};
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
@@ -36,43 +32,7 @@ interface Employee {
     Allpannel?: string;
 }
 
-const getProfileUrl = (path: string | undefined): string => {
-    if (!path || path.trim() === "") return "";
-    if (path.startsWith("http")) return path;
 
-    let normalizedPath = path.replace(/\\/g, "/").trim();
-    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
-    normalizedPath = normalizedPath.replace(/^\/+/, "");
-
-    const apiBaseUrl = getApiBaseUrl();
-    let urlPath = "";
-
-    if (normalizedPath.startsWith("employee/")) {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part)
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    }
-    else if (normalizedPath.startsWith("profiles/")) {
-        const filename = normalizedPath.replace("profiles/", "");
-        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-    }
-    else if (!normalizedPath.includes("/")) {
-        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-    }
-    else {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part)
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    }
-
-    const base = apiBaseUrl.replace(/\/$/, "");
-    if (!base) return urlPath;
-    return `${base}${urlPath}`;
-};
 
 const toCamelCase = (str: string): string => {
     if (!str) return str;
@@ -531,7 +491,7 @@ export default function ResourcesV() {
                                         </div>
                                         <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-3 bg-gradient-to-t from-black/60 to-transparent">
                                             <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-slate-100 shrink-0">
-                                                {emp.profile_picture ? <img src={getProfileUrl(emp.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#353535] font-bold">?</div>}
+                                                {emp.profile_picture ? <img src={getGlobalProfileUrl(emp.id, emp.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#353535] font-bold">?</div>}
                                             </div>
                                             <div className="min-w-0">
                                                 <h4 className="text-white font-bold text-lg truncate leading-tight">{toCamelCase(emp.full_name)}</h4>
@@ -591,7 +551,7 @@ export default function ResourcesV() {
                                         <td className="px-6 py-4 text-xs font-bold text-[#717171] uppercase">{emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}</td>
                                         <td className="px-6 py-4 flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                                                {emp.profile_picture ? <img src={getProfileUrl(emp.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">?</div>}
+                                                {emp.profile_picture ? <img src={getGlobalProfileUrl(emp.id, emp.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">?</div>}
                                             </div>
                                             <span className="text-sm font-bold text-[#353535]">{toCamelCase(emp.full_name)}</span>
                                         </td>
@@ -628,7 +588,7 @@ export default function ResourcesV() {
                             <img src={pmprofilebg} className="w-full h-full object-cover" />
                             <button onClick={() => setShowDetailsModal(false)} className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white transition-all"><FiX className="w-5 h-5" /></button>
                             <div className="absolute -bottom-10 left-8 w-24 h-24 rounded-full border-4 border-white bg-white overflow-hidden shadow-md">
-                                {selectedEmployee.profile_picture ? <img src={getProfileUrl(selectedEmployee.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-4xl font-bold bg-slate-100 text-[#353535]">?</div>}
+                                {selectedEmployee.profile_picture ? <img src={getGlobalProfileUrl(selectedEmployee.id, selectedEmployee.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-4xl font-bold bg-slate-100 text-[#353535]">?</div>}
                             </div>
                         </div>
                         <div className="pt-14 p-8">

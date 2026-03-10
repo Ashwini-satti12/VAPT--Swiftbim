@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import SwifterzLogo from '../../assets/ProductNavbarIcons/swifterzlogo.png';
@@ -23,7 +23,7 @@ export default function Login() {
   const [logoError, setLogoError] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  // const location = useLocation();
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError('');
