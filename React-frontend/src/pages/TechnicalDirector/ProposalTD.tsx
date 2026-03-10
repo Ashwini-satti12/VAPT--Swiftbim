@@ -22,15 +22,13 @@ interface AcceptedBid {
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-  { value: '0-100', label: '0-100', start: 0, end: 100 },
-  { value: '101-200', label: '101-200', start: 100, end: 200 },
-  { value: '201-300', label: '201-300', start: 200, end: 300 },
-  { value: '301-400', label: '301-400', start: 300, end: 400 },
+  { value: '1-50', label: '1-50', start: 0, end: 50 },
+  { value: '51-100', label: '51-100', start: 50, end: 100 },
+  { value: '101-150', label: '101-150', start: 100, end: 150 },
+  { value: '151-200', label: '151-200', start: 150, end: 200 },
+  { value: '201-250', label: '201-250', start: 200, end: 250 },
   { value: 'all', label: 'All', start: 0, end: null },
 ];
-
-const PER_PAGE = 10;
-const PAGINATION_VISIBLE = 4;
 
 export default function ProposalTD() {
   const navigate = useNavigate();
@@ -42,8 +40,6 @@ export default function ProposalTD() {
   const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
   useEffect(() => {
     const state: any = (location && (location as any).state) || {};
@@ -75,7 +71,6 @@ export default function ProposalTD() {
     b.project_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Close show entries dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
@@ -88,34 +83,10 @@ export default function ProposalTD() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showEntriesOpen]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-    setPaginationWindowStart(1);
-  }, [selectedShowEntries]);
-
   const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
-  const rangeStart = selectedRange.start;
   const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);
-  const listInRange = filtered.slice(rangeStart, rangeEnd);
-  const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-
-  const pageRanges: { start: number; end: number; label: string }[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    const s = rangeStart + (p - 1) * PER_PAGE;
-    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-    pageRanges.push({ start: s, end: e, label });
-  }
-  const activePage = safePage;
-  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-  const visiblePageRanges = pageRanges.slice(paginationWindowStart - 1, paginationWindowStart - 1 + PAGINATION_VISIBLE);
-  const canPrevWindow = paginationWindowStart > 1;
-  const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-  const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-  const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+  const listInRange = filtered.slice(selectedRange.start, rangeEnd);
+  const displayList = listInRange;
 
   return (
     <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
@@ -188,7 +159,7 @@ export default function ProposalTD() {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
           {loading ? (
             <div className="flex justify-center items-center py-20">
@@ -204,7 +175,7 @@ export default function ProposalTD() {
             </div>
           ) : (
             <table className="min-w-full border-collapse">
-              <thead className="sticky top-0 z-10 bg-white">
+              <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="border-b border-gray-100 bg-white">
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
@@ -216,23 +187,22 @@ export default function ProposalTD() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {displayedList.map((bid, index) => {
-                  const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
-                  const slNo = (baseIndex + 1).toString().padStart(2, '0');
+                {displayList.map((bid, index) => {
+                  const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
                   return (
                     <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                      <td className="px-3 py-3 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
-                      <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                      <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                         <div className="text-sm font-semibold text-[#353535] font-gantari">{bid.vendor_name}</div>
                         <div className="text-xs text-[#616161] font-gantari mt-0.5">{bid.vendor_email}</div>
                       </td>
-                      <td className="px-3 py-3 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {formatCurrency(bid.bid_amount)}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formatDate(bid.created_at)}</td>
-                      <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
+                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formatDate(bid.created_at)}</td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                         {bid.proposal_exists ? (
                           <div className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +221,7 @@ export default function ProposalTD() {
                                 },
                               })
                             }
-                            className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100 transition-all"
+                            className="flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all"
                           >
                             <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
                             Create Proposal
@@ -265,46 +235,6 @@ export default function ProposalTD() {
             </table>
           )}
         </div>
-        {/* Pagination bar - same as TrackerTD */}
-        {!loading && filtered.length > 0 && (
-          <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
-            <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-              <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-              <button
-                type="button"
-                onClick={goPrevWindow}
-                disabled={!canPrevWindow}
-                className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                Prev
-              </button>
-              {visiblePageRanges.map((pr) => {
-                const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
-                const isActive = pageNum === activePage;
-                return (
-                  <button
-                    key={pr.label}
-                    type="button"
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                  >
-                    {pr.label}
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                onClick={goNextWindow}
-                disabled={!canNextWindow}
-                className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
