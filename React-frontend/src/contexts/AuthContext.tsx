@@ -134,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('userProfilePicture');
   }, [setToken, user?.user_type]);
 
   const value: AuthState = {
