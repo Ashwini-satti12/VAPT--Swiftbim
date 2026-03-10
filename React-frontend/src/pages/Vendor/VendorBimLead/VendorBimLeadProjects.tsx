@@ -655,23 +655,27 @@ export default function VendorBimLeadProjects() {
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <form onSubmit={handleCreate}>
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
+                            <button type="button" onClick={() => setShowCreateModal(false)}
+                                className="absolute left-10 p-3 rounded-xl bg-[#F2F2F2] text-gray-800 hover:bg-gray-200 transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <h3 className="text-2xl font-bold text-[#1A1A1A]">Add New Project</h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
+                            <form onSubmit={handleCreate} className="space-y-10">
                                 {renderFormFields(createForm, setCreateForm)}
-                                <div className="flex gap-4 pt-6">
+                                <div className="flex justify-center gap-6 pt-6 pb-4">
                                     <button type="button" onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
                                     <button type="submit" disabled={createSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
-                                        {createSubmitting ? "Creating..." : "Create Project"}
+                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
+                                        {createSubmitting ? "Creating..." : "Submit"}
                                     </button>
                                 </div>
                             </form>
@@ -682,23 +686,27 @@ export default function VendorBimLeadProjects() {
 
             {/* Edit Modal */}
             {showEditModal && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Project</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            </div>
-                            <form onSubmit={handleEdit}>
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
+                            <button type="button" onClick={() => setShowEditModal(false)}
+                                className="absolute left-10 p-3 rounded-xl bg-[#F2F2F2] text-gray-800 hover:bg-gray-200 transition-colors">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <h3 className="text-2xl font-bold text-[#1A1A1A]">Edit Project</h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
+                            <form onSubmit={handleEdit} className="space-y-10">
                                 {renderFormFields(editForm, setEditForm)}
-                                <div className="flex gap-4 pt-6">
+                                <div className="flex justify-center gap-6 pt-6 pb-4">
                                     <button type="button" onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors">Cancel</button>
+                                        className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
                                     <button type="submit" disabled={editSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
-                                        {editSubmitting ? "Saving..." : "Save Changes"}
+                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
+                                        {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
                                 </div>
                             </form>
