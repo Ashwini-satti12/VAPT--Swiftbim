@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
-import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
@@ -55,7 +54,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [_isNotificationsLoading, setIsNotificationsLoading] = useState(false);
+    const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [phoneError, setPhoneError] = useState("");
     const [currentPassword, setCurrentPassword] = useState("");
@@ -78,11 +77,6 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                     };
                     setProfileData(updated);
                     setEditData(updated);
-                    if (data.profile_picture) {
-                        const url = getGlobalProfileUrl(data.id, data.profile_picture);
-                        setProfilePicture(url);
-                        localStorage.setItem("userProfilePicture", url);
-                    }
                 }
             } catch {
                 // keep defaults if profile endpoint fails
