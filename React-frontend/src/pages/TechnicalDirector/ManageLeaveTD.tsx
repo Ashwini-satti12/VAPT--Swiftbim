@@ -32,13 +32,15 @@ const DUMMY_LEAVES: LeaveEntry[] = [
 ];
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-    { value: '1-50', label: '1-50', start: 0, end: 50 },
-    { value: '51-100', label: '51-100', start: 50, end: 100 },
-    { value: '101-150', label: '101-150', start: 100, end: 150 },
-    { value: '151-200', label: '151-200', start: 150, end: 200 },
-    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: '0-100', label: '0-100', start: 0, end: 100 },
+    { value: '101-200', label: '101-200', start: 100, end: 200 },
+    { value: '201-300', label: '201-300', start: 200, end: 300 },
+    { value: '301-400', label: '301-400', start: 300, end: 400 },
     { value: 'all', label: 'All', start: 0, end: null },
 ];
+
+const PER_PAGE = 10;
+const PAGINATION_VISIBLE = 4;
 
 /** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
 function formatApiDate(value: string | undefined | null): string {
@@ -70,6 +72,8 @@ export default function ManageLeave() {
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
 
@@ -130,11 +134,36 @@ export default function ManageLeave() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showEntriesOpen]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries, selectedEmployee]);
+
     const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
-    const displayedList = filteredList.slice(rangeStart, rangeEnd);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
@@ -275,45 +304,46 @@ export default function ManageLeave() {
             <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
                 <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
                     <table className="min-w-full border-collapse">
-                        <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                            <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Role</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Leave Type</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">From Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">To Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                        <thead className="sticky top-0 z-10 bg-[#FFFFFF]">
+                            <tr className="border-b border-gray-100 bg-[#FFFFFF]">
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-3 py-12 text-center text-[#616161] text-sm font-medium font-gantari bg-white">
+                                    <td colSpan={8} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No leave records found
                                     </td>
                                 </tr>
                             ) : (
                                 displayedList.map((row, index) => {
-                                    const slNo = (rangeStart + index + 1).toString().padStart(2, '0');
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = baseIndex + 1;
                                     return (
                                         <tr
                                             key={row.id}
-                                            className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}
+                                            className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
-                                            <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
                                                 <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
                                                     {row.currentStatus}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
                                                 <div className="flex items-center justify-center gap-4 flex-nowrap">
                                                     <button
                                                         type="button"
@@ -373,6 +403,47 @@ export default function ManageLeave() {
                     </table>
                 </div>
             </div>
+
+            {/* Pagination bar - same as TrackerTD: pinned to bottom; right-aligned */}
+            {totalInRange > 0 && (
+                <div className="flex flex-wrap items-center justify-end mt-4 pt-0 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={goPrevWindow}
+                            disabled={!canPrevWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                            Prev
+                        </button>
+                        {visiblePageRanges.map((pr) => {
+                            const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
+                            const isActive = pageNum === activePage;
+                            return (
+                                <button
+                                    key={pr.label}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
+                                >
+                                    {pr.label}
+                                </button>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={goNextWindow}
+                            disabled={!canNextWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             </div>
             </div>

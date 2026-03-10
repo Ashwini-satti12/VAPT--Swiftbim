@@ -4,7 +4,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-import { getGlobalProfileUrl } from '../../lib/profileHelpers';
+
+// Get API base URL for image URLs (so uploaded profile pictures load correctly)
+const getApiBaseUrl = () => {
+  return import.meta.env.VITE_API_URL || '';
+};
 
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
@@ -32,15 +36,58 @@ interface Employee {
   Allpannel?: string;
 }
 
+// Build the correct URL for a stored profile picture (only used when a real photo exists)
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path || path.trim() === '') return '';
+  if (path.startsWith('http')) return path;
+
+  // Normalize path separators
+  let normalizedPath = path.replace(/\\/g, '/').trim();
+
+  // Remove leading numbers and spaces (e.g., "1 WhatsApp..." or "0 anu.jpg")
+  normalizedPath = normalizedPath.replace(/^\d+\s+/, '');
+
+  // Remove leading slashes if any
+  normalizedPath = normalizedPath.replace(/^\/+/, '');
+
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = '';
+
+  if (normalizedPath.startsWith('employee/')) {
+    const parts = normalizedPath.split('/');
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join('/')}`;
+  } else if (normalizedPath.startsWith('profiles/')) {
+    const filename = normalizedPath.replace('profiles/', '');
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes('/')) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split('/');
+    const encodedParts = parts.map((part, index) =>
+      index === 0 ? part : encodeURIComponent(part)
+    );
+    urlPath = `/uploads/${encodedParts.join('/')}`;
+  }
+
+  const base = apiBaseUrl.replace(/\/$/, '');
+  if (!base) {
+    return urlPath; // relative path (works with Vite proxy)
+  }
+  return `${base}${urlPath}`;
+};
+
 const toCamelCase = (str: string): string => {
   if (!str) return str;
-  return str.toLowerCase().split(' ').map(word =>
+  return str.toLowerCase().split(' ').map(word => 
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
 // Fallback options; will be replaced by values loaded from backend department.name
 const Departments_options = [
-  'Technical', 'Sales', 'Operations', 'Human Resources', 'Accounts', 'Designing'
+  'Technical','Sales','Operations','Human Resources','Accounts','Designing'
 ];
 const ROLE_OPTIONS = [
   'Consultant',
@@ -63,7 +110,7 @@ const ROLE_OPTIONS = [
 ];
 
 const PANEL_ACCESS_OPTIONS = [
-  'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee', 'All'
+  'Management', 'Accounts', 'Technical Director','Admin', 'Project Manager','Client', 'Sales', 'BIM Lead','Employee','All'
 ];
 
 const SCROLLBAR_STYLE = `
@@ -117,12 +164,13 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
-          ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold"
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
+          styleType === "header" 
+          ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold" 
           : styleType === "table"
-            ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-            : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
-          }`}
+          ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
+          : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
+        }`}
       >
         <span>{value || placeholder}</span>
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
@@ -569,11 +617,11 @@ export default function EmployeesPM() {
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Online', 'Offline'] : ['All', 'Active', 'Inactive']}
                   value={
-                    statusFilter === 'All'
-                      ? 'Status'
-                      : (viewMode === 'card'
-                        ? (statusFilter === 'Active' ? 'Online' : statusFilter === 'Inactive' ? 'Offline' : statusFilter)
-                        : statusFilter)
+                    statusFilter === 'All' 
+                      ? 'Status' 
+                      : (viewMode === 'card' 
+                          ? (statusFilter === 'Active' ? 'Online' : statusFilter === 'Inactive' ? 'Offline' : statusFilter)
+                          : statusFilter)
                   }
                   onChange={(val) => {
                     let nextStatus = val;
@@ -594,285 +642,285 @@ export default function EmployeesPM() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {viewMode === 'card' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
-                {filteredList.length === 0 ? (
-                  <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
-                    No consultants found.
-                  </div>
-                ) : (
-                  filteredList.map((emp: Employee) => (
-                    <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
-                      {/* Image Section */}
-                      <div className="relative h-[128px] overflow-hidden group">
-                        <div className="absolute inset-0 z-0">
-                          <img
-                            src={pmprofilebg}
-                            alt="Background"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/30" />
-                        </div>
-
-                        {/* Top Status - Pill Shape */}
-                        <div className="absolute top-3 right-3 z-10">
-                          <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                            <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                            <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                              {emp.active === 'active' ? 'Online' : 'Offline'}
-                            </span>
-                          </div>
-                        </div>
-                        {/* User info on image: show uploaded photo if available, otherwise initials */}
-                        <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
-                          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                            {emp.profile_picture && emp.profile_picture.trim() ? (
-                              <img
-                                src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
-                                alt={emp.full_name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  // If the photo fails, fall back to initials
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-[20px] font-semibold text-[#1A1A1A]">
-                                  {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
-                              {toCamelCase(emp.full_name)}
-                            </h3>
-                            <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
-                              {emp.user_role || 'Consultant'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Content Area */}
-                      <div className="p-4 space-y-4 sm:space-y-5">
-                        {/* Contact Buttons */}
-                        <div className="flex flex-wrap items-center gap-3">
-                          <button
-                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
-                          >
-                            <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
-                          </button>
-                          <button
-                            onClick={() => navigate('/chat')}
-                            className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
-                          >
-                            <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
-                          </button>
-                          <button
-                            onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
-                          >
-                            <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
-                          </button>
-                        </div>
-
-                        <hr className="border-slate-200" />
-
-                        {/* Actions Grid */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                            className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
-                          >
-                            <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
-                          </button>
-                          {canAdd && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditId(emp.id);
-                                setActiveView('edit');
-                                setEditForm({
-                                  full_name: emp.full_name,
-                                  email: emp.email,
-                                  phone_number: emp.phone_number || '',
-                                  user_role: emp.user_role || 'Consultant',
-                                  department: emp.department || '',
-                                  address: emp.address || '',
-                                  dob: emp.dob || '',
-                                  password: '',
-                                  user_type: emp.user_type || '',
-                                  doj: emp.doj || '',
-                                  salary: emp.salary || '',
-                                  accountnumber: emp.accountnumber || '',
-                                  profile_picture: null,
-                                  roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
-                                  active: emp.active === 'active' ? 'Active' : 'Deactivate',
-                                });
-                              }}
-                              className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
-                            >
-                              <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+        {viewMode === 'card' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
+            {filteredList.length === 0 ? (
+              <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
+                No consultants found.
               </div>
             ) : (
-              <div className=" sticky top-0 z-40 border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white">
-                <div className="overflow-x-auto custom-scrollbar">
-                  <table className="min-w-full border-separate border-spacing-0">
-                    <thead className="sticky top-0 z-40">
-                      <tr className="bg-white">
-                        <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                        <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                        <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                        <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {paginatedList.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                            No consultants found.
-                          </td>
-                        </tr>
-                      ) : (
-                        paginatedList.map((emp, idx) => (
-                          <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                            <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                              {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                            </td>
-                            <td className="px-6 py-5">
-                              <div className="flex items-center gap-4">
-                                <div className="relative shrink-0">
-                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                    {emp.profile_picture && emp.profile_picture.trim() ? (
-                                      <img
-                                        src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
-                                        alt={emp.full_name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          // Hide broken image; the status dot + name still show
-                                          (e.target as HTMLImageElement).style.display = 'none';
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center">
-                                        <span className="text-[16px] font-semibold text-[#1A1A1A]">
-                                          {toCamelCase(emp.full_name).charAt(0) || 'U'}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
-                                </div>
-                                <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
-                            <td className="px-6 py-5 text-center">
-                              <div className="flex items-center justify-center gap-3">
-                                <button
-                                  onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                                >
-                                  <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                                </button>
-                                <button
-                                  onClick={() => navigate('/chat')}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                                >
-                                  <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                                </button>
-                                <button
-                                  onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                                >
-                                  <img src={callIcon} className="w-5 h-5" alt="Call" />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="px-6 py-5 text-center">
-                              <div className="inline-block min-w-[140px]">
-                                <CustomDropdown
-                                  options={['Active', 'Deactivate']}
-                                  value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                  onChange={(val) => handleStatusToggle(emp.id, val)}
-                                  placeholder="Status"
-                                  styleType="table"
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
+              filteredList.map((emp: Employee) => (
+                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
+                  {/* Image Section */}
+                  <div className="relative h-[128px] overflow-hidden group">
+                    <div className="absolute inset-0 z-0">
+                      <img
+                        src={pmprofilebg}
+                        alt="Background"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30" />
+                    </div>
 
-          {/* Pagination Bottom Bar */}
-          {viewMode === 'table' && (
-            <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
-              <div className="flex justify-center sm:justify-end sm:pr-8">
-                <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
-                  <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
-
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
-                  >
-                    <FiChevronDown className="w-5 h-5 rotate-90" />
-                    Prev
-                  </button>
-
-                  <div className="flex items-center gap-1.5 px-2">
-                    {(() => {
-                      const maxVisible = 4;
-                      let start = Math.max(1, currentPage - 1);
-                      let end = Math.min(totalPages, start + maxVisible - 1);
-                      if (end - start + 1 < maxVisible) {
-                        start = Math.max(1, end - maxVisible + 1);
-                      }
-                      const pages = [];
-                      for (let i = start; i <= end; i++) pages.push(i);
-
-                      return pages.map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
-                        >
-                          {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
-                        </button>
-                      ));
-                    })()}
+                    {/* Top Status - Pill Shape */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                        <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                        <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                          {emp.active === 'active' ? 'Online' : 'Offline'}
+                        </span>
+                      </div>
+                    </div>
+                    {/* User info on image: show uploaded photo if available, otherwise initials */}
+                    <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
+                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                        {emp.profile_picture && emp.profile_picture.trim() ? (
+                          <img
+                            src={getProfileUrl(emp.profile_picture)}
+                            alt={emp.full_name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // If the photo fails, fall back to initials
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-[20px] font-semibold text-[#1A1A1A]">
+                              {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                          {toCamelCase(emp.full_name)}
+                        </h3>
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                          {emp.user_role || 'Consultant'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || totalPages === 0}
-                    className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
-                  >
-                    Next
-                    <FiChevronDown className="w-5 h-5 -rotate-90" />
-                  </button>
+                  {/* Content Area */}
+                  <div className="p-4 space-y-4 sm:space-y-5">
+                    {/* Contact Buttons */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button 
+                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
+                      </button>
+                      <button 
+                        onClick={() => navigate('/chat')}
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
+                      </button>
+                      <button 
+                        onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                      >
+                        <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
+                      </button>
+                    </div>
+
+                    <hr className="border-slate-200" />
+
+                    {/* Actions Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                      >
+                        <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
+                      </button>
+                      {canAdd && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditId(emp.id);
+                            setActiveView('edit');
+                            setEditForm({
+                              full_name: emp.full_name,
+                              email: emp.email,
+                              phone_number: emp.phone_number || '',
+                              user_role: emp.user_role || 'Consultant',
+                              department: emp.department || '',
+                              address: emp.address || '',
+                              dob: emp.dob || '',
+                              password: '',
+                              user_type: emp.user_type || '',
+                              doj: emp.doj || '',
+                              salary: emp.salary || '',
+                              accountnumber: emp.accountnumber || '',
+                              profile_picture: null,
+                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
+                              active: emp.active === 'active' ? 'Active' : 'Deactivate',
+                            });
+                          }}
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                        >
+                          <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className=" sticky top-0 z-40 border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white">
+              <div className="overflow-x-auto custom-scrollbar">
+              <table className="min-w-full border-separate border-spacing-0">
+                <thead className="sticky top-0 z-40">
+                  <tr className="bg-white">
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {paginatedList.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                        No consultants found.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedList.map((emp, idx) => (
+                      <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                          {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex items-center gap-4">
+                            <div className="relative shrink-0">
+                              <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                {emp.profile_picture && emp.profile_picture.trim() ? (
+                                  <img
+                                    src={getProfileUrl(emp.profile_picture)}
+                                    alt={emp.full_name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Hide broken image; the status dot + name still show
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <span className="text-[16px] font-semibold text-[#1A1A1A]">
+                                      {toCamelCase(emp.full_name).charAt(0) || 'U'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                            </div>
+                            <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
+                        <td className="px-6 py-5 text-center">
+                          <div className="flex items-center justify-center gap-3">
+                            <button 
+                              onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
+                              <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                            </button>
+                            <button 
+                              onClick={() => navigate('/chat')}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
+                              <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                            </button>
+                            <button 
+                              onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                            >
+                              <img src={callIcon} className="w-5 h-5" alt="Call" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-5 text-center">
+                          <div className="inline-block min-w-[140px]">
+                            <CustomDropdown
+                              options={['Active', 'Deactivate']}
+                              value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                              onChange={(val) => handleStatusToggle(emp.id, val)}
+                              placeholder="Status"
+                              styleType="table"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* Pagination Bottom Bar */}
+      {viewMode === 'table' && (
+        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
+          <div className="flex justify-center sm:justify-end sm:pr-8">
+            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
+              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
+              >
+                <FiChevronDown className="w-5 h-5 rotate-90" />
+                Prev
+              </button>
+
+              <div className="flex items-center gap-1.5 px-2">
+                {(() => {
+                  const maxVisible = 4;
+                  let start = Math.max(1, currentPage - 1);
+                  let end = Math.min(totalPages, start + maxVisible - 1);
+                  if (end - start + 1 < maxVisible) {
+                    start = Math.max(1, end - maxVisible + 1);
+                  }
+                  const pages = [];
+                  for (let i = start; i <= end; i++) pages.push(i);
+
+                  return pages.map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
+                    >
+                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
+                    </button>
+                  ));
+                })()}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
+              >
+                Next
+                <FiChevronDown className="w-5 h-5 -rotate-90" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </>
       )}
 
@@ -893,7 +941,7 @@ export default function EmployeesPM() {
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
               {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
@@ -1060,28 +1108,28 @@ export default function EmployeesPM() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
-                  <div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       placeholder="Enter Employee Name"
-                      value={editForm.full_name}
-                      onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                      required
-                    />
-                  </div>
-                  <div>
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    required
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                    <input
+                  <input
                       type="text"
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
                       className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
-                  <div>
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                     <input
                       type="password"
@@ -1111,19 +1159,19 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
-                    <input
-                      type="text"
+                  <input
+                    type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                  />
+                </div>
                 </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
-                  <div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
                     <input
                       type="date"
@@ -1134,58 +1182,58 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
-                    <input
-                      type="email"
-                      placeholder="Enter Email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
+                  <input
+                    type="email"
+                    placeholder="Enter Email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    required
+                  />
+                </div>
+                <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                    <CustomDropdown
-                      options={['Trainee', 'Consultant',]}
-                      value={editForm.user_type}
-                      onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
-                      placeholder="Select Type"
-                    />
-                  </div>
-                  <div>
+                  <CustomDropdown
+                    options={['Trainee', 'Consultant', ]}
+                    value={editForm.user_type}
+                    onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
+                    placeholder="Select Type"
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                    <input
-                      type="date"
-                      value={editForm.doj}
-                      onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                    />
-                  </div>
-                  <div>
+                  <input
+                    type="date"
+                    value={editForm.doj}
+                    onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                  />
+                </div>
+                <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
-                    <input
-                      type="text"
-                      placeholder="0000$"
-                      value={editForm.salary}
-                      onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
+                  <input
+                    type="text"
+                    placeholder="0000$"
+                    value={editForm.salary}
+                    onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                        {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                      </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                        />
-                      </label>
+                  <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                      {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                    </div>
+                    <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                      Browse File
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".jpg,.jpeg"
+                        onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                      />
+                    </label>
                     </div>
                   </div>
                 </div>
@@ -1216,8 +1264,9 @@ export default function EmployeesPM() {
                             : [...editForm.roles, role];
                           setEditForm({ ...editForm, roles: newRoles });
                         }}
-                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
-                          }`}
+                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${
+                          editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                        }`}
                       >
                         {editForm.roles.includes(role) && (
                           <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
@@ -1419,7 +1468,7 @@ export default function EmployeesPM() {
               <div className="w-[100px] h-[100px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
-                    src={getGlobalProfileUrl(selectedEmployee.id, selectedEmployee.profile_picture)}
+                    src={getProfileUrl(selectedEmployee.profile_picture)}
                     alt={selectedEmployee.full_name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -1451,7 +1500,7 @@ export default function EmployeesPM() {
                 { label: 'Joined Date', value: selectedEmployee.doj },
                 { label: 'Salary', value: selectedEmployee.salary },
                 { label: 'Department', value: selectedEmployee.department },
-                { label: 'Account Number', value: selectedEmployee.accountnumber },
+                { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
                   <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>

@@ -4,8 +4,11 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
+// Get API base URL for image URLs (same logic as other panels)
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || '';
+};
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -31,6 +34,60 @@ interface Employee {
     accountnumber?: string;
     Allpannel?: string;
 }
+
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    // Normalize path separators
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+
+    // Remove leading numbers and spaces (e.g., "1 WhatsApp Image..." or "0 anu.jpg")
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+
+    // Remove leading slashes if any
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    // Get API base URL
+    const apiBaseUrl = getApiBaseUrl();
+
+    // Build the full URL path
+    let urlPath = "";
+
+    // If path already starts with "employee/", use it directly
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part)
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+    // If path starts with "profiles/", redirect to employee folder instead
+    else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    }
+    // If path doesn't include a subfolder, assume it's in employee folder
+    else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    }
+    // If path has other subfolders, encode each part
+    else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part)
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    const base = apiBaseUrl.replace(/\/$/, "");
+    // If base URL is empty, use relative path (works with Vite proxy)
+    if (!base) {
+        return urlPath;
+    }
+
+    return `${base}${urlPath}`;
+};
 
 const PANEL_ROLES = [
     'Management', 'Accounts',
@@ -102,7 +159,7 @@ export default function ConsultantBC() {
     const getAllowedRoles = (currentRole?: string): string[] => {
         const userRole = user?.user_role || '';
         const restrictedRoles: string[] = [];
-
+        
         if (userRole === 'BIM Coordinator') {
             restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager', 'BIM Lead');
         } else if (userRole === 'BIM Lead') {
@@ -110,13 +167,13 @@ export default function ConsultantBC() {
         } else if (userRole === 'Project Manager') {
             restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'BIM Lead');
         }
-
+        
         // Always include the current role even if it's restricted (for editing existing employees)
         const allowed = roles.filter(role => !restrictedRoles.includes(role));
         if (currentRole && restrictedRoles.includes(currentRole) && !allowed.includes(currentRole)) {
             allowed.push(currentRole);
         }
-
+        
         return allowed;
     };
 
@@ -274,22 +331,22 @@ export default function ConsultantBC() {
                         prev.map((e) =>
                             e.id === editId
                                 ? {
-                                    ...e,
-                                    full_name: editForm.full_name,
-                                    email: editForm.email,
-                                    phone_number: editForm.phone_number,
-                                    user_role: editForm.user_role,
-                                    department: editForm.department,
-                                    address: editForm.address,
-                                    dob: editForm.dob,
-                                    doj: editForm.doj,
-                                    salary: editForm.salary,
-                                    accountnumber: editForm.accountnumber,
-                                    user_type: editForm.user_type,
-                                    Allpannel: editForm.roles.join(','),
-                                    active: editForm.active === 'Active' ? 'active' : 'inactive',
-                                    profile_picture: newPic ?? e.profile_picture,
-                                }
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: editForm.phone_number,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: editForm.roles.join(','),
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
+                                      profile_picture: newPic ?? e.profile_picture,
+                                  }
                                 : e
                         )
                     );
@@ -333,21 +390,21 @@ export default function ConsultantBC() {
                         prev.map((e) =>
                             e.id === editId
                                 ? {
-                                    ...e,
-                                    full_name: editForm.full_name,
-                                    email: editForm.email,
-                                    phone_number: editForm.phone_number,
-                                    user_role: editForm.user_role,
-                                    department: editForm.department,
-                                    address: editForm.address,
-                                    dob: editForm.dob,
-                                    doj: editForm.doj,
-                                    salary: editForm.salary,
-                                    accountnumber: editForm.accountnumber,
-                                    user_type: editForm.user_type,
-                                    Allpannel: payload.Allpannel,
-                                    active: editForm.active === 'Active' ? 'active' : 'inactive',
-                                }
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: editForm.phone_number,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: payload.Allpannel,
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
+                                  }
                                 : e
                         )
                     );
@@ -560,7 +617,7 @@ export default function ConsultantBC() {
                                             <div className="w-20 h-20 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm flex items-center justify-center">
                                                 {emp.profile_picture && emp.profile_picture.trim() ? (
                                                     <img
-                                                        src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
+                                                        src={getProfileUrl(emp.profile_picture)}
                                                         alt={emp.full_name}
                                                         className="w-full h-full object-cover"
                                                         onError={(e) => {
@@ -589,21 +646,21 @@ export default function ConsultantBC() {
                                     <div className="p-5 space-y-5">
                                         {/* Contact Buttons */}
                                         <div className="flex items-center gap-5">
-                                            <button
+                                            <button 
                                                 type="button"
                                                 onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
                                                 className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
                                             >
                                                 <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                                             </button>
-                                            <button
+                                            <button 
                                                 type="button"
                                                 onClick={() => navigate('/chat')}
                                                 className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
                                             >
                                                 <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                                             </button>
-                                            <button
+                                            <button 
                                                 type="button"
                                                 onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
                                                 className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
@@ -688,7 +745,7 @@ export default function ConsultantBC() {
                                                             <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center">
                                                                 {emp.profile_picture && emp.profile_picture.trim() ? (
                                                                     <img
-                                                                        src={getGlobalProfileUrl(emp.id, emp.profile_picture)}
+                                                                        src={getProfileUrl(emp.profile_picture)}
                                                                         alt={emp.full_name}
                                                                         className="w-full h-full object-cover"
                                                                         onError={(e) => {
@@ -709,21 +766,21 @@ export default function ConsultantBC() {
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.email}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-3">
-                                                        <button
+                                                        <button 
                                                             type="button"
                                                             onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
                                                             className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
                                                         >
                                                             <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                                         </button>
-                                                        <button
+                                                        <button 
                                                             type="button"
                                                             onClick={() => navigate('/chat')}
                                                             className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
                                                         >
                                                             <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                                         </button>
-                                                        <button
+                                                        <button 
                                                             type="button"
                                                             onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
                                                             className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors"
@@ -1411,7 +1468,7 @@ export default function ConsultantBC() {
                         <div className="flex items-center gap-6 px-4">
                             <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 border-2 border-white shadow-sm">
                                 <img
-                                    src={selectedEmployee.profile_picture ? getGlobalProfileUrl(selectedEmployee.id, selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
+                                    src={selectedEmployee.profile_picture ? getProfileUrl(selectedEmployee.profile_picture) : `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedEmployee.email}`}
                                     alt={selectedEmployee.full_name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
