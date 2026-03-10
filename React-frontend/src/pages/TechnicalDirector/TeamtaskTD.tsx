@@ -13,6 +13,7 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -52,27 +53,19 @@ function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={value ? "text-black" : "text-[#8B8B8B]"}>
+        <span className={value ? "text-[#353535]" : "text-[#616161]"}>
           {displayLabel}
         </span>
-        <svg
-          className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
       {isOpen && (
         <div
@@ -89,7 +82,7 @@ function FormDropdown({
                 onChange(opt.value);
                 onClose();
               }}
-              className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+              className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
             >
               {opt.label}
             </button>
@@ -157,25 +150,17 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className="truncate">{selected ?? label}</span>
-        <svg
+        <span className={`truncate ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>{selected ?? label}</span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
           className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        />
       </button>
       {isOpen && (
         <div
@@ -212,7 +197,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                className={`block w-full px-4 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
               >
                 {opt}
               </button>
