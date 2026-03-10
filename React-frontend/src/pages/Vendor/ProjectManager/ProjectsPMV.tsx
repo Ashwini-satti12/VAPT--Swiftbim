@@ -61,8 +61,11 @@ export default function ProjectsPMV() {
         project_name: "", description: "", budget: "", priority: "Medium",
         start_date: "", due_date: "", location: "", modules: "",
         totalhours: "", perday: "", members: "",
+        client_id: "", project_manager_id: "", lead_id: "", bim_coordinator_id: "",
+        department: "", no_resource: "", no_resources_required: "",
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
+    const [createFile, setCreateFile] = useState<File | null>(null);
 
     // Edit Project
     const [showEditModal, setShowEditModal] = useState(false);
@@ -70,9 +73,19 @@ export default function ProjectsPMV() {
         project_name: "", description: "", budget: "", priority: "",
         start_date: "", due_date: "", location: "", modules: "",
         totalhours: "", perday: "", members: "",
+        client_id: "", project_manager_id: "", lead_id: "", bim_coordinator_id: "",
+        department: "", no_resource: "", no_resources_required: "",
     });
     const [editId, setEditId] = useState<number | null>(null);
     const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editFile, setEditFile] = useState<File | null>(null);
+
+    // Dropdown data
+    const [clientsList, setClientsList] = useState<any[]>([]);
+    const [departments, setDepartments] = useState<any[]>([]);
+    const [projectManagers, setProjectManagers] = useState<string[]>([]);
+    const [bimLeads, setBimLeads] = useState<string[]>([]);
+    const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
 
     // Member selection for create/edit
     const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
@@ -95,8 +108,22 @@ export default function ProjectsPMV() {
     useEffect(() => {
         fetchProjects();
         api.get<{ employees?: Employee[] }>("/api/employees")
-            .then(({ data }) => setAllEmployees(data.employees ?? []))
+            .then(({ data }) => {
+                const emps = data.employees ?? [];
+                setAllEmployees(emps);
+                setProjectManagers(emps.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name || "").filter(Boolean));
+                setBimLeads(emps.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name || "").filter(Boolean));
+                setBimCoordinators(emps.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name || "").filter(Boolean));
+            })
             .catch(() => setAllEmployees([]));
+
+        api.get("/api/departments")
+            .then(({ data }) => setDepartments(data.departments || []))
+            .catch(() => { });
+
+        api.get("/api/clients/from-users")
+            .then(({ data }) => setClientsList(data.clients || []))
+            .catch(() => { });
     }, []);
 
     const getEmployeeName = (id: string | number | undefined): string => {
@@ -110,18 +137,63 @@ export default function ProjectsPMV() {
         return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
     };
 
+    const nameToId = (name: string, list: Employee[]) => {
+        const found = list.find(e => e.full_name === name);
+        return found ? found.id : "";
+    };
+
+    function FormSelect({ placeholder, options, value, onChange }: { placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
+        const [isOpen, setIsOpen] = useState(false);
+        return (
+            <div className="relative">
+                <div onClick={() => setIsOpen(!isOpen)}
+                    className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg cursor-pointer flex justify-between items-center text-[#1E293B] font-medium font-gantari hover:bg-[#EAEAEA] transition-colors">
+                    <span className={value ? "text-[#1E293B]" : "text-gray-400"}>{value || placeholder}</span>
+                    <span className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </span>
+                </div>
+                {isOpen && (
+                    <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar">
+                        {options.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-gray-400 italic">No options available</div>
+                        ) : (
+                            options.map((opt, i) => (
+                                <div key={i} onClick={() => { onChange(opt); setIsOpen(false); }}
+                                    className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-[14px] font-medium text-[#334155] border-b border-[#F1F5F9] last:border-none hover:text-[#DD4342] transition-colors">
+                                    {opt}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-projects", {
             ...createForm,
+            project_manager_id: nameToId(createForm.project_manager_id, allEmployees),
+            lead_id: nameToId(createForm.lead_id, allEmployees),
+            bim_coordinator_id: nameToId(createForm.bim_coordinator_id, allEmployees),
+            client_id: clientsList.find(c => c.full_name === createForm.client_id)?.id || "",
             members: selectedMemberIds.join(","),
         })
             .then(({ data }) => {
                 if (data.success) {
                     setShowCreateModal(false);
-                    setCreateForm({ project_name: "", description: "", budget: "", priority: "Medium", start_date: "", due_date: "", location: "", modules: "", totalhours: "", perday: "", members: "" });
+                    setCreateForm({
+                        project_name: "", description: "", budget: "", priority: "Medium",
+                        start_date: "", due_date: "", location: "", modules: "",
+                        totalhours: "", perday: "", members: "",
+                        client_id: "", project_manager_id: "", lead_id: "", bim_coordinator_id: "",
+                        department: "", no_resource: "", no_resources_required: "",
+                    });
                     setSelectedMemberIds([]);
+                    setCreateFile(null);
                     setSuccessMsg("Project created!");
                     setTimeout(() => setSuccessMsg(null), 3000);
                     fetchProjects();
@@ -139,12 +211,19 @@ export default function ProjectsPMV() {
             budget: p.budget || "",
             priority: p.priority || "Medium",
             start_date: p.start_date ? p.start_date.split("T")[0] : "",
-            due_date: p.due_date || "",
+            due_date: p.due_date ? p.due_date.split("T")[0] : "",
             location: p.location || "",
             modules: p.modules || "",
             totalhours: p.totalhours || "",
             perday: p.perday || "",
             members: p.members || "",
+            client_id: p.client_id ? (clientsList.find(c => String(c.id) === String(p.client_id))?.full_name || "") : "",
+            project_manager_id: getEmployeeName(p.project_manager_id),
+            lead_id: getEmployeeName(p.lead_id),
+            bim_coordinator_id: getEmployeeName(p.bim_coordinator_id),
+            department: p.department || "",
+            no_resource: p.no_resource || "",
+            no_resources_required: p.no_resources_required || "",
         });
         setSelectedMemberIds(p.members ? p.members.split(",").filter(Boolean).map(Number) : []);
         setShowEditModal(true);
@@ -156,6 +235,10 @@ export default function ProjectsPMV() {
         setEditSubmitting(true);
         api.patch(`/api/vendors/vendor-projects/${editId}`, {
             ...editForm,
+            project_manager_id: nameToId(editForm.project_manager_id, allEmployees),
+            lead_id: nameToId(editForm.lead_id, allEmployees),
+            bim_coordinator_id: nameToId(editForm.bim_coordinator_id, allEmployees),
+            client_id: clientsList.find(c => c.full_name === editForm.client_id)?.id || "",
             members: selectedMemberIds.join(","),
         })
             .then(({ data }) => {
@@ -221,69 +304,142 @@ export default function ProjectsPMV() {
     );
 
     // Render form fields for Create/Edit
-    const renderFormFields = (form: typeof createForm, setForm: (f: typeof createForm) => void) => (
-        <div className="space-y-5">
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Project Name *</label>
+    const renderFormFields = (form: any, setForm: (f: any) => void) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+            {/* 1. Project Name */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Project Name *</label>
                 <input type="text" value={form.project_name} onChange={e => setForm({ ...form, project_name: e.target.value })} required
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter project name" />
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium font-gantari" placeholder="Enter project name" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Start Date</label>
-                    <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
-                    <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
-                </div>
+
+            {/* 2. Budget */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Budget *</label>
+                <input type="text" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Budget" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Budget</label>
-                    <input type="text" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. 50000" />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
-                    <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
-                        <option value="Low">Low</option>
-                        <option value="Medium">Medium</option>
-                        <option value="High">High</option>
-                        <option value="Urgent">Urgent</option>
-                    </select>
-                </div>
+
+            {/* 3. Modules Name */}
+            <div className="md:col-span-2 space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Modules Name *</label>
+                <input type="text" value={form.modules} onChange={e => setForm({ ...form, modules: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Modules Name (comma separated)" />
             </div>
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Location</label>
-                <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Project location" />
+
+            {/* 4. Client Name */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Client Name *</label>
+                <FormSelect placeholder="Select Client" options={clientsList.map(c => c.full_name || "")} value={form.client_id} onChange={v => setForm({ ...form, client_id: v })} />
             </div>
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Modules (comma-separated)</label>
-                <input type="text" value={form.modules} onChange={e => setForm({ ...form, modules: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="e.g. m1, m2, m3" />
+
+            {/* 5. Project Manager */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Project Manager *</label>
+                <FormSelect placeholder="Select Project Manager" options={projectManagers} value={form.project_manager_id} onChange={v => setForm({ ...form, project_manager_id: v })} />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Total Hours</label>
-                    <input type="text" value={form.totalhours} onChange={e => setForm({ ...form, totalhours: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Total project hours" />
+
+            {/* 6. Project Start Date */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Project Start Date *</label>
+                <input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" />
+            </div>
+
+            {/* 7. Project End Date */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Project End Date *</label>
+                <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" />
+            </div>
+
+            {/* 8. Total Hours */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Total Hours *</label>
+                <input type="text" value={form.totalhours} onChange={e => setForm({ ...form, totalhours: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Total Hours" />
+            </div>
+
+            {/* 9. Per Day */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Per Day *</label>
+                <input type="text" value={form.perday} onChange={e => setForm({ ...form, perday: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Per Day Hours" />
+            </div>
+
+            {/* 10. Select Department */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Select Department *</label>
+                <FormSelect placeholder="Select Department" options={departments.map(d => d.name || d.department_name || "")} value={form.department} onChange={v => setForm({ ...form, department: v })} />
+            </div>
+
+            {/* 11. Select BIM Lead */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Select BIM Lead *</label>
+                <FormSelect placeholder="Select BIM Lead" options={bimLeads} value={form.lead_id} onChange={v => setForm({ ...form, lead_id: v })} />
+            </div>
+
+            {/* 12. Select BIM Co-Ordinator */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Select BIM Co-Ordinator *</label>
+                <FormSelect placeholder="Select BIM Co-Ordinator" options={bimCoordinators} value={form.bim_coordinator_id} onChange={v => setForm({ ...form, bim_coordinator_id: v })} />
+            </div>
+
+            {/* 13. Select Members (Multi-select) */}
+            <div className="md:col-span-2 space-y-1.5">
+                {renderMemberSelector()}
+            </div>
+
+            {/* 14. Resources */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Resources *</label>
+                <input type="text" value={form.no_resource} onChange={e => setForm({ ...form, no_resource: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Resources" />
+            </div>
+
+            {/* 15. Required Resources */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Required Resources *</label>
+                <input type="text" value={form.no_resources_required} onChange={e => setForm({ ...form, no_resources_required: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Required Resources" />
+            </div>
+
+            {/* 16. Priority */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Priority *</label>
+                <FormSelect placeholder="Select Priority" options={["Low", "Medium", "High", "Urgent"]} value={form.priority} onChange={v => setForm({ ...form, priority: v })} />
+            </div>
+
+            {/* 17. Location */}
+            <div className="space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Location *</label>
+                <input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium font-gantari" placeholder="Enter Location" />
+            </div>
+
+            {/* 18. Project Description */}
+            <div className="md:col-span-2 space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Project Description *</label>
+                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={4} required
+                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none font-gantari" placeholder="Type Project Description" />
+            </div>
+
+            {/* 19. Attach File */}
+            <div className="md:col-span-2 space-y-1.5">
+                <label className="text-[14px] font-bold text-[#475569] block font-gantari">Attach File *</label>
+                <div className="flex items-center bg-[#F2F2F2] rounded-lg overflow-hidden">
+                    <div className="flex-1 px-4 py-3 text-[14px] text-gray-400 font-medium truncate">
+                        {form === createForm ? (createFile ? createFile.name : 'choose File') : (editFile ? editFile.name : 'choose File')}
+                    </div>
+                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[14px] cursor-pointer transition-colors whitespace-nowrap">
+                        Browse File
+                        <input type="file" className="hidden" onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (form === createForm) setCreateFile(file);
+                            else setEditFile(file);
+                        }} />
+                    </label>
                 </div>
-                <div className="space-y-2">
-                    <label className="text-[14px] font-bold text-[#475569] block">Per Day</label>
-                    <input type="text" value={form.perday} onChange={e => setForm({ ...form, perday: e.target.value })}
-                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" placeholder="Hours per day" />
-                </div>
-            </div>
-            {renderMemberSelector()}
-            <div className="space-y-2">
-                <label className="text-[14px] font-bold text-[#475569] block">Description</label>
-                <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3}
-                    className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Project description" />
             </div>
         </div>
     );
@@ -301,7 +457,7 @@ export default function ProjectsPMV() {
             <div className="flex flex-col h-[calc(100vh-100px)] overflow-hidden">
                 {/* Toast */}
                 {successMsg && (
-                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
+                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px] animate-in slide-in-from-right duration-300">
                         <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
@@ -443,16 +599,18 @@ export default function ProjectsPMV() {
                                                             <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full">
                                                                 <img src={Dot} alt="" className="w-6 h-6" />
                                                             </button>
-                                                            <div className={`absolute -right-40 w-50 bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] z-20 transition-all ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible"}`}>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><VscEye /> View</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><BiEdit /> Edit</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><FaCircleDollarToSlot /> Milestones</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><RiDeleteBin5Fill /> Delete</button>
-                                                            </div>
+                                                            {openMenuProjectId === p.id && (
+                                                                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
+                                                                    <button onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><VscEye /> View Details</button>
+                                                                    <button onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><BiEdit /> Edit</button>
+                                                                    <button onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><FaCircleDollarToSlot /> Milestones</button>
+                                                                    <button onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-red-500 font-semibold text-sm transition-colors"><RiDeleteBin5Fill /> Delete</button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-6 mt-4 mb-8">
@@ -507,8 +665,8 @@ export default function ProjectsPMV() {
             {/* Create Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
-                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
                                 <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
@@ -534,8 +692,8 @@ export default function ProjectsPMV() {
             {/* Edit Modal */}
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden">
-                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Project</h3>
                                 <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
@@ -560,13 +718,16 @@ export default function ProjectsPMV() {
 
             {/* Delete Confirmation */}
             {deleteId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm bg-black/20">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
-                        <h3 className="text-xl font-bold mb-4">Delete Project</h3>
-                        <p className="text-gray-600 mb-8">Are you sure you want to delete this project? This action cannot be undone.</p>
-                        <div className="flex gap-4 justify-center">
-                            <button onClick={() => setDeleteId(null)} className="px-6 py-2 rounded-xl bg-gray-100 font-bold">Cancel</button>
-                            <button onClick={handleDelete} className="px-6 py-2 rounded-xl bg-red-500 text-white font-bold">Delete</button>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                            <RiDeleteBin5Fill size={32} />
+                        </div>
+                        <h3 className="text-xl font-bold text-[#1E293B] mb-2 font-gantari">Delete Project</h3>
+                        <p className="text-slate-500 mb-8 font-gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+                        <div className="flex gap-4">
+                            <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200">Cancel</button>
+                            <button onClick={handleDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100">Delete</button>
                         </div>
                     </div>
                 </div>
