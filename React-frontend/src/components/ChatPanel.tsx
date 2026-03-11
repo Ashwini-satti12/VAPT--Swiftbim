@@ -390,9 +390,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
 
     // ── Render ───────────────────────────────────────────────────────────────────
     return (
-        <div>
-            <h2 className="text-2xl text-black mb-4">Chat</h2>
-            <div className="flex gap-4 h-[calc(100vh-8rem)] min-h-[500px] p-4 bg-transparent">
+        <div className="px-1 pt-1 pb-0 space-y-4 flex flex-col h-full bg-white">
+            <div className="px-2 flex-shrink-0">
+                <h2 className="text-2xl font-semibold text-[#000000]">Chat</h2>
+            </div>
+            <div className="flex gap-4 h-[calc(100vh-180px)] min-h-[500px] px-2 pb-2 bg-transparent">
                 {/* ── Left panel: Contacts ────────────────────────────────────────────── */}
                 <div className="w-[300px] shrink-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-200 bg-white">

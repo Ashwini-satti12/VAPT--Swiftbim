@@ -87,9 +87,10 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
     },
 };
 
+// For vendor view, allow the user to move task to In Progress or Completed.
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
+    { value: "in_progress", label: "In Progress" },
+    { value: "completed", label: "Completed" },
 ];
 
 export default function MytaskViewV() {
@@ -121,16 +122,25 @@ export default function MytaskViewV() {
 
     const handleStatusUpdate = async (newStatus: StatusKey) => {
         if (!task || updatingStatus) return;
+        if (newStatus !== "in_progress" && newStatus !== "completed") return;
         setUpdatingStatus(true);
-        const backendStatus = newStatus === "approved" ? "Approved" : "Rejected";
+        const backendStatus = newStatus === "in_progress" ? "InProgress" : "Completed";
 
         try {
-            await api.patch(`/api/tasks/${task.id}/status`, {
-                status: backendStatus,
-                projectId: task.projectid
-            });
+            if (fromTeamTask) {
+                // Team tasks use the main /api/tasks endpoint
+                await api.patch(`/api/tasks/${task.id}/status`, {
+                    status: backendStatus,
+                    projectId: task.projectid,
+                });
+            } else {
+                // Vendor personal tasks use vendor-tasks
+                await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
+                    status: backendStatus,
+                });
+            }
             setStatusDisplay(newStatus);
-            toast.success(`Task ${backendStatus.toLowerCase()} successfully`);
+            toast.success(`Task marked as ${newStatus === "in_progress" ? "In Progress" : "Completed"}`);
         } catch (error) {
             console.error("Error updating status:", error);
             toast.error("Failed to update status");
@@ -211,7 +221,7 @@ export default function MytaskViewV() {
                     <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
                 </Link>
                 <h1 className="flex-1 text-center text-2xl font-semibold text-black">
-                    {task.task_name || "Task Name"}
+                    {task.project_name || task.task_name || "Task Name"}
                 </h1>
                 <div className="w-9" />
             </div>
@@ -282,7 +292,12 @@ export default function MytaskViewV() {
                             </span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {String(taskRecord.modules_name ?? task.module ?? "—")}
+                                {String(
+                                    taskRecord.modules_name ??
+                                    task.module ??
+                                    taskRecord.modules ??
+                                    "—"
+                                )}
                             </span>
                         </div>
                         <div className="flex gap-2 items-center">

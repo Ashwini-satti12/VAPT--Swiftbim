@@ -40,8 +40,7 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
     { value: 'all', label: 'All', start: 0, end: null },
 ];
 
-const PER_PAGE = 10;
-const PAGINATION_VISIBLE = 4;
+
 
 /** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
 function formatApiDate(value: string | undefined | null): string {
@@ -73,8 +72,7 @@ export default function ManageLeave() {
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
 
@@ -135,36 +133,14 @@ export default function ManageLeave() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showEntriesOpen]);
 
-    useEffect(() => {
-        setCurrentPage(1);
-        setPaginationWindowStart(1);
-    }, [selectedShowEntries, selectedEmployee]);
 
-    const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
+
+    const filteredList = leaves.filter((l) => selectedEmployee === 'All' || l.employeeName === selectedEmployee);
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
-    const totalInRange = listInRange.length;
-    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-    const safePage = Math.min(Math.max(1, currentPage), totalPages);
-    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-
-    const pageRanges: { start: number; end: number; label: string }[] = [];
-    for (let p = 1; p <= totalPages; p++) {
-        const s = rangeStart + (p - 1) * PER_PAGE;
-        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-        pageRanges.push({ start: s, end: e, label });
-    }
-    const activePage = safePage;
-    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
-    const canPrevWindow = paginationWindowStart > 1;
-    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+    const displayedList = listInRange;
 
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
@@ -332,8 +308,7 @@ export default function ManageLeave() {
                                 </tr>
                             ) : (
                                 displayedList.map((row, index) => {
-                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
-                                    const slNo = baseIndex + 1;
+                                    const slNo = rangeStart + index + 1;
                                     return (
                                         <tr
                                             key={row.id}
@@ -411,46 +386,7 @@ export default function ManageLeave() {
                 </div>
             </div>
 
-            {/* Pagination bar - same as TrackerTD: pinned to bottom; right-aligned */}
-            {totalInRange > 0 && (
-                <div className="flex flex-wrap items-center justify-end mt-4 pt-0 flex-shrink-0">
-                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-                        <button
-                            type="button"
-                            onClick={goPrevWindow}
-                            disabled={!canPrevWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                            Prev
-                        </button>
-                        {visiblePageRanges.map((pr) => {
-                            const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
-                            const isActive = pageNum === activePage;
-                            return (
-                                <button
-                                    key={pr.label}
-                                    type="button"
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                                >
-                                    {pr.label}
-                                </button>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={goNextWindow}
-                            disabled={!canNextWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Next
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                        </button>
-                    </div>
-                </div>
-            )}
+
 
             {/* View Leave Modal */}
             {viewModalOpen && selectedLeave && (

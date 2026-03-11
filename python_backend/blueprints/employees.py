@@ -93,6 +93,37 @@ def list_employees():
     return jsonify({"employees": employees})
 
 
+@bp.route("/by-role", methods=["GET"])
+@project_app_required
+def employees_by_role():
+    """
+    Return active employees filtered by a specific user_role.
+
+    Query params:
+    - role: exact value of employee.user_role (e.g. "BIM Lead")
+    """
+    role = request.args.get("role")
+    if not role:
+        return jsonify({"success": False, "message": "role is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, full_name, user_role, email, profile_picture
+        FROM employee
+        WHERE Company_id = %s
+          AND active = 'active'
+          AND user_role = %s
+        ORDER BY full_name
+        """,
+        (g.company_id, role),
+    )
+    rows = cur.fetchall()
+    employees = [dict(r) for r in rows]
+    return jsonify({"success": True, "employees": employees})
+
+
 @bp.route("", methods=["POST"])
 @project_app_required
 def create_employee():

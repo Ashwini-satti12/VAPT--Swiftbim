@@ -66,7 +66,7 @@ def task_notifications():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        """SELECT t.id AS taskId, t.task_name AS taskName, t.due_date, t.status, t.ring, t.description AS `dec`, t.created_at,
+        """SELECT t.id AS taskId, t.task_name AS taskName, t.due_date, t.status, t.ring, t.description AS description_text, t.created_at,
                   e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture
            FROM tasks t
            LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
