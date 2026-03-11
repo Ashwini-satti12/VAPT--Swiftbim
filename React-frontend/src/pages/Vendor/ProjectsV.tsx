@@ -164,6 +164,18 @@ export default function ProjectsV() {
         return found?.full_name || "";
     };
 
+    const getClientNameById = (id: string | number | undefined): string => {
+        if (!id) return "";
+        const found = clientsList.find(c => String(c.id) === String(id));
+        return (found?.fullName || found?.full_name || "") as string;
+    };
+
+    const getClientIdByName = (name: string): number | "" => {
+        if (!name) return "";
+        const found = clientsList.find(c => (c.fullName || c.full_name) === name);
+        return found ? found.id : "";
+    };
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
@@ -171,7 +183,7 @@ export default function ProjectsV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName, // TD style uses client_id/name interchangeably in some contexts
+            client_id: getClientIdByName(createClientName), // send numeric client id expected by backend
             project_manager_id: nameToId(createProjectManager, projectManagers),
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -212,7 +224,9 @@ export default function ProjectsV() {
         setCreateName(p.project_name || "");
         setCreateBudget(p.budget || "");
         setCreateModuleName(p.modules || "");
-        setCreateClientName(p.client_id || "");
+        setCreateClientName(
+            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
+        );
         setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.due_date || "");
@@ -239,7 +253,7 @@ export default function ProjectsV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName,
+            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             lead_id: nameToId(createBIMLead, bimLeads),
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
@@ -273,6 +287,18 @@ export default function ProjectsV() {
             })
             .catch(() => { })
             .finally(() => setEditSubmitting(false));
+    };
+
+    const handleDelete = () => {
+        if (!deleteId) return;
+        api.delete(`/api/vendors/vendor-projects/${deleteId}`)
+            .then(() => {
+                setList(prev => prev.filter(p => p.id !== deleteId));
+                setDeleteId(null);
+                setSuccessMsg("Project deleted!");
+                setTimeout(() => setSuccessMsg(null), 3000);
+            })
+            .catch(() => { });
     };
 
     const toggleMember = (id: number) => {
