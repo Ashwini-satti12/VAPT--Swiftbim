@@ -32,6 +32,8 @@ export default function CreateProposalTD() {
   const [techRows, setTechRows] = useState([{ module: "" }]);
   const [deliverablesIntro, setDeliverablesIntro] = useState("");
   const [exclusionsContent, setExclusionsContent] = useState("");
+  const [projectSector, setProjectSector] = useState("");
+  const [bimServices, setBimServices] = useState("");
 
   // Payment Terms Table State
   const [paymentRows, setPaymentRows] = useState([{ basis: "", terms: "", timeline: "" }]);
@@ -45,6 +47,18 @@ export default function CreateProposalTD() {
   useEffect(() => {
     if (!bid?.opportunity_id) return;
 
+    // Reset fields before fetching to avoid stale data
+    setExecutiveSummary("");
+    setAboutUs("");
+    setLocationAddress("");
+    setLocationWebsite("");
+    setLocationEmail(bid?.vendor_email || "");
+    setScopeDescription("");
+    setDeliverablesIntro("");
+    setExclusionsContent("");
+    setProjectSector("");
+    setBimServices("");
+
     api
       .get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
         params: {
@@ -55,12 +69,41 @@ export default function CreateProposalTD() {
         const base = data.proposal;
         if (!base) return;
 
-        setExecutiveSummary((prev: string) => prev || base.executive_summary || "");
-        setAboutUs((prev: string) => prev || base.aboutus || "");
-        setLocationAddress((prev: string) => prev || base.address || "");
-        setLocationWebsite((prev: string) => prev || base.website_url || "");
-        setLocationEmail((prev: string) => prev || base.email_address || "");
-        setScopeDescription((prev: string) => prev || base.scope_of_work || "");
+        if (base.executive_summary) setExecutiveSummary(base.executive_summary);
+        if (base.aboutus) setAboutUs(base.aboutus);
+        if (base.address) setLocationAddress(base.address);
+        if (base.website_url) setLocationWebsite(base.website_url);
+        if (base.email_address) setLocationEmail(base.email_address);
+        if (base.scope_of_work) setScopeDescription(base.scope_of_work);
+
+        // Parse project sector from DB enum/json
+        if (base.project_type_sector) {
+          try {
+            const parsed = JSON.parse(base.project_type_sector);
+            const sectors = Object.entries(parsed)
+              .map(([key, val]) => {
+                if (Array.isArray(val) && val.length > 0) return `${key}: ${val.join(" / ")}`;
+                return key;
+              })
+              .join(", ");
+            setProjectSector(sectors);
+          } catch {
+            setProjectSector(base.project_type_sector);
+          }
+        }
+
+        // Parse bim services
+        if (base.bim_services_required) {
+          try {
+            const parsed = JSON.parse(base.bim_services_required);
+            const services = Object.values(parsed)
+              .flat()
+              .join(" & ");
+            setBimServices(services);
+          } catch {
+            setBimServices(base.bim_services_required);
+          }
+        }
 
         if (base.technologies_used) {
           try {
@@ -120,21 +163,11 @@ export default function CreateProposalTD() {
           }
         }
 
-        setDeliverablesIntro(
-          (prev: string) =>
-            prev ||
-            base.deliverables ||
-            base.deliverables_intro ||
-            base.deliverables_list ||
-            ""
-        );
-        setExclusionsContent(
-          (prev: string) =>
-            prev ||
-            base.exclusions ||
-            base.exclusions_list ||
-            ""
-        );
+        const deliv = base.deliverables || base.deliverables_intro || base.deliverables_list || "";
+        if (deliv) setDeliverablesIntro(deliv);
+
+        const excl = base.exclusions || base.exclusions_list || "";
+        if (excl) setExclusionsContent(excl);
       })
       .catch(() => {
         // Silently ignore if phase-one proposal is not found or errors
@@ -380,6 +413,24 @@ export default function CreateProposalTD() {
           {/* 3. SCOPE OF WORK */}
           <div className="space-y-4">
             <h2 className="font-bold text-lg text-[#020202]">3. Scope of Work <span className="text-red-500">*</span></h2>
+
+            {(projectSector || bimServices) && (
+              <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4 mb-4">
+                {projectSector && (
+                  <div className="flex items-start gap-4">
+                    <span className="font-bold text-[#353535] min-w-[220px]">Project Sector:</span>
+                    <span className="text-[#616161] font-medium">{projectSector}</span>
+                  </div>
+                )}
+                {bimServices && (
+                  <div className="flex items-start gap-4">
+                    <span className="font-bold text-[#353535] min-w-[220px]">BIM Services Required:</span>
+                    <span className="text-[#616161] font-medium">{bimServices}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-transparent focus-within:border-[#AEACAC52] focus-within:ring-1 focus-within:ring-[#D2D2D2] min-h-[250px] transition-all [&_.ql-toolbar]:border-b [&_.ql-toolbar]:border-[#AEACAC52] [&_.ql-container]:border-t [&_.ql-container]:border-[#AEACAC52] [&_.ql-editor]:pt-10 [&_.ql-editor]:px-6">
               <ReactQuill
                 theme="snow"
