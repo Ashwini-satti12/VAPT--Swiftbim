@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 // @ts-ignore
 import ReactQuill from "react-quill-new";
@@ -41,6 +41,105 @@ export default function CreateProposalTD() {
     visible: false,
     message: "",
   });
+
+  useEffect(() => {
+    if (!bid?.opportunity_id) return;
+
+    api
+      .get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
+        params: {
+          opportunity_id: bid.opportunity_id,
+        },
+      })
+      .then(({ data }) => {
+        const base = data.proposal;
+        if (!base) return;
+
+        setExecutiveSummary((prev: string) => prev || base.executive_summary || "");
+        setAboutUs((prev: string) => prev || base.aboutus || "");
+        setLocationAddress((prev: string) => prev || base.address || "");
+        setLocationWebsite((prev: string) => prev || base.website_url || "");
+        setLocationEmail((prev: string) => prev || base.email_address || "");
+        setScopeDescription((prev: string) => prev || base.scope_of_work || "");
+
+        if (base.technologies_used) {
+          try {
+            let modules: string[] = [];
+            if (typeof base.technologies_used === "string") {
+              const trimmed = base.technologies_used.trim();
+              if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                  modules = parsed
+                    .map((m: any) => (typeof m === "string" ? m : m?.module))
+                    .filter((m: any) => typeof m === "string" && m.trim())
+                    .map((m: string) => m.trim());
+                }
+              } else {
+                modules = trimmed
+                  .split(",")
+                  .map((m: string) => m.trim())
+                  .filter(Boolean);
+              }
+            } else if (Array.isArray(base.technologies_used)) {
+              modules = base.technologies_used
+                .map((m: any) => (typeof m === "string" ? m : m?.module))
+                .filter((m: any) => typeof m === "string" && m.trim())
+                .map((m: string) => m.trim());
+            }
+
+            if (modules.length) {
+              setTechRows(modules.map((module: string) => ({ module })));
+            }
+          } catch {
+            // ignore JSON parse issues, keep default rows
+          }
+        }
+
+        if (base.payment_terms) {
+          try {
+            let termsData: any = base.payment_terms;
+            if (typeof termsData === "string") {
+              const trimmed = termsData.trim();
+              if (trimmed) {
+                termsData = JSON.parse(trimmed);
+              }
+            }
+
+            if (Array.isArray(termsData) && termsData.length) {
+              setPaymentRows(
+                termsData.map((row: any) => ({
+                  basis: row?.basis || "",
+                  terms: row?.terms || "",
+                  timeline: row?.timeline || "",
+                }))
+              );
+            }
+          } catch {
+            // ignore JSON parse issues, keep default rows
+          }
+        }
+
+        setDeliverablesIntro(
+          (prev: string) =>
+            prev ||
+            base.deliverables ||
+            base.deliverables_intro ||
+            base.deliverables_list ||
+            ""
+        );
+        setExclusionsContent(
+          (prev: string) =>
+            prev ||
+            base.exclusions ||
+            base.exclusions_list ||
+            ""
+        );
+      })
+      .catch(() => {
+        // Silently ignore if phase-one proposal is not found or errors
+      });
+  }, [bid?.opportunity_id, bid?.vendor_email]);
 
   // Handlers for Technology Table
   const handleAddTechRow = () => setTechRows([...techRows, { module: "" }]);

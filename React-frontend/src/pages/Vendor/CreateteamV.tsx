@@ -4,10 +4,16 @@ import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/rea
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 
+// Get API base URL for image URLs (so uploaded profile pictures load correctly)
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || '';
+};
+
 interface Employee {
     id: number;
     full_name: string;
     email: string;
+    profile_picture?: string;
 }
 
 interface Team {
@@ -22,7 +28,19 @@ interface Team {
 
 
 
-function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team: Team; getEmpName: (id: number | string) => string; onEdit: (team: Team) => void; onDelete: (id: number) => void; onViewDetails: (team: Team) => void }) {
+function TeamCard({
+    team,
+    getEmp,
+    onEdit,
+    onDelete,
+    onViewDetails,
+}: {
+    team: Team;
+    getEmp: (id: number | string) => Employee | undefined;
+    onEdit: (team: Team) => void;
+    onDelete: (id: number) => void;
+    onViewDetails: (team: Team) => void;
+}) {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const memberIds = team.employee.split(',').filter(Boolean);
@@ -42,7 +60,11 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
             {/* Header: Title and Options */}
             <div className="flex justify-between items-start mb-6">
                 <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
-                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
+                    {team.team_name ||
+                        team.teamname ||
+                        team.leader_name ||
+                        getEmp(team.leader)?.full_name ||
+                        'Unnamed Team'}
                 </h3>
                 <div className="absolute top-6 right-6" ref={menuRef}>
                     <button
@@ -93,7 +115,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
             <div className="flex flex-col mb-5">
                 <span className="text-[13px] text-[#64748B] mb-1 font-medium">Team Leader</span>
                 <span className="text-[15px] font-bold text-[#334155]">
-                    {team.leader_name || getEmpName(team.leader)}
+                    {team.leader_name || getEmp(team.leader)?.full_name || 'N/A'}
                 </span>
             </div>
 
@@ -101,15 +123,40 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
             <div className="mt-2 mb-6 flex-1">
                 <span className="text-[12px] text-[#64748B] mb-2 block font-medium">Members ({memberIds.length})</span>
                 <div className="flex -space-x-1.5">
-                    {memberIds.slice(0, 5).map((eid) => (
-                        <div
-                            key={eid}
-                            className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase shadow-sm"
-                            title={getEmpName(eid)}
-                        >
-                            {getEmpName(eid)[0]}
-                        </div>
-                    ))}
+                    {memberIds.slice(0, 5).map((eid) => {
+                        const emp = getEmp(eid);
+                        const name = emp?.full_name || 'N/A';
+                        const avatar = emp?.profile_picture;
+
+                        let avatarUrl = '';
+                        if (avatar && avatar.trim() !== '') {
+                            let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
+                            if (!normalized.includes('/')) {
+                                normalized = `employee/${normalized}`;
+                            } else if (normalized.startsWith('profiles/')) {
+                                normalized = `employee/${normalized.replace('profiles/', '')}`;
+                            }
+                            avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
+                        }
+
+                        return (
+                            <div
+                                key={eid}
+                                className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase overflow-hidden"
+                                title={name}
+                            >
+                                {avatarUrl ? (
+                                    <img
+                                        src={avatarUrl}
+                                        alt={name}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span>{name[0]}</span>
+                                )}
+                            </div>
+                        );
+                    })}
                     {memberIds.length > 5 && (
                         <div className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[10px] font-bold text-[#64748B] shadow-sm">
                             +{memberIds.length - 5}
@@ -160,7 +207,7 @@ export default function CreateteamV() {
 
     useEffect(() => {
         Promise.all([
-            api.get<{ teams?: Team[] }>('/api/teams'),
+            api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams'),
             api.get<{ employees?: Employee[] }>('/api/employees')
         ])
             .then(([teamsRes, empsRes]) => {
@@ -179,7 +226,7 @@ export default function CreateteamV() {
         if (!form.leader) return;
         setSubmitting(true);
 
-        api.post('/api/teams', {
+        api.post('/api/vendors/vendor-teams', {
             team_name: form.team_name,
             leader: form.leader,
             employee: form.employee.join(','),
@@ -188,8 +235,7 @@ export default function CreateteamV() {
             .then(({ data }) => {
                 if (data.success) {
                     setShowAddModal(false);
-                    // Refresh data instead of page reload for better UX
-                    api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
+                    api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                     setForm({ leader: '', employee: [], project_lead: '', team_name: '' });
                 }
             })
@@ -235,7 +281,7 @@ export default function CreateteamV() {
         if (!selectedTeam || !editForm.leader) return;
         setSubmitting(true);
 
-        api.patch(`/api/teams/${selectedTeam.team_id}`, {
+        api.patch(`/api/vendors/vendor-teams/${selectedTeam.team_id}`, {
             team_name: editForm.team_name,
             leader: editForm.leader,
             employee: editForm.employee.join(','),
@@ -244,21 +290,20 @@ export default function CreateteamV() {
             .then(({ data }) => {
                 if (data.success) {
                     setShowEditModal(false);
-                    api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
+                    api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams').then(res => setTeams(res.data.teams ?? []));
                 }
             })
             .catch(() => { })
             .finally(() => setSubmitting(false));
     };
 
-    const getEmpName = (id: number | string) => {
-        const emp = employees.find(e => e.id === Number(id));
-        return emp?.full_name || 'N/A';
+    const getEmp = (id: number | string): Employee | undefined => {
+        return employees.find(e => e.id === Number(id));
     };
 
     const handleDelete = (id: number) => {
         if (!window.confirm('Are you sure you want to delete this team?')) return;
-        api.delete(`/api/teams/${id}`)
+        api.delete(`/api/vendors/vendor-teams/${id}`)
             .then(() => {
                 setTeams(teams.filter(t => t.team_id !== id));
             });
@@ -303,7 +348,7 @@ export default function CreateteamV() {
                         <TeamCard
                             key={team.team_id}
                             team={team}
-                            getEmpName={getEmpName}
+                            getEmp={getEmp}
                             onEdit={handleEditClick}
                             onDelete={handleDelete}
                             onViewDetails={(t) => {
@@ -364,15 +409,17 @@ export default function CreateteamV() {
                                         {form.employee.length === 0 ? (
                                             <span className="text-gray-400 font-medium">Select teammates</span>
                                         ) : (
-                                            form.employee.map(eid => (
+                                            form.employee.map(eid => {
+                                                const emp = getEmp(eid);
+                                                return (
                                                 <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                    {getEmpName(eid)}
+                                                    {emp?.full_name || 'N/A'}
                                                     <XMarkIcon
                                                         onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid); }}
                                                         className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
                                                     />
                                                 </span>
-                                            ))
+                                            )})
                                         )}
                                     </div>
 
@@ -460,15 +507,17 @@ export default function CreateteamV() {
                                         onClick={() => setShowMemberDropdown(!showMemberDropdown)}
                                         className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center"
                                     >
-                                        {editForm.employee.map(eid => (
+                                        {editForm.employee.map(eid => {
+                                            const emp = getEmp(eid);
+                                            return (
                                             <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                {getEmpName(eid)}
+                                                {emp?.full_name || 'N/A'}
                                                 <XMarkIcon
                                                     onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid, true); }}
                                                     className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
                                                 />
                                             </span>
-                                        ))}
+                                        )})}
                                     </div>
 
                                     {showMemberDropdown && (
@@ -532,24 +581,66 @@ export default function CreateteamV() {
                                 <div>
                                     <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Leader</label>
                                     <div className="flex items-center gap-3 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0]">
-                                        <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold">
-                                            {getEmpName(selectedTeam.leader)[0]}
-                                        </div>
-                                        <div className="font-bold text-[#334155]">{getEmpName(selectedTeam.leader)}</div>
+                                        {(() => {
+                                            const emp = getEmp(selectedTeam.leader);
+                                            const name = emp?.full_name || 'N/A';
+                                            const avatar = emp?.profile_picture;
+                                            let avatarUrl = '';
+                                            if (avatar && avatar.trim() !== '') {
+                                                let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
+                                                if (!normalized.includes('/')) {
+                                                    normalized = `employee/${normalized}`;
+                                                } else if (normalized.startsWith('profiles/')) {
+                                                    normalized = `employee/${normalized.replace('profiles/', '')}`;
+                                                }
+                                                avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
+                                            }
+                                            return (
+                                                <>
+                                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold overflow-hidden">
+                                                        {avatarUrl ? (
+                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{name[0]}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="font-bold text-[#334155]">{name}</div>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="text-[13px] text-[#64748B] block mb-2 font-medium">Members ({selectedTeam.employee.split(',').filter(Boolean).length})</label>
                                     <div className="grid grid-cols-2 gap-3">
-                                        {selectedTeam.employee.split(',').filter(Boolean).map(eid => (
-                                            <div key={eid} className="flex items-center gap-2.5 p-2.5 bg-[#F8FAFC] rounded-lg border border-[#F1F5F9]">
-                                                <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600">
-                                                    {getEmpName(eid)[0]}
+                                        {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
+                                            const emp = getEmp(eid);
+                                            const name = emp?.full_name || 'N/A';
+                                            const avatar = emp?.profile_picture;
+                                            let avatarUrl = '';
+                                            if (avatar && avatar.trim() !== '') {
+                                                let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
+                                                if (!normalized.includes('/')) {
+                                                    normalized = `employee/${normalized}`;
+                                                } else if (normalized.startsWith('profiles/')) {
+                                                    normalized = `employee/${normalized.replace('profiles/', '')}`;
+                                                }
+                                                avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
+                                            }
+                                            return (
+                                                <div key={eid} className="flex items-center gap-2.5 p-2.5 bg-[#F8FAFC] rounded-lg border border-[#F1F5F9]">
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 overflow-hidden">
+                                                        {avatarUrl ? (
+                                                            <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{name[0]}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[14px] font-bold text-[#475569]">{name}</div>
                                                 </div>
-                                                <div className="text-[14px] font-bold text-[#475569]">{getEmpName(eid)}</div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

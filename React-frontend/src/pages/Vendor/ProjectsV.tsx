@@ -17,6 +17,7 @@ interface Project {
     budget?: string;
     modules?: string;
     client_id?: string;
+    client_name?: string;
     project_manager_id?: string;
     start_date?: string;
     due_date?: string;
@@ -73,7 +74,7 @@ export default function ProjectsV() {
     // View Project
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [taskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+    const [taskStats, setTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
 
     // Create/Edit Project Fields (Matching ProjectsTD)
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -125,14 +126,26 @@ export default function ProjectsV() {
     useEffect(() => {
         fetchProjects();
 
-        // Fetch employees and categorize them
+        // Fetch all employees once, then categorize by user_role
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
                 const allEmp = data.employees ?? [];
                 setAllEmployees(allEmp);
+
+                // Exact match for project managers
                 setProjectManagers(allEmp.filter((e) => e.user_role === "Project Manager"));
-                setBimLeads(allEmp.filter((e) => e.user_role === "BIM Lead"));
-                setBimCoordinators(allEmp.filter((e) => e.user_role === "BIM Coordinator"));
+
+                // Allow both dedicated BIM roles and mapped dev roles
+                setBimLeads(
+                    allEmp.filter((e) =>
+                        ["BIM Lead", "Backend Developer"].includes(e.user_role || "")
+                    )
+                );
+                setBimCoordinators(
+                    allEmp.filter((e) =>
+                        ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || "")
+                    )
+                );
             })
             .catch(() => {
                 setAllEmployees([]);
@@ -140,12 +153,37 @@ export default function ProjectsV() {
                 setBimLeads([]);
                 setBimCoordinators([]);
             });
+
         // Fetch clients
         api.get<{ clients?: any[] }>("/api/clients")
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
 
     }, []);
+
+    // Auto-fetch client budget whenever a valid client is selected/typed
+    useEffect(() => {
+        if (!createClientName || clientsList.length === 0) return;
+        const client = clientsList.find(
+            (c) => (c.fullName || c.full_name) === createClientName
+        );
+        if (!client) return;
+
+        api.get<{ client_budget: number | null }>(
+            `/api/vendors/client-budget?client_id=${client.id}`
+        )
+            .then(({ data }) => {
+                if (
+                    data.client_budget !== null &&
+                    data.client_budget !== undefined
+                ) {
+                    setCreateBudget(String(data.client_budget));
+                }
+            })
+            .catch(() => {
+                // keep previous budget on error
+            });
+    }, [createClientName, clientsList]);
 
     const getEmployeeName = (id: string | number | undefined): string => {
         if (!id) return "";
@@ -229,8 +267,11 @@ export default function ProjectsV() {
         setCreateName(p.project_name || "");
         setCreateBudget(p.budget || "");
         setCreateModuleName(p.modules || "");
+        // Prefer hydrated client_name from backend; otherwise resolve via id
         setCreateClientName(
-            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
+            p.client_name ||
+            getClientNameById(p.client_id) ||
+            (p.client_id ? String(p.client_id) : "")
         );
         setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
@@ -298,6 +339,33 @@ export default function ProjectsV() {
     const toggleMember = (id: number) => {
         setSelectedMemberIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     };
+
+    // Fetch task stats for selected project when viewing it
+    useEffect(() => {
+        if (!showProjectView || !selectedProject?.id) {
+            setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+            return;
+        }
+        api.get<{
+            success: boolean;
+            status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
+        }>(`/api/vendors/vendor-projects/${selectedProject.id}/task-stats`)
+            .then(({ data }) => {
+                if (!data.success || !data.status_counts) {
+                    setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+                    return;
+                }
+                setTaskStats({
+                    todo: data.status_counts.todo ?? 0,
+                    inProgress: data.status_counts.inprogress ?? 0,
+                    paused: data.status_counts.paused ?? 0,
+                    completed: data.status_counts.completed ?? 0,
+                });
+            })
+            .catch(() => {
+                setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+            });
+    }, [showProjectView, selectedProject?.id]);
 
     const renderMemberSelector = () => (
         <div className="space-y-2">

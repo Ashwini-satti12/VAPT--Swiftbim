@@ -2070,11 +2070,10 @@ export default function ProjectsTD() {
                       Client Name
                     </label>
                     <input
-                      type="text"
-                      className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
+                      type="text" readOnly
+                      className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
                       placeholder="Enter Client Name"
                       value={createClientName}
-                      onChange={(e) => setCreateClientName(e.target.value)}
                     />
                   </div>
 
