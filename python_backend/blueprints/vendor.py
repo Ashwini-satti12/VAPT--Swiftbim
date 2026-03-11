@@ -670,20 +670,76 @@ def get_phase_one_proposal():
     if not service_id:
         return jsonify({"proposal": None}), 400
 
+    # If this is called from TD/Vendor with `opportunity_id` (vendor_bidding.id),
+    # we need to find the specific proposal linked to this project.
+    target_proposal_id = None
+    if request.args.get("opportunity_id"):
+        try:
+            from .auth import get_db
+            main_conn = get_db()
+            main_cur = main_conn.cursor(dictionary=True)
+            # Find the project details
+            main_cur.execute("""
+                SELECT b.project_id, p.client_id, p.budget 
+                FROM vendor_bidding b
+                JOIN projects p ON b.project_id = p.id
+                WHERE b.id = %s
+            """, (service_id,))
+            bidding_row = main_cur.fetchone()
+            
+            if bidding_row:
+                p2_client_id = bidding_row.get("client_id")
+                p2_budget = bidding_row.get("budget")
+                
+                # Check for a verified contract in Phase 1 matching this client and budget
+                cur_temp = vendor_cursor()
+                cur_temp.execute("""
+                    SELECT proposal_id FROM contracts 
+                    WHERE client_id = %s AND total_cost = %s 
+                    AND status NOT IN ('Draft', 'cancelled')
+                    ORDER BY id DESC LIMIT 1
+                """, (p2_client_id, p2_budget))
+                contract_row = cur_temp.fetchone()
+                if contract_row:
+                    target_proposal_id = contract_row["proposal_id"]
+                
+                # Update service_id for fallback/queries if needed
+                service_id = bidding_row["project_id"]
+        except Exception:
+            pass
+
     cur = vendor_cursor()
 
-    sql = "SELECT * FROM proposals WHERE service_id = %s"
-    params = [service_id]
-
-    sql += " ORDER BY created_at DESC LIMIT 1"
+    if target_proposal_id:
+        sql = """
+            SELECT p.*, e.project_type_sector, e.bim_services_required 
+            FROM proposals p 
+            LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+            WHERE p.id = %s
+        """
+        params = [target_proposal_id]
+    else:
+        sql = """
+            SELECT p.*, e.project_type_sector, e.bim_services_required 
+            FROM proposals p 
+            LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+            WHERE p.service_id = %s 
+            ORDER BY p.created_at DESC LIMIT 1
+        """
+        params = [service_id]
 
     try:
         cur.execute(sql, tuple(params))
         row = cur.fetchone()
 
-        # If nothing matches this service_id, fall back to the latest proposal
+        # If nothing matches, fall back to the latest globally
         if not row:
-            cur.execute("SELECT * FROM proposals ORDER BY created_at DESC LIMIT 1")
+            cur.execute("""
+                SELECT p.*, e.project_type_sector, e.bim_services_required 
+                FROM proposals p 
+                LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+                ORDER BY p.created_at DESC LIMIT 1
+            """)
             row = cur.fetchone()
 
         if not row:
@@ -860,7 +916,7 @@ def bidding_bids(bidding_id):
             vendor_ids = [r["vendor_id"] for r in rows]
             placeholders = ",".join(["%s"] * len(vendor_ids))
             cur.execute(
-                f"""SELECT id, full_name, email, phone_number, user_role
+                f"""SELECT id, full_name, email, phone_number, role
                    FROM vendor_employee WHERE id IN ({placeholders})""",
                 vendor_ids,
             )
