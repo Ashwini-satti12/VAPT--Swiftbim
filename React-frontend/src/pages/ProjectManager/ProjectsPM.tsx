@@ -1484,10 +1484,11 @@ export default function ProjectsPM() {
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
-                  <FormSelect
-                    label="Client Name" placeholder="Select Client"
-                    options={clientsList.map(c => c.full_name)} value={createClientName}
-                    onChange={setCreateClientName}
+                  <input
+                    type="text" readOnly
+                    value={createClientName}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
+                    placeholder="Enter Client Name"
                   />
                 </div>
 
