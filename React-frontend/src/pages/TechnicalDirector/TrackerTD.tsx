@@ -21,12 +21,13 @@ interface LocationEntry {
 export default function TrackerTD() {
     const [list, setList] = useState<LocationEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDate, setSelectedDate] = useState('');
+    // Selected time used to determine Busy/Available at that time (HH:MM, 24h)
+    const [selectedTime, setSelectedTime] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
     const statusOptions = ['', 'Available', 'Busy'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
-    const dateInputRef = useRef<HTMLInputElement>(null);
+    const timeInputRef = useRef<HTMLInputElement>(null);
 
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
         { value: '0-100', label: '0-100', start: 0, end: 100 },
@@ -45,10 +46,31 @@ export default function TrackerTD() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1); // 1-based start of visible 4 buttons
     const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return 'Select Date';
-        const [year, month, day] = dateStr.split('-');
-        return `${day}/${month}/${year}`;
+    const todayIso = (() => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    })();
+
+    const ensureTodayAndDefaultTime = () => {
+        // Default time to current time (HH:MM)
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        setSelectedTime((t) => (t ? t : `${hh}:${mm}`));
+    };
+
+    const formatTime12 = (time24: string) => {
+        if (!time24) return 'select time';
+        const [hhStr, mmStr] = time24.split(':');
+        const hh = Number(hhStr);
+        const mm = Number(mmStr || '0');
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return 'select time';
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        const h12 = hh % 12 === 0 ? 12 : hh % 12;
+        return `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`;
     };
 
     // Convert a date string into YYYY-MM-DD for filtering.
@@ -126,8 +148,10 @@ export default function TrackerTD() {
     };
 
     useEffect(() => {
+        ensureTodayAndDefaultTime();
         api
-            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker')
+            // Ask backend for today's attendance only (backend expects YYYY-MM-DD)
+            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker', { params: { date: todayIso } })
             .then(({ data }) => {
                 const records = (data.records ?? []).map((item) => ({
                     ...item,
@@ -138,38 +162,73 @@ export default function TrackerTD() {
                 setList([]);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [todayIso]);
 
     // Fetch tasks for selected date to determine Availability / Busy
     useEffect(() => {
         const fetchTasksForDate = async () => {
-            if (!selectedDate) {
-                setBusyMap({});
-                return;
-            }
+            // date is always today for this tracker
+            const targetDate = todayIso;
             try {
                 const params: { condition: string } = { condition: '1' }; // management/team view
                 const { data } = await api.get<{ tasks?: any[] }>('/api/tasks', { params });
                 const tasks = data.tasks || [];
-                const targetDate = selectedDate; // YYYY-MM-DD
+                const targetTime = selectedTime; // HH:MM (24h)
                 const busy: Record<string, boolean> = {};
+
+                const parseDateTime = (raw: any): Date | null => {
+                    if (!raw) return null;
+                    const s = String(raw).trim();
+                    if (!s) return null;
+                    // Normalize "YYYY-MM-DD HH:MM:SS" to ISO-like "YYYY-MM-DDTHH:MM:SS"
+                    const isoLike = s.includes('T') ? s : s.replace(' ', 'T');
+                    const d = new Date(isoLike);
+                    return Number.isNaN(d.getTime()) ? null : d;
+                };
+
+                const sameDay = (d: Date) => {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${dd}` === targetDate;
+                };
+
+                // Build selected datetime for comparisons
+                let selectedDt: Date | null = null;
+                if (targetTime && /^\d{2}:\d{2}$/.test(targetTime)) {
+                    selectedDt = new Date(`${targetDate}T${targetTime}:00`);
+                }
 
                 tasks.forEach((t) => {
                     const status = String(t.status || '').toLowerCase();
                     if (status === 'completed') return;
 
-                    const rawDate: string =
-                        t.start_time ||
-                        t.Actual_start_time ||
-                        t.due_date ||
-                        '';
-                    if (!rawDate) return;
-
-                    const isoPart = String(rawDate).split('T')[0].split(' ')[0];
-                    if (!isoPart || isoPart !== targetDate) return;
-
                     const name = (t.assigned_full_name || '').trim();
-                    if (name) busy[name] = true;
+                    if (!name) return;
+
+                    // Determine task window
+                    const start =
+                        parseDateTime(t.start_time) ||
+                        parseDateTime(t.Actual_start_time) ||
+                        parseDateTime(t.due_date);
+                    const end = parseDateTime(t.end_time) || parseDateTime(t.endTime) || null;
+
+                    if (!start) return;
+                    if (!sameDay(start)) return;
+
+                    // If no selected time, treat any task on today as busy
+                    if (!selectedDt) {
+                        busy[name] = true;
+                        return;
+                    }
+
+                    // If end exists, check overlap; otherwise assume busy from start time onward for today
+                    if (end && !Number.isNaN(end.getTime())) {
+                        if (selectedDt >= start && selectedDt <= end) busy[name] = true;
+                    } else {
+                        // start-only: busy if selected time is after start (same day)
+                        if (selectedDt >= start) busy[name] = true;
+                    }
                 });
 
                 setBusyMap(busy);
@@ -180,7 +239,7 @@ export default function TrackerTD() {
         };
 
         fetchTasksForDate();
-    }, [selectedDate]);
+    }, [todayIso, selectedTime]);
 
     // Close status dropdown when clicking outside
     useEffect(() => {
@@ -219,15 +278,7 @@ export default function TrackerTD() {
     }, [selectedShowEntries]);
 
     const filteredList = list.filter((item) => {
-        let matchesDate = true;
         let matchesStatus = true;
-
-        if (selectedDate) {
-            // selectedDate is already in YYYY-MM-DD format from the date input
-            const itemDate = toLocalDateKey(item.date_iso, item.date ?? null);
-            // Compare date strings directly
-            matchesDate = itemDate === selectedDate;
-        }
 
         if (selectedStatus) {
             const name = (item.full_name || '').trim();
@@ -235,7 +286,7 @@ export default function TrackerTD() {
             matchesStatus = status === selectedStatus;
         }
 
-        return matchesDate && matchesStatus;
+        return matchesStatus;
     });
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
@@ -322,44 +373,33 @@ export default function TrackerTD() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Select Date Filter */}
+                    {/* Time picker (today only, date hidden) */}
                     <div
-                        className="relative flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[130px] cursor-pointer"
-                        onClick={() => { dateInputRef.current?.showPicker?.(); dateInputRef.current?.focus(); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[180px]"
                     >
-                        <span className={`text-sm font-medium flex-1 ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
-                            {formatDate(selectedDate)}
+                        <span className="text-sm font-semibold text-[#353535] ml-2">
+                            {formatTime12(selectedTime)}
                         </span>
-                        {selectedDate && (
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedDate('');
-                                }}
-                                className="text-[#616161] hover:text-[#353535] transition-colors"
-                                title="Clear date filter"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        )}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-                        </svg>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                timeInputRef.current?.showPicker?.();
+                                timeInputRef.current?.focus();
+                            }}
+                            className="ml-1 text-[#616161] hover:text-[#353535] transition-colors"
+                            title="Select time"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+                        </button>
                         <input
-                            ref={dateInputRef}
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            style={{ colorScheme: 'light' }}
+                            ref={timeInputRef}
+                            type="time"
+                            value={selectedTime}
+                            onChange={(e) => setSelectedTime(e.target.value)}
+                            className="absolute opacity-0 pointer-events-none"
                         />
                     </div>
 
