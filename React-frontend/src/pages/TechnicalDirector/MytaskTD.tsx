@@ -8,6 +8,7 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -57,27 +58,19 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={value ? "text-black" : "text-[#8B8B8B]"}>
+                <span className={value ? "text-[#353535]" : "text-[#616161]"}>
                     {displayLabel}
                 </span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
@@ -94,7 +87,7 @@ function FormDropdown({
                                 onChange(opt.value);
                                 onClose();
                             }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+                            className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
                         >
                             {opt.label}
                         </button>
@@ -162,31 +155,32 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className="truncate">{selected ?? label}</span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                        <>
+                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span>{selected}</span>
+                        </>
+                    ) : (
+                        selected ?? label
+                    )}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -204,8 +198,8 @@ function TaskDropdown({
                         </div>
                     )}
                     <div
-                        className="overflow-y-auto py-1"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        className="overflow-y-auto py-1 custom-scrollbar"
+                        style={listMaxHeight ? { maxHeight: listMaxHeight } : { maxHeight: '250px' }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -217,7 +211,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -295,21 +289,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     };
 }
 
-function formatDateRange(start?: string, end?: string): string {
-    if (!start && !end) return "—";
-    const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-    const fmtShort = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]}`;
-    };
-    const fmtFull = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    };
-    if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-    if (start) return fmtFull(start);
-    return end ? fmtFull(end) : "—";
-}
+
 
 function normalizeStatus(
     s: string | undefined,
@@ -322,26 +302,7 @@ function normalizeStatus(
     return "todo";
 }
 
-const STATUS_STYLE: Record<
-    "todo" | "in_progress" | "completed",
-    { label: string; dot: string; bg: string }
-> = {
-    todo: {
-        label: "To Do",
-        dot: "bg-orange-500",
-        bg: "bg-orange-100 text-orange-800 rounded-full",
-    },
-    in_progress: {
-        label: "In Progress",
-        dot: "bg-sky-500",
-        bg: "bg-sky-100 text-sky-800",
-    },
-    completed: {
-        label: "Completed",
-        dot: "bg-emerald-500",
-        bg: "bg-emerald-100 text-emerald-800",
-    },
-};
+
 
 function TaskCard({
     task,
@@ -356,9 +317,7 @@ function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const style = STATUS_STYLE[status];
     const progress = task.progress ?? 0;
-    const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -392,14 +351,7 @@ function TaskCard({
             className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-                >
-                    <span
-                        className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`}
-                    />
-                    {style.label}
-                </span>
+                <div />
                 <div className="relative" ref={menuRef}>
                     <button
                         type="button"
@@ -467,7 +419,11 @@ function TaskCard({
             <h4 className="font-semibold text-slate-900 text-sm mb-1">
                 {task.task_name || "Task Name"}
             </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <div className="flex items-center gap-4 mb-3 text-[13px] font-medium text-[#0A2E65]">
+                <span>{task.start_date ? `${new Date(task.start_date).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date).getFullYear()}` : "—"}</span>
+
+                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : "—"}</span>
+            </div>
             <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-slate-600">Progress</span>
                 <span className="text-xs font-medium text-slate-700">
@@ -506,7 +462,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -827,14 +783,6 @@ export default function MytaskTD() {
         ...(Array.isArray(projects) ? projects : []).map(p => p?.project_name).filter(Boolean)
     ];
 
-    const counts = {
-        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
-        in_progress: allTasks.filter(
-            (t) => getEffectiveStatus(t) === "in_progress",
-        ).length,
-        completed: allTasks.filter((t) => getEffectiveStatus(t) === "completed")
-            .length,
-    };
     const tasksByStatus = {
         todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo"),
         in_progress: allTasks.filter(
@@ -844,14 +792,30 @@ export default function MytaskTD() {
             (t) => getEffectiveStatus(t) === "completed",
         ),
     };
-    const showLimit =
-        selectedShow === "All" || !selectedShow
-            ? Number.POSITIVE_INFINITY
-            : Math.max(1, Number(selectedShow) || 10);
+
+    let limitStart = 0;
+    let limitEnd = 50;
+    if (selectedShow === "All") {
+        limitStart = 0;
+        limitEnd = Infinity;
+    } else if (selectedShow && selectedShow !== "Show") {
+        const parts = selectedShow.split('-');
+        if (parts.length === 2) {
+            limitStart = parseInt(parts[0], 10) - 1;
+            limitEnd = parseInt(parts[1], 10);
+        }
+    }
+
     const displayedTasksByStatus = {
-        todo: tasksByStatus.todo.slice(0, showLimit),
-        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
-        completed: tasksByStatus.completed.slice(0, showLimit),
+        todo: tasksByStatus.todo.slice(limitStart, limitEnd),
+        in_progress: tasksByStatus.in_progress.slice(limitStart, limitEnd),
+        completed: tasksByStatus.completed.slice(limitStart, limitEnd),
+    };
+
+    const counts = {
+        todo: displayedTasksByStatus.todo.length,
+        in_progress: displayedTasksByStatus.in_progress.length,
+        completed: displayedTasksByStatus.completed.length,
     };
 
     if (loading) {
@@ -976,15 +940,14 @@ export default function MytaskTD() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-6 shadow-sm hover:shadow-md transition-shadow relative"
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group1} alt="Group1" className="w-10 h-10" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">To Do Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.todo} Tasks
-                    </p>
                 </Link>
 
                 <Link
@@ -993,15 +956,14 @@ export default function MytaskTD() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-6 shadow-sm hover:shadow-md transition-shadow relative"
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group2} alt="Group2" className="w-10 h-10" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.in_progress} Tasks
-                    </p>
                 </Link>
 
                 <Link
@@ -1010,15 +972,14 @@ export default function MytaskTD() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-6 shadow-sm hover:shadow-md transition-shadow relative"
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group3} alt="Group3" className="w-10 h-10" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Completed Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.completed} Tasks
-                    </p>
                 </Link>
             </div>
 
