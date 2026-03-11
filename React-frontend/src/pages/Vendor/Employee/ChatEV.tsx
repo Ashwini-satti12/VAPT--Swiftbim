@@ -1,5 +1,5 @@
 import ChatPanel from "../../../components/ChatPanel";
 
-export default function VendorBimLeadCommunication() {
+export default function ChatEV() {
     return <ChatPanel userType="employee" />;
 }

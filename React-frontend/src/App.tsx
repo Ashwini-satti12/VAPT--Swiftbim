@@ -114,10 +114,15 @@ import DashboardPMV from './pages/Vendor/ProjectManager/DashboardPMV';
 import ProjectsPMV from './pages/Vendor/ProjectManager/ProjectsPMV';
 import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
 import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
+import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
+import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
+
 
 /* Vendor Employee */
 import DashboardEV from './pages/Vendor/Employee/DashboardEV';
 import MytaskEV from './pages/Vendor/Employee/MytaskEV';
+import TeamtaskEV from './pages/Vendor/Employee/TeamtaskEV';
+import ChatEV from './pages/Vendor/Employee/ChatEV';
 
 /* Vendor BIM Lead */
 import VendorBimLeadDashboard from './pages/Vendor/VendorBimLead/VendorBimLeadDashboard';
@@ -249,14 +254,17 @@ function App() {
             <Route path="vpm/dashboard" element={<DashboardPMV />} />
             <Route path="vpm/projects" element={<ProjectsPMV />} />
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
+            <Route path="/vpm/teamtasks" element={<TeamtaskPMV />} />
             <Route path="vpm/opportunities" element={<BiddingV />} />
-            <Route path="vpm/mybids" element={<BiddingV />} />
             <Route path="vpm/createteam" element={<CreateteamPMV />} />
             <Route path="vpm/resources" element={<ResourcesV />} />
+            <Route path="vpm/communication" element={<ChatPMV />} />
 
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks" element={<TeamtaskEV />} />
+            <Route path="ve/communication" element={<ChatEV />} />
 
             {/* Vendor BIM Lead Routes */}
             <Route path="vendor-bim-lead/dashboard" element={<VendorBimLeadDashboard />} />

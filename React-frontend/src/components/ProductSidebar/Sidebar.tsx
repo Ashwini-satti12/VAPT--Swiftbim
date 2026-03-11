@@ -391,7 +391,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Dashboard", path: "/ve/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "My Task", path: "/ve/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/ve/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
-          { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          { name: "Communication", path: "/ve/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 
