@@ -3,6 +3,18 @@ import api from '../../lib/api';
 import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: 'show', label: 'Show', start: 0, end: 50 },
+    { value: '1-50', label: '1-50', start: 0, end: 50 },
+    { value: '51-100', label: '51-100', start: 50, end: 100 },
+    { value: '101-150', label: '101-150', start: 100, end: 150 },
+    { value: '151-200', label: '151-200', start: 150, end: 200 },
+    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: '251-300', label: '251-300', start: 250, end: 300 },
+    { value: 'all', label: 'All', start: 0, end: null },
+];
 
 interface Employee {
     id: number;
@@ -134,10 +146,19 @@ export default function CreateteamTD() {
     const [submitting, setSubmitting] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
 
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const [selectedShowEntries, setSelectedShowEntries] = useState('show');
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
+    const selectedRange = showEntriesOptions.find(opt => opt.value === selectedShowEntries) || showEntriesOptions[0];
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
                 setShowMemberDropdown(false);
+            }
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -275,22 +296,67 @@ export default function CreateteamTD() {
         );
     }
 
+    const displayTeams = selectedRange.end === null
+        ? teams
+        : teams.slice(selectedRange.start, selectedRange.end);
+
     return (
         <div className="h-full flex flex-col p-6">
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-[#1E293B]">Team</h2>
-                <button
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-xl hover:bg-[#C53030] transition-all font-bold shadow-lg shadow-red-200 active:scale-95"
-                >
-                    <PlusIcon className="w-5 h-5 stroke-[3]" />
-                    New Team
-                </button>
+                <div className="flex items-center gap-3">
+                    {/* Show entries dropdown */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                        >
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                </>
+                            )}
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className="w-3.5 h-3.5 object-contain transition-transform"
+                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div
+                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto no-scrollbar"
+                            >
+                                {showEntriesOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 active:scale-95"
+                    >
+                        <PlusIcon className="w-5 h-5 stroke-[3]" />
+                        New Team
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {teams.length === 0 ? (
+                    {displayTeams.length === 0 ? (
                         <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
                             <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
                                 <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
@@ -301,7 +367,7 @@ export default function CreateteamTD() {
                             </div>
                         </div>
                     ) : (
-                        teams.map(team => (
+                        displayTeams.map(team => (
                             <TeamCard
                                 key={team.team_id}
                                 team={team}

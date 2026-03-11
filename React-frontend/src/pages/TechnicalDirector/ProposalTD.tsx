@@ -117,7 +117,7 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === 'show' ? (
                 <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
@@ -130,8 +130,7 @@ export default function ProposalTD() {
               <img
                 src={ArrowDown}
                 alt="arrow"
-                className="w-3.5 h-3.5 object-contain transition-transform"
-                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
               />
             </button>
             {showEntriesOpen && (

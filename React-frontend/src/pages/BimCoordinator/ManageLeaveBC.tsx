@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
@@ -46,24 +44,6 @@ function toInputDate(d: string | undefined): string {
     return `${yy}-${mm}-${dd}`;
 }
 
-/** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
-function formatApiDate(value: string | undefined | null): string {
-    if (!value) return '';
-    const s = String(value);
-    // Already DD/MM/YYYY
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-    try {
-        const d = new Date(s);
-        if (Number.isNaN(d.getTime())) return s;
-        const day = d.getDate().toString().padStart(2, '0');
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-    } catch {
-        return s;
-    }
-}
-
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: '0-100', label: '0-100', start: 0, end: 100 },
     { value: '101-200', label: '101-200', start: 100, end: 200 },
@@ -76,11 +56,9 @@ const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeaveBC() {
-    const { user } = useAuth();
-
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
-    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
 
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -106,39 +84,6 @@ export default function ManageLeaveBC() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
-
-    // Load leave applications from backend
-    useEffect(() => {
-        const fetchLeaves = async () => {
-            try {
-                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeName: app.full_name || 'Unknown',
-                    role: app.role || undefined,
-                    leaveType: app.title || 'Others',
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                setLeaves(mapped);
-            } catch (err) {
-                console.error('Failed to load leaves from backend', err);
-                setLeaves(DUMMY_LEAVES);
-            }
-        };
-
-        fetchLeaves();
-    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -185,10 +130,15 @@ export default function ManageLeaveBC() {
         setPaginationWindowStart(1);
     }, [selectedShowEntries, selectedEmployee]);
 
+    const toStoredDate = (d: string): string => {
+        if (!d) return '';
+        const [y, m, day] = d.split('-');
+        return `${day}/${m}/${y}`;
+    };
+
     const validateApplyForm = (): boolean => {
         const err: Record<string, string> = {};
-        const nameToCheck = employeeName || user?.full_name || '';
-        if (!nameToCheck.trim()) err.employeeName = 'Employee name is required';
+        if (!employeeName.trim()) err.employeeName = 'Employee name is required';
         if (!leaveType) err.leaveType = 'Leave type is required';
         if (!leaveFrom) err.leaveFrom = 'Leave from date is required';
         if (!leaveTo) err.leaveTo = 'Leave to date is required';
@@ -198,86 +148,35 @@ export default function ManageLeaveBC() {
         return Object.keys(err).length === 0;
     };
 
-    const handleSubmitApply = async (e: React.FormEvent) => {
+    const handleSubmitApply = (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateApplyForm()) return;
-
-        try {
-            const payload: any = {
-                leavetype: leaveType,
-                description: reason.trim(),
-                from_date: leaveFrom,
-                to_date: leaveTo,
-            };
-
-            // Optional: send days_count if both dates are present
-            if (leaveFrom && leaveTo) {
-                const from = new Date(leaveFrom);
-                const to = new Date(leaveTo);
-                const diffMs = to.getTime() - from.getTime();
-                if (!Number.isNaN(diffMs) && diffMs >= 0) {
-                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-                    payload.days_count = days;
-                }
-            }
-
-            const { data } = await api.post<{ success: boolean; id?: number; message?: string }>('/api/leave/applications', payload);
-            if (data.success === false) {
-                alert(data.message || 'Failed to apply leave.');
-                return;
-            }
-
-            // Reload latest leaves from backend so list reflects the new application
-            try {
-                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = resp.data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeName: app.full_name || 'Unknown',
-                    role: app.role || undefined,
-                    leaveType: app.title || 'Others',
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                if (mapped.length) {
-                    setLeaves(mapped);
-                }
-            } catch (err) {
-                console.error('Failed to refresh leaves after apply.', err);
-            }
-
-            setLeaveType('');
-            setLeaveFrom('');
-            setLeaveTo('');
-            setReason('');
-            setApplyFormErrors({});
-            setApplyModalOpen(false);
-        } catch (err: any) {
-            console.error('Apply leave failed', err);
-            alert(err?.response?.data?.message || 'Failed to apply leave. Please try again.');
-        }
+        const newId = Math.max(0, ...leaves.map((l) => l.id)) + 1;
+        const today = new Date();
+        const appliedOnStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+        setLeaves((prev) => [...prev, {
+            id: newId,
+            slNo: prev.length + 1,
+            employeeName: employeeName.trim(),
+            leaveType,
+            appliedOn: appliedOnStr,
+            currentStatus: 'Pending',
+            fromDate: toStoredDate(leaveFrom),
+            toDate: toStoredDate(leaveTo),
+            description: reason.trim(),
+        }]);
+        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setApplyModalOpen(false);
     };
 
     const handleCloseModal = () => {
         setApplyModalOpen(false);
-        setLeaveType('');
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-        setApplyFormErrors({});
+        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
     const handleEdit = (row: LeaveEntry) => {
         setEditingLeave(row);
+        setEmployeeName(row.employeeName);
         setLeaveType(row.leaveType);
         setLeaveFrom(toInputDate(row.fromDate));
         setLeaveTo(toInputDate(row.toDate));
@@ -289,129 +188,19 @@ export default function ManageLeaveBC() {
     const handleCloseEditModal = () => {
         setEditModalOpen(false);
         setEditingLeave(null);
-        setLeaveType('');
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-        setApplyFormErrors({});
+        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
-    const handleSubmitEdit = async (e: React.FormEvent) => {
+    const handleSubmitEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLeave || !validateApplyForm()) return;
-
-        try {
-            const payload: any = {
-                leavetype: leaveType,
-                description: reason.trim(),
-                from_date: leaveFrom,
-                to_date: leaveTo,
-            };
-
-            if (leaveFrom && leaveTo) {
-                const from = new Date(leaveFrom);
-                const to = new Date(leaveTo);
-                const diffMs = to.getTime() - from.getTime();
-                if (!Number.isNaN(diffMs) && diffMs >= 0) {
-                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-                    payload.days_count = days;
-                }
-            }
-
-            const { data } = await api.patch<{ success: boolean; message?: string }>(
-                `/api/leave/applications/${editingLeave.id}`,
-                payload
-            );
-
-            if (data.success === false) {
-                alert(data.message || 'Failed to update leave.');
-                return;
-            }
-
-            // Refresh leaves from backend so table reflects latest values
-            try {
-                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = resp.data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeName: app.full_name || 'Unknown',
-                    role: app.role || undefined,
-                    leaveType: app.title || 'Others',
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                if (mapped.length) {
-                    setLeaves(mapped);
-                }
-            } catch (err) {
-                console.error('Failed to refresh leaves after edit.', err);
-            }
-
-            handleCloseEditModal();
-        } catch (err: any) {
-            console.error('Update leave failed', err);
-            alert(err?.response?.data?.message || 'Failed to update leave. Please try again.');
-        }
+        setLeaves((prev) => prev.map((l) => l.id === editingLeave.id ? { ...l, employeeName: employeeName.trim(), leaveType, fromDate: toStoredDate(leaveFrom), toDate: toStoredDate(leaveTo), description: reason.trim() } : l));
+        handleCloseEditModal();
     };
 
-    const handleDelete = async (row: LeaveEntry) => {
+    const handleDelete = (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
-        
-        try {
-            const { data } = await api.delete<{ success: boolean; message?: string }>(`/api/leave/applications/${row.id}`);
-            if (data.success === false) {
-                alert(data.message || 'Failed to delete leave.');
-                return;
-            }
-
-            // Refresh leaves from backend
-            try {
-                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = resp.data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeName: app.full_name || 'Unknown',
-                    role: app.role || undefined,
-                    leaveType: app.title || 'Others',
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                if (mapped.length) {
-                    setLeaves(mapped);
-                }
-            } catch (err) {
-                console.error('Failed to refresh leaves after delete.', err);
-            }
-        } catch (err: any) {
-            console.error('Delete leave failed', err);
-            alert(err?.response?.data?.message || 'Failed to delete leave. Please try again.');
-        }
-    };
-
-    // Only the person who applied the leave can edit/delete their own application,
-    // and only while it is still Pending.
-    const canEditLeave = (row: LeaveEntry): boolean => {
-        const currentName = (user?.full_name || '').trim();
-        if (!currentName) return false;
-        return row.employeeName.trim() === currentName && row.currentStatus === 'Pending';
+        setLeaves((prev) => prev.filter((l) => l.id !== row.id));
     };
 
     const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
@@ -458,10 +247,7 @@ export default function ManageLeaveBC() {
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"
-                        onClick={() => {
-                            setEmployeeName(user?.full_name || '');
-                            setApplyModalOpen(true);
-                        }}
+                        onClick={() => setApplyModalOpen(true)}
                         className="px-4 py-2.5 bg-[#DD4346] text-white rounded-lg text-sm font-gantari font-medium hover:bg-[#c43a39] transition-colors"
                     >
                         Apply Leave
@@ -604,16 +390,12 @@ export default function ManageLeaveBC() {
                                                         <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
                                                     </button>
-                                                    {canEditLeave(row) && (
-                                                        <>
-                                                            <button type="button" onClick={() => handleEdit(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#353535] hover:bg-[#F0F2F7] transition-colors shrink-0" title="Edit">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                            </button>
-                                                            <button type="button" onClick={() => handleDelete(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0" title="Delete">
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                            </button>
-                                                        </>
-                                                    )}
+                                                    <button type="button" onClick={() => handleEdit(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#353535] hover:bg-[#F0F2F7] transition-colors shrink-0" title="Edit">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                    </button>
+                                                    <button type="button" onClick={() => handleDelete(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0" title="Delete">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -642,7 +424,7 @@ export default function ManageLeaveBC() {
                         {visiblePageRanges.map((pr) => {
                             const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
                             const isActive = pageNum === activePage;
-  return (
+                            return (
                                 <button
                                     key={pr.label}
                                     type="button"
@@ -694,6 +476,11 @@ export default function ManageLeaveBC() {
                         </div>
                         <div className="px-6 py-6">
                             <div className="space-y-4">
+                                <div className="flex items-start gap-2">
+                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
+                                    <span className="shrink-0 text-[#616161]">:</span>
+                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
+                                </div>
                                 <div className="flex items-start gap-2">
                                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
                                     <span className="shrink-0 text-[#616161]">:</span>
@@ -821,7 +608,7 @@ export default function ManageLeaveBC() {
                         <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
                             <div>
                                 <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
-                                <input type="text" value={editingLeave?.employeeName || ''} readOnly className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#E5E5E5]`} placeholder="Employee name" />
+                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
                                 {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
                             </div>
                             <div className="relative" ref={leaveTypeDropdownEditRef}>

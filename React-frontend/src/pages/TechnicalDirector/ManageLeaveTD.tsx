@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface LeaveEntry {
     id: number;
@@ -32,13 +33,15 @@ const DUMMY_LEAVES: LeaveEntry[] = [
 ];
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-    { value: '1-50', label: '1-50', start: 0, end: 50 },
-    { value: '51-100', label: '51-100', start: 50, end: 100 },
-    { value: '101-150', label: '101-150', start: 100, end: 150 },
-    { value: '151-200', label: '151-200', start: 150, end: 200 },
-    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: 'show', label: 'Show', start: 0, end: 100 },
+    { value: '101-200', label: '101-200', start: 100, end: 200 },
+    { value: '201-300', label: '201-300', start: 200, end: 300 },
+    { value: '301-400', label: '301-400', start: 300, end: 400 },
     { value: 'all', label: 'All', start: 0, end: null },
 ];
+
+const PER_PAGE = 10;
+const PAGINATION_VISIBLE = 4;
 
 /** Format ISO date (or plain YYYY-MM-DD) to DD/MM/YYYY for table display. */
 function formatApiDate(value: string | undefined | null): string {
@@ -70,6 +73,8 @@ export default function ManageLeave() {
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
 
@@ -130,11 +135,36 @@ export default function ManageLeave() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showEntriesOpen]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+        setPaginationWindowStart(1);
+    }, [selectedShowEntries, selectedEmployee]);
+
     const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
-    const displayedList = filteredList.slice(rangeStart, rangeEnd);
+    const listInRange = filteredList.slice(rangeStart, rangeEnd);
+    const totalInRange = listInRange.length;
+    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+    const safePage = Math.min(Math.max(1, currentPage), totalPages);
+    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+    const pageRanges: { start: number; end: number; label: string }[] = [];
+    for (let p = 1; p <= totalPages; p++) {
+        const s = rangeStart + (p - 1) * PER_PAGE;
+        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
+        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
+        pageRanges.push({ start: s, end: e, label });
+    }
+    const activePage = safePage;
+    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+    const canPrevWindow = paginationWindowStart > 1;
+    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
 
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
@@ -176,15 +206,13 @@ export default function ManageLeave() {
     };
 
     return (
-        <div className="pt-4 px-4 md:pt-6 md:px-6 lg:pt-8 lg:px-8 pb-0 flex flex-col h-full font-gantari overflow-hidden">
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-            <div
-                className="flex flex-col flex-1 min-h-0"
-                style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%' }}
-            >
+        <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white font-gantari">
+            <div className="flex-1 min-h-0 flex flex-col">
             {/* Page header: heading left; Employee + Show entries right */}
-            <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-                <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">Manage Leaves</h1>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2 mb-8">
+                <div className="flex items-center justify-between w-full md:w-auto">
+                    <h2 className="text-2xl font-semibold text-[#000000]">Manage Leaves</h2>
+                </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative" ref={employeeDropdownRef}>
                         <button
@@ -193,18 +221,19 @@ export default function ManageLeave() {
                                 e.stopPropagation();
                                 setEmployeeDropdownOpen((o) => !o);
                             }}
-                            className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between ${employeeDropdownOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span>Employee:</span>
-                            <span className="truncate max-w-[100px]">{selectedEmployee}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                className={`shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? 'rotate-180' : ''}`}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <span className="text-sm font-medium text-[#353535] font-gantari">Employee:</span>
+                            <span className="text-sm font-medium text-[#353535] font-gantari truncate max-w-[100px]">{selectedEmployee}</span>
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {employeeDropdownOpen && (
                             <div
-                                className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[160px] max-h-[240px] overflow-y-auto py-1.5 custom-scrollbar"
+                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl min-w-[160px] max-h-[240px] overflow-y-auto py-1 custom-scrollbar"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {employeeOptions.map((name) => {
@@ -218,7 +247,7 @@ export default function ManageLeave() {
                                                 setSelectedEmployee(name);
                                                 setEmployeeDropdownOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors truncate ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors truncate ${isSelected ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                         >
                                             {name}
                                         </button>
@@ -234,18 +263,25 @@ export default function ManageLeave() {
                                     e.stopPropagation();
                                     setShowEntriesOpen((o) => !o);
                                 }}
-                                className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                             >
-                                <span>Show:</span>
-                                <span>{selectedRange.label}</span>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                    className={`transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}>
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
+                                {selectedShowEntries === 'show' ? (
+                                    <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                                ) : (
+                                    <>
+                                        <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                        <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                    </>
+                                )}
+                                <img
+                                    src={ArrowDown}
+                                    alt="arrow"
+                                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                                />
                             </button>
                             {showEntriesOpen && (
                                 <div
-                                    className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[140px] py-1.5"
+                                    className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl min-w-[140px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                                     onMouseDown={(e) => e.preventDefault()}
                                 >
                                     {showEntriesOptions.map((opt) => {
@@ -259,7 +295,7 @@ export default function ManageLeave() {
                                                     setSelectedShowEntries(opt.value);
                                                     setShowEntriesOpen(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                             >
                                                 {opt.label}
                                             </button>
@@ -271,39 +307,40 @@ export default function ManageLeave() {
                 </div>
             </div>
 
-            {/* Table Section - same design as TrackerTD; no min-height so card fits content and no extra padding below */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
+            {/* Table Section - standardized rounded-xl container */}
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
                 <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
                     <table className="min-w-full border-collapse">
-                        <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                            <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Role</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Leave Type</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">From Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">To Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                        <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                            <tr className="border-b border-gray-100 bg-[#FFFFFF]">
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-3 py-12 text-center text-[#616161] text-sm font-medium font-gantari bg-white">
+                                    <td colSpan={8} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No leave records found
                                     </td>
                                 </tr>
                             ) : (
                                 displayedList.map((row, index) => {
-                                    const slNo = (rangeStart + index + 1).toString().padStart(2, '0');
+                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const slNo = baseIndex + 1;
                                     return (
                                         <tr
                                             key={row.id}
-                                            className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}
+                                            className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
+                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
@@ -318,9 +355,9 @@ export default function ManageLeave() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleView(row)}
-                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DD4346] text-white rounded-lg font-medium text-xs hover:bg-[#c43a39] active:scale-[0.98] transition-all shrink-0"
+                                                        className="inline-flex items-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 shrink-0"
                                                     >
-                                                        <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
+                                                        <img src={viewIcon} alt="" className="w-4 h-4 object-contain [filter:brightness(0)_invert(1)]" />
                                                         View
                                                     </button>
                                                     {row.currentStatus === 'Pending' && canActOnLeave(row) ? (
@@ -374,82 +411,123 @@ export default function ManageLeave() {
                 </div>
             </div>
 
-            </div>
-            </div>
+            {/* Pagination bar - same as TrackerTD: pinned to bottom; right-aligned */}
+            {totalInRange > 0 && (
+                <div className="flex flex-wrap items-center justify-end mt-4 pt-0 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
+                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
+                        <button
+                            type="button"
+                            onClick={goPrevWindow}
+                            disabled={!canPrevWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                            Prev
+                        </button>
+                        {visiblePageRanges.map((pr) => {
+                            const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
+                            const isActive = pageNum === activePage;
+                            return (
+                                <button
+                                    key={pr.label}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
+                                >
+                                    {pr.label}
+                                </button>
+                            );
+                        })}
+                        <button
+                            type="button"
+                            onClick={goNextWindow}
+                            disabled={!canNextWindow}
+                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Next
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* View Leave Modal */}
-            {viewModalOpen && selectedLeave && createPortal(
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-                    onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
-                >
+            {viewModalOpen && selectedLeave && (
+                createPortal(
                     <div
-                        className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
-                        onClick={(e) => e.stopPropagation()}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                        onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
                     >
-                        <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                            <button
-                                type="button"
-                                onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
-                                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
-                                aria-label="Close"
-                            >
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
-                            </button>
-                            <h3 className="text-xl font-bold text-[#353535]">Leave Details</h3>
-                        </div>
-                        <div className="px-6 py-6">
-                            <div className="space-y-4">
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Role</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.role ?? '–'}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Leave Type</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.leaveType}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">From Date</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.fromDate ?? '–'}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">To Date</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.toDate ?? '–'}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Applied On</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.appliedOn}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Reason</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.description ?? '–'}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Current Status</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
-                                        {selectedLeave.currentStatus}
-                                    </span>
+                        <div
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                                <button
+                                    type="button"
+                                    onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535]"
+                                    aria-label="Close"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <h3 className="text-xl font-bold text-[#353535]">Leave Details</h3>
+                            </div>
+                            <div className="px-6 py-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Role</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.role ?? '–'}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Leave Type</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.leaveType}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">From Date</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.fromDate ?? '–'}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">To Date</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.toDate ?? '–'}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Applied On</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.appliedOn}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Reason</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className="text-sm text-[#616161]">{selectedLeave.description ?? '–'}</span>
+                                    </div>
+                                    <div className="flex items-start gap-2">
+                                        <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Current Status</span>
+                                        <span className="shrink-0 text-[#616161]">:</span>
+                                        <span className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
+                                            {selectedLeave.currentStatus}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>,
-                document.body
+                    </div>,
+                    document.body
+                )
             )}
+            </div>
         </div>
     );
 }

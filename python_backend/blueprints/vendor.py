@@ -744,16 +744,23 @@ def respond_to_proposal(proposal_id):
             existing = main_cur.fetchone()
             if not existing:
                 main_cur.execute("""
-                    INSERT INTO vendor_projects (proposal_id, opportunity_id, vendor_id, project_name, description)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO vendor_projects (
+                        proposal_id, opportunity_id, vendor_id, project_name, 
+                        description, modules, deliverables, budget
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     proposal_id,
                     proposal_data.get("opportunity_id"),
                     proposal_data.get("vendor_id"),
                     proposal_data.get("project_name"),
                     proposal_data.get("scope_of_work"),
+                    proposal_data.get("technologies_used"),
+                    proposal_data.get("deliverables"),
+                    "0"
                 ))
                 project_id = main_cur.lastrowid
+                main_conn.commit()
             else:
                 project_id = existing["id"]
         except Exception as e:
@@ -1653,6 +1660,7 @@ CREATE TABLE IF NOT EXISTS vendor_projects (
     uploaderid VARCHAR(255),
     payment_status VARCHAR(255) DEFAULT 'Pending',
     paid_date VARCHAR(254),
+    deliverables MEDIUMTEXT,
     bim_coordinator_id VARCHAR(255),
     total_paid_amount DECIMAL(12,2) DEFAULT 0.00,
     payment_completion_status ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted',
@@ -1665,8 +1673,54 @@ CREATE TABLE IF NOT EXISTS vendor_projects (
 
 def _ensure_vp_table():
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     cur.execute(_VP_TABLE_SQL)
+    conn.commit()
+
+    # Dynamic migration: Add missing columns if they don't exist
+    cur.execute("SHOW COLUMNS FROM vendor_projects")
+    existing_cols = {row['Field'].lower() for row in cur.fetchall()}
+
+    # List of columns and types from _VP_TABLE_SQL (simplified)
+    expected = {
+        "client_id": "VARCHAR(255)",
+        "description": "MEDIUMTEXT",
+        "category": "VARCHAR(100) DEFAULT '0'",
+        "due_date": "VARCHAR(255) DEFAULT ''",
+        "department": "VARCHAR(2555)",
+        "progress": "VARCHAR(12)",
+        "document_attachment": "VARCHAR(255)",
+        "priority": "VARCHAR(255)",
+        "members": "VARCHAR(255)",
+        "budget": "VARCHAR(255) DEFAULT '0'",
+        "budget_ceiling": "DECIMAL(15,2)",
+        "bidding_end_date": "DATE",
+        "location": "VARCHAR(255) DEFAULT 'empty'",
+        "modules": "VARCHAR(2555)",
+        "no_resource": "VARCHAR(255)",
+        "no_resources_required": "VARCHAR(255)",
+        "lead_id": "VARCHAR(255)",
+        "project_manager_id": "VARCHAR(255)",
+        "totalhours": "VARCHAR(255)",
+        "perday": "VARCHAR(255)",
+        "company_id": "VARCHAR(255)",
+        "tasks": "VARCHAR(2555)",
+        "uploaderid": "VARCHAR(255)",
+        "payment_status": "VARCHAR(255) DEFAULT 'Pending'",
+        "paid_date": "VARCHAR(254)",
+        "deliverables": "MEDIUMTEXT",
+        "bim_coordinator_id": "VARCHAR(255)",
+        "total_paid_amount": "DECIMAL(12,2) DEFAULT 0.00",
+        "payment_completion_status": "ENUM('NotStarted','InProgress','Completed') DEFAULT 'NotStarted'"
+    }
+
+    for col, col_type in expected.items():
+        if col.lower() not in existing_cols:
+            try:
+                cur.execute(f"ALTER TABLE vendor_projects ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception:
+                pass
 
 
 @bp.route("/vendor-projects", methods=["GET"])
@@ -1712,7 +1766,7 @@ def create_vendor_project():
         "budget_ceiling", "bidding_end_date", "location", "modules",
         "no_resource", "no_resources_required", "lead_id",
         "project_manager_id", "totalhours", "perday", "vendor_id",
-        "proposal_id", "opportunity_id", "bim_coordinator_id",
+        "proposal_id", "opportunity_id", "bim_coordinator_id", "deliverables",
     ]
     values = []
     placeholders = []
@@ -1733,8 +1787,10 @@ def create_vendor_project():
     sql = f"INSERT INTO vendor_projects ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)})"
     try:
         cur.execute(sql, tuple(values))
+        conn.commit()
         return jsonify({"success": True, "project_id": cur.lastrowid})
     except Exception as e:
+        conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
@@ -1755,7 +1811,7 @@ def update_vendor_project(project_id):
         "budget", "budget_ceiling", "bidding_end_date", "location", "modules",
         "no_resource", "no_resources_required", "lead_id",
         "project_manager_id", "totalhours", "perday", "bim_coordinator_id",
-        "document_attachment", "payment_status",
+        "document_attachment", "payment_status", "deliverables",
     ]
     fields = []
     values = []
@@ -1771,8 +1827,10 @@ def update_vendor_project(project_id):
     sql = f"UPDATE vendor_projects SET {', '.join(fields)} WHERE id = %s"
     try:
         cur.execute(sql, tuple(values))
+        conn.commit()
         return jsonify({"success": True})
     except Exception as e:
+        conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
@@ -1786,8 +1844,10 @@ def delete_vendor_project(project_id):
     cur = conn.cursor()
     try:
         cur.execute("DELETE FROM vendor_projects WHERE id = %s", (project_id,))
+        conn.commit()
         return jsonify({"success": True})
     except Exception as e:
+        conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
 
