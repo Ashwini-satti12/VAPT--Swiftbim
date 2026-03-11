@@ -14,6 +14,11 @@ import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 
+// Get API base URL for image URLs (so uploaded profile pictures load correctly)
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
+
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
@@ -241,10 +246,51 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    assigned_profile_picture?: string;
+    uploader_profile_picture?: string;
     Approval?: string;
     projectid?: number;
     created_at?: string;
 }
+
+// Build the correct URL for a stored profile picture
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    // Normalize path separators
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+
+    // Remove leading numbers and spaces
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+
+    // Remove leading slashes if any
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    return `${apiBaseUrl}${urlPath}`;
+};
 
 interface Employee {
     id: number;
@@ -254,6 +300,7 @@ interface Employee {
 interface Project {
     id: number;
     project_name: string;
+    modules?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -365,7 +412,8 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const style = STATUS_STYLE[status];
-    const progress = task.progress ?? 0;
+    // Status-based progress: Todo=0%, In Progress=50%, Completed=100%
+    const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
     const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -485,15 +533,38 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
+                        {(
+                            [
+                                {
+                                    name: task.assigned_full_name,
+                                    avatar: task.assigned_profile_picture,
+                                },
+                                {
+                                    name: task.uploader_full_name,
+                                    avatar: task.uploader_profile_picture,
+                                },
+                            ] as { name?: string; avatar?: string }[]
+                        )
+                            .filter((p) => p.name)
+                            .slice(0, 3)
+                            .map((p, idx) => (
+                                <div
+                                    key={`${p.name}-${idx}`}
+                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                    title={p.name as string}
+                                >
+                                    {p.avatar ? (
+                                        <img
+                                            src={getProfileUrl(p.avatar)}
+                                            alt={p.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span>{String(p.name)[0]}</span>
+                                    )}
+                                </div>
+                            ))}
                     </div>
-                    <span className="text-xs text-slate-500">+4</span>
                 </div>
                 <Link
                     to={`/tasks/${task.id}`}
@@ -613,6 +684,13 @@ export default function TeamtaskV() {
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
         const label = statusToLabel(newStatus);
+        const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
+            todo: "Todo",
+            in_progress: "InProgress",
+            completed: "Completed",
+        };
+
+        // Update local-only tasks
         setLocalTasks((prev) => {
             const idx = prev.findIndex((t) => t.id === taskId);
             if (idx >= 0) {
@@ -620,9 +698,21 @@ export default function TeamtaskV() {
                 next[idx] = { ...next[idx], status: label };
                 return next;
             }
-            const fromList = list.find((t) => t.id === taskId);
-            if (fromList) return [{ ...fromList, status: label }, ...prev];
             return prev;
+        });
+
+        // Update tasks from API list
+        setList((prev) =>
+            prev.map((t) =>
+                t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
+            ),
+        );
+
+        // Persist status to vendor_task table
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+            status: statusMap[newStatus],
+        }).catch(() => {
+            // ignore errors; UI already updated optimistically
         });
     };
 
@@ -673,16 +763,19 @@ export default function TeamtaskV() {
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-        api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                .then(res => setList(res.data.tasks ?? []));
-            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeletedIds((prev) =>
-                prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-            );
-        }).finally(() => {
-            setDeleteTaskId(null);
-        });
+        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
+            .then(() => {
+                api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks").then(
+                    (res) => setList(res.data.tasks ?? []),
+                );
+                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                setDeletedIds((prev) =>
+                    prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+                );
+            })
+            .finally(() => {
+                setDeleteTaskId(null);
+            });
     };
 
     const resetTaskFormAndClose = () => {
@@ -773,9 +866,9 @@ export default function TeamtaskV() {
         if (isTeam) params.condition = "1";
 
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
             .then(([tasksRes, empRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
@@ -793,13 +886,17 @@ export default function TeamtaskV() {
             setModules([]);
             return;
         }
-        const selectedProj = projects.find(p => p.project_name === addTaskForm.projectName);
-        if (selectedProj) {
-            api.post<{ success: boolean; modules: { label: string }[] }>("/api/projects/filters/modules", { projectId: selectedProj.id })
-                .then(({ data }) => {
-                    setModules(data.modules.map(m => m.label));
-                })
-                .catch(() => setModules([]));
+        const selectedProj = projects.find(
+            (p) => p.project_name === addTaskForm.projectName,
+        );
+        if (selectedProj && selectedProj.modules) {
+            const mods = String(selectedProj.modules)
+                .split(",")
+                .map((m) => m.trim())
+                .filter((m) => m.length > 0);
+            setModules(mods);
+        } else {
+            setModules([]);
         }
     }, [addTaskForm.projectName, projects]);
 
@@ -1177,54 +1274,60 @@ export default function TeamtaskV() {
                                     : null;
 
                                 const payload = {
-                                    projectid: projects.find(p => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+                                    projectid:
+                                        projects.find(
+                                            (p) =>
+                                                p.project_name ===
+                                                addTaskForm.projectName,
+                                        )?.id || addTaskForm.projectName,
                                     taskName: addTaskForm.taskName,
                                     category: addTaskForm.type,
                                     startdate: addTaskForm.actualStartDate,
                                     dueDate: addTaskForm.actualEndDate,
                                     startTime: addTaskForm.startTime,
                                     dueTime: addTaskForm.dueTime,
-                                    assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                                    assignedTo:
+                                        employees.find(
+                                            (e) =>
+                                                e.full_name === addTaskForm.assignTo,
+                                        )?.id || addTaskForm.assignTo,
                                     description: addTaskForm.description,
                                     checklist: addTaskForm.checklist,
-                                    modules: addTaskForm.module
-                                };
-
-                                const handleFiles = (taskId: number | string) => {
-                                    if (attachmentFiles.length > 0) {
-                                        const formData = new FormData();
-                                        attachmentFiles.forEach(f => formData.append("image", f));
-                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: { 'Content-Type': 'multipart/form-data' }
-                                        });
-                                    }
+                                    modules: addTaskForm.module,
                                 };
 
                                 if (isEditing && existing) {
-                                    api.patch(`/api/tasks/${existing.id}`, {
-                                        task_name: payload.taskName,
-                                        assigned_to: payload.assignedTo,
-                                        due_date: payload.dueDate,
-                                        category: payload.category,
-                                        description: payload.description,
-                                        checklist: payload.checklist,
-                                        modules_name: payload.modules,
-                                        Actual_start_time: payload.startdate,
-                                        start_time: payload.startTime,
-                                        due_time: payload.dueTime
-                                    }).then(() => {
-                                        handleFiles(existing.id);
-                                        api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                                            .then(res => setList(res.data.tasks ?? []));
+                                    api.patch(
+                                        `/api/vendors/vendor-tasks/${existing.id}`,
+                                        {
+                                            task_name: payload.taskName,
+                                            assigned_to: payload.assignedTo,
+                                            due_date: payload.dueDate,
+                                            start_date: payload.startdate,
+                                            start_time: payload.startTime,
+                                            end_time: payload.dueTime,
+                                            category: payload.category,
+                                            modules: payload.modules,
+                                            description: payload.description,
+                                            checklist: payload.checklist,
+                                        },
+                                    ).then(() => {
+                                        api.get<{ tasks?: Task[] }>(
+                                            "/api/vendors/vendor-tasks",
+                                        ).then((res) => setList(res.data.tasks ?? []));
                                     });
                                 } else {
-                                    api.post('/api/tasks', payload).then(res => {
-                                        if (res.data.success && res.data.task_id) {
-                                            handleFiles(res.data.task_id);
-                                            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                                                .then(r => setList(r.data.tasks ?? []));
-                                        }
-                                    });
+                                    api.post("/api/vendors/vendor-tasks", payload).then(
+                                        (res) => {
+                                            if (res.data.success && res.data.task_id) {
+                                                api.get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                ).then((r) =>
+                                                    setList(r.data.tasks ?? []),
+                                                );
+                                            }
+                                        },
+                                    );
                                 }
                                 resetTaskFormAndClose();
                             }}

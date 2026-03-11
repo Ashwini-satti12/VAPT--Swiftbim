@@ -1,4 +1,6 @@
 import mysql.connector as mysql_connector
+from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from flask import Blueprint, request, jsonify, g, current_app
 from auth_middleware import login_required
 from db import get_db
@@ -41,7 +43,20 @@ def vendor_cursor():
 # ---------------------------------------------------------------------------
 
 def _serialize(value):
-    """Convert non-JSON-serialisable types (e.g. date/datetime) to strings."""
+    """Convert non-JSON-serialisable types (date, time, timedelta, Decimal) to strings/numbers."""
+    if value is None:
+        return None
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, timedelta):
+        total = int(value.total_seconds())
+        h, r = divmod(max(total, 0), 3600)
+        m, s = divmod(r, 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
+    if isinstance(value, time):
+        return value.strftime("%H:%M:%S")
+    if isinstance(value, Decimal):
+        return float(value)
     if hasattr(value, "isoformat"):
         return value.isoformat()
     return value
@@ -1681,6 +1696,278 @@ def _ensure_vp_table():
                 pass
 
 
+# ---------------------------------------------------------------------------
+# Vendor Tasks (vendor_task table)
+# ---------------------------------------------------------------------------
+
+_VT_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS vendor_task (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    vendor_id INT NOT NULL,
+    project_id INT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    category VARCHAR(100) DEFAULT '',
+    status ENUM('Todo','InProgress','Completed') DEFAULT 'Todo',
+    due_date DATE NULL,
+    start_date DATE NULL,
+    start_time TIME NULL,
+    end_time TIME NULL,
+    assigned_to INT NULL,
+    modules VARCHAR(255) DEFAULT '',
+    description TEXT,
+    checklist TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+)
+"""
+
+
+def _ensure_vendor_task_table():
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    # Create table if missing
+    cur.execute(_VT_TABLE_SQL)
+    conn.commit()
+
+    # Ensure newer columns exist (for backward-compat on old DBs)
+    cur.execute("SHOW COLUMNS FROM vendor_task")
+    existing_cols = {row["Field"].lower() for row in cur.fetchall()}
+    expected = {
+        "category": "VARCHAR(100) DEFAULT ''",
+        "start_date": "DATE NULL",
+        "start_time": "TIME NULL",
+        "end_time": "TIME NULL",
+        "assigned_to": "INT NULL",
+        "modules": "VARCHAR(255) DEFAULT ''",
+    }
+    for col, col_type in expected.items():
+        if col.lower() not in existing_cols:
+            try:
+                cur.execute(f"ALTER TABLE vendor_task ADD COLUMN {col} {col_type}")
+                conn.commit()
+            except Exception:
+                pass
+
+
+@bp.route("/vendor-tasks", methods=["GET"])
+@login_required
+def list_vendor_tasks():
+    """
+    GET /api/vendors/vendor-tasks
+    Basic "My Task" style listing for vendors, backed by vendor_task table.
+
+    Optional query params:
+    - status: Todo | InProgress | Completed
+    - project_id: filter by vendor_projects.id
+    """
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"tasks": []})
+
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    status = request.args.get("status")
+    project_id = request.args.get("project_id")
+    # When condition=1 (team view in frontend) we want ALL vendor tasks,
+    # otherwise restrict to tasks created by the logged‑in vendor.
+    is_team_view = request.args.get("condition") == "1"
+
+    where = []
+    params = []
+    if not is_team_view:
+        where.append("vt.vendor_id = %s")
+        params.append(user_id)
+    if status:
+        where.append("vt.status = %s")
+        params.append(status)
+    if project_id:
+        where.append("vt.project_id = %s")
+        params.append(project_id)
+
+    cur.execute(
+        f"""
+        SELECT
+            vt.*,
+            vp.project_name,
+            e_assign.full_name AS assigned_full_name,
+            e_assign.profile_picture AS assigned_profile_picture,
+            e_by.full_name AS uploader_full_name,
+            e_by.profile_picture AS uploader_profile_picture
+        FROM vendor_task vt
+        LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
+        LEFT JOIN employee e_assign ON vt.assigned_to = e_assign.id
+        LEFT JOIN employee e_by ON vt.vendor_id = e_by.id
+        WHERE {(' AND '.join(where)) if where else '1=1'}
+        ORDER BY vt.created_at DESC
+        """,
+        params,
+    )
+    rows = cur.fetchall()
+    tasks = []
+    for r in rows:
+        d = {k: _serialize(v) for k, v in r.items()}
+        # For frontend compatibility
+        d["projectid"] = d.get("project_id")
+        d["due_date"] = d.get("due_date")
+        tasks.append(d)
+    return jsonify({"tasks": tasks})
+
+
+@bp.route("/vendor-tasks", methods=["POST"])
+@login_required
+def create_vendor_task():
+    """
+    POST /api/vendors/vendor-tasks
+    Minimal fields used by Vendor My Task page.
+    """
+    data = request.get_json(silent=True) or request.form
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    project_id = data.get("projectid") or data.get("project_id")
+    project_name = data.get("project_name") or data.get("projectName")
+    if not project_id and project_name:
+        # Resolve vendor project id by name for this vendor
+        cur.execute(
+            "SELECT id FROM vendor_projects WHERE vendor_id = %s AND project_name = %s ORDER BY id DESC LIMIT 1",
+            (user_id, project_name),
+        )
+        row = cur.fetchone()
+        if row:
+            project_id = row.get("id")
+
+    task_name = data.get("task_name") or data.get("taskName") or ""
+    due_date = data.get("due_date") or data.get("dueDate")
+    start_date = data.get("start_date") or data.get("startdate")
+    start_time = data.get("start_time") or data.get("startTime")
+    end_time = data.get("due_time") or data.get("dueTime")
+    category = data.get("category") or data.get("type") or ""
+    modules = data.get("modules") or data.get("module") or ""
+
+    assigned_to = data.get("assigned_to") or data.get("assignedTo")
+    # If assigned_to is a name, try to resolve to employee id
+    if assigned_to and not str(assigned_to).isdigit():
+        cur.execute(
+            "SELECT id FROM employee WHERE full_name = %s",
+            (assigned_to,),
+        )
+        row = cur.fetchone()
+        if row:
+            assigned_to = row.get("id")
+
+    description = data.get("description") or ""
+    checklist = data.get("checklist") or ""
+    status = data.get("status") or "Todo"
+
+    cur.execute(
+        """
+        INSERT INTO vendor_task
+            (vendor_id, project_id, task_name, category, status,
+             due_date, start_date, start_time, end_time,
+             assigned_to, modules, description, checklist)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+        (
+            user_id,
+            project_id,
+            task_name,
+            category,
+            status,
+            due_date,
+            start_date,
+            start_time,
+            end_time,
+            assigned_to,
+            modules,
+            description,
+            checklist,
+        ),
+    )
+    conn.commit()
+    task_id = cur.lastrowid
+    return jsonify({"success": True, "task_id": task_id})
+
+
+@bp.route("/vendor-tasks/<int:task_id>", methods=["PATCH", "PUT"])
+@login_required
+def update_vendor_task(task_id):
+    data = request.get_json(silent=True) or request.form
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    allowed = (
+        "task_name",
+        "status",
+        "due_date",
+        "start_date",
+        "start_time",
+        "end_time",
+        "category",
+        "modules",
+        "assigned_to",
+        "description",
+        "checklist",
+    )
+    sets = []
+    params = []
+    for key in allowed:
+        if key in data and data[key] is not None:
+            sets.append(f"`{key}` = %s")
+            params.append(data[key])
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.append(task_id)
+    cur.execute(
+        "UPDATE vendor_task SET " + ", ".join(sets) + " WHERE id = %s",
+        params,
+    )
+    conn.commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/vendor-tasks/<int:task_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_task(task_id):
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("DELETE FROM vendor_task WHERE id = %s", (task_id,))
+    conn.commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/vendor-tasks/<int:task_id>/status", methods=["PATCH", "POST"])
+@login_required
+def update_vendor_task_status(task_id):
+    """
+    PATCH /api/vendors/vendor-tasks/<id>/status
+    Body: { status: 'Todo' | 'InProgress' | 'Completed' }
+    """
+    data = request.get_json(silent=True) or request.form
+    status = data.get("status")
+    if status not in ("Todo", "InProgress", "Completed"):
+        return jsonify({"success": False, "message": "Invalid status"}), 400
+
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "UPDATE vendor_task SET status = %s WHERE id = %s",
+        (status, task_id),
+    )
+    conn.commit()
+    return jsonify({"success": True})
+
+
 @bp.route("/vendor-projects", methods=["GET"])
 @login_required
 def list_vendor_projects():
@@ -1693,15 +1980,108 @@ def list_vendor_projects():
         return jsonify({"projects": []})
 
     _ensure_vp_table()
+    _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    # Join with clientinformation to expose a human-readable client_name.
+    # Many legacy rows store the *name* directly in client_id, so we fallback
+    # to vp.client_id when there is no matching client row.
     cur.execute(
-        "SELECT * FROM vendor_projects WHERE vendor_id = %s ORDER BY id DESC",
+        """
+        SELECT
+            vp.*,
+            COALESCE(c.fullName, vp.client_id) AS client_name
+        FROM vendor_projects vp
+        LEFT JOIN clientinformation c ON vp.client_id = c.id
+        WHERE vp.vendor_id = %s
+        ORDER BY vp.id DESC
+        """,
         (user_id,),
     )
     rows = cur.fetchall()
-    projects = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+
+    # Aggregate vendor_task counts per project for task statistics
+    project_ids = [r["id"] for r in rows if r.get("id") is not None]
+    task_counts = {}
+    if project_ids:
+        placeholders = ",".join(["%s"] * len(project_ids))
+        cur.execute(
+            f"""
+            SELECT
+                project_id,
+                COUNT(*) AS total_tasks,
+                SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
+            FROM vendor_task
+            WHERE project_id IN ({placeholders})
+            GROUP BY project_id
+            """,
+            project_ids,
+        )
+        for r in cur.fetchall():
+            task_counts[int(r["project_id"])] = {
+                "total_tasks": int(r.get("total_tasks") or 0),
+                "completed_tasks": int(r.get("completed_tasks") or 0),
+            }
+
+    projects = []
+    for r in rows:
+        d = {k: _serialize(v) for k, v in r.items()}
+        pid = int(d.get("id") or 0)
+        counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
+        d["total_tasks"] = counts["total_tasks"]
+        d["completed_tasks"] = counts["completed_tasks"]
+        projects.append(d)
     return jsonify({"projects": projects})
+
+
+@bp.route("/vendor-projects/<int:project_id>/task-stats", methods=["GET"])
+@login_required
+def vendor_project_task_stats(project_id: int):
+    """
+    GET /api/vendors/vendor-projects/<id>/task-stats
+
+    Returns status-wise task counts for a vendor project, based on vendor_task:
+      - Todo
+      - InProgress
+      - Completed
+    """
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # Count all tasks for this vendor project (regardless of which vendor user created them)
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) AS total_tasks,
+            SUM(CASE WHEN status = 'Todo' THEN 1 ELSE 0 END) AS todo,
+            SUM(CASE WHEN status = 'InProgress' THEN 1 ELSE 0 END) AS inprogress,
+            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed
+        FROM vendor_task
+        WHERE project_id = %s
+        """,
+        (project_id,),
+    )
+    row = cur.fetchone() or {}
+
+    total_tasks = int(row.get("total_tasks") or 0)
+    todo = int(row.get("todo") or 0)
+    inprogress = int(row.get("inprogress") or 0)
+    completed = int(row.get("completed") or 0)
+
+    return jsonify(
+        {
+            "success": True,
+            "project_id": project_id,
+            "total_tasks": total_tasks,
+            "status_counts": {
+                "todo": todo,
+                "inprogress": inprogress,
+                "paused": 0,
+                "completed": completed,
+            },
+        }
+    )
 
 
 @bp.route("/vendor-projects", methods=["POST"])
@@ -1785,6 +2165,160 @@ def update_vendor_project(project_id):
     sql = f"UPDATE vendor_projects SET {', '.join(fields)} WHERE id = %s"
     try:
         cur.execute(sql, tuple(values))
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# Vendor Teams (vendor_team table)
+# ---------------------------------------------------------------------------
+
+_VT_TEAM_SQL = """
+CREATE TABLE IF NOT EXISTS vendor_team (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    vendor_id INT NOT NULL,
+    team_name VARCHAR(255) NOT NULL,
+    leader INT NOT NULL,
+    employee TEXT NOT NULL,
+    project_lead INT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+"""
+
+
+def _ensure_vendor_team_table():
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(_VT_TEAM_SQL)
+    conn.commit()
+
+
+@bp.route("/vendor-teams", methods=["GET"])
+@login_required
+def list_vendor_teams():
+    """
+    GET /api/vendors/vendor-teams
+    Returns teams created by the logged-in vendor user.
+    """
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"teams": []})
+
+    _ensure_vendor_team_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute(
+        """
+        SELECT
+            vt.id AS team_id,
+            vt.team_name,
+            vt.leader,
+            vt.employee,
+            vt.project_lead,
+            vt.created_at,
+            e_leader.full_name AS leader_name,
+            e_pl.full_name AS project_lead_name
+        FROM vendor_team vt
+        LEFT JOIN employee e_leader ON vt.leader = e_leader.id
+        LEFT JOIN employee e_pl ON vt.project_lead = e_pl.id
+        WHERE vt.vendor_id = %s
+        ORDER BY vt.created_at DESC
+        """,
+        (user_id,),
+    )
+    rows = cur.fetchall()
+    teams = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+    return jsonify({"teams": teams})
+
+
+@bp.route("/vendor-teams", methods=["POST"])
+@login_required
+def create_vendor_team():
+    """
+    POST /api/vendors/vendor-teams
+    Body JSON: { team_name, leader, employee (comma CSV), project_lead? }
+    """
+    _ensure_vendor_team_table()
+    data = request.get_json(silent=True) or request.form
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    team_name = (data.get("team_name") or "").strip()
+    leader = data.get("leader")
+    employee = (data.get("employee") or "").strip()
+    project_lead = data.get("project_lead")
+
+    if not team_name or not leader or not employee:
+        return jsonify({"success": False, "message": "team_name, leader, employee are required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            INSERT INTO vendor_team (vendor_id, team_name, leader, employee, project_lead)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (user_id, team_name, leader, employee, project_lead or None),
+        )
+        conn.commit()
+        return jsonify({"success": True, "team_id": cur.lastrowid})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/vendor-teams/<int:team_id>", methods=["PATCH"])
+@login_required
+def update_vendor_team(team_id):
+    """
+    PATCH /api/vendors/vendor-teams/<id>
+    Body JSON: any of { team_name, leader, employee, project_lead }
+    """
+    _ensure_vendor_team_table()
+    data = request.get_json(silent=True) or request.form
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    allowed = ("team_name", "leader", "employee", "project_lead")
+    sets = []
+    params = []
+    for key in allowed:
+        if key in data and data[key] is not None:
+            sets.append(f"`{key}` = %s")
+            params.append(data[key])
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.append(team_id)
+    try:
+        cur.execute(
+            "UPDATE vendor_team SET " + ", ".join(sets) + " WHERE id = %s",
+            params,
+        )
+        conn.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/vendor-teams/<int:team_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_team(team_id):
+    """
+    DELETE /api/vendors/vendor-teams/<id>
+    """
+    _ensure_vendor_team_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("DELETE FROM vendor_team WHERE id = %s", (team_id,))
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:
