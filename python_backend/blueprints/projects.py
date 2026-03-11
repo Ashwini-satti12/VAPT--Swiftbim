@@ -146,12 +146,20 @@ def _resolve_client_id(cur, company_id, value):
     s = str(value).strip()
     if not s or s.isdigit():
         return int(s) if s.isdigit() else None
-    cur.execute(
-        "SELECT id FROM clientinformation WHERE fullName = %s AND Company_id = %s LIMIT 1",
-        (s, company_id),
-    )
-    row = cur.fetchone()
-    return int(row["id"]) if row else None
+    try:
+        vendor_conn = _get_vendor_db()
+        vendor_cur = vendor_conn.cursor(dictionary=True)
+        vendor_cur.execute(
+            "SELECT id FROM users WHERE full_name = %s LIMIT 1",
+            (s,)
+        )
+        row = vendor_cur.fetchone()
+        return int(row["id"]) if row else None
+    except Exception:
+        return None
+    finally:
+        if 'vendor_conn' in locals() and vendor_conn.is_connected():
+            vendor_conn.close()
 
 
 def _resolve_employee_id(cur, company_id, value):
@@ -263,15 +271,33 @@ def _hydrate_project_display_fields(cur, company_id, project_dicts):
         for r in cur.fetchall():
             employees_by_id[int(r["id"])] = r.get("full_name") or ""
 
+    # clients_by_id = {}
+    # if client_ids:
+    #     placeholders = ",".join(["%s"] * len(client_ids))
+    #     cur.execute(
+    #         f"SELECT id, fullName FROM clientinformation WHERE Company_id = %s AND id IN ({placeholders})",
+    #         (company_id, *list(client_ids)),
+    #     )
+    #     for r in cur.fetchall():
+    #         clients_by_id[int(r["id"])] = r.get("fullName") or ""
+
     clients_by_id = {}
     if client_ids:
-        placeholders = ",".join(["%s"] * len(client_ids))
-        cur.execute(
-            f"SELECT id, fullName FROM clientinformation WHERE Company_id = %s AND id IN ({placeholders})",
-            (company_id, *list(client_ids)),
-        )
-        for r in cur.fetchall():
-            clients_by_id[int(r["id"])] = r.get("fullName") or ""
+        try:
+            vendor_conn = _get_vendor_db()
+            vendor_cur = vendor_conn.cursor(dictionary=True)
+            placeholders = ",".join(["%s"] * len(client_ids))
+            vendor_cur.execute(
+                f"SELECT id, full_name FROM users WHERE id IN ({placeholders})",
+                (*list(client_ids),)
+            )
+            for r in vendor_cur.fetchall():
+                clients_by_id[int(r["id"])] = r.get("full_name") or ""
+        except Exception:
+            pass
+        finally:
+            if 'vendor_conn' in locals() and vendor_conn.is_connected():
+                vendor_conn.close()
 
     departments_by_id = {}
     if department_ids:

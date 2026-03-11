@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface LocationEntry {
     id: number;
@@ -30,7 +31,7 @@ export default function TrackerTD() {
     const timeInputRef = useRef<HTMLInputElement>(null);
 
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: '0-100', label: '0-100', start: 0, end: 100 },
+        { value: 'show', label: 'Show', start: 0, end: 100 },
         { value: '101-200', label: '101-200', start: 100, end: 200 },
         { value: '201-300', label: '201-300', start: 200, end: 300 },
         { value: '301-400', label: '301-400', start: 300, end: 400 },
@@ -411,19 +412,20 @@ export default function TrackerTD() {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer border-0"
                         >
-                            <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                            <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: statusOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {statusOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1"
+                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-md shadow-xl min-w-[130px] py-1"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {statusOptions.map(opt => (
@@ -435,7 +437,7 @@ export default function TrackerTD() {
                                             setSelectedStatus(opt);
                                             setStatusOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt === '' ? 'All Status' : opt}
                                     </button>
@@ -454,16 +456,23 @@ export default function TrackerTD() {
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                </>
+                            )}
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {showEntriesOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {showEntriesOptions.map(opt => (
@@ -475,7 +484,7 @@ export default function TrackerTD() {
                                             setSelectedShowEntries(opt.value);
                                             setShowEntriesOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </button>

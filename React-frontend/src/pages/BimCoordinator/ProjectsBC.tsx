@@ -1402,10 +1402,9 @@ export default function ProjectsBC() {
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
-                    type="text" required
+                    type="text" readOnly
                     value={createClientName}
-                    onChange={(e) => setCreateClientName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
                     placeholder="Enter Client Name"
                   />
                 </div>

@@ -653,6 +653,48 @@ def vendor_proposals():
     return jsonify({"proposals": proposals})
 
 
+@bp.route("/proposals/phase-one", methods=["GET"])
+@login_required
+def get_phase_one_proposal():
+    """
+    GET /api/vendors/proposals/phase-one
+    Fetch the first-phase proposal from the marketing (new_swiftbim) DB
+    for a specific project/opportunity.
+
+    Query params:
+      - opportunity_id (preferred) or service_id: numeric id linking to proposals.service_id
+    """
+    service_id = request.args.get("opportunity_id", type=int) or request.args.get(
+        "service_id", type=int
+    )
+    if not service_id:
+        return jsonify({"proposal": None}), 400
+
+    cur = vendor_cursor()
+
+    sql = "SELECT * FROM proposals WHERE service_id = %s"
+    params = [service_id]
+
+    sql += " ORDER BY created_at DESC LIMIT 1"
+
+    try:
+        cur.execute(sql, tuple(params))
+        row = cur.fetchone()
+
+        # If nothing matches this service_id, fall back to the latest proposal
+        if not row:
+            cur.execute("SELECT * FROM proposals ORDER BY created_at DESC LIMIT 1")
+            row = cur.fetchone()
+
+        if not row:
+            return jsonify({"proposal": None})
+
+        proposal = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"proposal": proposal})
+    except Exception:
+        return jsonify({"proposal": None})
+
+
 @bp.route("/proposals/<int:proposal_id>/respond", methods=["POST"])
 @login_required
 def respond_to_proposal(proposal_id):
@@ -819,7 +861,7 @@ def bidding_bids(bidding_id):
             placeholders = ",".join(["%s"] * len(vendor_ids))
             cur.execute(
                 f"""SELECT id, full_name, email, phone_number, user_role
-                   FROM employee WHERE id IN ({placeholders})""",
+                   FROM vendor_employee WHERE id IN ({placeholders})""",
                 vendor_ids,
             )
             emp_map = {r["id"]: r for r in cur.fetchall()}
@@ -871,7 +913,7 @@ def accept_bid(bidding_id, bid_id):
                    e.full_name AS vendor_name, e.email AS vendor_email, e.phone_number AS vendor_phone
             FROM vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN employee e ON e.id = vb.vendor_id
+            LEFT JOIN vendor_employee e ON e.id = vb.vendor_id
             WHERE vb.id = %s
             """,
             (bid_id,),
@@ -957,7 +999,7 @@ def accepted_bids():
                    (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
             FROM vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN employee e ON e.id = vb.vendor_id
+            LEFT JOIN vendor_employee e ON e.id = vb.vendor_id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """

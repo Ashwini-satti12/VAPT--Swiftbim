@@ -51,11 +51,19 @@ def load_user_context():
         return
     from db import get_db
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, user_role, Allpannel, active FROM employee WHERE id = %s AND Company_id = %s",
-        (g.user_id, g.company_id),
-    )
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
+
+    user_type = getattr(g, "user_type", "employee")
+    if user_type == "vendor":
+        cur.execute(
+            "SELECT id, role AS user_role, 'Vendor' AS Allpannel, status AS active FROM vendor_employee WHERE id = %s",
+            (g.user_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT id, user_role, Allpannel, active FROM employee WHERE id = %s AND Company_id = %s",
+            (g.user_id, g.company_id),
+        )
     row = cur.fetchone()
     if not row:
         g.user_role = None

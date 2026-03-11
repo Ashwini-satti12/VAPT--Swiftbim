@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import api from '../../lib/api';
 import ViewBidsTD from './ViewBidsTD';
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 export interface BiddingEntry {
     id: number;
@@ -19,6 +20,7 @@ export interface BiddingEntry {
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: 'show', label: 'Show', start: 0, end: 50 },
     { value: '1-50', label: '1-50', start: 0, end: 50 },
     { value: '51-100', label: '51-100', start: 50, end: 100 },
     { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -31,7 +33,6 @@ export default function BiddingTD() {
     const [loading, setLoading] = useState(true);
     const [projects, setProjects] = useState<BiddingEntry[]>([]);
     const [selectedProject, setSelectedProject] = useState<BiddingEntry | null>(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -74,9 +75,7 @@ export default function BiddingTD() {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
     };
 
-    const filtered = projects.filter(p =>
-        p.project_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filtered = projects;
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);
@@ -94,42 +93,28 @@ export default function BiddingTD() {
                     <h2 className="text-2xl font-semibold text-[#000000]">Bidding</h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Search */}
-                    <div className="relative flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md min-w-[200px]">
-                        <svg className="w-4 h-4 text-[#616161] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Search project..."
-                            className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari"
-                        />
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-                    {/* Show entries dropdown */}
                     <div className="relative" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                </>
+                            )}
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {showEntriesOpen && (
-                            <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1" onMouseDown={(e) => e.preventDefault()}>
+                            <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar" onMouseDown={(e) => e.preventDefault()}>
                                 {showEntriesOptions.map(opt => (
                                     <button
                                         key={opt.value}
@@ -210,7 +195,7 @@ export default function BiddingTD() {
                                                 <button
                                                     className={`flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all ${isOpen && project.total_bids === 0
                                                         ? 'bg-[#F2F2F2] text-[#616161] cursor-not-allowed opacity-60'
-                                                        : 'bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100'
+                                                        : 'bg-[#DD4342] text-white shadow-sm shadow-red-100'
                                                         }`}
                                                     onClick={() => setSelectedProject(project)}
                                                     disabled={isOpen && project.total_bids === 0}

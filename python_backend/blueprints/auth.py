@@ -1,4 +1,5 @@
 import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
 import random
 import jwt
 from datetime import datetime, timedelta
@@ -23,22 +24,63 @@ def login():
     if not email or not password:
         return jsonify({"success": False, "message": "Email and password are required"}), 400
 
+    def check_password(stored, attempt):
+        if not stored:
+            return False
+        if stored.startswith("scrypt:") or stored.startswith("pbkdf2:"):
+            return check_password_hash(stored, attempt)
+        return md5_hash(attempt) == stored
+
     conn = get_db()
-    with conn.cursor() as cur:
+    target_row = None
+    user_type = None
+    
+    # 1. Try Employee table
+    with conn.cursor(dictionary=True) as cur:
         cur.execute("SELECT * FROM employee WHERE email = %s", (email,))
-        row = cur.fetchone()
+        for row in cur.fetchall():
+            if check_password(row.get("password") or "", password):
+                user_type = "employee"
+                target_row = row
+                break
 
-    if not row:
-        return jsonify({"success": False, "message": "The email ID is not available."}), 401
+    # 2. Try Vendor table if no match yet
+    if not target_row:
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT * FROM vendor_employee WHERE email = %s", (email,))
+            for row in cur.fetchall():
+                if check_password(row.get("password") or "", password):
+                    user_type = "vendor"
+                    target_row = row
+                    break
 
-    stored_password = row.get("password") or ""
-    if md5_hash(password) != stored_password:
-        return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
+    if not target_row:
+        # If neither matches the password, check if email exists to return proper message
+        with conn.cursor(dictionary=True) as cur:
+            cur.execute("SELECT id FROM employee WHERE email = %s", (email,))
+            e_match = cur.fetchone()
+            cur.execute("SELECT id FROM vendor_employee WHERE email = %s", (email,))
+            v_match = cur.fetchone()
+            
+            if not e_match and not v_match:
+                return jsonify({"success": False, "message": "The email ID is not available."}), 401
+            else:
+                return jsonify({"success": False, "message": "Incorrect email or password. Please try again."}), 401
+
+    row = target_row
+
 
     user_id = row["id"]
     full_name = row.get("full_name") or ""
-    company_id = row.get("Company_id") or 0
-    if str(row.get("active")).lower() != "active":
+    
+    if user_type == "vendor":
+        company_id = row.get("vendor_id") or 0
+    else:
+        company_id = row.get("Company_id") or 0
+        
+    # vendor_employee uses 'status', employee uses 'active'
+    active_status = str(row.get("active", row.get("status", ""))).lower()
+    if active_status not in ["active", "1"]:
         return jsonify({"success": False, "message": "Account is inactive."}), 403
 
     # Update status to Online
@@ -64,6 +106,7 @@ def login():
         "user_id": user_id,
         "company_id": company_id,
         "email": email,
+        "user_type": user_type,
         "exp": datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES),
     }
     token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm="HS256")
@@ -242,10 +285,19 @@ def me():
     from db import get_db
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT full_name, profile_picture FROM employee WHERE id = %s",
-        (g.user_id,),
-    )
+    
+    user_type = getattr(g, "user_type", "employee")
+    if user_type == "vendor":
+        cur.execute(
+            "SELECT full_name, NULL AS profile_picture FROM vendor_employee WHERE id = %s",
+            (g.user_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT full_name, profile_picture FROM employee WHERE id = %s",
+            (g.user_id,),
+        )
+        
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
