@@ -50,19 +50,22 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
-            {/* Header: Title and Options */}
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
-                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
-                </h3>
-                <div className="absolute top-6 right-6" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
-                    >
-                        <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
-                    </button>
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+            {/* Team Name */}
+            <div className="flex flex-col mb-4 pt-1">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
+                <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
+                    {team.team_name || team.teamname || "Untitled Team"}
+                </span>
+            </div>
+
+            <div className="absolute top-6 right-6" ref={menuRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+                >
+                    <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
+                </button>
 
                     {showMenu && (
                         <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
@@ -99,35 +102,41 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* Team Leader */}
             <div className="flex flex-col mb-5">
-                <span className="text-[13px] text-[#64748B] mb-1 font-medium">Team Leader</span>
-                <span className="text-[15px] font-bold text-[#334155]">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
+                <span className="text-[18px] font-bold text-[#353535] truncate">
                     {team.leader_name || getEmpName(team.leader)}
                 </span>
             </div>
 
-            {/* Members */}
-            <div className="mt-2 mb-6 flex-1">
-                <span className="text-[12px] text-[#64748B] mb-2 block font-medium">Members ({memberIds.length})</span>
-                <div className="flex -space-x-1.5">
-                    {memberIds.slice(0, 5).map((eid) => (
+            <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+
+            {/* Members & Details */}
+            <div className="mt-auto flex items-center justify-between">
+                <div className="flex -space-x-2">
+                    {memberIds.slice(0, 4).map((eid) => (
                         <div
                             key={eid}
-                            className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase shadow-sm"
+                            className="w-[42px] h-[42px] rounded-full border-2 border-white bg-slate-200 flex items-center justify-center text-[13px] font-bold text-[#475569] shadow-sm uppercase overflow-hidden"
                             title={getEmpName(eid)}
                         >
                             {getEmpName(eid)[0]}
                         </div>
                     ))}
-                    {memberIds.length > 5 && (
-                        <div className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[10px] font-bold text-[#64748B] shadow-sm">
-                            +{memberIds.length - 5}
+                    {memberIds.length > 4 && (
+                        <div className="w-[42px] h-[42px] rounded-full border-2 border-[#D1D5DB] border-dashed bg-white flex items-center justify-center text-[14px] font-bold text-[#999999] select-none shadow-sm relative z-10">
+                            +{memberIds.length - 4}
                         </div>
                     )}
                 </div>
+                <button 
+                  onClick={() => onViewDetails(team)}
+                  className="text-[18px] font-bold text-[#666666] hover:text-[#353535] transition-colors pr-2"
+                >
+                    Details
+                </button>
             </div>
 
         </div>
