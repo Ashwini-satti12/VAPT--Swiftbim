@@ -51,6 +51,7 @@ export default function ProjectsPMV() {
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
     // View Project
     const [showProjectView, setShowProjectView] = useState(false);
@@ -119,6 +120,11 @@ export default function ProjectsPMV() {
                 setBimLeads([]);
                 setBimCoordinators([]);
             });
+
+        // Fetch clients
+        api.get<{ clients?: any[] }>("/api/clients")
+            .then(({ data }) => setClientsList(data.clients ?? []))
+            .catch(() => setClientsList([]));
     }, []);
 
     const getEmployeeName = (id: string | number | undefined): string => {
@@ -143,6 +149,17 @@ export default function ProjectsPMV() {
         return found?.full_name || "";
     };
 
+    const getClientNameById = (id: string | number | undefined): string => {
+        if (!id) return "";
+        const found = clientsList.find(c => String(c.id) === String(id));
+        return (found?.fullName || found?.full_name || "") as string;
+    };
+
+    const getClientIdByName = (name: string): number | "" => {
+        if (!name) return "";
+        const found = clientsList.find(c => (c.fullName || c.full_name) === name);
+        return found ? found.id : "";
+    };
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,7 +168,7 @@ export default function ProjectsPMV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName,
+            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
@@ -189,7 +206,9 @@ export default function ProjectsPMV() {
         setCreateName(p.project_name || "");
         setCreateBudget(p.budget || "");
         setCreateModuleName(p.modules || "");
-        setCreateClientName(p.client_id || "");
+        setCreateClientName(
+            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
+        );
         setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.due_date ? p.due_date.split("T")[0] : "");
@@ -215,7 +234,7 @@ export default function ProjectsPMV() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName,
+            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
@@ -454,7 +473,7 @@ export default function ProjectsPMV() {
                     <label className="block text-[15px] font-bold text-[#353535]">Location</label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" value={createLocation} onChange={e => setCreateLocation(e.target.value)} />
                 </div>
-               
+
             </div>
             <div className="space-y-6 mt-6 text-left">
                 {renderMemberSelector()}
@@ -463,59 +482,59 @@ export default function ProjectsPMV() {
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none placeholder-gray-400" placeholder="Provide a detailed project description..." />
                 </div>
-                
+
             </div>
-             <div className="md:col-span-2 space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
-                    <div className="relative group">
-                        <input
-                            type="file"
-                            id="file-upload"
-                            className="hidden"
-                            onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
-                        />
-                        {!createFile ? (
-                            <label
-                                htmlFor="file-upload"
-                                className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
-                            >
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
-                                    <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-                                        <span className="font-bold">Click to upload</span> or drag and drop
-                                    </p>
-                                    <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
-                                </div>
-                            </label>
-                        ) : (
-                            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-white rounded-xl shadow-sm">
-                                        <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
-                                    </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
-                                            {createFile.name}
-                                        </p>
-                                        <p className="text-xs text-slate-500">
-                                            {(createFile.size / 1024).toFixed(1)} KB
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setCreateFile(null)}
-                                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                    title="Remove file"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+            <div className="md:col-span-2 space-y-2">
+                <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+                <div className="relative group">
+                    <input
+                        type="file"
+                        id="file-upload"
+                        className="hidden"
+                        onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+                    />
+                    {!createFile ? (
+                        <label
+                            htmlFor="file-upload"
+                            className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+                        >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                                <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                                    <span className="font-bold">Click to upload</span> or drag and drop
+                                </p>
+                                <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
                             </div>
-                        )}
-                    </div>
+                        </label>
+                    ) : (
+                        <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white rounded-xl shadow-sm">
+                                    <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
+                                        {createFile.name}
+                                    </p>
+                                    <p className="text-xs text-slate-500">
+                                        {(createFile.size / 1024).toFixed(1)} KB
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setCreateFile(null)}
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                title="Remove file"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
                 </div>
+            </div>
         </>
     );
 

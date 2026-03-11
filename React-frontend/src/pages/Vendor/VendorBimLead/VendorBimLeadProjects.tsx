@@ -51,6 +51,7 @@ export default function VendorBimLeadProjects() {
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
     const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
     const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
 
     const [showProjectView, setShowProjectView] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -116,6 +117,11 @@ export default function VendorBimLeadProjects() {
                 setBimLeads([]);
                 setBimCoordinators([]);
             });
+
+        // Fetch clients
+        api.get<{ clients?: any[] }>("/api/clients")
+            .then(({ data }) => setClientsList(data.clients ?? []))
+            .catch(() => setClientsList([]));
     }, []);
 
     const nameToId = (name: string, list: Employee[]) => {
@@ -128,6 +134,17 @@ export default function VendorBimLeadProjects() {
         const found = list.find(e => e.id === Number(id));
         return found?.full_name || "";
     };
+    const getClientNameById = (id: string | number | undefined): string => {
+        if (!id) return "";
+        const found = clientsList.find(c => String(c.id) === String(id));
+        return (found?.fullName || found?.full_name || "") as string;
+    };
+
+    const getClientIdByName = (name: string): number | "" => {
+        if (!name) return "";
+        const found = clientsList.find(c => (c.fullName || c.full_name) === name);
+        return found ? found.id : "";
+    };
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
@@ -136,7 +153,7 @@ export default function VendorBimLeadProjects() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName,
+            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
@@ -174,7 +191,9 @@ export default function VendorBimLeadProjects() {
         setCreateName(p.project_name || "");
         setCreateBudget(p.budget || "");
         setCreateModuleName(p.modules || "");
-        setCreateClientName(p.client_id || "");
+        setCreateClientName(
+            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
+        );
         setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.due_date ? p.due_date.split("T")[0] : "");
@@ -200,7 +219,7 @@ export default function VendorBimLeadProjects() {
             project_name: createName,
             budget: createBudget,
             modules: createModuleName,
-            client_id: createClientName,
+            client_id: getClientIdByName(createClientName),
             project_manager_id: nameToId(createProjectManager, projectManagers),
             start_date: createStartDate,
             due_date: createEndDate,
@@ -435,7 +454,7 @@ export default function VendorBimLeadProjects() {
                     className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="Enter Location" />
             </div>
 
-             <div className="md:col-span-2">
+            <div className="md:col-span-2">
                 {renderMemberSelector()}
             </div>
 
@@ -445,7 +464,7 @@ export default function VendorBimLeadProjects() {
                     className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all resize-none h-32" placeholder="Tell us about the project..." />
             </div>
 
-           
+
             <div className="md:col-span-2 space-y-2">
                 <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
                 <div className="relative group">
