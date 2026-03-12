@@ -1,12 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
     id: number;
     slNo: number;
     employeeName: string;
+    role?: string;
+    employeeId?: number;
+    email?: string;
     leaveType: string;
+    leaveTypeId?: number | null;
     appliedOn: string;
     currentStatus: string;
     fromDate?: string;
@@ -14,20 +20,7 @@ interface LeaveEntry {
     description?: string;
 }
 
-const DUMMY_LEAVES: LeaveEntry[] = [
-    { id: 1, slNo: 1, employeeName: 'John Doe', leaveType: 'Sick Leave', appliedOn: '01/03/2026', currentStatus: 'Approved' },
-    { id: 2, slNo: 2, employeeName: 'Jane Smith', leaveType: 'Casual Leave', appliedOn: '28/02/2026', currentStatus: 'Pending' },
-    { id: 3, slNo: 3, employeeName: 'Mike Johnson', leaveType: 'Earned Leave', appliedOn: '25/02/2026', currentStatus: 'Approved' },
-    { id: 4, slNo: 4, employeeName: 'Sarah Williams', leaveType: 'Sick Leave', appliedOn: '20/02/2026', currentStatus: 'Rejected' },
-    { id: 5, slNo: 5, employeeName: 'David Brown', leaveType: 'Casual Leave', appliedOn: '15/02/2026', currentStatus: 'Approved' },
-    { id: 6, slNo: 6, employeeName: 'Emma Wilson', leaveType: 'Sick Leave', appliedOn: '12/02/2026', currentStatus: 'Approved' },
-    { id: 7, slNo: 7, employeeName: 'James Davis', leaveType: 'Earned Leave', appliedOn: '10/02/2026', currentStatus: 'Pending' },
-    { id: 8, slNo: 8, employeeName: 'Olivia Martinez', leaveType: 'Casual Leave', appliedOn: '08/02/2026', currentStatus: 'Approved' },
-    { id: 9, slNo: 9, employeeName: 'William Taylor', leaveType: 'Sick Leave', appliedOn: '05/02/2026', currentStatus: 'Rejected' },
-    { id: 10, slNo: 10, employeeName: 'Sophia Anderson', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', currentStatus: 'Approved' },
-];
-
-const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+// Local dummy list removed; data now comes from backend /api/leave/applications
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: '0-100', label: '0-100', start: 0, end: 100 },
@@ -40,15 +33,48 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
+// Convert DD/MM/YYYY to YYYY-MM-DD for date input.
+function toInputDate(d: string | undefined): string {
+    if (!d) return '';
+    const parts = d.split('/');
+    if (parts.length !== 3) return '';
+    const [dd, mm, yy] = parts;
+    return `${yy}-${mm}-${dd}`;
+}
+
+// Format ISO or YYYY-MM-DD date to DD/MM/YYYY for display.
+function formatApiDate(value: string | undefined | null): string {
+    if (!value) return '';
+    const s = String(value);
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    try {
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return s;
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch {
+        return s;
+    }
+}
+
 export default function ManageLeave() {
+    const { user } = useAuth();
+
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
+    const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
+    const [editModalOpen, setEditModalOpen] = useState(false);
     const [leaveType, setLeaveType] = useState('');
+    const [leaveTypeId, setLeaveTypeId] = useState<number | null>(null);
     const [leaveFrom, setLeaveFrom] = useState('');
     const [leaveTo, setLeaveTo] = useState('');
     const [reason, setReason] = useState('');
-    const [leaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
+    const [leaveTypes, setLeaveTypes] = useState<{ id: number | null; title: string }[]>([]);
+    const [othersValue, setOthersValue] = useState<string>('Others');
 
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
@@ -57,6 +83,67 @@ export default function ManageLeave() {
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+
+    // Load available leave types from backend (holiday table)
+    useEffect(() => {
+        const fetchTypes = async () => {
+            try {
+                const { data } = await api.get<{ leave_types?: any[]; others_value?: string }>('/api/leave/types');
+                const types = (data.leave_types || []).map((t) => ({
+                    id: t.id ?? null,
+                    title: t.title || 'Untitled',
+                }));
+                setLeaveTypes(types);
+                if (data.others_value) setOthersValue(data.others_value);
+            } catch (err) {
+                console.error('Failed to load leave types for BIM Modeler', err);
+                setLeaveTypes([]);
+            }
+        };
+        fetchTypes();
+    }, []);
+
+    // Load leaves only for logged-in BIM Modeler (current user)
+    useEffect(() => {
+        const fetchLeaves = async () => {
+            if (!user?.id) {
+                setLeaves([]);
+                return;
+            }
+            try {
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (data.applications || []).filter(
+                    (app) => app.employee_id === user.id
+                );
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeId: app.employee_id,
+                    employeeName: app.full_name || (user.full_name || 'Unknown'),
+                    role: app.role || user.user_role || undefined,
+                    email: app.email || user.email || undefined,
+                    leaveType: app.title || othersValue,
+                    leaveTypeId: typeof app.leave_type === 'number' ? app.leave_type : null,
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to load BIM Modeler leaves', err);
+                setLeaves([]);
+            }
+        };
+
+        fetchLeaves();
+    }, [user?.id]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -118,17 +205,77 @@ export default function ManageLeave() {
         setViewModalOpen(true);
     };
 
-    const handleSubmitApply = (e: React.FormEvent) => {
+    const handleSubmitApply = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!leaveType) return;
-        const trimmedReason = reason.trim();
-        if (!trimmedReason) return;
-        // TODO: API submit
-        setLeaveType('');
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-        setApplyModalOpen(false);
+        if (!leaveTypeId || !leaveFrom || !leaveTo || !reason.trim()) return;
+
+        try {
+            const payload: any = {
+                leavetype: leaveTypeId ?? 0,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.post<{ success: boolean; id?: number; message?: string }>(
+                '/api/leave/applications',
+                payload
+            );
+            if (data.success === false) {
+                alert(data.message || 'Failed to apply leave.');
+                return;
+            }
+
+            // Reload only this user's leaves
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (resp.data.applications || []).filter(
+                    (app) => app.employee_id === user?.id
+                );
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeId: app.employee_id,
+                    employeeName: app.full_name || (user?.full_name || 'Unknown'),
+                    role: app.role || user?.user_role || undefined,
+                    email: app.email || user?.email || undefined,
+                    leaveType: app.title || othersValue,
+                    leaveTypeId: typeof app.leave_type === 'number' ? app.leave_type : null,
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to refresh leaves after apply', err);
+            }
+
+            setLeaveType('');
+            setLeaveFrom('');
+            setLeaveTo('');
+            setReason('');
+            setApplyModalOpen(false);
+        } catch (err: any) {
+            console.error('Apply leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to apply leave. Please try again.');
+        }
     };
 
     const handleCloseModal = () => {
@@ -137,6 +284,100 @@ export default function ManageLeave() {
         setLeaveFrom('');
         setLeaveTo('');
         setReason('');
+    };
+
+    const handleEdit = (row: LeaveEntry) => {
+        setEditingLeave(row);
+        setLeaveType(row.leaveType);
+        setLeaveTypeId(row.leaveTypeId ?? null);
+        setLeaveFrom(toInputDate(row.fromDate));
+        setLeaveTo(toInputDate(row.toDate));
+        setReason(row.description || '');
+        setEditModalOpen(true);
+    };
+
+    const handleCloseEditModal = () => {
+        setEditModalOpen(false);
+        setEditingLeave(null);
+        setLeaveType('');
+        setLeaveTypeId(null);
+        setLeaveFrom('');
+        setLeaveTo('');
+        setReason('');
+    };
+
+    const handleSubmitEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingLeave || !leaveTypeId || !leaveFrom || !leaveTo || !reason.trim()) return;
+
+        try {
+            const payload: any = {
+                leavetype: leaveTypeId ?? 0,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.patch<{ success: boolean; message?: string }>(
+                `/api/leave/applications/${editingLeave.id}`,
+                payload
+            );
+
+            if (data.success === false) {
+                alert(data.message || 'Failed to update leave.');
+                return;
+            }
+
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (resp.data.applications || []).filter(
+                    (app) => app.employee_id === user?.id
+                );
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeId: app.employee_id,
+                    employeeName: app.full_name || (user?.full_name || 'Unknown'),
+                    role: app.role || user?.user_role || undefined,
+                    email: app.email || user?.email || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to refresh leaves after edit', err);
+            }
+
+            handleCloseEditModal();
+        } catch (err: any) {
+            console.error('Update leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to update leave. Please try again.');
+        }
+    };
+
+    const handleDelete = (row: LeaveEntry) => {
+        if (!window.confirm(`Delete leave (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
+        // No delete endpoint yet; perform local delete so user no longer sees it
+        setLeaves((prev) => prev.filter((l) => l.id !== row.id));
     };
 
     return (
@@ -204,6 +445,7 @@ export default function ManageLeave() {
                             <tr className="bg-[#FFFFFFF] text-[#353535]">
                                 <th className="px-4 py-4 text-center text-base font-bold rounded-tl-2xl">Sl.No</th>
                                 <th className="px-4 py-4 text-center text-base font-bold">Employee Name</th>
+                                <th className="px-4 py-4 text-center text-base font-bold">Role</th>
                                 <th className="px-4 py-4 text-center text-base font-bold">Leave Type</th>
                                 <th className="px-4 py-4 text-center text-base font-bold">Applied On</th>
                                 <th className="px-4 py-4 text-center text-base font-bold">Status</th>
@@ -213,14 +455,15 @@ export default function ManageLeave() {
                         <tbody className="divide-y divide-gray-100">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">
                                         No leave records found
                                     </td>
                                 </tr>
                             ) : (
                                 displayedList.map((row, index) => {
-                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
-                                    const slNo = baseIndex + 1;
+                                const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                const slNo = baseIndex + 1;
+                                const isPending = row.currentStatus === 'Pending';
                                     return (
                                         <tr
                                             key={row.id}
@@ -228,6 +471,7 @@ export default function ManageLeave() {
                                         >
                                             <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium">{slNo}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold">{row.employeeName}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600">{row.role ?? '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600">{row.leaveType}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600">{row.appliedOn}</td>
                                             <td className="px-4 py-3 text-center text-sm font-medium">
@@ -236,14 +480,34 @@ export default function ManageLeave() {
                                             </span>
                                             </td>
                                             <td className="px-4 py-3 text-center text-sm">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleView(row)}
-                                                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md font-medium shadow-sm transition-opacity"
-                                                >
-                                                    <img src={viewIcon} alt="" className="w-[18px] h-[18px] shrink-0 [filter:brightness(0)_invert(1)]" />
-                                                    View
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleView(row)}
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#DD4342] text-white rounded-md font-medium shadow-sm transition-opacity"
+                                                    >
+                                                        <img src={viewIcon} alt="" className="w-[16px] h-[16px] shrink-0 [filter:brightness(0)_invert(1)]" />
+                                                        View
+                                                    </button>
+                                                    {isPending && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEdit(row)}
+                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#E8E8E8] text-[#353535] hover:bg-[#D2D2D2] transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(row)}
+                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#C62828] text-white hover:bg-[#B71C1C] transition-colors"
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -322,6 +586,24 @@ export default function ManageLeave() {
 
                         {/* Modal body */}
                         <form onSubmit={handleSubmitApply} className="flex flex-col flex-1 overflow-y-auto p-6 space-y-4">
+                            {/* Employee Name with Role (auto, disabled) */}
+                            <div>
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Employee Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={
+                                        user
+                                            ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}`
+                                            : ''
+                                    }
+                                    readOnly
+                                    disabled
+                                    className="w-full px-4 py-2.5 bg-[#E5E5E5] rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed"
+                                />
+                            </div>
+
                             {/* Leave Type - custom dropdown (second image style) */}
                             <div ref={leaveTypeDropdownRef} className="relative">
                                 <label className="block text-base font-medium text-gray-700 mb-1">
@@ -350,26 +632,28 @@ export default function ManageLeave() {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setLeaveType('');
+                                                setLeaveTypeId(null);
                                                 setLeaveTypeOpen(false);
                                             }}
                                             className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${!leaveType ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
                                         >
                                             Nothing selected
                                         </button>
-                                        {LEAVE_TYPES.map((type: string) => {
-                                            const isSelected = leaveType === type;
+                                        {leaveTypes.map((type) => {
+                                            const isSelected = leaveTypeId === type.id;
                                             return (
                                                 <button
-                                                    key={type}
+                                                    key={type.id ?? 'others'}
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setLeaveType(type);
+                                                        setLeaveType(type.title);
+                                                        setLeaveTypeId(type.id);
                                                         setLeaveTypeOpen(false);
                                                     }}
                                                     className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
                                                 >
-                                                    {type}
+                                                    {type.title}
                                                 </button>
                                             );
                                         })}
@@ -453,6 +737,190 @@ export default function ManageLeave() {
                 document.body
             )}
 
+            {/* Edit Leave Modal */}
+            {editModalOpen && editingLeave && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50" onClick={handleCloseEditModal}>
+                    <div
+                        className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0">
+                            <div />
+                            <h3 className="text-lg font-bold text-[#353535] text-center">Edit Leave</h3>
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseEditModal}
+                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535]"
+                                    aria-label="Close"
+                                >
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 6L6 18M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleSubmitEdit} className="flex flex-col flex-1 overflow-y-auto p-6 space-y-4">
+                            {/* Employee Name + Email (auto, disabled) */}
+                            <div>
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Employee Name &amp; Email
+                                </label>
+                                <input
+                                    type="text"
+                                    value={
+                                        editingLeave
+                                            ? `${editingLeave.employeeName}${
+                                                  editingLeave.email ? ` - ${editingLeave.email}` : ''
+                                              }`
+                                            : ''
+                                    }
+                                    readOnly
+                                    disabled
+                                    className="w-full px-4 py-2.5 bg-[#E5E5E5] rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed"
+                                />
+                            </div>
+
+                            {/* Leave Type */}
+                            <div ref={leaveTypeDropdownRef} className="relative">
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Leave Type <span className="text-red-500">*</span>
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => setLeaveTypeOpen((o) => !o)}
+                                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-md border text-left flex items-center justify-between focus:outline-none focus:ring-0 min-h-[42px] text-sm text-[#353535] transition-colors ${leaveTypeOpen ? 'border-[#D2D2D2]' : 'border-gray-200'} focus:border-[#D2D2D2]`}
+                                >
+                                    <span className={`text-sm ${leaveType ? 'text-[#353535] font-medium' : 'text-[#8B8B8B]'}`}>
+                                        {leaveType || 'Nothing selected'}
+                                    </span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                        style={{ transform: leaveTypeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                        <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                </button>
+                                {leaveTypeOpen && (
+                                    <div
+                                        className="absolute top-full left-0 right-0 mt-1 z-50 bg-white rounded-md shadow-md py-1"
+                                        onMouseDown={(e) => e.preventDefault()}
+                                    >
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLeaveType('');
+                                                setLeaveTypeId(null);
+                                                setLeaveTypeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${!leaveType ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                        >
+                                            Nothing selected
+                                        </button>
+                                        {leaveTypes.map((type) => {
+                                            const isSelected = leaveTypeId === type.id;
+                                            return (
+                                                <button
+                                                    key={type.id ?? 'others'}
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setLeaveType(type.title);
+                                                        setLeaveTypeId(type.id);
+                                                        setLeaveTypeOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                                >
+                                                    {type.title}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Leave From */}
+                            <div>
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Leave From <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        required
+                                        value={leaveFrom}
+                                        onChange={(e) => setLeaveFrom(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
+                                        style={{ colorScheme: 'light' }}
+                                    />
+                                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" />
+                                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* Leave To */}
+                            <div>
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Leave To <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        required
+                                        value={leaveTo}
+                                        onChange={(e) => setLeaveTo(e.target.value)}
+                                        className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
+                                        style={{ colorScheme: 'light' }}
+                                    />
+                                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" />
+                                        <line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" />
+                                        <line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" />
+                                        <line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {/* Reason */}
+                            <div>
+                                <label className="block text-base font-medium text-gray-700 mb-1">
+                                    Describe Your Reason <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    required
+                                    value={reason}
+                                    onChange={(e) => setReason(e.target.value)}
+                                    rows={5}
+                                    placeholder="Enter your reason for leave..."
+                                    className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors resize-y min-h-[120px]"
+                                />
+                            </div>
+
+                            <div className="pt-4 flex justify-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseEditModal}
+                                    className="px-6 py-2.5 rounded-md bg-[#F2F2F2] text-[#353535] text-sm font-medium hover:bg-[#E0E0E0] transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm"
+                                >
+                                    Update
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {/* View Leave Modal - strictly like View Client Details: colons vertically aligned, label : value, no lines */}
             {viewModalOpen && selectedLeave && createPortal(
                 <div
@@ -493,6 +961,16 @@ export default function ManageLeave() {
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Applied On</span>
                                     <span className="shrink-0 text-black">:</span>
                                     <span className="text-[#8B8B8B]">{selectedLeave.appliedOn}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="w-[140px] shrink-0 font-semibold text-black">Leave From</span>
+                                    <span className="shrink-0 text-black">:</span>
+                                    <span className="text-[#8B8B8B]">{selectedLeave.fromDate ?? '-'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="w-[140px] shrink-0 font-semibold text-black">Leave To</span>
+                                    <span className="shrink-0 text-black">:</span>
+                                    <span className="text-[#8B8B8B]">{selectedLeave.toDate ?? '-'}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>
