@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
@@ -7,7 +9,10 @@ interface LeaveEntry {
     slNo: number;
     employeeName: string;
     role?: string;
+    employeeId?: number;
+    email?: string;
     leaveType: string;
+    leaveTypeId?: number | null;
     appliedOn: string;
     appliedTo?: string;
     currentStatus: string;
@@ -16,20 +21,7 @@ interface LeaveEntry {
     description?: string;
 }
 
-const DUMMY_LEAVES: LeaveEntry[] = [
-    { id: 1, slNo: 1, employeeName: 'John Doe', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '01/03/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '02/03/2026', toDate: '03/03/2026', description: 'Medical appointment' },
-    { id: 2, slNo: 2, employeeName: 'Jane Smith', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '28/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '05/03/2026', toDate: '06/03/2026', description: 'Family event' },
-    { id: 3, slNo: 3, employeeName: 'Mike Johnson', role: 'BIM Lead', leaveType: 'Earned Leave', appliedOn: '25/02/2026', appliedTo: 'Project Manager', currentStatus: 'Approved', fromDate: '10/03/2026', toDate: '12/03/2026', description: 'Personal' },
-    { id: 4, slNo: 4, employeeName: 'Sarah Williams', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '20/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '21/02/2026', toDate: '22/02/2026', description: 'Fever' },
-    { id: 5, slNo: 5, employeeName: 'David Brown', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '15/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '18/02/2026', toDate: '19/02/2026', description: 'Travel' },
-    { id: 6, slNo: 6, employeeName: 'Emma Wilson', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '12/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '13/02/2026', toDate: '14/02/2026', description: 'Recovery' },
-    { id: 7, slNo: 7, employeeName: 'James Davis', role: 'BIM Modeler', leaveType: 'Earned Leave', appliedOn: '10/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '20/03/2026', toDate: '22/03/2026', description: 'Vacation' },
-    { id: 8, slNo: 8, employeeName: 'Olivia Martinez', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '08/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '09/02/2026', toDate: '10/02/2026', description: 'Personal work' },
-    { id: 9, slNo: 9, employeeName: 'William Taylor', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '05/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '06/02/2026', toDate: '07/02/2026', description: 'Doctor visit' },
-    { id: 10, slNo: 10, employeeName: 'Sophia Anderson', role: 'BIM Modeler', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '15/02/2026', toDate: '15/05/2026', description: 'Maternity' },
-];
-
-const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+// Initial dummy data removed; BIM Coordinator will only see their own applied leaves in this session.
 
 function normalizeNameAndReason(value: string): string {
     const allowed = value.replace(/[^\w\s.,\-'()\/&@!#?;:'"]/g, '');
@@ -44,6 +36,25 @@ function toInputDate(d: string | undefined): string {
     return `${yy}-${mm}-${dd}`;
 }
 
+// Convert ISO / YYYY-MM-DD to DD/MM/YYYY for display in table
+function formatApiDate(value: string | undefined | null): string {
+    if (!value) return '';
+    const s = String(value);
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+    try {
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return s;
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch {
+        return s;
+    }
+}
+
+const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: '0-100', label: '0-100', start: 0, end: 100 },
     { value: '101-200', label: '101-200', start: 100, end: 200 },
@@ -56,9 +67,10 @@ const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeaveBC() {
+    const { user } = useAuth();
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
-    const [leaves, setLeaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -130,15 +142,44 @@ export default function ManageLeaveBC() {
         setPaginationWindowStart(1);
     }, [selectedShowEntries, selectedEmployee]);
 
-    const toStoredDate = (d: string): string => {
-        if (!d) return '';
-        const [y, m, day] = d.split('-');
-        return `${day}/${m}/${y}`;
-    };
+    // On mount, also store leaves in backend so they persist across refresh (tblleaves)
+    useEffect(() => {
+        const fetchExistingLeaves = async () => {
+            if (!user?.id) return;
+            try {
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (data.applications || []).filter((app) => app.employee_id === user.id);
+                if (!apps.length) return;
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeId: app.employee_id,
+                    employeeName: app.full_name || user.full_name || 'Unknown',
+                    role: app.role || user.user_role || 'BIM Coordinator',
+                    email: app.email || user.email || undefined,
+                    leaveType: app.leave_type || app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to load BIM Coordinator leaves from backend', err);
+            }
+        };
+
+        fetchExistingLeaves();
+    }, [user?.id]);
 
     const validateApplyForm = (): boolean => {
         const err: Record<string, string> = {};
-        if (!employeeName.trim()) err.employeeName = 'Employee name is required';
         if (!leaveType) err.leaveType = 'Leave type is required';
         if (!leaveFrom) err.leaveFrom = 'Leave from date is required';
         if (!leaveTo) err.leaveTo = 'Leave to date is required';
@@ -148,24 +189,52 @@ export default function ManageLeaveBC() {
         return Object.keys(err).length === 0;
     };
 
-    const handleSubmitApply = (e: React.FormEvent) => {
+    const handleSubmitApply = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateApplyForm()) return;
+        try {
+            // Store in backend (tblleaves) as free-text leave_type
+            await api.post('/api/leave/applications', {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            });
+        } catch (err) {
+            console.error('Failed to store leave in backend (BIM Coordinator):', err);
+        }
+
+        // Always update local UI so user sees it immediately
         const newId = Math.max(0, ...leaves.map((l) => l.id)) + 1;
         const today = new Date();
-        const appliedOnStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-        setLeaves((prev) => [...prev, {
-            id: newId,
-            slNo: prev.length + 1,
-            employeeName: employeeName.trim(),
-            leaveType,
-            appliedOn: appliedOnStr,
-            currentStatus: 'Pending',
-            fromDate: toStoredDate(leaveFrom),
-            toDate: toStoredDate(leaveTo),
-            description: reason.trim(),
-        }]);
-        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        const appliedOnStr = `${String(today.getDate()).padStart(2, '0')}/${String(
+            today.getMonth() + 1
+        )
+            .toString()
+            .padStart(2, '0')}/${today.getFullYear()}`;
+        const displayName =
+            user ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}` : employeeName.trim();
+        setLeaves((prev) => [
+            ...prev,
+            {
+                id: newId,
+                slNo: prev.length + 1,
+                employeeName: displayName,
+                role: user?.user_role || 'BIM Coordinator',
+                leaveType,
+                appliedOn: appliedOnStr,
+                currentStatus: 'Pending',
+                fromDate: leaveFrom,
+                toDate: leaveTo,
+                description: reason.trim(),
+            },
+        ]);
+        setEmployeeName('');
+        setLeaveType('');
+        setLeaveFrom('');
+        setLeaveTo('');
+        setReason('');
+        setApplyFormErrors({});
         setApplyModalOpen(false);
     };
 
@@ -188,18 +257,48 @@ export default function ManageLeaveBC() {
     const handleCloseEditModal = () => {
         setEditModalOpen(false);
         setEditingLeave(null);
-        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setEmployeeName('');
+        setLeaveType('');
+        setLeaveFrom('');
+        setLeaveTo('');
+        setReason('');
+        setApplyFormErrors({});
     };
 
-    const handleSubmitEdit = (e: React.FormEvent) => {
+    const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLeave || !validateApplyForm()) return;
-        setLeaves((prev) => prev.map((l) => l.id === editingLeave.id ? { ...l, employeeName: employeeName.trim(), leaveType, fromDate: toStoredDate(leaveFrom), toDate: toStoredDate(leaveTo), description: reason.trim() } : l));
+        try {
+            await api.patch(`/api/leave/applications/${editingLeave.id}`, {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            });
+        } catch (err) {
+            console.error('Failed to update leave in backend (BIM Coordinator):', err);
+        }
+
+        setLeaves((prev) =>
+            prev.map((l) =>
+                l.id === editingLeave.id
+                    ? {
+                          ...l,
+                          employeeName: employeeName.trim(),
+                          leaveType,
+                          fromDate: leaveFrom,
+                          toDate: leaveTo,
+                          description: reason.trim(),
+                      }
+                    : l
+            )
+        );
         handleCloseEditModal();
     };
 
     const handleDelete = (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
+        // No backend delete endpoint yet; perform local delete so it disappears from this view.
         setLeaves((prev) => prev.filter((l) => l.id !== row.id));
     };
 
@@ -247,7 +346,13 @@ export default function ManageLeaveBC() {
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"
-                        onClick={() => setApplyModalOpen(true)}
+                        onClick={() => {
+                            const displayName = user
+                                ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}`
+                                : '';
+                            setEmployeeName(displayName);
+                            setApplyModalOpen(true);
+                        }}
                         className="px-4 py-2.5 bg-[#DD4346] text-white rounded-lg text-sm font-gantari font-medium hover:bg-[#c43a39] transition-colors"
                     >
                         Apply Leave
@@ -542,9 +647,20 @@ export default function ManageLeaveBC() {
                         </div>
                         <form onSubmit={handleSubmitApply} className="px-6 py-6 space-y-4">
                             <div>
-                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
-                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
-                                {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name</label>
+                                <input
+                                    type="text"
+                                    value={
+                                        employeeName ||
+                                        (user
+                                            ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}`
+                                            : '')
+                                    }
+                                    readOnly
+                                    disabled
+                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] bg-[#E5E5E5] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed"
+                                    placeholder="Employee name - Role"
+                                />
                             </div>
                             <div className="relative" ref={leaveTypeDropdownRef}>
                                 <label className="block text-base font-semibold text-[#000000] mb-2">Leave Type <span className="text-[#DD4342]">*</span></label>
@@ -554,9 +670,26 @@ export default function ManageLeaveBC() {
                                 </button>
                                 {leaveTypeOpen && (
                                     <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
-                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setLeaveType(''); setLeaveTypeOpen(false); }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                        >
+                                            Nothing selected
+                                        </button>
                                         {LEAVE_TYPES.map((t) => (
-                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpen(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => {
+                                                    setLeaveType(t);
+                                                    setLeaveTypeOpen(false);
+                                                    if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' }));
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            >
+                                                {t}
+                                            </button>
                                         ))}
                                     </div>
                                 )}
@@ -607,9 +740,15 @@ export default function ManageLeaveBC() {
                         </div>
                         <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
                             <div>
-                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
-                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
-                                {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name</label>
+                                <input
+                                    type="text"
+                                    value={editingLeave ? `${editingLeave.employeeName}${editingLeave.role ? ` - ${editingLeave.role}` : ''}` : ''}
+                                    readOnly
+                                    disabled
+                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] bg-[#E5E5E5] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed"
+                                    placeholder="Employee name - Role"
+                                />
                             </div>
                             <div className="relative" ref={leaveTypeDropdownEditRef}>
                                 <label className="block text-base font-semibold text-[#000000] mb-2">Leave Type <span className="text-[#DD4342]">*</span></label>
@@ -619,9 +758,26 @@ export default function ManageLeaveBC() {
                                 </button>
                                 {leaveTypeOpenEdit && (
                                     <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
-                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpenEdit(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setLeaveType(''); setLeaveTypeOpenEdit(false); }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                        >
+                                            Nothing selected
+                                        </button>
                                         {LEAVE_TYPES.map((t) => (
-                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpenEdit(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => {
+                                                    setLeaveType(t);
+                                                    setLeaveTypeOpenEdit(false);
+                                                    if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' }));
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            >
+                                                {t}
+                                            </button>
                                         ))}
                                     </div>
                                 )}

@@ -30,6 +30,16 @@ interface Employee {
     salary?: string;
     accountnumber?: string;
     Allpannel?: string;
+
+    // vendor_resource_profiles fields (new_swiftbim)
+    designation?: string;
+    discipline?: string;
+    years_of_experience?: string;
+    expertise?: string;
+    resource_role?: string;
+    software?: string;
+    certifications?: string;
+    projects_worked_on?: string;
 }
 
 
@@ -126,7 +136,8 @@ function CustomDropdown({
     );
 }
 
-const ROLE_OPTIONS_FALLBACK = ['Consultant', 'BIM Coordinator', 'BIM Lead', 'Project Manager', 'Technical Director', 'CEO', 'CTO'];
+const VENDOR_ROLE_OPTIONS = ['Vendor PM', 'Vendor Bim Lead', 'Vendor Employee'];
+const ROLE_OPTIONS_FALLBACK = VENDOR_ROLE_OPTIONS;
 
 export default function ResourcesV() {
     const navigate = useNavigate();
@@ -193,43 +204,46 @@ export default function ResourcesV() {
     const [roleOptions, setRoleOptions] = useState<string[]>([]);
     const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
-    const canAdd = user?.panel_type === 1;
+    // Vendor company admin should always be able to assign logins to resources
+    const canAdd = user?.user_type === 'vendor' || user?.panel_type === 1;
 
     useEffect(() => {
-        api.get<{ roles?: string[] }>('/api/employees/roles')
-            .then(({ data }) => {
-                if (data.roles && Array.isArray(data.roles)) {
-                    const map = new Map<string, string>();
-                    data.roles.filter(Boolean).forEach((name) => {
-                        const trimmed = name.trim();
-                        if (!trimmed) return;
-                        const key = trimmed.toLowerCase();
-                        if (!map.has(key)) map.set(key, trimmed);
-                    });
-                    setRoleOptions(Array.from(map.values()));
-                }
-            }).catch(() => setRoleOptions([]));
-
-        api.get<{ departments?: string[] }>('/api/departments')
-            .then(({ data }) => {
-                if (data.departments && Array.isArray(data.departments)) {
-                    const map = new Map<string, string>();
-                    data.departments.filter(Boolean).forEach((name) => {
-                        const trimmed = name.trim();
-                        if (!trimmed) return;
-                        const key = trimmed.toLowerCase();
-                        if (!map.has(key)) map.set(key, trimmed);
-                    });
-                    setDepartmentOptions(Array.from(map.values()));
-                }
-            }).catch(() => setDepartmentOptions([]));
+        // Vendor roles are fixed for assignment
+        setRoleOptions(VENDOR_ROLE_OPTIONS);
+        setDepartmentOptions([]);
     }, []);
 
     useEffect(() => {
-        api.get<{ employees?: Employee[] }>('/api/employees')
-            .then(({ data }) => setList(data.employees ?? []))
+        // Load vendor resource profiles from new_swiftbim by vendor_id
+        api.get<{ resources?: Array<{ id: number; name?: string; email?: string; login_role?: string; designation?: string; discipline?: string; years_of_experience?: string; expertise?: string; role?: string; software?: string; certifications?: string; projects_worked_on?: string }> }>('/api/vendors/profile/resource-profiles')
+            .then(({ data }) => {
+                const rows = data.resources ?? [];
+                setList(rows.map((r) => ({
+                    id: r.id,
+                    full_name: r.name || '—',
+                    email: r.email || '',
+                    user_role: r.login_role || '',
+                    active: 'active',
+                    department: 'Vendor',
+                    user_type: 'vendor',
+                    profile_picture: undefined,
+                    Allpannel: 'Vendor',
+                    phone_number: '',
+                    address: '',
+                    doj: '',
+                    dob: '',
+                    designation: r.designation,
+                    discipline: r.discipline,
+                    years_of_experience: r.years_of_experience,
+                    expertise: r.expertise,
+                    resource_role: r.role,
+                    software: r.software,
+                    certifications: r.certifications,
+                    projects_worked_on: r.projects_worked_on,
+                } as Employee)));
+            })
             .catch((err) => {
-                console.error('Failed to load employees:', err);
+                console.error('Failed to load vendor resources:', err);
                 setList([]);
             });
     }, []);
@@ -311,89 +325,43 @@ export default function ResourcesV() {
         e.preventDefault();
         if (!editId) return;
         setEditSubmitting(true);
-
-        const hasNewFile = !!editForm.profile_picture;
-        if (hasNewFile) {
-            const formData = new FormData();
-            formData.append('full_name', editForm.full_name);
-            formData.append('email', editForm.email);
-            if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
-            if (editForm.user_role) formData.append('user_role', editForm.user_role);
-            if (editForm.department) formData.append('department', editForm.department);
-            if (editForm.address) formData.append('address', editForm.address);
-            if (editForm.dob) formData.append('dob', editForm.dob);
-            if (editForm.doj) formData.append('doj', editForm.doj);
-            if (editForm.salary) formData.append('salary', editForm.salary);
-            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
-            if (editForm.user_type) formData.append('user_type', editForm.user_type);
-            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
-            if (editForm.password) formData.append('password', editForm.password);
-            if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
-            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
-
-            api.patch<{ success: boolean; profile_picture?: string | null }>(`/api/employees/${editId}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-                .then(({ data }) => {
-                    setList((prev) => prev.map((e) => e.id === editId ? {
-                        ...e,
-                        full_name: editForm.full_name,
-                        email: editForm.email,
-                        phone_number: editForm.phone_number,
-                        user_role: editForm.user_role,
-                        department: editForm.department,
-                        address: editForm.address,
-                        dob: editForm.dob,
-                        doj: editForm.doj,
-                        salary: editForm.salary,
-                        accountnumber: editForm.accountnumber,
-                        user_type: editForm.user_type,
-                        Allpannel: editForm.roles.join(','),
-                        active: editForm.active === 'Active' ? 'active' : 'inactive',
-                        profile_picture: data.profile_picture || e.profile_picture
-                    } : e));
-                    setEditId(null);
-                    setActiveView('list');
-                    setSearchParams({});
-                }).finally(() => setEditSubmitting(false));
-        } else {
-            const payload = {
-                full_name: editForm.full_name,
-                email: editForm.email,
-                phone_number: editForm.phone_number || undefined,
-                user_role: editForm.user_role,
-                department: editForm.department || undefined,
-                address: editForm.address || undefined,
-                dob: editForm.dob || undefined,
-                doj: editForm.doj || undefined,
-                salary: editForm.salary || undefined,
-                accountnumber: editForm.accountnumber || undefined,
-                user_type: editForm.user_type || undefined,
-                Allpannel: editForm.roles.join(','),
-                active: editForm.active === 'Active' ? 'active' : 'inactive',
-                ...(editForm.password ? { password: editForm.password } : {}),
-            };
-            api.patch(`/api/employees/${editId}`, payload)
-                .then(() => {
-                    setList((prev) => prev.map((e) => e.id === editId ? {
-                        ...e,
-                        full_name: editForm.full_name,
-                        email: editForm.email,
-                        phone_number: editForm.phone_number,
-                        user_role: editForm.user_role,
-                        department: editForm.department,
-                        address: editForm.address,
-                        dob: editForm.dob,
-                        doj: editForm.doj,
-                        salary: editForm.salary,
-                        accountnumber: editForm.accountnumber,
-                        user_type: editForm.user_type,
-                        Allpannel: payload.Allpannel,
-                        active: editForm.active === 'Active' ? 'active' : 'inactive'
-                    } : e));
-                    setEditId(null);
-                    setActiveView('list');
-                    setSearchParams({});
-                }).finally(() => setEditSubmitting(false));
-        }
+        api.post<{ success: boolean; message?: string; email_sent?: boolean }>(
+            `/api/vendors/profile/resource-profiles/${editId}/assign-login`,
+            {
+                email: editForm.email.trim(),
+                role: editForm.user_role,
+                full_name: editForm.full_name.trim(),
+                phone_number: editForm.phone_number.trim(),
+                // When editing, treat the password field as the login password
+                // for this resource. If left blank, backend will keep the
+                // existing password instead of changing it.
+                password: editForm.password || undefined,
+            }
+        )
+            .then(({ data }) => {
+                if (!data.success) throw new Error(data.message || 'Failed');
+                // Optimistically update list so UI reflects latest edits without reload
+                setList((prev) =>
+                    prev.map((e) =>
+                        e.id === editId
+                            ? {
+                                  ...e,
+                                  full_name: editForm.full_name.trim(),
+                                  email: editForm.email.trim(),
+                                  user_role: editForm.user_role,
+                                  phone_number: editForm.phone_number.trim() || e.phone_number,
+                              }
+                            : e,
+                    ),
+                );
+                setEditId(null);
+                setActiveView('list');
+                setSearchParams({});
+            })
+            .catch((err) => {
+                setAddError(err.response?.data?.message || err.message || 'Failed to assign login');
+            })
+            .finally(() => setEditSubmitting(false));
     }
 
     function handleStatusToggle(id: number, newStatus: string) {
@@ -405,49 +373,7 @@ export default function ResourcesV() {
     function handleAddSubmit(e: React.FormEvent) {
         e.preventDefault();
         setAddError('');
-        if (!form.full_name.trim() || !form.email.trim() || !form.password) {
-            setAddError('Name, email and password are required.');
-            return;
-        }
-        setAddSubmitting(true);
-        const formData = new FormData();
-        formData.append('full_name', form.full_name.trim());
-        formData.append('email', form.email.trim());
-        formData.append('password', form.password);
-        if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
-        if (form.user_role) formData.append('user_role', form.user_role);
-        if (form.address.trim()) formData.append('address', form.address.trim());
-        if (form.dob) formData.append('dob', form.dob);
-        if (form.type) formData.append('user_type', form.type);
-        if (form.joining_date) formData.append('doj', form.joining_date);
-        if (form.department) formData.append('department', form.department);
-        if (form.roles.length) formData.append('roles', form.roles.join(','));
-        if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
-        if (form.profile_picture) formData.append('profile_picture', form.profile_picture);
-
-        api.post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>('/api/employees', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
-            .then(({ data }) => {
-                if (data.success) {
-                    setActiveView('list');
-                    setList((prev) => [...prev, {
-                        id: data.id!,
-                        full_name: form.full_name,
-                        email: form.email,
-                        phone_number: form.phone_number,
-                        user_role: form.user_role,
-                        department: form.department,
-                        address: form.address,
-                        dob: form.dob,
-                        doj: form.joining_date,
-                        user_type: form.type,
-                        active: form.active === 'Active' ? 'active' : 'inactive',
-                        profile_picture: data.profile_picture || undefined,
-                        Allpannel: form.roles.join(',')
-                    }]);
-                    setForm({ full_name: '', email: '', password: '', phone_number: '', type: '', user_role: 'Consultant', department: '', address: '', dob: '', joining_date: '', profile_picture: null, salary: '', accountnumber: '', roles: [], active: 'Active' });
-                } else setAddError(data.message || 'Failed to add resource.');
-            }).catch((err) => setAddError(err.response?.data?.message || 'Failed to add resource.'))
-            .finally(() => setAddSubmitting(false));
+        setAddError('Add Resource Profiles from Company Profile → Resources tab. Here you assign login (email + role) to existing resources.');
     }
 
     const renderList = () => (
@@ -495,7 +421,7 @@ export default function ResourcesV() {
                                             </div>
                                             <div className="min-w-0">
                                                 <h4 className="text-white font-bold text-lg truncate leading-tight">{toCamelCase(emp.full_name)}</h4>
-                                                <p className="text-white/80 text-xs truncate">{emp.user_role || 'Worker'}</p>
+                                                <p className="text-white/80 text-xs truncate">{emp.user_role || 'Not assigned'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -506,7 +432,28 @@ export default function ResourcesV() {
                                             <button onClick={() => window.open(`tel:${emp.phone_number}`)} className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[11px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#d0e4ff]"><img src={callIcon} className="w-3.5 h-3.5" />Call</button>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <button onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }} className="py-2 bg-[#DD4342] text-white text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#c93d3d] transition-colors"><img src={eyeIcon} className="w-4 h-4" />View</button>
+                                            <button onClick={() => {
+                                                setSelectedEmployee(emp);
+                                                setShowDetailsModal(true);
+                                                // Pre-fill the edit form for the modal
+                                                setEditForm({
+                                                    full_name: emp.full_name,
+                                                    email: emp.email,
+                                                    phone_number: emp.phone_number || '',
+                                                    user_role: emp.user_role || '',
+                                                    department: emp.department || '',
+                                                    address: emp.address || '',
+                                                    dob: emp.dob || '',
+                                                    password: '',
+                                                    user_type: emp.user_type || '',
+                                                    doj: emp.doj || '',
+                                                    salary: emp.salary || '',
+                                                    accountnumber: emp.accountnumber || '',
+                                                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+                                                    active: emp.active === 'active' ? 'Active' : 'Deactivate',
+                                                    profile_picture: null
+                                                });
+                                            }} className="py-2 bg-[#DD4342] text-white text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#c93d3d] transition-colors"><img src={eyeIcon} className="w-4 h-4" />View</button>
                                             {canAdd && <button onClick={() => {
                                                 setEditId(emp.id);
                                                 setActiveView('edit');
@@ -527,7 +474,7 @@ export default function ResourcesV() {
                                                     active: emp.active === 'active' ? 'Active' : 'Deactivate',
                                                     profile_picture: null
                                                 });
-                                            }} className="py-2 bg-[#F2F2F2] text-[#353535] text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors"><img src={editIcon} className="w-4 h-4" />Edit</button>}
+                                            }} className="py-2 bg-[#F2F2F2] text-[#353535] text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors"><img src={editIcon} className="w-4 h-4" />Add Email</button>}
                                         </div>
                                     </div>
                                 </div>
@@ -583,32 +530,124 @@ export default function ResourcesV() {
             {/* Detail Modal */}
             {showDetailsModal && selectedEmployee && (
                 <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
-                        <div className="relative h-32">
-                            <img src={pmprofilebg} className="w-full h-full object-cover" />
-                            <button onClick={() => setShowDetailsModal(false)} className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white transition-all"><FiX className="w-5 h-5" /></button>
-                            <div className="absolute -bottom-10 left-8 w-24 h-24 rounded-full border-4 border-white bg-white overflow-hidden shadow-md">
-                                {selectedEmployee.profile_picture ? <img src={getGlobalProfileUrl(selectedEmployee.id, selectedEmployee.profile_picture)} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-4xl font-bold bg-slate-100 text-[#353535]">?</div>}
+                    <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative p-6 md:p-8">
+                        <button
+                            onClick={() => setShowDetailsModal(false)}
+                            className="absolute top-4 right-4 text-slate-500 hover:text-slate-800"
+                        >
+                            <FiX className="w-5 h-5" />
+                        </button>
+
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-2xl font-bold text-[#353535]">{toCamelCase(selectedEmployee.full_name)}</h3>
+                                <p className="text-[#717171] text-sm mt-1">{selectedEmployee.user_role || 'Worker'}</p>
+                            </div>
+                            <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${selectedEmployee.active === 'active' ? 'bg-[#E0FFE8] text-[#008F22]' : 'bg-[#FFEEEE] text-[#E00100]'}`}>
+                                ● {selectedEmployee.active === 'active' ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-y-6 gap-x-12 border-t border-[#F0F0F0] pt-6 text-sm">
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Login Email</p>
+                                <p className="text-[#353535] font-semibold break-all">{selectedEmployee.email || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Login Role</p>
+                                <p className="text-[#353535] font-semibold">{selectedEmployee.user_role || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Designation</p>
+                                <p className="text-[#353535] font-semibold">{selectedEmployee.designation || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Discipline</p>
+                                <p className="text-[#353535] font-semibold">{selectedEmployee.discipline || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Years of Experience</p>
+                                <p className="text-[#353535] font-semibold">{selectedEmployee.years_of_experience || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Resource Role</p>
+                                <p className="text-[#353535] font-semibold">{selectedEmployee.resource_role || '—'}</p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Expertise</p>
+                                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
+                                    {selectedEmployee.expertise || '—'}
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Software</p>
+                                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
+                                    {selectedEmployee.software || '—'}
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Certifications</p>
+                                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
+                                    {selectedEmployee.certifications || '—'}
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-[#717171] text-xs font-bold uppercase mb-1">Projects Worked On</p>
+                                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
+                                    {selectedEmployee.projects_worked_on || '—'}
+                                </p>
                             </div>
                         </div>
-                        <div className="pt-14 p-8">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="text-2xl font-bold text-[#353535]">{toCamelCase(selectedEmployee.full_name)}</h3>
-                                    <p className="text-[#717171]">{selectedEmployee.user_role || 'Worker'}</p>
-                                </div>
-                                <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${selectedEmployee.active === 'active' ? 'bg-[#E0FFE8] text-[#008F22]' : 'bg-[#FFEEEE] text-[#E00100]'}`}>
-                                    ● {selectedEmployee.active === 'active' ? 'Active' : 'Inactive'}
-                                </span>
+
+                        {canAdd && (
+                            <div id="assign-login-section" className="mt-8 border-t border-[#F0F0F0] pt-6">
+                                {/* <h4 className="text-sm font-bold text-[#353535] mb-4">
+                                    {selectedEmployee.email ? 'Edit Login' : 'Assign Login'}
+                                </h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Login Email</label>
+                                        <input
+                                            type="email"
+                                            value={editForm.email}
+                                            onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/30"
+                                            placeholder="email@example.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-[#717171] mb-1">Role</label>
+                                        <CustomDropdown
+                                            options={VENDOR_ROLE_OPTIONS}
+                                            value={editForm.user_role}
+                                            onChange={(v) => setEditForm({ ...editForm, user_role: v })}
+                                            placeholder="Select Role"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2 flex justify-end gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDetailsModal(false)}
+                                            className="px-4 py-2 text-sm font-semibold bg-[#F4F4F4] text-[#353535] rounded-lg hover:bg-slate-200 transition-colors"
+                                        >
+                                            Close
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={editSubmitting}
+                                            onClick={() => {
+                                                if (!selectedEmployee) return;
+                                                setEditId(selectedEmployee.id);
+                                                handleEditSubmit(new Event('submit') as any);
+                                            }}
+                                            className="px-4 py-2 text-sm font-semibold bg-[#DD4342] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
+                                        >
+                                            {editSubmitting ? 'Saving…' : 'Save Login'}
+                                        </button>
+                                    </div>
+                                </div> */}
                             </div>
-                            <div className="grid grid-cols-2 gap-y-6 gap-x-12 border-t border-[#F0F0F0] pt-6">
-                                <div><p className="text-[#717171] text-xs font-bold uppercase mb-1">Email</p><p className="text-[#353535] font-semibold">{selectedEmployee.email}</p></div>
-                                <div><p className="text-[#717171] text-xs font-bold uppercase mb-1">Phone</p><p className="text-[#353535] font-semibold">{selectedEmployee.phone_number || '—'}</p></div>
-                                <div><p className="text-[#717171] text-xs font-bold uppercase mb-1">Department</p><p className="text-[#353535] font-semibold">{selectedEmployee.department || '—'}</p></div>
-                                <div><p className="text-[#717171] text-xs font-bold uppercase mb-1">Joined Date</p><p className="text-[#353535] font-semibold">{selectedEmployee.doj || '—'}</p></div>
-                                <div className="col-span-2"><p className="text-[#717171] text-xs font-bold uppercase mb-1">Address</p><p className="text-[#353535] font-semibold leading-relaxed">{selectedEmployee.address || 'No address provided.'}</p></div>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}

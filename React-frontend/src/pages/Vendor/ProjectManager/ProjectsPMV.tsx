@@ -104,45 +104,15 @@ export default function ProjectsPMV() {
             .finally(() => setLoading(false));
     };
 
-    const normalizeRole = (role?: string) => (role || "").trim().toLowerCase();
-
-    const hasAnyRole = (emp: Employee, roleNames: string[]) => {
-        const r = normalizeRole(emp.user_role);
-        return roleNames.some(x => r === normalizeRole(x));
-    };
-
     useEffect(() => {
         fetchProjects();
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
                 const emps = data.employees ?? [];
                 setAllEmployees(emps);
-                // Vendor logins get roles like "Vendor PM" / "Vendor BL" from vendor_employee.role
-                const PM_ROLES = [
-                    "Project Manager",
-                    "PM",
-                    "Vendor PM",
-                    "Vendor Project Manager",
-                    "Vendor ProjectManagement",
-                ];
-                const BL_ROLES = [
-                    "BIM Lead",
-                    "BIMLEAD",
-                    "BL",
-                    "Vendor BL",
-                    "Vendor BIM Lead",
-                ];
-                const BC_ROLES = [
-                    "BIM Coordinator",
-                    "BIMCOORDINATOR",
-                    "BC",
-                    "Vendor BIM Coordinator",
-                    "Vendor BC",
-                ];
-
-                setProjectManagers(emps.filter(e => hasAnyRole(e, PM_ROLES)));
-                setBimLeads(emps.filter(e => hasAnyRole(e, BL_ROLES)));
-                setBimCoordinators(emps.filter(e => hasAnyRole(e, BC_ROLES)));
+                setProjectManagers(emps.filter(e => e.user_role === "Project Manager"));
+                setBimLeads(emps.filter(e => e.user_role === 'BIM Lead'));
+                setBimCoordinators(emps.filter(e => e.user_role === 'BIM Coordinator'));
             })
             .catch(() => {
                 setAllEmployees([]);

@@ -28,29 +28,73 @@ def _restricted_roles_for_current_user():
 @project_app_required
 def list_employees():
     conn = get_db()
-    
+
     user_type = getattr(g, "user_type", "employee")
-    
+
     if user_type == "vendor":
-        cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
-        cur.execute(
-            """
-            SELECT id, empid, full_name, email, phone_number, 'vendor' AS user_type, role AS user_role, 
-                   NULL AS profile_picture, NULL AS address, NULL AS doj, NULL AS dob, 
-                   'Vendor' AS department, status AS active, 'Vendor' AS Allpannel, 
-                   NULL AS salary, NULL AS accountnumber
-            FROM vendor_employee
-            WHERE vendor_id = %s
-            ORDER BY full_name
-            """,
-            (g.company_id,) # Using company_id to store vendor_id in the token
-        )
+        cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), "dictionary") else conn.cursor()
+
+        # Prefer selecting a real profile_picture column if it exists on vendor_employee.
+        # Fallback to the previous behaviour (NULL AS profile_picture) if the column
+        # is missing so older databases keep working.
+        try:
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    empid,
+                    full_name,
+                    email,
+                    phone_number,
+                    'vendor' AS user_type,
+                    role AS user_role,
+                    profile_picture,
+                    NULL AS address,
+                    NULL AS doj,
+                    NULL AS dob,
+                    'Vendor' AS department,
+                    status AS active,
+                    'Vendor' AS Allpannel,
+                    NULL AS salary,
+                    NULL AS accountnumber
+                FROM vendor_employee
+                WHERE vendor_id = %s
+                ORDER BY full_name
+                """,
+                (g.company_id,),
+            )
+        except Exception:
+            # Older schema without profile_picture column on vendor_employee.
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    empid,
+                    full_name,
+                    email,
+                    phone_number,
+                    'vendor' AS user_type,
+                    role AS user_role,
+                    NULL AS profile_picture,
+                    NULL AS address,
+                    NULL AS doj,
+                    NULL AS dob,
+                    'Vendor' AS department,
+                    status AS active,
+                    'Vendor' AS Allpannel,
+                    NULL AS salary,
+                    NULL AS accountnumber
+                FROM vendor_employee
+                WHERE vendor_id = %s
+                ORDER BY full_name
+                """,
+                (g.company_id,),
+            )
+
         rows = cur.fetchall()
-        employees = []
-        for r in rows:
-            employees.append(dict(r))
+        employees = [dict(r) for r in rows]
         return jsonify({"employees": employees})
-    
+
     cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
     # Join with department table so we can return the department NAME
     # while still storing the numeric id in employee.department.

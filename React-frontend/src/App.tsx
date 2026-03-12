@@ -109,6 +109,7 @@ import MytaskViewV from './pages/Vendor/MytaskViewV';
 import BiddingV from './pages/Vendor/BiddingV';
 import ProposalsV from './pages/Vendor/ProposalsV';
 import CompanyProfileV from './pages/Vendor/CompanyProfileV';
+import CompanyProfileEditV from './pages/Vendor/CompanyProfileEditV';
 import MilestonesV from './pages/Vendor/MilestonesV';
 import CommunicationV from './pages/Vendor/CommunicationV';
 import PerformanceV from './pages/Vendor/PerformanceV';
@@ -254,6 +255,7 @@ function App() {
             <Route path="v/chat" element={<ChatV />} />
             <Route path="v/mytasks/view" element={<MytaskViewV />} />
             <Route path="v/company-profile" element={<CompanyProfileV />} />
+            <Route path="v/company-profile/edit" element={<CompanyProfileEditV />} />
             <Route path="v/milestones" element={<MilestonesV />} />
             <Route path="v/communication" element={<CommunicationV />} />
             <Route path="v/performance" element={<PerformanceV />} />

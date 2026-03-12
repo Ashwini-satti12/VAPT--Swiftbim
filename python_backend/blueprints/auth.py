@@ -122,6 +122,10 @@ def login():
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
+            # Surface profile_picture and basic role data so frontend has it immediately after login.
+            "profile_picture": row.get("profile_picture"),
+            "user_role": row.get("user_role") or row.get("role"),
+            "user_type": user_type,
         },
     })
 
@@ -288,8 +292,9 @@ def me():
     
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
+        # Vendor employees can also have profile pictures; fetch them from vendor_employee.
         cur.execute(
-            "SELECT full_name, NULL AS profile_picture FROM vendor_employee WHERE id = %s",
+            "SELECT full_name, profile_picture FROM vendor_employee WHERE id = %s",
             (g.user_id,),
         )
     else:
@@ -303,7 +308,7 @@ def me():
         return jsonify({"success": False, "message": "User not found"}), 404
     # Panel type: 1 = management (PM/CEO/BIM etc), 2 = team leader, 3 = employee
     user_role = (getattr(g, "user_role", None) or "").strip()
-    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead")
+    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead", "Vendor PM", "Vendor Bim Lead")
     is_management = user_role in management_roles
     cur.execute(
         "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
@@ -328,6 +333,7 @@ def me():
             "company_id": g.company_id,
             "is_super_admin": getattr(g, "is_super_admin", False),
             "panel_type": panel_type,
+            "user_type": user_type,
         },
     })
 

@@ -1,204 +1,379 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import api from '../../lib/api';
+import type { Vendor } from '../TechnicalDirector/PartnerView/types';
+import PartnerSidebar from '../TechnicalDirector/PartnerView/PartnerSidebar';
+import CompanyDetails from '../TechnicalDirector/PartnerView/components/CompanyDetails';
+import ContactPerson from '../TechnicalDirector/PartnerView/components/ContactPerson';
+import CompanyOverview from '../TechnicalDirector/PartnerView/components/CompanyOverview';
+import SectorServiceSoftware from '../TechnicalDirector/PartnerView/components/SectorServiceSoftware';
+import Resources from '../TechnicalDirector/PartnerView/components/Resources';
+import PortfolioProject from '../TechnicalDirector/PartnerView/components/PortfolioProject';
+import Certificates from '../TechnicalDirector/PartnerView/components/Certificates';
 
-type DocType = 'registration' | 'gst' | 'nda' | 'portfolio' | 'general';
-
-type Document = {
-    id: number;
-    doc_type: string;
-    filename: string;
-    file_url: string;
-    uploaded_at: string;
-};
-
-type Portfolio = {
-    id?: number;
-    project_name?: string;
-    project_url?: string;
-    description?: string;
-};
-
-type Profile = {
-    id?: number;
-    company_name?: string;
-    address?: string;
-    gst_number?: string;
-    reg_id?: string;
-    sectors?: string;
-    services?: string;
-    keywords?: string;
-    portfolio_json?: string;
-    contact_name?: string;
-    contact_email?: string;
-    phone?: string;
-    website?: string;
-    status?: string;
-    portfolio_projects?: Portfolio[];
-    documents?: Document[];
-};
-
-const SECTOR_OPTIONS = ['Construction', 'Architecture', 'MEP', 'Structural', 'Infrastructure', 'Interior Design', 'Real Estate', 'Smart Buildings', 'Sustainability'];
-const SERVICE_OPTIONS = ['BIM Modeling', 'Clash Detection', 'Quantity Surveying', 'Project Management', 'Drafting', 'Rendering', '4D/5D BIM', 'Scan to BIM', 'Consultancy'];
-const DOC_TYPES: { value: DocType; label: string }[] = [
-    { value: 'registration', label: 'Company Registration' },
-    { value: 'gst', label: 'GST Certificate' },
-    { value: 'nda', label: 'NDA / Agreement' },
-    { value: 'portfolio', label: 'Portfolio Document' },
-    { value: 'general', label: 'Other' },
-];
-
-function parseList(str?: string): string[] {
-    if (!str) return [];
-    try { return JSON.parse(str); } catch { return str.split(',').map(s => s.trim()).filter(Boolean); }
-}
-
-function stringifyList(arr: string[]): string {
-    return JSON.stringify(arr);
+/** Normalize profile from GET /api/vendors/profile to Vendor shape for shared section components */
+function profileToVendor(profile: Record<string, unknown> | null): Vendor | null {
+    if (!profile || typeof profile !== 'object') return null;
+    return {
+        id: (profile.id as number) ?? 0,
+        company_name: (profile.company_name as string) ?? '',
+        partner_name: profile.partner_name as string | undefined,
+        email: profile.email as string | undefined,
+        phone: (profile.phone as string) ?? '',
+        status: (profile.status as string) ?? 'pending',
+        created_at: (profile.created_at as string) ?? '',
+        country: (profile.country as string) ?? '',
+        state: (profile.state as string) ?? '',
+        city: (profile.city as string) ?? '',
+        year_established: (profile.year_established as string) ?? '',
+        address: (profile.address as string) ?? '',
+        website: (profile.website as string) ?? '',
+        linkedin: (profile.linkedin as string) ?? '',
+        trade_license_file: (profile.trade_license_file as string | null) ?? null,
+        gst_certificate_file: (profile.gst_certificate_file as string | null) ?? null,
+        nda_agreement_file: (profile.nda_agreement_file as string | null) ?? null,
+        contact_name: (profile.contact_name as string) ?? '',
+        contact_designation: (profile.contact_designation as string) ?? '',
+        contact_email: (profile.contact_email as string) ?? '',
+        contact_mobile: (profile.contact_mobile as string) ?? (profile.phone as string) ?? '',
+        alternate_contact: (profile.alternate_contact as string) ?? '',
+        num_employees: (profile.num_employees as string) ?? '',
+        turnover_range: (profile.turnover_range as string) ?? '',
+        core_business_areas: (profile.core_business_areas as string) ?? '',
+        technical_team_size: (profile.technical_team_size as string) ?? '',
+        description: (profile.description as string) ?? '',
+        sectors: (profile.sectors as string | string[]) ?? [],
+        service_categories: (profile.service_categories as string | string[]) ?? (profile.services as string | string[]) ?? [],
+        other_sector: (profile.other_sector as string) ?? '',
+        other_service: (profile.other_service as string) ?? '',
+        software_tools: (profile.software_tools as string | string[]) ?? [],
+        other_software: (profile.other_software as string) ?? '',
+        resource_profiles: (profile.resource_profiles as Vendor['resource_profiles']) ?? [],
+        portfolio_projects: (profile.portfolio_projects as Vendor['portfolio_projects']) ?? [],
+        certifications: (profile.certifications as string | string[]) ?? [],
+        billing_currency: (profile.billing_currency as string) ?? '',
+        payment_terms: (profile.payment_terms as string) ?? '',
+        nda_agreed: (profile.nda_agreed as boolean | number) ?? 0,
+        data_protection_compliant: (profile.data_protection_compliant as boolean | number) ?? 0,
+    };
 }
 
 export default function CompanyProfileV() {
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [profile, setProfile] = useState<Profile>({});
-    const [completeness, setCompleteness] = useState(0);
+    const [vendor, setVendor] = useState<Vendor | null>(null);
+    const [, setCompleteness] = useState(0);
     const [verified, setVerified] = useState(false);
+    const [activeTab, setActiveTab] = useState('Company Details');
+    const [error, setError] = useState<string | null>(null);
     const [editMode, setEditMode] = useState(false);
-    const [form, setForm] = useState<Profile>({});
-    const [selectedSectors, setSelectedSectors] = useState<string[]>([]);
-    const [selectedServices, setSelectedServices] = useState<string[]>([]);
-    const [keywords, setKeywords] = useState<string[]>([]);
-    const [kwInput, setKwInput] = useState('');
-    const [successMsg, setSuccessMsg] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
-    const [docUploading, setDocUploading] = useState(false);
-    const [docType, setDocType] = useState<DocType>('general');
-    const [documents, setDocuments] = useState<Document[]>([]);
-    const fileRef = useRef<HTMLInputElement>(null);
+    const [draft, setDraft] = useState<Vendor | null>(null);
+    const [saving, setSaving] = useState(false);
+    const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
     useEffect(() => {
-        api.get<{ profile: Profile; completeness: number; verified: boolean }>('/api/vendors/profile')
-            .then(({ data }) => {
-                const p = data.profile || {};
-                setProfile(p);
-                setCompleteness(data.completeness || 0);
-                setVerified(data.verified || false);
-                setDocuments(p.documents || []);
-                setSelectedSectors(parseList(p.sectors));
-                setSelectedServices(parseList(p.services));
-                setKeywords(parseList(p.keywords));
-                setForm(p);
-            })
-            .catch(() => { })
-            .finally(() => setLoading(false));
+        refreshProfile().finally(() => setLoading(false));
     }, []);
 
+    const refreshProfile = async () => {
+        try {
+            setError(null);
+            const { data } = await api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile');
+            const v = profileToVendor(data.profile ?? null);
+            setVendor(v);
+            setDraft(v ? { ...v } : null);
+            setCompleteness(data.completeness ?? 0);
+            setVerified(data.verified ?? false);
+        } catch {
+            setError('Failed to load company profile');
+        }
+    };
+
+    const activeVendor = useMemo(() => {
+        if (!vendor) return null;
+        if (!editMode) return vendor;
+        return draft ?? vendor;
+    }, [vendor, editMode, draft]);
+
+    const updateDraft = (patch: Partial<Vendor>) => {
+        setDraft((d) => {
+            const base = d ?? vendor;
+            if (!base) return d;
+            return { ...base, ...patch };
+        });
+    };
+
+    const listToJson = (val: unknown) => {
+        if (Array.isArray(val)) return JSON.stringify(val);
+        if (val == null) return '';
+        const s = String(val).trim();
+        if (!s) return '';
+        try {
+            const parsed = JSON.parse(s);
+            if (Array.isArray(parsed)) return JSON.stringify(parsed);
+        } catch {
+            // ignore
+        }
+        const list = s.split(',').map((x) => x.trim()).filter(Boolean);
+        return JSON.stringify(list);
+    };
+
+    const handleCancel = () => {
+        setDraft(vendor ? { ...vendor } : null);
+        setEditMode(false);
+        setSaveMsg(null);
+    };
+
     const handleSave = async () => {
+        if (!draft) return;
         setSaving(true);
-        setErrorMsg('');
+        setSaveMsg(null);
         try {
             await api.put('/api/vendors/profile', {
-                ...form,
-                sectors: stringifyList(selectedSectors),
-                services: stringifyList(selectedServices),
-                keywords: stringifyList(keywords),
+                company_name: draft.company_name,
+                country: draft.country,
+                state: draft.state,
+                city: draft.city,
+                year_established: draft.year_established,
+                website: draft.website,
+                linkedin: draft.linkedin,
+                address: draft.address,
+
+                contact_name: draft.contact_name,
+                contact_designation: draft.contact_designation,
+                contact_email: draft.contact_email,
+                contact_mobile: draft.contact_mobile || '',
+                phone: draft.phone || '',
+                alternate_contact: draft.alternate_contact,
+
+                num_employees: draft.num_employees,
+                turnover_range: draft.turnover_range,
+                core_business_areas: draft.core_business_areas,
+                technical_team_size: draft.technical_team_size,
+                description: draft.description,
+
+                sectors: listToJson(draft.sectors),
+                other_sector: draft.other_sector,
+                service_categories: listToJson(draft.service_categories),
+                other_service: draft.other_service,
+                software_tools: listToJson(draft.software_tools),
+                other_software: draft.other_software,
             });
-            setProfile(f => ({
-                ...f, ...form,
-                sectors: stringifyList(selectedSectors),
-                services: stringifyList(selectedServices),
-                keywords: stringifyList(keywords),
-            }));
-            setSuccessMsg('Profile updated successfully!');
+
+            // Refresh from backend so UI reflects DB values
+            await refreshProfile();
             setEditMode(false);
-            // Re-fetch completeness
-            api.get<{ completeness: number; verified: boolean }>('/api/vendors/profile')
-                .then(({ data }) => { setCompleteness(data.completeness); setVerified(data.verified); });
+            setSaveMsg('Profile updated successfully.');
         } catch {
-            setErrorMsg('Failed to save. Please try again.');
+            setSaveMsg('Failed to save changes. Please try again.');
         } finally {
             setSaving(false);
         }
     };
 
-    const toggleChip = (arr: string[], setArr: (a: string[]) => void, val: string) => {
-        setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
-    };
+    // Resource modal
+    const [resourceOpen, setResourceOpen] = useState(false);
+    const [resourceForm, setResourceForm] = useState({
+        name: '',
+        designation: '',
+        discipline: '',
+        years_of_experience: '',
+        expertise: '',
+        role: '',
+        software: '',
+        certifications: '',
+        projects_worked_on: '',
+    });
+    const [resourceBusy, setResourceBusy] = useState(false);
 
-    const addKeyword = () => {
-        const kw = kwInput.trim();
-        if (kw && !keywords.includes(kw)) setKeywords([...keywords, kw]);
-        setKwInput('');
-    };
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        setDocUploading(true);
-        const fd = new FormData();
-        fd.append('file', file);
-        fd.append('doc_type', docType);
+    const addResource = async () => {
+        setResourceBusy(true);
         try {
-            const { data } = await api.post<{ success: boolean; id: number; file_url: string }>('/api/vendors/profile/documents', fd, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+            await api.post('/api/vendors/profile/resource-profiles', resourceForm);
+            setResourceOpen(false);
+            setResourceForm({
+                name: '',
+                designation: '',
+                discipline: '',
+                years_of_experience: '',
+                expertise: '',
+                role: '',
+                software: '',
+                certifications: '',
+                projects_worked_on: '',
             });
-            if (data.success) {
-                setDocuments(prev => [...prev, { id: data.id, doc_type: docType, filename: file.name, file_url: data.file_url, uploaded_at: new Date().toISOString() }]);
-                setSuccessMsg('Document uploaded!');
-            }
-        } catch { setErrorMsg('Document upload failed.'); }
-        finally {
-            setDocUploading(false);
-            if (fileRef.current) fileRef.current.value = '';
+            await refreshProfile();
+        } finally {
+            setResourceBusy(false);
         }
     };
 
-    const handleDeleteDoc = async (docId: number) => {
+    // Project modal
+    const [projectOpen, setProjectOpen] = useState(false);
+    const [projectForm, setProjectForm] = useState({
+        project_name: '',
+        project_client: '',
+        project_sector: '',
+        project_description: '',
+        project_role: '',
+        project_tools: '',
+        project_duration: '',
+        project_year: '',
+    });
+    const [projectBusy, setProjectBusy] = useState(false);
+
+    const addProject = async () => {
+        setProjectBusy(true);
         try {
-            await api.delete(`/api/vendors/profile/documents/${docId}`);
-            setDocuments(prev => prev.filter(d => d.id !== docId));
-        } catch { setErrorMsg('Failed to delete document.'); }
+            await api.post('/api/vendors/profile/portfolio-projects', projectForm);
+            setProjectOpen(false);
+            setProjectForm({
+                project_name: '',
+                project_client: '',
+                project_sector: '',
+                project_description: '',
+                project_role: '',
+                project_tools: '',
+                project_duration: '',
+                project_year: '',
+            });
+            await refreshProfile();
+        } finally {
+            setProjectBusy(false);
+        }
     };
 
-    if (loading) return (
-        <div className="flex justify-center py-24">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
-        </div>
-    );
+    const renderContent = () => {
+        if (!activeVendor) return null;
+        switch (activeTab) {
+            case 'Company Details':
+                return <CompanyDetails vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
+            case 'Contact Person':
+                return <ContactPerson vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
+            case 'Company Overview':
+                return <CompanyOverview vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
+            case 'Sector, Service & Software':
+                return <SectorServiceSoftware vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
+            case 'Resources':
+                return (
+                    <div className="space-y-3">
+                        {editMode && (
+                            <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-500 font-gantari">
+                                    Add/update resources you entered in onboarding.
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setResourceOpen(true)}
+                                    className="px-3 py-1.5 text-xs font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d]"
+                                >
+                                    + Add Resource
+                                </button>
+                            </div>
+                        )}
+                        <Resources vendor={activeVendor} />
+                    </div>
+                );
+            case 'Protfolio & Project':
+                return (
+                    <div className="space-y-3">
+                        {editMode && (
+                            <div className="flex items-center justify-between">
+                                <div className="text-xs text-gray-500 font-gantari">
+                                    Add/update portfolio projects you entered in onboarding.
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setProjectOpen(true)}
+                                    className="px-3 py-1.5 text-xs font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d]"
+                                >
+                                    + Add Project
+                                </button>
+                            </div>
+                        )}
+                        <PortfolioProject vendor={activeVendor} />
+                    </div>
+                );
+            case 'Certificates':
+                return (
+                    <div className="space-y-3">
+                        {editMode && (
+                            <div className="text-xs text-gray-500 font-gantari">
+                                Certificates editing/upload will be added next (currently view-only).
+                            </div>
+                        )}
+                        <Certificates vendor={activeVendor} />
+                    </div>
+                );
+            default:
+                return <CompanyDetails vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
+        }
+    };
 
-    const inputCls = "w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari text-[#353535] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/20 disabled:bg-[#F8F8F8] disabled:text-[#717171]";
+    if (loading) {
+        return (
+            <div className="flex justify-center py-24">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
+            </div>
+        );
+    }
+
+    if (error || !vendor) {
+        return (
+            <div className="p-8 text-center">
+                <p className="text-[#DE3D3A] font-gantari">{error || 'Company profile not found.'}</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
-            {/* Header */}
+        <div className="h-full flex flex-col overflow-hidden font-inter">
+            {/* Header: title, completeness, verified, Edit Profile */}
             <div className="shrink-0 mb-5">
                 <div className="flex items-start justify-between">
                     <div>
                         <h1 className="text-xl font-medium font-gantari text-slate-800">Company Profile</h1>
-                        <p className="text-sm text-[#717171] font-gantari mt-0.5">Manage your company details, documents, and visibility</p>
+                        <p className="text-sm text-[#717171] font-gantari mt-0.5 mb-6">Manage your company details, documents, and visibility</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        {/* Verified badge */}
                         <span className={`flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full ${verified ? 'bg-[#E8F9E8] text-[#16A34A]' : 'bg-[#FFF3E0] text-[#E65100]'}`}>
                             <span className={`w-2 h-2 rounded-full ${verified ? 'bg-[#16A34A]' : 'bg-[#E65100]'}`} />
                             {verified ? 'Verified' : 'Unverified'}
                         </span>
-                        {editMode ? (
-                            <div className="flex gap-2">
-                                <button onClick={() => setEditMode(false)} className="px-4 py-2 text-sm font-semibold font-gantari bg-[#F2F2F2] text-[#353535] rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
-                                <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60">
-                                    {saving ? 'Saving…' : 'Save Changes'}
-                                </button>
-                            </div>
-                        ) : (
-                            <button onClick={() => setEditMode(true)} className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors">
+                        {!editMode ? (
+                            <button
+                                onClick={() => { setEditMode(true); setSaveMsg(null); }}
+                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors"
+                            >
                                 Edit Profile
                             </button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleCancel}
+                                    disabled={saving}
+                                    className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 text-[#353535] rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
+                                >
+                                    {saving ? 'Saving…' : 'Save'}
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Completeness bar */}
-                <div className="mt-4 bg-white border border-[#EBEBEB] rounded-xl p-4 flex items-center gap-4">
+                {saveMsg && (
+                    <div className={`mt-3 text-sm font-gantari ${saveMsg.includes('Failed') ? 'text-[#DE3D3A]' : 'text-green-600'}`}>
+                        {saveMsg}
+                    </div>
+                )}
+
+                {/* Profile completeness bar */}
+                {/* <div className="mt-4 bg-white border border-[#EBEBEB] rounded-xl p-4 flex items-center gap-4">
                     <div className="flex-1">
                         <div className="flex justify-between mb-1.5">
                             <span className="text-sm font-semibold font-gantari text-[#353535]">Profile Completeness</span>
@@ -211,138 +386,130 @@ export default function CompanyProfileV() {
                     <div className="text-[13px] text-[#717171] font-gantari shrink-0">
                         Complete your profile to get <span className="text-[#353535] font-semibold">more opportunities</span>
                     </div>
-                </div>
-
-                {successMsg && <div className="mt-3 p-3 bg-[#F0FDF4] border border-[#22C55E]/30 rounded-xl text-sm font-gantari text-[#14532D] flex items-center gap-2"><span>✅</span>{successMsg}<button onClick={() => setSuccessMsg('')} className="ml-auto text-[#14532D]">✕</button></div>}
-                {errorMsg && <div className="mt-3 p-3 bg-[#FFE5E5] border border-[#DE3D3A]/30 rounded-xl text-sm font-gantari text-[#DE3D3A]">{errorMsg}</div>}
+                </div> */}
             </div>
 
-            {/* Scrollable body */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-5 pb-4">
-
-                {/* Section: Company Details */}
-                <div className="bg-white border border-[#EBEBEB] rounded-xl p-5">
-                    <h2 className="text-base font-bold font-gantari text-[#353535] mb-4">Company Details</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {[
-                            { label: 'Company Name', key: 'company_name' },
-                            { label: 'Contact Name', key: 'contact_name' },
-                            { label: 'Contact Email', key: 'contact_email' },
-                            { label: 'Phone', key: 'phone' },
-                            { label: 'Website', key: 'website' },
-                            { label: 'GST Number', key: 'gst_number' },
-                            { label: 'Registration ID', key: 'reg_id' },
-                        ].map(({ label, key }) => (
-                            <div key={key}>
-                                <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">{label}</label>
-                                <input
-                                    disabled={!editMode}
-                                    value={(editMode ? form : profile)[key as keyof Profile] as string || ''}
-                                    onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                                    className={inputCls}
-                                />
-                            </div>
-                        ))}
-                        <div className="sm:col-span-2">
-                            <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Address</label>
-                            <textarea disabled={!editMode} value={(editMode ? form : profile).address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={2} className={`${inputCls} resize-none`} />
-                        </div>
-                    </div>
+            {/* TD-style layout: sidebar + content */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex gap-8 min-h-0">
+                <div className="w-1/4 min-w-[180px] flex-shrink-0">
+                    <PartnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                 </div>
-
-                {/* Section: Sectors & Services */}
-                <div className="bg-white border border-[#EBEBEB] rounded-xl p-5">
-                    <h2 className="text-base font-bold font-gantari text-[#353535] mb-4">Sectors Served & Services Offered</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <p className="text-xs font-semibold font-gantari text-[#717171] mb-2">Sectors</p>
-                            <div className="flex flex-wrap gap-2">
-                                {SECTOR_OPTIONS.map(s => (
-                                    <button key={s} type="button" disabled={!editMode}
-                                        onClick={() => editMode && toggleChip(selectedSectors, setSelectedSectors, s)}
-                                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${selectedSectors.includes(s) ? 'bg-[#DE3D3A] text-white border-[#DE3D3A]' : 'bg-[#F8F8F8] text-[#353535] border-[#E5E5E5]'} ${editMode ? 'cursor-pointer hover:border-[#DE3D3A]' : 'cursor-default'}`}>
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <p className="text-xs font-semibold font-gantari text-[#717171] mb-2">Services</p>
-                            <div className="flex flex-wrap gap-2">
-                                {SERVICE_OPTIONS.map(s => (
-                                    <button key={s} type="button" disabled={!editMode}
-                                        onClick={() => editMode && toggleChip(selectedServices, setSelectedServices, s)}
-                                        className={`px-3 py-1.5 rounded-full text-[12px] font-semibold font-gantari border transition-colors ${selectedServices.includes(s) ? 'bg-[#3B82F6] text-white border-[#3B82F6]' : 'bg-[#F8F8F8] text-[#353535] border-[#E5E5E5]'} ${editMode ? 'cursor-pointer hover:border-[#3B82F6]' : 'cursor-default'}`}>
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+                <div className="flex-1 bg-white rounded-lg min-h-[400px]">
+                    {renderContent()}
                 </div>
+            </div>
 
-                {/* Section: Keywords */}
-                <div className="bg-white border border-[#EBEBEB] rounded-xl p-5">
-                    <h2 className="text-base font-bold font-gantari text-[#353535] mb-4">Keywords / Skills Tags</h2>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {keywords.map((kw, i) => (
-                            <span key={i} className="flex items-center gap-1.5 bg-[#F2F2F2] text-[#353535] text-[12px] font-semibold font-gantari px-3 py-1 rounded-full">
-                                {kw}
-                                {editMode && <button onClick={() => setKeywords(keywords.filter((_, j) => j !== i))} className="text-[#AEACAC] hover:text-[#DE3D3A] leading-none">×</button>}
-                            </span>
-                        ))}
-                        {keywords.length === 0 && !editMode && <p className="text-sm text-[#AEACAC] font-gantari">No keywords added yet.</p>}
-                    </div>
-                    {editMode && (
-                        <div className="flex gap-2">
-                            <input value={kwInput} onChange={e => setKwInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addKeyword(); } }} placeholder="Type a keyword and press Enter" className={`${inputCls} flex-1`} />
-                            <button onClick={addKeyword} className="px-4 py-2 bg-[#353535] text-white text-sm font-semibold font-gantari rounded-lg hover:bg-[#555]">Add</button>
+            {/* Add Resource Modal */}
+            {resourceOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+                    <div className="w-full max-w-xl bg-white rounded-xl p-5 border border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-gantari font-bold text-[#12141D]">Add Resource</h3>
+                            <button onClick={() => setResourceOpen(false)} className="text-gray-500 hover:text-gray-800">×</button>
                         </div>
-                    )}
-                </div>
-
-                {/* Section: Documents */}
-                <div className="bg-white border border-[#EBEBEB] rounded-xl p-5">
-                    <h2 className="text-base font-bold font-gantari text-[#353535] mb-4">Documents</h2>
-                    {/* Upload row */}
-                    <div className="flex flex-wrap gap-3 mb-5 items-end">
-                        <div>
-                            <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Document Type</label>
-                            <select value={docType} onChange={e => setDocType(e.target.value as DocType)} className={`${inputCls} w-44`}>
-                                {DOC_TYPES.map(dt => <option key={dt.value} value={dt.value}>{dt.label}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Upload File</label>
-                            <input ref={fileRef} type="file" onChange={handleFileUpload} disabled={docUploading}
-                                className="block text-sm font-gantari text-[#353535] file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-[#F2F2F2] file:font-semibold file:font-gantari file:text-[#353535] file:cursor-pointer hover:file:bg-slate-200 disabled:opacity-50" />
-                        </div>
-                        {docUploading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#DE3D3A]" />}
-                    </div>
-                    {/* Document list */}
-                    {documents.length === 0 ? (
-                        <p className="text-sm text-[#AEACAC] font-gantari">No documents uploaded yet.</p>
-                    ) : (
-                        <div className="divide-y divide-[#F0F0F0]">
-                            {documents.map(doc => (
-                                <div key={doc.id} className="flex items-center gap-3 py-3">
-                                    <div className="w-9 h-9 rounded-lg bg-[#F2F2F2] flex items-center justify-center shrink-0">
-                                        <svg className="w-5 h-5 text-[#717171]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414A1 1 0 0 1 19 9.414V19a2 2 0 0 1-2 2z" /></svg>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-semibold font-gantari text-[#353535] truncate">{doc.filename}</p>
-                                        <p className="text-xs text-[#717171] font-gantari">{DOC_TYPES.find(d => d.value === doc.doc_type)?.label || doc.doc_type} · {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : ''}</p>
-                                    </div>
-                                    <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-[12px] text-[#3B82F6] font-semibold font-gantari hover:underline">View</a>
-                                    <button onClick={() => handleDeleteDoc(doc.id)} className="text-[#AEACAC] hover:text-[#DE3D3A] transition-colors">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                ['Name', 'name'],
+                                ['Designation', 'designation'],
+                                ['Discipline', 'discipline'],
+                                ['Years of experience', 'years_of_experience'],
+                                ['Expertise', 'expertise'],
+                                ['Role', 'role'],
+                                ['Software', 'software'],
+                                ['Certifications (text)', 'certifications'],
+                            ].map(([label, key]) => (
+                                <div key={key}>
+                                    <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">{label}</label>
+                                    <input
+                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
+                                        value={(resourceForm as any)[key]}
+                                        onChange={(e) => setResourceForm((f) => ({ ...f, [key]: e.target.value }))}
+                                    />
                                 </div>
                             ))}
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Projects Worked On</label>
+                                <input
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
+                                    value={resourceForm.projects_worked_on}
+                                    onChange={(e) => setResourceForm((f) => ({ ...f, projects_worked_on: e.target.value }))}
+                                />
+                            </div>
                         </div>
-                    )}
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                onClick={() => setResourceOpen(false)}
+                                className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={resourceBusy}
+                                onClick={addResource}
+                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg disabled:opacity-60"
+                            >
+                                {resourceBusy ? 'Adding…' : 'Add'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Add Project Modal */}
+            {projectOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+                    <div className="w-full max-w-xl bg-white rounded-xl p-5 border border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-gantari font-bold text-[#12141D]">Add Project</h3>
+                            <button onClick={() => setProjectOpen(false)} className="text-gray-500 hover:text-gray-800">×</button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {[
+                                ['Project Name', 'project_name'],
+                                ['Client', 'project_client'],
+                                ['Sector', 'project_sector'],
+                                ['Role', 'project_role'],
+                                ['Tools', 'project_tools'],
+                                ['Duration', 'project_duration'],
+                                ['Year', 'project_year'],
+                            ].map(([label, key]) => (
+                                <div key={key}>
+                                    <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">{label}</label>
+                                    <input
+                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
+                                        value={(projectForm as any)[key]}
+                                        onChange={(e) => setProjectForm((f) => ({ ...f, [key]: e.target.value }))}
+                                    />
+                                </div>
+                            ))}
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Description</label>
+                                <textarea
+                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
+                                    rows={3}
+                                    value={projectForm.project_description}
+                                    onChange={(e) => setProjectForm((f) => ({ ...f, project_description: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                            <button
+                                onClick={() => setProjectOpen(false)}
+                                className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={projectBusy}
+                                onClick={addProject}
+                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg disabled:opacity-60"
+                            >
+                                {projectBusy ? 'Adding…' : 'Add'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
