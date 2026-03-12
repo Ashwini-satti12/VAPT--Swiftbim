@@ -122,6 +122,10 @@ def login():
             "full_name": full_name,
             "email": email,
             "company_id": company_id,
+            # Surface profile_picture and basic role data so frontend has it immediately after login.
+            "profile_picture": row.get("profile_picture"),
+            "user_role": row.get("user_role") or row.get("role"),
+            "user_type": user_type,
         },
     })
 
@@ -288,8 +292,9 @@ def me():
     
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
+        # Vendor employees can also have profile pictures; fetch them from vendor_employee.
         cur.execute(
-            "SELECT full_name, NULL AS profile_picture FROM vendor_employee WHERE id = %s",
+            "SELECT full_name, profile_picture FROM vendor_employee WHERE id = %s",
             (g.user_id,),
         )
     else:
