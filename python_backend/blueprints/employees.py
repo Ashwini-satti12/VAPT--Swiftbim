@@ -359,6 +359,13 @@ def update_employee(emp_id):
                     pass
             sets.append(f"`{key}` = %s")
             params.append(value)
+
+    # Password update (never returned back to frontend)
+    password = data.get("password")
+    if password is not None and str(password).strip():
+        hashed = hashlib.md5(str(password).encode()).hexdigest()
+        sets.append("`password` = %s")
+        params.append(hashed)
     
     # Add profile_picture if uploaded
     if profile_path is not None:
