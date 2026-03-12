@@ -590,7 +590,7 @@ export default function ProjectsV() {
                         )}
                     </div>
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                     <label className="block text-[15px] font-bold text-[#353535]">
                         Select BIM Coordinator
                     </label>
@@ -645,7 +645,7 @@ export default function ProjectsV() {
                             </div>
                         )}
                     </div>
-                </div>
+                </div> */}
 
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">

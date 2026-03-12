@@ -16,7 +16,17 @@ interface AttendanceEntry {
 export default function TrackerPM() {
   const [list, setList] = useState<AttendanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState('');
+
+  // Always focus on today's attendance; stored as YYYY-MM-DD
+  const getTodayKey = () => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const [selectedDate] = useState(getTodayKey());
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusOpen, setStatusOpen] = useState(false);
   const statusOptions = ['', 'Available', 'Busy'];
@@ -29,6 +39,8 @@ export default function TrackerPM() {
   ];
   const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const [selectedTimeRange, setSelectedTimeRange] = useState('All Time');
+  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
   const PER_PAGE = 10;
   const PAGINATION_VISIBLE = 4;
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,13 +48,9 @@ export default function TrackerPM() {
 
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const timeDropdownRef = useRef<HTMLDivElement>(null);
   const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return 'Select Date';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
-  };
+  const timeRangeOptions = ['All Time', '09:00 AM - 12:00 PM', '12:00 PM - 04:00 PM', '04:00 PM - 08:00 PM'];
 
   // Normalise item date to YYYY-MM-DD for filtering (selectedDate is YYYY-MM-DD)
   const toItemDateKey = (entry: AttendanceEntry): string => {
@@ -124,6 +132,9 @@ export default function TrackerPM() {
       if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
         setShowEntriesOpen(false);
       }
+      if (timeDropdownRef.current && !timeDropdownRef.current.contains(event.target as Node)) {
+        setTimeDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -190,20 +201,39 @@ export default function TrackerPM() {
   useEffect(() => {
     setCurrentPage(1);
     setPaginationWindowStart(1);
-  }, [selectedShowEntries, selectedStatus, selectedDate]);
+  }, [selectedShowEntries, selectedStatus, selectedTimeRange]);
 
   const filteredList = list.filter((item) => {
-    let matchesDate = true;
-    let matchesStatus = true;
+    // 1) Always restrict to today's attendance
+    const isToday = toItemDateKey(item) === selectedDate;
+    if (!isToday) return false;
 
-    if (selectedDate) {
-      matchesDate = toItemDateKey(item) === selectedDate;
-    }
+    // 2) Optional status filter: Available / Busy (derived from tasks)
     if (selectedStatus) {
-      matchesStatus = getStatus(item) === selectedStatus;
+      if (getStatus(item) !== selectedStatus) return false;
     }
 
-    return matchesDate && matchesStatus;
+    // 3) Optional time-of-day filter based on time_in
+    if (selectedTimeRange !== 'All Time' && item.time_in) {
+      const [hRaw, mRaw] = item.time_in.split(':');
+      const h = Number(hRaw);
+      const m = Number(mRaw);
+      const minutesFromMidnight = h * 60 + m;
+
+      const rangeMap: Record<string, [number, number]> = {
+        '09:00 AM - 12:00 PM': [9 * 60, 12 * 60],
+        '12:00 PM - 04:00 PM': [12 * 60, 16 * 60],
+        '04:00 PM - 08:00 PM': [16 * 60, 20 * 60],
+      };
+
+      const range = rangeMap[selectedTimeRange];
+      if (range) {
+        const [start, end] = range;
+        if (minutesFromMidnight < start || minutesFromMidnight >= end) return false;
+      }
+    }
+
+    return true;
   });
 
   const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
@@ -284,25 +314,60 @@ export default function TrackerPM() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Select Date Filter */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer group min-w-[130px]">
-            <span className={`text-sm font-medium ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
-              {formatDate(selectedDate)}
-            </span>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-              <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-            </svg>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              style={{ colorScheme: 'light' }}
-            />
+          {/* Time Range Filter dropdown with AM/PM ranges */}
+          <div className="relative min-w-[170px]" ref={timeDropdownRef}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setTimeDropdownOpen((o) => !o);
+              }}
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12" />
+                  <polyline points="12 12 16 14" />
+                </svg>
+                <span className="text-sm font-medium text-[#353535]">
+                  {selectedTimeRange}
+                </span>
+              </div>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#616161"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ transform: timeDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {timeDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[170px] py-1">
+                {timeRangeOptions.map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTimeRange(opt);
+                      setTimeDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                      selectedTimeRange === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Status Custom Dropdown */}
@@ -430,7 +495,11 @@ export default function TrackerPM() {
                       <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
                       <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
                       <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
+                        <span
+                          className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${
+                            status === 'Busy' ? 'bg-[#FCE8E8] text-[#D93025]' : 'bg-[#E6F4EA] text-[#1E7E34]'
+                          }`}
+                        >
                           {status}
                         </span>
                       </td>

@@ -615,19 +615,18 @@ export default function EmployeesPM() {
                   />
                 )}
                 <CustomDropdown
-                  options={viewMode === 'card' ? ['All', 'Online', 'Offline'] : ['All', 'Active', 'Inactive']}
+                  options={viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']}
                   value={
                     statusFilter === 'All' 
                       ? 'Status' 
                       : (viewMode === 'card' 
-                          ? (statusFilter === 'Active' ? 'Online' : statusFilter === 'Inactive' ? 'Offline' : statusFilter)
+                          ? (statusFilter === 'Active' ? 'Active' : statusFilter === 'Inactive' ? 'Deactive' : statusFilter)
                           : statusFilter)
                   }
                   onChange={(val) => {
                     let nextStatus = val;
                     if (viewMode === 'card') {
-                      if (val === 'Online') nextStatus = 'Active';
-                      if (val === 'Offline') nextStatus = 'Inactive';
+                      if (val === 'Deactive') nextStatus = 'Inactive';
                     }
                     setStatusFilter(nextStatus);
                     setCurrentPage(1);
@@ -667,7 +666,7 @@ export default function EmployeesPM() {
                       <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                         <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
                         <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                          {emp.active === 'active' ? 'Online' : 'Offline'}
+                          {emp.active === 'active' ? 'Active' : 'Deactive'}
                         </span>
                       </div>
                     </div>
@@ -1115,8 +1114,9 @@ export default function EmployeesPM() {
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
                     onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                     required
+                    disabled
                   />
                 </div>
                 <div>
@@ -1133,10 +1133,11 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                     <input
                       type="password"
-                      placeholder="Enter Password (Leave blank to keep current)"
+                      placeholder="******** (password hidden)"
                       value={editForm.password}
                       onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    disabled
                     />
                   </div>
                   <div className="relative">
@@ -1187,8 +1188,9 @@ export default function EmployeesPM() {
                     placeholder="Enter Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                     required
+                    disabled
                   />
                 </div>
                 <div className="relative">
