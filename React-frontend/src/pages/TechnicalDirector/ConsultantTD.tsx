@@ -165,10 +165,10 @@ function CustomDropdown({
           ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold" 
           : styleType === "table"
           ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-          : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
+          : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
-        <span>{value || placeholder}</span>
+        <span className={styleType === "form" ? (value ? "text-[#353535]" : "text-[#8B8B8B]") : ""}>{value || placeholder}</span>
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
       </button>
       {isOpen && (
@@ -182,7 +182,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[15px] text-[#353535] font-Gantari hover:bg-[#F4F4F4] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4] transition-colors"
               >
                 {option}
               </button>
@@ -1162,39 +1162,39 @@ export default function ConsultantTD() {
                 {/* Column 1 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="text"
                       placeholder="Enter Employee Name"
                       value={form.full_name}
                       onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="text"
                       placeholder="Enter Phone Number"
                       value={form.phone_number}
                       onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="password"
                       placeholder="Enter Password"
                       value={form.password}
                       onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
                       value={form.user_role}
@@ -1203,7 +1203,7 @@ export default function ConsultantTD() {
                     />
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={departmentOptions}
                       value={form.department}
@@ -1216,27 +1216,27 @@ export default function ConsultantTD() {
                 {/* Column 2 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
                       value={form.dob}
                       onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="email"
                       placeholder="Enter Email"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={['Trainee', 'Consultant',]}
                       value={form.type}
@@ -1245,21 +1245,21 @@ export default function ConsultantTD() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
                       value={form.joining_date}
                       onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                    <div className="flex items-center bg-[#F4F4F4] rounded-lg overflow-hidden">
                       <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                         {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                       </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
                         Browse File
                         <input
                           type="file"
@@ -1281,21 +1281,21 @@ export default function ConsultantTD() {
                   placeholder="Type your Address..."
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8  ">
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1312,7 +1312,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F2F2F2] text-[#616161] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1325,40 +1325,40 @@ export default function ConsultantTD() {
                 {/* Column 1 */}
                 <div className="space-y-5">
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="text"
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
                     onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
                     disabled
-                    className="w-full px-4 py-3 bg-[#E0E0E0] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none cursor-not-allowed opacity-70"
+                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#E0E0E0] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     required
                   />
                 </div>
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
                   <input
                       type="text"
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="password"
                       placeholder="Password cannot be changed here"
                       value="********"
                       disabled
-                      className="w-full px-4 py-3 bg-[#E0E0E0] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none cursor-not-allowed opacity-70"
+                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#E0E0E0] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     />
                     <p className="text-[12px] text-[#666666] mt-1 font-Gantari">Password is encrypted and cannot be viewed or edited here</p>
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
                       value={editForm.user_role}
@@ -1367,7 +1367,7 @@ export default function ConsultantTD() {
                     />
                   </div>
                   <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
                     <CustomDropdown
                       options={departmentOptions}
                       value={editForm.department}
@@ -1376,13 +1376,13 @@ export default function ConsultantTD() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 </div>
@@ -1390,27 +1390,27 @@ export default function ConsultantTD() {
                 {/* Column 2 */}
                 <div className="space-y-5">
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
                       value={editForm.dob}
                       onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-3 text-[14px] text-[#353535] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="email"
                     placeholder="Enter Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     required
                   />
                 </div>
                 <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                   <CustomDropdown
                     options={['Trainee', 'Consultant', ]}
                     value={editForm.user_type}
@@ -1419,22 +1419,22 @@ export default function ConsultantTD() {
                   />
                 </div>
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="date"
                     value={editForm.doj}
                     onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                    className="w-full px-4 py-3 text-[14px] text-[#353535] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="text"
                     placeholder="0000$"
                     value={editForm.salary}
                     onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1499,7 +1499,7 @@ export default function ConsultantTD() {
                   placeholder="Type your Address..."
                   value={editForm.address}
                   onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
 
