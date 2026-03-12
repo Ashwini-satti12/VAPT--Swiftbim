@@ -653,6 +653,107 @@ def vendor_proposals():
     return jsonify({"proposals": proposals})
 
 
+<<<<<<< HEAD
+=======
+@bp.route("/proposals/phase-one", methods=["GET"])
+@login_required
+def get_phase_one_proposal():
+    """
+    GET /api/vendors/proposals/phase-one
+    Fetch the first-phase proposal from the marketing (new_swiftbim) DB
+    for a specific project/opportunity.
+
+    Query params:
+      - opportunity_id (preferred) or service_id: numeric id linking to proposals.service_id
+    """
+    service_id = request.args.get("opportunity_id", type=int) or request.args.get(
+        "service_id", type=int
+    )
+    if not service_id:
+        return jsonify({"proposal": None}), 400
+
+    # If this is called from TD/Vendor with `opportunity_id` (vendor_bidding.id),
+    # we need to find the specific proposal linked to this project.
+    target_proposal_id = None
+    if request.args.get("opportunity_id"):
+        try:
+            from .auth import get_db
+            main_conn = get_db()
+            main_cur = main_conn.cursor(dictionary=True)
+            # Find the project details
+            main_cur.execute("""
+                SELECT b.project_id, p.client_id, p.budget 
+                FROM vendor_bidding b
+                JOIN projects p ON b.project_id = p.id
+                WHERE b.id = %s
+            """, (service_id,))
+            bidding_row = main_cur.fetchone()
+            
+            if bidding_row:
+                p2_client_id = bidding_row.get("client_id")
+                p2_budget = bidding_row.get("budget")
+                
+                # Check for a verified contract in Phase 1 matching this client and budget
+                cur_temp = vendor_cursor()
+                cur_temp.execute("""
+                    SELECT proposal_id FROM contracts 
+                    WHERE client_id = %s AND total_cost = %s 
+                    AND status NOT IN ('Draft', 'cancelled')
+                    ORDER BY id DESC LIMIT 1
+                """, (p2_client_id, p2_budget))
+                contract_row = cur_temp.fetchone()
+                if contract_row:
+                    target_proposal_id = contract_row["proposal_id"]
+                
+                # Update service_id for fallback/queries if needed
+                service_id = bidding_row["project_id"]
+        except Exception:
+            pass
+
+    cur = vendor_cursor()
+
+    if target_proposal_id:
+        sql = """
+            SELECT p.*, e.project_type_sector, e.bim_services_required 
+            FROM proposals p 
+            LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+            WHERE p.id = %s
+        """
+        params = [target_proposal_id]
+    else:
+        sql = """
+            SELECT p.*, e.project_type_sector, e.bim_services_required 
+            FROM proposals p 
+            LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+            WHERE p.service_id = %s 
+            ORDER BY p.created_at DESC LIMIT 1
+        """
+        params = [service_id]
+
+    try:
+        cur.execute(sql, tuple(params))
+        row = cur.fetchone()
+
+        # If nothing matches, fall back to the latest globally
+        if not row:
+            cur.execute("""
+                SELECT p.*, e.project_type_sector, e.bim_services_required 
+                FROM proposals p 
+                LEFT JOIN bim_enquiry e ON p.service_id = e.id 
+                ORDER BY p.created_at DESC LIMIT 1
+            """)
+            row = cur.fetchone()
+
+        if not row:
+            return jsonify({"proposal": None})
+
+        proposal = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"proposal": proposal})
+    except Exception:
+        return jsonify({"proposal": None})
+
+
+>>>>>>> 893346e42dbb9ac713399726cf0d01ae18cfa7b7
 @bp.route("/proposals/<int:proposal_id>/respond", methods=["POST"])
 @login_required
 def respond_to_proposal(proposal_id):

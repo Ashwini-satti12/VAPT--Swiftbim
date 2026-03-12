@@ -390,9 +390,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
 
     // ── Render ───────────────────────────────────────────────────────────────────
     return (
-        <div>
-            <h2 className="text-2xl text-black mb-4">Chat</h2>
-            <div className="flex gap-4 h-[calc(100vh-8rem)] min-h-[500px] p-4 bg-transparent">
+        <div className="px-1 pt-1 pb-0 flex flex-col h-[calc(100vh-110px)] bg-white overflow-hidden">
+            <div className="px-2 py-3 flex-shrink-0">
+                <h2 className="text-2xl font-semibold text-[#000000]">Chat</h2>
+            </div>
+            <div className="flex gap-4 flex-1 min-h-0 px-2 pb-2 bg-transparent overflow-hidden">
                 {/* ── Left panel: Contacts ────────────────────────────────────────────── */}
                 <div className="w-[300px] shrink-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-200 bg-white">
@@ -461,7 +463,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                     {selectedContact ? (
                         <>
                             {/* Conversation header */}
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF]">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF] flex-shrink-0">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="relative">
                                         <Avatar name={selectedContact.name} src={selectedContact.profile_picture} className="w-11 h-11" />
@@ -496,7 +498,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                             </div>
 
                             {/* Messages area */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                                 <div className="flex items-center gap-3 my-4">
                                     <div className="flex-1 h-px bg-slate-200" />
                                     <span className="text-xs font-medium text-slate-500">{today}</span>
@@ -592,7 +594,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 )}
 
                             {/* Message input */}
-                            <div className="p-4 border-t border-slate-200 bg-[#FFFFFF]">
+                            <div className="p-4 border-t border-slate-200 bg-[#FFFFFF] flex-shrink-0">
                                 <input
                                     id="chat-file-attach-input"
                                     ref={fileInputRef}

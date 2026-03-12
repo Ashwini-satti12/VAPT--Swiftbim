@@ -4,6 +4,9 @@ import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/rea
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
     { value: 'show', label: 'Show', start: 0, end: 50 },
@@ -18,8 +21,17 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
 
 interface Employee {
     id: number;
-    full_name: string;
-    email: string;
+    full_name?: string;
+    user_role?: string;
+    empid?: string;
+    profile_picture?: string;
+    email?: string;
+    phone_number?: string;
+    dob?: string;
+    doj?: string;
+    user_type?: string;
+    address?: string;
+    department?: string;
 }
 
 interface Team {
@@ -34,10 +46,19 @@ interface Team {
 
 
 
-function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team: Team; getEmpName: (id: number | string) => string; onEdit: (team: Team) => void; onDelete: (id: number) => void; onViewDetails: (team: Team) => void }) {
+function TeamCard({ team, employees, onEdit, onDelete, onViewDetails, onShowAllMembers, onShowMemberProfile }: { team: Team; employees: Employee[]; onEdit: (team: Team) => void; onDelete: (id: number) => void; onViewDetails: (team: Team) => void; onShowAllMembers: (members: Employee[]) => void; onShowMemberProfile: (member: Employee) => void }) {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    const memberIds = team.employee.split(',').filter(Boolean);
+    const memberIds = team.employee.split(',').filter(Boolean).map(id => id.trim());
+
+    const getEmpName = (id: number | string) => {
+        const e = employees.find(emp => String(emp.id) === String(id));
+        return e ? (e.full_name || 'Unknown') : 'Unknown';
+    };
+
+    const getEmployee = (id: number | string) => {
+        return employees.find(emp => String(emp.id) === String(id));
+    };
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -50,19 +71,22 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
-            {/* Header: Title and Options */}
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
-                    {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
-                </h3>
-                <div className="absolute top-6 right-6" ref={menuRef}>
-                    <button
-                        onClick={() => setShowMenu(!showMenu)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
-                    >
-                        <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
-                    </button>
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+            {/* Team Name */}
+            <div className="flex flex-col mb-4 pt-1">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
+                <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
+                    {team.team_name || team.teamname || "Untitled Team"}
+                </span>
+            </div>
+
+            <div className="absolute top-6 right-6" ref={menuRef}>
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+                >
+                    <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
+                </button>
 
                     {showMenu && (
                         <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
@@ -73,8 +97,8 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                 }}
                                 className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
+                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                                <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">View</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -83,8 +107,8 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                 }}
                                 className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <PencilSquareIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Edit</span>
+                                <PencilSquareIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
+                                <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
                             </button>
                             <button
                                 onClick={() => {
@@ -93,41 +117,92 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                 }}
                                 className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
                             >
-                                <TrashIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
-                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Delete</span>
+                                <TrashIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
+                                <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
                             </button>
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* Team Leader */}
             <div className="flex flex-col mb-5">
-                <span className="text-[13px] text-[#64748B] mb-1 font-medium">Team Leader</span>
-                <span className="text-[15px] font-bold text-[#334155]">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
+                <span className="text-[18px] font-bold text-[#353535] truncate">
                     {team.leader_name || getEmpName(team.leader)}
                 </span>
             </div>
 
-            {/* Members */}
-            <div className="mt-2 mb-6 flex-1">
-                <span className="text-[12px] text-[#64748B] mb-2 block font-medium">Members ({memberIds.length})</span>
-                <div className="flex -space-x-1.5">
-                    {memberIds.slice(0, 5).map((eid) => (
-                        <div
-                            key={eid}
-                            className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase shadow-sm"
-                            title={getEmpName(eid)}
-                        >
-                            {getEmpName(eid)[0]}
-                        </div>
-                    ))}
-                    {memberIds.length > 5 && (
-                        <div className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[10px] font-bold text-[#64748B] shadow-sm">
-                            +{memberIds.length - 5}
-                        </div>
-                    )}
+            <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+
+            {/* Members & Details */}
+            <div className="mt-auto flex items-center justify-between">
+                <div className="flex -space-x-3">
+                    {(() => {
+                        const projectEmployees = memberIds
+                            .map(id => getEmployee(id))
+                            .filter(Boolean) as Employee[];
+
+                        const visibleMembers = projectEmployees.slice(0, 3);
+                        const remainingCount = Math.max(0, projectEmployees.length - 3);
+
+                        return (
+                            <>
+                                {visibleMembers.map((emp) => {
+                                    const profileUrl = emp.profile_picture
+                                        ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                        : null;
+
+                                    return (
+                                        <div
+                                            key={emp.id}
+                                            className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                            title={emp.full_name}
+                                            onClick={() => onShowMemberProfile(emp)}
+                                        >
+                                            {profileUrl ? (
+                                                <img
+                                                    src={profileUrl}
+                                                    alt={emp.full_name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                                    {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {remainingCount > 0 && (
+                                    <div
+                                        className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => onShowAllMembers(projectEmployees)}
+                                    >
+                                        +{remainingCount}
+                                    </div>
+                                )}
+                                {visibleMembers.length === 0 && memberIds.length > 0 && (
+                                     <div
+                                     className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                     onClick={() => onShowAllMembers(memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[])}
+                                 >
+                                     +{memberIds.length}
+                                 </div>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
+                <button
+                    onClick={() => onViewDetails(team)}
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2"
+                >
+                    Details
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                </button>
             </div>
 
         </div>
@@ -149,6 +224,14 @@ export default function CreateteamTD() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const [selectedShowEntries, setSelectedShowEntries] = useState('show');
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Profile modal state
+    const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+    const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+
+    // All members modal state
+    const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+    const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
 
     const selectedRange = showEntriesOptions.find(opt => opt.value === selectedShowEntries) || showEntriesOptions[0];
 
@@ -371,12 +454,20 @@ export default function CreateteamTD() {
                             <TeamCard
                                 key={team.team_id}
                                 team={team}
-                                getEmpName={getEmpName}
+                                employees={employees}
                                 onEdit={handleEditClick}
                                 onDelete={handleDelete}
                                 onViewDetails={(t) => {
                                     setSelectedTeam(t);
                                     setShowDetailsModal(true);
+                                }}
+                                onShowAllMembers={(members) => {
+                                    setAllMembersList(members);
+                                    setShowAllMembersModal(true);
+                                }}
+                                onShowMemberProfile={(member) => {
+                                    setSelectedMember(member);
+                                    setShowMemberProfileModal(true);
                                 }}
                             />
                         ))
@@ -645,6 +736,240 @@ export default function CreateteamTD() {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* All Members Modal */}
+            {showAllMembersModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => setShowAllMembersModal(false)}
+                                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                                title="Close"
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={3}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                            <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                                All Members ({allMembersList.length})
+                            </h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
+                            {allMembersList.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {allMembersList.map((emp) => {
+                                        const profileUrl = emp.profile_picture
+                                            ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                            : null;
+
+                                        return (
+                                            <div
+                                                key={emp.id}
+                                                className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                                                onClick={() => {
+                                                    setSelectedMember(emp);
+                                                    setShowAllMembersModal(false);
+                                                    setShowMemberProfileModal(true);
+                                                }}
+                                            >
+                                                {profileUrl ? (
+                                                    <img
+                                                        src={profileUrl}
+                                                        alt={emp.full_name || "Member"}
+                                                        className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                                                        <span className="text-slate-600 font-bold text-lg">
+                                                            {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                        {emp.full_name || `Employee ${emp.id}`}
+                                                    </p>
+                                                    {emp.user_role && (
+                                                        <p className="text-[14px] font-Gantari font-bold text-[#999999]">
+                                                            {emp.user_role}
+                                                        </p>
+                                                    )}
+                                                    {emp.email && (
+                                                        <p className="text-[13px] font-Gantari text-[#666666] mt-1">
+                                                            {emp.email}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                    <p className="text-[16px] font-Gantari">No members found</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Member Profile Modal */}
+            {showMemberProfileModal && selectedMember && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full flex flex-col animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowMemberProfileModal(false);
+                                    setSelectedMember(null);
+                                }}
+                                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                                title="Close"
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={3}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                            <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                                Member Profile
+                            </h3>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+                            <div className="flex flex-col items-center">
+                                {selectedMember.profile_picture ? (
+                                    <img
+                                        src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                                        alt={selectedMember.full_name || "Member"}
+                                        className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
+                                        <span className="text-slate-600 font-bold text-3xl">
+                                            {(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <div className="w-full space-y-4">
+                                    <div>
+                                        <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
+                                        <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                                            {selectedMember.full_name || "Not Available"}
+                                        </p>
+                                    </div>
+
+                                    {selectedMember.empid && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.empid}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.dob && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Birth</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {new Date(selectedMember.dob).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.phone_number && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.phone_number}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.email && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.email}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.user_role && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.user_role}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.address && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Address</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.address}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.department && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Department</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {selectedMember.department}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {selectedMember.doj && (
+                                        <div>
+                                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Joining</p>
+                                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
+                                                {new Date(selectedMember.doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

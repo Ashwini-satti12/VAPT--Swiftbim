@@ -170,15 +170,15 @@ export default function DashboardBL() {
 
     const goPrevMonth = () => {
         if (displayMonth === 0) {
-            setDisplayYear((y) => y - 1);
+            setDisplayYear((y: number) => y - 1);
             setDisplayMonth(11);
-        } else setDisplayMonth((m) => m - 1);
+        } else setDisplayMonth((m: number) => m - 1);
     };
     const goNextMonth = () => {
         if (displayMonth === 11) {
-            setDisplayYear((y) => y + 1);
+            setDisplayYear((y: number) => y + 1);
             setDisplayMonth(0);
-        } else setDisplayMonth((m) => m + 1);
+        } else setDisplayMonth((m: number) => m + 1);
     };
 
     const handleDateClick = (cell: { day: number; type: 'prev' | 'current' | 'next' }) => {
@@ -203,22 +203,22 @@ export default function DashboardBL() {
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
                 {/* KPI Grid — same style as DashboardTD */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
-                    </div>
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                    </Link>
+                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
-                    </div>
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                    </Link>
+                    <Link to="/bl/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
-                    </div>
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                    </Link>
+                    <Link to="/bl/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
-                    </div>
+                    </Link>
                 </div>
             </div>
 
@@ -320,7 +320,7 @@ export default function DashboardBL() {
                             <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                                 <button
                                     type="button"
-                                    onClick={() => setMonthDropdownOpen((o) => !o)}
+                                    onClick={() => setMonthDropdownOpen((o: boolean) => !o)}
                                     className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent"
                                     aria-expanded={monthDropdownOpen}
                                     aria-haspopup="listbox"
@@ -354,10 +354,10 @@ export default function DashboardBL() {
                             <div className="flex items-center">
                                 <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                 <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
                                     </button>
-                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                                     </button>
                                 </div>
@@ -410,7 +410,7 @@ export default function DashboardBL() {
                                 {celebrations.length === 0 ? (
                                     <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
                                 ) : (
-                                    celebrations.map((event, i) => (
+                                    celebrations.map((event: CelebrationEvent, i: number) => (
                                         <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
                                             <div className="flex justify-between items-center mb-2">
                                                 <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>
