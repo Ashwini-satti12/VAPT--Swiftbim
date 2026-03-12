@@ -653,8 +653,6 @@ def vendor_proposals():
     return jsonify({"proposals": proposals})
 
 
-<<<<<<< HEAD
-=======
 @bp.route("/proposals/phase-one", methods=["GET"])
 @login_required
 def get_phase_one_proposal():
@@ -753,7 +751,6 @@ def get_phase_one_proposal():
         return jsonify({"proposal": None})
 
 
->>>>>>> 893346e42dbb9ac713399726cf0d01ae18cfa7b7
 @bp.route("/proposals/<int:proposal_id>/respond", methods=["POST"])
 @login_required
 def respond_to_proposal(proposal_id):
