@@ -208,7 +208,7 @@ export default function Clients() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-white font-semibold transition shadow-md shadow-red-100"
           >
             <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
             Add Client

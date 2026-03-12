@@ -3,14 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import api from '../../lib/api';
-import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
-
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg"
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-
+import backIcon from "../../assets/TechnicalDirector/back icon.svg"
+import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 interface Employee {
   id: number;
   full_name: string;
@@ -359,44 +359,43 @@ export default function ProjectsBL() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSearchParams({}, { replace: true });
-              }}
-              className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
-              title="Close"
-            >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="min-w-0">
-              <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">
-                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Tower 1 to 09</p>
-                <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Overall Progress Tracker</p>
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSelectedProjectForView(null);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+              </button>
+              <div className="min-w-0">
+                <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                  {selectedProjectForView?.project_name ?? "Loading..."}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                    Overall Progress Tracker
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Project View Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
-            {/* Task Status Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
-              {/* To Do Tasks */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
+                {/* Task Status Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
               <button
                 type="button"
                 onClick={() => navigate('/teamtask?status=todo')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
-                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">To Do Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {Math.max(0, (selectedProjectForView.total_tasks ?? 0) - (selectedProjectForView.completed_tasks ?? 0))}
                 </p>
               </button>
@@ -405,10 +404,10 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => navigate('/teamtask?status=in_progress')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
-                <p className="text-[#353535] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">In Progress Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.progress ?? 0}
                 </p>
               </button>
@@ -417,10 +416,10 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => navigate('/teamtask?status=paused')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
-                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Paused Tasks</p>
-                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Paused Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.total_tasks ?? 0}
                 </p>
               </button>
@@ -429,10 +428,10 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => navigate('/teamtask?status=completed')}
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
-                <p className="text-[#333333] text-center group-hover:text-white text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                <p className="text-[#333333] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Completed Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.completed_tasks ?? 0}
                 </p>
               </button>
@@ -799,9 +798,7 @@ export default function ProjectsBL() {
                 onClick={() => setShowMilestones(false)}
                 className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
               </button>
               <div className="min-w-0">
                 <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">Payment Milestones</h3>
@@ -815,9 +812,7 @@ export default function ProjectsBL() {
               className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[15px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
               title="Add Milestone"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-              </svg>
+              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
               Add Milestone
             </button>
           </div>
@@ -867,9 +862,7 @@ export default function ProjectsBL() {
                   onClick={() => setShowAddMilestoneModal(true)}
                   className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                  </svg>
+                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Add Milestone
                 </button>
               </div>
@@ -1795,18 +1788,34 @@ export default function ProjectsBL() {
                   const offset = circumference - (progress / 100) * circumference;
 
                   return (
-                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
                       <div>
-                        <div className="flex items-center justify-between mb-6 mt-2 pr-2">
+                        <div className="flex items-center justify-between mb-6 pr-2">
                           <div className="relative flex items-center justify-center">
                             <svg className="w-20 h-20 transform -rotate-90">
-                              <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                              <circle
-                                cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-                              />
-                            </svg>
+                                <circle
+                                  cx="40"
+                                  cy="40"
+                                  r={radius}
+                                  stroke="#f1f5f9"
+                                  strokeWidth="6"
+                                  fill="transparent"
+                                />
+                                <circle
+                                  cx="40"
+                                  cy="40"
+                                  r={radius}
+                                  stroke="#0a9344"
+                                  strokeWidth="6"
+                                  fill="transparent"
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={offset}
+                                  strokeLinecap="round"
+                                  style={{
+                                    transition: "stroke-dashoffset 0.8s ease-in-out",
+                                  }}
+                                />
+                              </svg>
                             <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
                           </div>
                           <div className="relative">
@@ -1818,7 +1827,7 @@ export default function ProjectsBL() {
                                 setOpenMenuId(openMenuId === p.id ? null : p.id);
                               }}
                             >
-                              <img src={threedot} alt="" className='w-8 h-8' />
+                              <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B] -mt-10" />
                             </button>
                             <div
                               className={`absolute -right-30 w-72 bg-white/10 backdrop-blur-md rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 shadow-xl overflow-hidden ${openMenuId === p.id ? 'opacity-100 visible translate-y-2' : 'opacity-0 invisible translate-y-0'}`}
@@ -1898,10 +1907,10 @@ export default function ProjectsBL() {
                           </div>
                         </div>
 
-                        <div className="flex justify-between items-start mb-4 ml-8 -mt-4">
+                        <div className="flex justify-between items-start mb-2 ml-8 -mt-4">
                           <div>
                             <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
-                              {p.project_name ?? 'Prestige Park Groove'}
+                              {p.project_name ?? 'Untitled Project'}
                             </h3>
                           </div>
                         </div>
@@ -1909,11 +1918,11 @@ export default function ProjectsBL() {
                       <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-5 mt-auto">
                         <div className="flex -space-x-5">
                           {[1, 2, 3].map((i) => (
-                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
+                            <div key={i} className="w-10 h-10 rounded-full border-2 border-[#ECECEC] bg-slate-200 overflow-hidden shadow-sm">
                               <img src={ProfileIcon} alt="avatar" className="w-full h-full object-cover" />
                             </div>
                           ))}
-                          <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
+                          <div className="w-10 h-10 rounded-full border-2 border-[#ECECEC] bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
                             +4
                           </div>
                         </div>

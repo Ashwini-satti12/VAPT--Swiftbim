@@ -151,7 +151,8 @@ export default function ConsultantBC() {
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Deactive'>('All');
 
     const canAdd = user?.panel_type === 1;
 
@@ -248,8 +249,15 @@ export default function ConsultantBC() {
         }
     }, [editParam, list]);
 
-    const paginatedList = list.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const totalPages = Math.ceil(list.length / itemsPerPage);
+    const filteredList = list.filter((emp) => {
+        if (statusFilter === 'All') return true;
+        const isActive = (emp.active || '').toLowerCase() === 'active';
+        return statusFilter === 'Active' ? isActive : !isActive;
+    });
+
+    const effectivePerPage = itemsPerPage === 0 ? filteredList.length || 1 : itemsPerPage;
+    const paginatedList = filteredList.slice((currentPage - 1) * effectivePerPage, currentPage * effectivePerPage);
+    const totalPages = Math.ceil(filteredList.length / effectivePerPage);
 
     function exportCsv() {
         const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -562,20 +570,56 @@ export default function ConsultantBC() {
                     >
                         <FiGrid className="w-6 h-6" />
                     </button>
-                    <div className="relative group">
+
+                    {/* Show: dropdown */}
+                    <div className="relative">
                         <div className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F2] rounded-[5px]">
                             <span className="text-[14px] font-Gantari text-[#6B6B6B]">Show:</span>
-                            <button className="flex items-center gap-2 text-[14px] font-semibold text-[#353535]">
-                                {itemsPerPage}
-                                <FiChevronDown className="w-4 h-4 text-slate-500" />
-                            </button>
+                            <div className="relative">
+                                <select
+                                    value={itemsPerPage === 0 ? 'All' : String(itemsPerPage)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'All') {
+                                            setItemsPerPage(0);
+                                            setCurrentPage(1);
+                                        } else {
+                                            setItemsPerPage(parseInt(val, 10));
+                                            setCurrentPage(1);
+                                        }
+                                    }}
+                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
+                                >
+                                    <option value="10">10</option>
+                                    <option value="20">20</option>
+                                    <option value="30">30</option>
+                                    <option value="All">All</option>
+                                </select>
+                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                            </div>
                         </div>
                     </div>
-                    <div className="relative group">
-                        <button className="inline-flex items-center gap-4 px-5 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-[5px] font-semibold font-Gantari">
-                            Status
-                            <FiChevronDown className="w-5 h-5 text-slate-500" />
-                        </button>
+
+                    {/* Status filter dropdown */}
+                    <div className="relative">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-[5px]">
+                            <span className="text-[14px] font-Gantari text-[#353535]">Status</span>
+                            <div className="relative">
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => {
+                                        setStatusFilter(e.target.value as 'All' | 'Active' | 'Deactive');
+                                        setCurrentPage(1);
+                                    }}
+                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
+                                >
+                                    <option value="All">All</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Deactive">Deactive</option>
+                                </select>
+                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -607,7 +651,7 @@ export default function ConsultantBC() {
                                             <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                                                 <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
                                                 <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                                                    {emp.active === 'active' ? 'Online' : 'Offline'}
+                                                    {emp.active === 'active' ? 'Active' : 'Deactive'}
                                                 </span>
                                             </div>
                                         </div>
@@ -721,6 +765,7 @@ export default function ConsultantBC() {
                             <table className="min-w-full divide-y divide-slate-200">
                                 <thead className="sticky top-0 z-30 bg-slate-50">
                                     <tr>
+                                        <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">Sl.No</th>
                                         <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">Emp ID</th>
                                         <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">Consultant Name</th>
                                         <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">Email ID</th>
@@ -731,13 +776,16 @@ export default function ConsultantBC() {
                                 <tbody className="divide-y divide-slate-200">
                                     {paginatedList.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                                                 No consultants found.
                                             </td>
                                         </tr>
                                     ) : (
-                                        paginatedList.map((emp, idx) => (
+                                        paginatedList.map((emp, idx) => {
+                                            const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
+                                            return (
                                             <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}>
+                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{slNo}</td>
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.empid || `EMP0${emp.id + 10}`}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
@@ -798,7 +846,7 @@ export default function ConsultantBC() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ))
+                                        )})
                                     )}
                                 </tbody>
                             </table>
@@ -1229,8 +1277,8 @@ export default function ConsultantBC() {
                                             type="text"
                                             placeholder="Enter employee name"
                                             value={editForm.full_name}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                                             required
                                         />
                                     </div>
@@ -1250,10 +1298,10 @@ export default function ConsultantBC() {
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                                         <input
                                             type="password"
-                                            placeholder="Enter Password"
-                                            value={editForm.password}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            placeholder="******** (password hidden)"
+                                            value=""
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                                         />
                                     </div>
 
@@ -1321,8 +1369,8 @@ export default function ConsultantBC() {
                                             type="email"
                                             placeholder="Enter Email"
                                             value={editForm.email}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
                                             required
                                         />
                                     </div>

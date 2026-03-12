@@ -121,7 +121,17 @@ export default function ManageLeave() {
             try {
                 const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
                 const apps = data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                // BIM Lead should see:
+                // - All BIM Modeler / BIM Coordinator leaves
+                // - Plus their own applications (any role)
+                const allowedRoles = new Set(['bim modeler', 'bim coordinator']);
+                const filteredApps = apps.filter((app) => {
+                    const role = String(app.role || '').toLowerCase();
+                    const isAllowedRole = allowedRoles.has(role);
+                    const isOwn = user && app.employee_id === user.id;
+                    return isAllowedRole || isOwn;
+                });
+                const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
                     id: app.lid,
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
@@ -148,7 +158,7 @@ export default function ManageLeave() {
         };
 
         fetchLeaves();
-    }, []);
+    }, [user?.id]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -281,7 +291,14 @@ export default function ManageLeave() {
             try {
                 const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
                 const apps = resp.data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                const allowedRoles = new Set(['bim modeler', 'bim coordinator']);
+                const filteredApps = apps.filter((app) => {
+                    const role = String(app.role || '').toLowerCase();
+                    const isAllowedRole = allowedRoles.has(role);
+                    const isOwn = user && app.employee_id === user.id;
+                    return isAllowedRole || isOwn;
+                });
+                const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
                     id: app.lid,
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
@@ -329,7 +346,8 @@ export default function ManageLeave() {
 
     const handleEdit = (row: LeaveEntry) => {
         setEditingLeave(row);
-        setEmployeeName(row.employeeName);
+        // Show employee name with role for display in the edit modal
+        setEmployeeName(row.role ? `${row.employeeName} - ${row.role}` : row.employeeName);
         setLeaveType(row.leaveType);
         setLeaveFrom(toInputDate(row.fromDate));
         setLeaveTo(toInputDate(row.toDate));
@@ -385,7 +403,14 @@ export default function ManageLeave() {
             try {
                 const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
                 const apps = resp.data.applications || [];
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                const allowedRoles = new Set(['bim modeler', 'bim coordinator']);
+                const filteredApps = apps.filter((app) => {
+                    const role = String(app.role || '').toLowerCase();
+                    const isAllowedRole = allowedRoles.has(role);
+                    const isOwn = user && app.employee_id === user.id;
+                    return isAllowedRole || isOwn;
+                });
+                const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
                     id: app.lid,
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
@@ -560,7 +585,11 @@ export default function ManageLeave() {
                     <button
                         type="button"
                         onClick={() => {
-                            setEmployeeName(user?.full_name || '');
+                            // Pre-fill with logged-in user's name and role for display
+                            const displayName = user
+                                ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}`
+                                : '';
+                            setEmployeeName(displayName);
                             setApplyModalOpen(true);
                         }}
                         className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold text-sm active:scale-[0.98] transition-all shadow-sm"
@@ -800,10 +829,18 @@ export default function ManageLeave() {
                                 </label>
                                 <input
                                     type="text"
-                                    value={employeeName || user?.full_name || ''}
+                                    value={
+                                        employeeName ||
+                                        (user
+                                            ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}`
+                                            : '')
+                                    }
                                     readOnly
+                                    disabled
                                     placeholder="Employee name"
-                                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
+                                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed ${
+                                        applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'
+                                    }`}
                                 />
                                 {applyFormErrors.employeeName && (
                                     <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>
@@ -995,14 +1032,18 @@ export default function ManageLeave() {
                                 </label>
                                 <input
                                     type="text"
-                                    value={employeeName}
-                                    onChange={(e) => {
-                                        const next = normalizeNameAndReason(e.target.value);
-                                        setEmployeeName(next);
-                                        if (applyFormErrors.employeeName) setApplyFormErrors((prev) => ({ ...prev, employeeName: '' }));
-                                    }}
-                                    placeholder="Enter employee name"
-                                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
+                                    value={
+                                        employeeName ||
+                                        (editingLeave
+                                            ? `${editingLeave.employeeName}${editingLeave.role ? ` - ${editingLeave.role}` : ''}`
+                                            : '')
+                                    }
+                                    readOnly
+                                    disabled
+                                    placeholder="Employee name"
+                                    className={`w-full px-4 py-2.5 bg-[#E5E5E5] rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed ${
+                                        applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'
+                                    }`}
                                 />
                                 {applyFormErrors.employeeName && (
                                     <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>

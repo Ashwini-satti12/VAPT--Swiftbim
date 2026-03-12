@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
 
 interface LeaveEntry {
     id: number;
+    employeeId?: number;
     slNo: number;
     employeeName: string;
     role?: string;
@@ -16,18 +19,19 @@ interface LeaveEntry {
     description?: string;
 }
 
-const DUMMY_LEAVES: LeaveEntry[] = [
-    { id: 1, slNo: 1, employeeName: 'John Doe', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '01/03/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '02/03/2026', toDate: '03/03/2026', description: 'Medical appointment' },
-    { id: 2, slNo: 2, employeeName: 'Jane Smith', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '28/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '05/03/2026', toDate: '06/03/2026', description: 'Family event' },
-    { id: 3, slNo: 3, employeeName: 'Mike Johnson', role: 'BIM Lead', leaveType: 'Earned Leave', appliedOn: '25/02/2026', appliedTo: 'Project Manager', currentStatus: 'Approved', fromDate: '10/03/2026', toDate: '12/03/2026', description: 'Personal' },
-    { id: 4, slNo: 4, employeeName: 'Sarah Williams', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '20/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '21/02/2026', toDate: '22/02/2026', description: 'Fever' },
-    { id: 5, slNo: 5, employeeName: 'David Brown', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '15/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '18/02/2026', toDate: '19/02/2026', description: 'Travel' },
-    { id: 6, slNo: 6, employeeName: 'Emma Wilson', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '12/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '13/02/2026', toDate: '14/02/2026', description: 'Recovery' },
-    { id: 7, slNo: 7, employeeName: 'James Davis', role: 'BIM Modeler', leaveType: 'Earned Leave', appliedOn: '10/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '20/03/2026', toDate: '22/03/2026', description: 'Vacation' },
-    { id: 8, slNo: 8, employeeName: 'Olivia Martinez', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '08/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '09/02/2026', toDate: '10/02/2026', description: 'Personal work' },
-    { id: 9, slNo: 9, employeeName: 'William Taylor', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '05/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '06/02/2026', toDate: '07/02/2026', description: 'Doctor visit' },
-    { id: 10, slNo: 10, employeeName: 'Sophia Anderson', role: 'BIM Modeler', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '15/02/2026', toDate: '15/05/2026', description: 'Maternity' },
-];
+// Dummy data previously used for layout/testing; kept here commented for reference only.
+// const DUMMY_LEAVES: LeaveEntry[] = [
+//     { id: 1, slNo: 1, employeeName: 'John Doe', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '01/03/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '02/03/2026', toDate: '03/03/2026', description: 'Medical appointment' },
+//     { id: 2, slNo: 2, employeeName: 'Jane Smith', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '28/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '05/03/2026', toDate: '06/03/2026', description: 'Family event' },
+//     { id: 3, slNo: 3, employeeName: 'Mike Johnson', role: 'BIM Lead', leaveType: 'Earned Leave', appliedOn: '25/02/2026', appliedTo: 'Project Manager', currentStatus: 'Approved', fromDate: '10/03/2026', toDate: '12/03/2026', description: 'Personal' },
+//     { id: 4, slNo: 4, employeeName: 'Sarah Williams', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '20/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '21/02/2026', toDate: '22/02/2026', description: 'Fever' },
+//     { id: 5, slNo: 5, employeeName: 'David Brown', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '15/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '18/02/2026', toDate: '19/02/2026', description: 'Travel' },
+//     { id: 6, slNo: 6, employeeName: 'Emma Wilson', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '12/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '13/02/2026', toDate: '14/02/2026', description: 'Recovery' },
+//     { id: 7, slNo: 7, employeeName: 'James Davis', role: 'BIM Modeler', leaveType: 'Earned Leave', appliedOn: '10/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Pending', fromDate: '20/03/2026', toDate: '22/03/2026', description: 'Vacation' },
+//     { id: 8, slNo: 8, employeeName: 'Olivia Martinez', role: 'BIM Modeler', leaveType: 'Casual Leave', appliedOn: '08/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '09/02/2026', toDate: '10/02/2026', description: 'Personal work' },
+//     { id: 9, slNo: 9, employeeName: 'William Taylor', role: 'BIM Modeler', leaveType: 'Sick Leave', appliedOn: '05/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Rejected', fromDate: '06/02/2026', toDate: '07/02/2026', description: 'Doctor visit' },
+//     { id: 10, slNo: 10, employeeName: 'Sophia Anderson', role: 'BIM Modeler', leaveType: 'Maternity Leave', appliedOn: '01/02/2026', appliedTo: 'BIM Lead', currentStatus: 'Approved', fromDate: '15/02/2026', toDate: '15/05/2026', description: 'Maternity' },
+// ];
 
 const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
 
@@ -56,14 +60,14 @@ const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
 export default function ManageLeavePM() {
+    const { user } = useAuth();
     const [viewModalOpen, setViewModalOpen] = useState(false);
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
-    const [leaves, setLeaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+    const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
-    const [employeeName, setEmployeeName] = useState('');
     const [leaveType, setLeaveType] = useState('');
     const [leaveFrom, setLeaveFrom] = useState('');
     const [leaveTo, setLeaveTo] = useState('');
@@ -84,6 +88,61 @@ export default function ManageLeavePM() {
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
+
+  // Format ISO or YYYY-MM-DD from API to DD/MM/YYYY for display
+  const formatApiDate = (value: string | undefined | null): string => {
+      if (!value) return '';
+      const s = String(value);
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+      try {
+          const d = new Date(s);
+          if (Number.isNaN(d.getTime())) return s;
+          const day = d.getDate().toString().padStart(2, '0');
+          const month = (d.getMonth() + 1).toString().padStart(2, '0');
+          const year = d.getFullYear();
+          return `${day}/${month}/${year}`;
+      } catch {
+          return s;
+      }
+  };
+
+  // Load only current user's leave applications from backend (tblleaves)
+  useEffect(() => {
+      const fetchLeaves = async () => {
+          if (!user?.id) {
+              setLeaves([]);
+              return;
+          }
+          try {
+              const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+              const apps = (data.applications || []).filter((app) => app.employee_id === user.id);
+              const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                  id: app.lid,
+                  employeeId: app.employee_id,
+                  slNo: index + 1,
+                  employeeName: app.full_name || 'Unknown',
+                  role: app.role || undefined,
+                  leaveType: app.title || 'Others',
+                  appliedOn: formatApiDate(app.posting_date),
+                  fromDate: formatApiDate(app.from_date),
+                  toDate: formatApiDate(app.to_date),
+                  description: app.description || '',
+                  currentStatus:
+                      app.status === 1
+                          ? 'Approved'
+                          : app.status === 2
+                          ? 'Rejected'
+                          : 'Pending',
+              }));
+              setLeaves(mapped);
+          } catch (err) {
+              console.error('Failed to load leaves from backend', err);
+              setLeaves([]);
+          }
+      };
+
+      fetchLeaves();
+  }, [user?.id]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -130,15 +189,9 @@ export default function ManageLeavePM() {
         setPaginationWindowStart(1);
     }, [selectedShowEntries, selectedEmployee]);
 
-    const toStoredDate = (d: string): string => {
-        if (!d) return '';
-        const [y, m, day] = d.split('-');
-        return `${day}/${m}/${y}`;
-    };
-
     const validateApplyForm = (): boolean => {
         const err: Record<string, string> = {};
-        if (!employeeName.trim()) err.employeeName = 'Employee name is required';
+        if (!user?.full_name) err.employeeName = 'Employee name is required';
         if (!leaveType) err.leaveType = 'Leave type is required';
         if (!leaveFrom) err.leaveFrom = 'Leave from date is required';
         if (!leaveTo) err.leaveTo = 'Leave to date is required';
@@ -148,35 +201,81 @@ export default function ManageLeavePM() {
         return Object.keys(err).length === 0;
     };
 
-    const handleSubmitApply = (e: React.FormEvent) => {
+    // Apply leave: persist to tblleaves via backend and then reload current user's leaves
+    const handleSubmitApply = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateApplyForm()) return;
-        const newId = Math.max(0, ...leaves.map((l) => l.id)) + 1;
-        const today = new Date();
-        const appliedOnStr = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
-        setLeaves((prev) => [...prev, {
-            id: newId,
-            slNo: prev.length + 1,
-            employeeName: employeeName.trim(),
-            leaveType,
-            appliedOn: appliedOnStr,
-            currentStatus: 'Pending',
-            fromDate: toStoredDate(leaveFrom),
-            toDate: toStoredDate(leaveTo),
-            description: reason.trim(),
-        }]);
-        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
-        setApplyModalOpen(false);
+
+        try {
+            const payload: any = {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.post<{ success: boolean; id?: number; message?: string }>('/api/leave/applications', payload);
+            if (data.success === false) {
+                alert(data.message || 'Failed to apply leave.');
+                return;
+            }
+
+            // Reload only this user's leaves
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (resp.data.applications || []).filter((app) => app.employee_id === user?.id);
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    employeeId: app.employee_id,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to refresh leaves after apply.', err);
+            }
+
+            setLeaveType('');
+            setLeaveFrom('');
+            setLeaveTo('');
+            setReason('');
+            setApplyFormErrors({});
+            setApplyModalOpen(false);
+        } catch (err: any) {
+            console.error('Apply leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to apply leave. Please try again.');
+        }
     };
 
     const handleCloseModal = () => {
         setApplyModalOpen(false);
-        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
     const handleEdit = (row: LeaveEntry) => {
         setEditingLeave(row);
-        setEmployeeName(row.employeeName);
         setLeaveType(row.leaveType);
         setLeaveFrom(toInputDate(row.fromDate));
         setLeaveTo(toInputDate(row.toDate));
@@ -188,21 +287,85 @@ export default function ManageLeavePM() {
     const handleCloseEditModal = () => {
         setEditModalOpen(false);
         setEditingLeave(null);
-        setEmployeeName(''); setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
-    const handleSubmitEdit = (e: React.FormEvent) => {
+    // Edit leave: persist changes to tblleaves (only own pending leaves allowed by backend)
+    const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLeave || !validateApplyForm()) return;
-        setLeaves((prev) => prev.map((l) => l.id === editingLeave.id ? { ...l, employeeName: employeeName.trim(), leaveType, fromDate: toStoredDate(leaveFrom), toDate: toStoredDate(leaveTo), description: reason.trim() } : l));
-        handleCloseEditModal();
+
+        try {
+            const payload: any = {
+                leavetype: leaveType,
+                description: reason.trim(),
+                from_date: leaveFrom,
+                to_date: leaveTo,
+            };
+
+            if (leaveFrom && leaveTo) {
+                const from = new Date(leaveFrom);
+                const to = new Date(leaveTo);
+                const diffMs = to.getTime() - from.getTime();
+                if (!Number.isNaN(diffMs) && diffMs >= 0) {
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    payload.days_count = days;
+                }
+            }
+
+            const { data } = await api.patch<{ success: boolean; message?: string }>(
+                `/api/leave/applications/${editingLeave.id}`,
+                payload
+            );
+
+            if (data.success === false) {
+                alert(data.message || 'Failed to update leave.');
+                return;
+            }
+
+            // Reload only this user's leaves
+            try {
+                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (resp.data.applications || []).filter((app) => app.employee_id === user?.id);
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    employeeId: app.employee_id,
+                    slNo: index + 1,
+                    employeeName: app.full_name || 'Unknown',
+                    role: app.role || undefined,
+                    leaveType: app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to refresh leaves after edit.', err);
+            }
+
+            handleCloseEditModal();
+        } catch (err: any) {
+            console.error('Update leave failed', err);
+            alert(err?.response?.data?.message || 'Failed to update leave. Please try again.');
+        }
     };
 
     const handleDelete = (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
+        // Currently this removes only from the local list; backend delete is not implemented.
         setLeaves((prev) => prev.filter((l) => l.id !== row.id));
     };
 
+    // For Project Manager view we no longer approve/reject here, so no status mutations from this screen.
+
+    // filtered list is always current user's leaves; dropdown still allows filter by name if desired
     const filteredList = selectedEmployee === 'All' ? leaves : leaves.filter((l) => l.employeeName === selectedEmployee);
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
@@ -247,7 +410,13 @@ export default function ManageLeavePM() {
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"
-                        onClick={() => setApplyModalOpen(true)}
+                        onClick={() => {
+                            if (!user?.full_name) {
+                                alert('User information not available.');
+                                return;
+                            }
+                            setApplyModalOpen(true);
+                        }}
                         className="px-4 py-2.5 bg-[#DD4346] text-white rounded-lg text-sm font-gantari font-medium hover:bg-[#c43a39] transition-colors"
                     >
                         Apply Leave
@@ -349,14 +518,13 @@ export default function ManageLeavePM() {
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
+                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
                                         No leave records found
                                     </td>
                                 </tr>
@@ -376,11 +544,6 @@ export default function ManageLeavePM() {
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
-                                                    {row.currentStatus}
-                                                </span>
-                                            </td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
                                                 <div className="flex items-center justify-center gap-2 flex-nowrap">
                                                     <button
                                                         type="button"
@@ -390,12 +553,26 @@ export default function ManageLeavePM() {
                                                         <img src={viewIcon} alt="" className="w-3.5 h-3.5 shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
                                                     </button>
-                                                    <button type="button" onClick={() => handleEdit(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#353535] hover:bg-[#F0F2F7] transition-colors shrink-0" title="Edit">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                    </button>
-                                                    <button type="button" onClick={() => handleDelete(row)} className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0" title="Delete">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                    </button>
+                                                    {row.currentStatus === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleEdit(row)}
+                                                                className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#353535] hover:bg-[#F0F2F7] transition-colors shrink-0"
+                                                                title="Edit"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDelete(row)}
+                                                                className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0"
+                                                                title="Delete"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -543,7 +720,14 @@ export default function ManageLeavePM() {
                         <form onSubmit={handleSubmitApply} className="px-6 py-6 space-y-4">
                             <div>
                                 <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
-                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
+                                <input
+                                    type="text"
+                                    value={user ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}` : ''}
+                                    readOnly
+                                    disabled
+                                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none bg-[#F2F3F4] disabled:opacity-70 disabled:cursor-not-allowed ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
+                                    placeholder="Employee name - Role"
+                                />
                                 {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
                             </div>
                             <div className="relative" ref={leaveTypeDropdownRef}>
@@ -608,7 +792,14 @@ export default function ManageLeavePM() {
                         <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
                             <div>
                                 <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
-                                <input type="text" value={employeeName} onChange={(e) => { setEmployeeName(normalizeNameAndReason(e.target.value)); if (applyFormErrors.employeeName) setApplyFormErrors((p) => ({ ...p, employeeName: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} placeholder="Enter employee name" />
+                                <input
+                                    type="text"
+                                    value={editingLeave ? `${editingLeave.employeeName}${editingLeave.role ? ` - ${editingLeave.role}` : ''}` : ''}
+                                    readOnly
+                                    disabled
+                                    className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none bg-[#F2F3F4] disabled:opacity-70 disabled:cursor-not-allowed ${applyFormErrors.employeeName ? 'border border-[#DD4342]' : 'border-0'}`}
+                                    placeholder="Employee name - Role"
+                                />
                                 {applyFormErrors.employeeName && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.employeeName}</p>}
                             </div>
                             <div className="relative" ref={leaveTypeDropdownEditRef}>

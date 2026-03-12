@@ -924,8 +924,8 @@ def bidding_bids(bidding_id):
             vendor_ids = [r["vendor_id"] for r in rows]
             placeholders = ",".join(["%s"] * len(vendor_ids))
             cur.execute(
-                f"""SELECT id, full_name, email, phone_number, role
-                   FROM vendor_employee WHERE id IN ({placeholders})""",
+                f"""SELECT id, full_name, email, phone_number, user_role
+                   FROM employee WHERE id IN ({placeholders})""",
                 vendor_ids,
             )
             emp_map = {r["id"]: r for r in cur.fetchall()}
@@ -977,7 +977,7 @@ def accept_bid(bidding_id, bid_id):
                    e.full_name AS vendor_name, e.email AS vendor_email, e.phone_number AS vendor_phone
             FROM vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN employee e ON e.id = vb.vendor_id
             WHERE vb.id = %s
             """,
             (bid_id,),
@@ -1063,7 +1063,7 @@ def accepted_bids():
                    (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
             FROM vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN employee e ON e.id = vb.vendor_id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """

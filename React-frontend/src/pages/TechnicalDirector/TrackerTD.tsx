@@ -31,15 +31,25 @@ export default function TrackerTD() {
     const timeInputRef = useRef<HTMLInputElement>(null);
 
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: 'show', label: 'Show', start: 0, end: 100 },
-        { value: '101-200', label: '101-200', start: 100, end: 200 },
-        { value: '201-300', label: '201-300', start: 200, end: 300 },
-        { value: '301-400', label: '301-400', start: 300, end: 400 },
+        { value: 'show', label: 'Show', start: 0, end: 50 },
+        { value: '1-50', label: '1-50', start: 0, end: 50 },
+        { value: '51-100', label: '51-100', start: 50, end: 100 },
+        { value: '101-150', label: '101-150', start: 100, end: 150 },
+        { value: '151-200', label: '151-200', start: 150, end: 200 },
+        { value: '201-250', label: '201-250', start: 200, end: 250 },
+        { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownContentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (showEntriesOpen && dropdownContentRef.current) {
+            dropdownContentRef.current.scrollTop = 0;
+        }
+    }, [showEntriesOpen]);
 
 
     const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
@@ -52,20 +62,13 @@ export default function TrackerTD() {
         return `${y}-${m}-${d}`;
     })();
 
-    const ensureTodayAndDefaultTime = () => {
-        // Default time to current time (HH:MM)
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mm = String(now.getMinutes()).padStart(2, '0');
-        setSelectedTime((t) => (t ? t : `${hh}:${mm}`));
-    };
 
     const formatTime12 = (time24: string) => {
-        if (!time24) return 'select time';
+        if (!time24) return 'Time';
         const [hhStr, mmStr] = time24.split(':');
         const hh = Number(hhStr);
         const mm = Number(mmStr || '0');
-        if (Number.isNaN(hh) || Number.isNaN(mm)) return 'select time';
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return 'Time';
         const ampm = hh >= 12 ? 'PM' : 'AM';
         const h12 = hh % 12 === 0 ? 12 : hh % 12;
         return `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`;
@@ -146,7 +149,6 @@ export default function TrackerTD() {
     };
 
     useEffect(() => {
-        ensureTodayAndDefaultTime();
         api
             // Ask backend for today's attendance only (backend expects YYYY-MM-DD)
             .get<{ records?: LocationEntry[] }>('/api/attendance/tracker', { params: { date: todayIso } })
@@ -348,22 +350,29 @@ export default function TrackerTD() {
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Time picker (today only, date hidden) */}
-                    <div
-                        className="flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[180px]"
-                    >
-                        <span className="text-sm font-semibold text-[#353535] ml-2">
-                            {formatTime12(selectedTime)}
-                        </span>
+                    <div className="relative">
                         <button
                             type="button"
                             onClick={() => {
                                 timeInputRef.current?.showPicker?.();
                                 timeInputRef.current?.focus();
                             }}
-                            className="ml-1 text-[#616161] hover:text-[#353535] transition-colors"
-                            title="Select time"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 group"
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                            <span className="text-sm font-medium text-[#353535] font-gantari">
+                                {formatTime12(selectedTime)}
+                            </span>
+                            <svg 
+                                width="18" 
+                                height="18" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="#616161" 
+                                strokeWidth="1.7" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                                className="shrink-0 transition-colors group-hover:stroke-[#353535]"
+                            >
                                 <circle cx="12" cy="12" r="9"></circle>
                                 <path d="M12 7v5l3 2"></path>
                             </svg>
@@ -373,19 +382,19 @@ export default function TrackerTD() {
                             type="time"
                             value={selectedTime}
                             onChange={(e) => setSelectedTime(e.target.value)}
-                            className="absolute opacity-0 pointer-events-none"
+                            className="absolute opacity-0 pointer-events-none w-0 h-0"
                         />
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                    <div className="relative" ref={statusDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer border-0"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {selectedStatus || 'Status'}
@@ -393,7 +402,7 @@ export default function TrackerTD() {
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusOpen ? "rotate-180" : ""}`}
+                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusOpen ? "rotate-180" : ""}`}
                             />
                         </button>
                         {statusOpen && (
@@ -423,11 +432,8 @@ export default function TrackerTD() {
                     <div className="relative" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowEntriesOpen(o => !o);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             {selectedShowEntries === 'show' ? (
                                 <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
@@ -440,24 +446,21 @@ export default function TrackerTD() {
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
                             />
                         </button>
                         {showEntriesOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-xl min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                                ref={dropdownContentRef}
+                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {showEntriesOptions.map(opt => (
                                     <button
                                         key={opt.value}
                                         type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedShowEntries(opt.value);
-                                            setShowEntriesOpen(false);
-                                        }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </button>
@@ -549,31 +552,7 @@ export default function TrackerTD() {
 
 
 
-            <style>{`
-        .smooth-scroll {
-          scroll-behavior: smooth;
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #8c8c8c #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f3f3f3;
-          border-radius: 20px;
-          margin: 10px 0;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #8c8c8c;
-          border-radius: 20px;
-          border: 2px solid #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #666666;
-        }
-      `}</style>
+           
         </div>
     );
 }

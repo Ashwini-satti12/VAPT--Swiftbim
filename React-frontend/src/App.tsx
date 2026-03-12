@@ -117,6 +117,7 @@ import MytaskPMV from './pages/Vendor/ProjectManager/MytaskPMV';
 import CreateteamPMV from './pages/Vendor/ProjectManager/CreateteamPMV';
 import TeamtaskPMV from './pages/Vendor/ProjectManager/TeamtaskPMV';
 import ChatPMV from './pages/Vendor/ProjectManager/ChatPMV';
+import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
 
 
 /* Vendor Employee */
@@ -258,6 +259,7 @@ function App() {
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
             <Route path="/vpm/teamtasks" element={<TeamtaskPMV />} />
             <Route path="vpm/opportunities" element={<BiddingV />} />
+            <Route path="vpm/proposals" element={<ProposalsPMV />} />
             <Route path="vpm/createteam" element={<CreateteamPMV />} />
             <Route path="vpm/resources" element={<ResourcesV />} />
             <Route path="vpm/communication" element={<ChatPMV />} />
