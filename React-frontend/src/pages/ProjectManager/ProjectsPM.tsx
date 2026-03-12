@@ -9,6 +9,7 @@ import paymentMilestone from "../../assets/ProjectManager/project/paymentMilesto
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
 import api from '../../lib/api';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg"
 
 interface Employee {
   id: number;
@@ -410,43 +411,40 @@ export default function ProjectsPM() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 6 py-6  md:py-8 border-b border-slate-50">
             <button
               type="button"
               onClick={() => {
                 setShowProjectView(false);
                 setSearchParams({}, { replace: true });
               }}
-              className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
               title="Close"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
             </button>
             <div className="min-w-0">
-              <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">
+              <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                 {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
               </h3>
               <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Tower 1 to 09</p>
                 <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[13px] md:text-[16px] font-Gantari font-bold text-[#999999]">Overall Progress Tracker</p>
+                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
               </div>
             </div>
           </div>
 
           {/* Project View Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 md:px-10 pt-6 md:pt-8 custom-scrollbar space-y-6">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-6">
             {/* Task Status Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
               {/* Total Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
-                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Total Tasks</p>
-                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Total Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.total_tasks ?? 0}
                 </p>
               </button>
@@ -454,10 +452,10 @@ export default function ProjectsPM() {
               {/* Completed Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
-                <p className="text-[#333333] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                <p className="text-[#333333] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.completed_tasks ?? 0}
                 </p>
               </button>
@@ -465,10 +463,10 @@ export default function ProjectsPM() {
               {/* To Do Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
-                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">To Do Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                 </p>
               </button>
@@ -476,10 +474,10 @@ export default function ProjectsPM() {
               {/* In Progress Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] cursor-default focus:outline-none group"
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
-                <p className="text-[#353535] text-center text-[20px] md:text-[20px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                <p className="text-[#353535] text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                 </p>
               </button>
@@ -487,57 +485,64 @@ export default function ProjectsPM() {
 
 
             {/* Tower Progress Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-4 md:p-6 lg:p-8 custom-scrollbar">
-              {(selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).length > 0 ? (
-                (selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((mod, i) => {
-                  const towerProgress = selectedProjectForView.progress ?? 0;
-                  const status = towerProgress === 100 ? 'Approved' : towerProgress > 0 ? 'Pending' : 'Review';
-                  const statusColor = towerProgress === 100 ? '#0A9344' : towerProgress > 0 ? '#FF9F00' : '#DD4342';
-                  const statusBg = towerProgress === 100 ? 'bg-[#E7F6ED]' : towerProgress > 0 ? 'bg-[#FFF4E5]' : 'bg-[#FFEBEC]';
+            <div className="border border-[#AEACAC52] rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-4">
+              <div className="max-h-[290px] overflow-y-auto custom-scrollbar pr-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                  {(selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).length > 0 ? (
+                    (selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((mod, i) => {
+                      const towerProgress = selectedProjectForView.progress ?? 0;
+                      const status = towerProgress === 100 ? 'Approved' : towerProgress > 0 ? 'Pending' : 'Review';
+                      const statusColor = towerProgress === 100 ? '#008F22' : towerProgress > 0 ? '#EB7200' : '#E00100';
+                      const statusBg = towerProgress === 100 ? 'bg-[#E0FFE8]' : towerProgress > 0 ? 'bg-[#FFEAD6]' : 'bg-[#FFD9D9]';
 
-                  return (
-                    <div key={i} className="bg-white border border-slate-100 rounded-[1.25rem] md:rounded-[1.5rem] p-4 md:p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <span className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{mod}</span>
-                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${statusBg} shrink-0`}>
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
-                          <span className="text-[11px] md:text-[12px] font-bold" style={{ color: statusColor }}>{status}</span>
+                      return (
+                        <div key={i} className="bg-white border border-[#AEACAC52] rounded-[12px] p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[180px]">
+                          <div className="flex justify-between items-start">
+                            <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{mod}</span>
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusBg} shrink-0`}>
+                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                              <span className="text-[12px] font-bold font-Gantari" style={{ color: statusColor }}>{status}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
+                              <svg className="w-full h-full transform -rotate-90">
+                                <circle cx="40" cy="40" r="32" stroke="#F2F3F5" strokeWidth="6" fill="transparent" />
+                                <circle
+                                  cx="40" cy="40" r="32" stroke={statusColor} strokeWidth="6" fill="transparent"
+                                  strokeDasharray={201} strokeDashoffset={201 - (towerProgress / 100) * 201} strokeLinecap="round"
+                                />
+                              </svg>
+                              <span className="absolute text-[15px] font-bold text-[#1A1A1A] font-Gantari">{Math.round(towerProgress)}%</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                              <p className="text-[14px] font-medium text-[#999999] font-Gantari mb-1">Tasks Done</p>
+                              <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                <p className="text-[20px] font-bold text-[#1A1A1A] font-Gantari">{selectedProjectForView.completed_tasks ?? 0}</p>
+                                <p className="text-[16px] font-bold text-[#999999] font-Gantari">/{selectedProjectForView.total_tasks ?? 0}</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 shrink-0">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="50%" cy="50%" r="30" stroke="#F1F5F9" strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6" />
-                            <circle
-                              cx="50%" cy="50%" r="30" stroke={statusColor} strokeWidth="5" fill="transparent" className="md:r-[34] md:stroke-6"
-                              strokeDasharray={188.4} strokeDashoffset={188.4 - (towerProgress / 100) * 188.4} strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute text-[13px] md:text-[15px] font-bold text-[#1A1A1A]">{Math.round(towerProgress)}%</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] md:text-[14px] font-bold text-[#999999] mb-1">Tasks Done</p>
-                          <p className="text-[16px] md:text-[18px] font-bold text-[#1A1A1A]">{selectedProjectForView.completed_tasks ?? 0}<span className="text-[#999999]">/{selectedProjectForView.total_tasks ?? 0}</span></p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">No modules defined for this project.</div>
-              )}
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">No modules defined for this project.</div>
+                  )}
+                </div>
+              </div>
             </div>
             {/* Project Description */}
-            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-8 lg:p-10">
-              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A]">Project Description</h4>
-              <p className="text-[16px] md:text-[18px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+            <div className="border border-[#AEACAC52] rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-4">
+              <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
+              <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
                 {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
               </p>
             </div>
 
             {/* Team Overview Section */}
-            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 lg:p-10">
-              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Team Overview</h4>
+            <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 lg:p-4">
+              <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">Team Overview</h4>
               {(() => {
                 const getEmpName = (val?: string) => {
                   if (!val) return 'N/A';
@@ -556,34 +561,62 @@ export default function ProjectsPM() {
                 const pmName = getEmpName(selectedProjectForView.project_manager);
                 const blName = getEmpName(selectedProjectForView.bim_lead);
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
                     <div className="flex items-center gap-4">
-                      <img src={ProfileIcon} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="PM" />
+                      {(() => {
+                        const pm = allEmployees.find(e => String(e.id) === String(selectedProjectForView.project_manager) || e.full_name === selectedProjectForView.project_manager);
+                        const pmProfileUrl = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
+                        return pmProfileUrl ? (
+                          <img src={pmProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="PM" />
+                        ) : (
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                             <img src={ProfileIcon} className="w-6 h-6" alt="PM" />
+                          </div>
+                        );
+                      })()}
                       <div className="min-w-0">
-                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{pmName}</p>
-                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">Project Manager</p>
+                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">{pmName}</p>
+                        <p className="text-sm font-Gantari text-[#616161] truncate">Project Manager</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <img src={ProfileIcon} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0" alt="BIM" />
+                      {(() => {
+                        const bl = allEmployees.find(e => String(e.id) === String(selectedProjectForView.bim_lead) || e.full_name === selectedProjectForView.bim_lead);
+                        const blProfileUrl = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
+                        return blProfileUrl ? (
+                          <img src={blProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="BIM" />
+                        ) : (
+                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
+                             <img src={ProfileIcon} className="w-6 h-6" alt="BIM" />
+                          </div>
+                        );
+                      })()}
                       <div className="min-w-0">
-                        <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate">{blName}</p>
-                        <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] truncate">BIM Lead</p>
+                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">{blName}</p>
+                        <p className="text-sm font-Gantari text-[#616161] truncate">BIM Lead</p>
                       </div>
                     </div>
                     <div>
-                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-1">Department Involved</p>
-                      <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#1A1A1A]">{selectedProjectForView.department || 'N/A'}</p>
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
                     </div>
                     <div>
-                      <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-2">Members Involved</p>
+                      <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Members Involved</p>
                       {memberNames.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {memberNames.slice(0, 3).map((name, j) => (
-                            <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0" title={name}>
-                              <img src={ProfileIcon} alt={name} className="w-full h-full object-cover" />
-                            </div>
-                          ))}
+                        <div className="flex flex-wrap -space-x-4">
+                          {memberIdsForView.slice(0, 3).map((id, j) => {
+                            const emp = allEmployees.find(e => e.id === id);
+                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            return (
+                              <div key={j} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0" title={emp?.full_name}>
+                                {url ? (
+                                  <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <img src={ProfileIcon} alt={emp?.full_name} className="p-2 w-full h-full object-cover" />
+                                )}
+                              </div>
+                            );
+                          })}
                           {memberNames.length > 3 && (
                             <div
                               className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
@@ -610,75 +643,75 @@ export default function ProjectsPM() {
             </div>
 
             {/* Project Details Section */}
-            <div className="border border-slate-100 rounded-[1.5rem] md:rounded-[2rem] p-6 md:p-10">
-              <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#1A1A1A] mb-8">Project Details</h4>
+            <div className="rounded-lg border border-[#AEACAC52] p-6 md:p-4">
+              <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-8">Project Details</h4>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Client Name</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Client Name</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                    <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.client_name || 'N/A'}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual Start Date</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Actual Start Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                    <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Project Hours</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Project Hours</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : 'N/A'}</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Budget</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Budget</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : 'N/A'}</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : 'N/A'}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Resources Available</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
                   </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Location</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Location</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.location || 'N/A'}</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.location || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Actual End Date</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Actual End Date</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
+                    <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Hours/Day</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Hours/Day</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Total Resources Available</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">Required Resources</span>
+                  {/* <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resourcesg</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
-                  </div>
+                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
+                  </div> */}
                 </div>
               </div>
               <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
-                <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A] mb-2 sm:mb-0">Project Document</span>
+                <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535] mb-2 sm:mb-0">Project Document</span>
                 <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                 <div className="flex items-center gap-3">
-                  <a href="#" className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline truncate max-w-[150px] md:max-w-none">Document.pdf</a>
-                  <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors shrink-0">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
+                  <span className="text-md font-Gantari font-medium text-[#666666]">No Document Available</span>
                 </div>
               </div>
             </div>
@@ -766,22 +799,22 @@ export default function ProjectsPM() {
               const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
-                  <div className="bg-[#DD4342] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                    <p className="text-white text-[14px] md:text-[16px] font-Gantari font-bold opacity-90">Total Amount</p>
-                    <p className="text-white text-[28px] md:text-[32px] font-Gantari font-bold">{totalAmount.toLocaleString()}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                  <div className="border border-[#AEACAC52] bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                    <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
+                    <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{totalAmount.toLocaleString()}</p>
                   </div>
-                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Paid Amount</p>
-                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{paidAmount.toLocaleString()}</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                    <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
+                    <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{paidAmount.toLocaleString()}</p>
                   </div>
-                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Pending Amount</p>
-                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{pendingAmount.toLocaleString()}</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                    <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
+                    <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{pendingAmount.toLocaleString()}</p>
                   </div>
-                  <div className="bg-[#F4F5F7] p-6 lg:p-8 rounded-[1.5rem] shadow-sm flex flex-col justify-between min-h-[120px] md:min-h-[150px]">
-                    <p className="text-[#333333] text-[14px] md:text-[16px] font-Gantari font-bold">Progress</p>
-                    <p className="text-[#333333] text-[28px] md:text-[32px] font-Gantari font-bold">{progressPercent}%</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                    <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
+                    <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{progressPercent}%</p>
                   </div>
                 </div>
               );
@@ -1777,25 +1810,24 @@ export default function ProjectsPM() {
               ) : (
                 list.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
-
                   const radius = 28;
                   const circumference = 2 * Math.PI * radius;
                   const offset = circumference - (progress / 100) * circumference;
 
                   return (
-                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div>
-                        <div className="flex items-center justify-between mb-6 mt-2 pr-2">
+                        <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                           <div className="relative flex items-center justify-center">
                             <svg className="w-20 h-20 transform -rotate-90">
                               <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
                               <circle
                                 cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
                                 strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                                style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
                               />
                             </svg>
-                            <span className="absolute text-base font-Gantari font-bold text-[#353535]">{progress}%</span>
+                            <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">{progress}%</span>
                           </div>
                           <div className="relative">
                             <button
@@ -1806,7 +1838,7 @@ export default function ProjectsPM() {
                                 setOpenMenuId(openMenuId === p.id ? null : p.id);
                               }}
                             >
-                              <img src={threedot} alt="" className='w-8 h-8' />
+                              <img src={threedot} alt="" className='w-5 h-5' />
                             </button>
                             <div
                               className={`absolute -right-30 w-72 bg-white/10 backdrop-blur-md rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 shadow-xl overflow-hidden ${openMenuId === p.id ? 'opacity-100 visible translate-y-2' : 'opacity-0 invisible translate-y-0'}`}
@@ -1892,39 +1924,80 @@ export default function ProjectsPM() {
                           </div>
                         </div>
 
-                        <div className="flex justify-between items-start mb-4 ml-8 -mt-4">
-                          <div>
-                            <h3 className="text-[20px] font-Gantari font-semibold text-[#353535] leading-tight mb-1">
-                              {p.project_name ?? 'Prestige Park Groove'}
-                            </h3>
-                          </div>
+                        <div className="mb-4 ml-6 -mt-2">
+                          <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                            {p.project_name ?? 'Prestige Park Grove'}
+                          </h3>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-5 mt-auto">
-                        <div className="flex -space-x-5">
-                          {[1, 2, 3].map((i) => (
-                            <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm">
-                              <img src={ProfileIcon} alt="avatar" className="w-full h-full object-cover" />
+                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
+                        <div className="flex -space-x-4">
+                          {(() => {
+                            const memberIds_card = p.member
+                              ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                              : [];
+                            const projectEmployees = memberIds_card
+                              .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                              .filter(Boolean) as Employee[];
+
+                            const visibleMembers = projectEmployees.slice(0, 3);
+                            const remainingCount = Math.max(0, projectEmployees.length - 3);
+
+                            return (
+                              <>
+                                {visibleMembers.map((emp) => {
+                                  const profileUrl = emp.profile_picture
+                                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                    : null;
+
+                                  return (
+                                    <div
+                                      key={emp.id}
+                                      className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm"
+                                      title={emp.full_name}
+                                    >
+                                      {profileUrl ? (
+                                        <img
+                                          src={profileUrl}
+                                          alt={emp.full_name}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                          {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                {remainingCount > 0 && (
+                                  <div
+                                    className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm"
+                                  >
+                                    +{remainingCount}
+                                  </div>
+                                )}
+                              </>
+                              )
+                            })()}
+                          </div>
+                          {p.priority && (
+                            <div className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
+                              {p.priority}
                             </div>
-                          ))}
-                          <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-100 flex items-center justify-center text-[10px] font-semibold text-slate-400 shadow-sm">
-                            +4
-                          </div>
+                          )}
                         </div>
-                        {p.priority && (
-                          <div className={`px-4 py-1.5 rounded-[10px] text-white text-[14px] font-semibold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
-                            {p.priority}
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    );
+                  })
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Delete confirmation (Keep as modal) */}
       {deleteId !== null && (
