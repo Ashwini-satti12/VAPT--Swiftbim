@@ -1314,58 +1314,85 @@ export default function ProjectsPM() {
                 if (!selectedProjectForEdit) return;
                 setIsEditSubmitting(true);
                 const membersPayload = selectedMemberIds.length > 0 ? selectedMemberIds.join(',') : (editMember || undefined);
-                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
-                  project_name: createName.trim() || undefined,
-                  budget: createBudget || undefined,
-                  modules: editModuleTags.join(', ') || undefined,
-                  client_id: clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName)?.id || undefined,
-                  project_manager_id: nameToId(createProjectManager, allEmployees),
-                  lead_id: nameToId(createBIMLead, allEmployees),
-                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
-                  members: membersPayload,
-                  department: createDepartment || undefined,
-                  due_date: createEndDate || undefined,
-                  start_date: createStartDate || undefined,
-                  totalhours: createTotalHours || undefined,
-                  perday: createPerDay || undefined,
-                  priority: editPriority || undefined,
-                  location: createLocation || undefined,
-                  description: createDescription || undefined,
-                  resources: createResources || undefined,
-                  required_resources: createRequiredResources || undefined,
-                })
-                  .then(({ data }) => {
-                    if (data.success) {
-                      setShowEditModal(false);
-                      api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({
-                          id: r.id,
-                          project_name: r.project_name,
-                          progress: r.progress ?? 0,
-                          total_tasks: r.total_tasks ?? 0,
-                          completed_tasks: r.completed_tasks ?? 0,
-                          priority: r.priority ?? 'Normal',
-                          budget: r.budget,
-                          module_name: r.modules,
-                          client_name: r.client_name,
-                          project_manager: r.project_manager_name,
-                          start_date: r.start_date,
-                          end_date: r.due_date,
-                          total_hours: r.totalhours,
-                          per_day: r.perday,
-                          department: r.department_name,
-                          bim_lead: r.lead_name,
-                          bim_co_ordinator: r.bim_coordinator_name,
-                          member: r.members,
-                          resources: r.resources,
-                          required_resources: r.required_resources,
-                          location: r.location,
-                          description: r.description,
-                        }))))
-                        .catch(() => { });
-                    }
+
+                api
+                  .put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
+                    project_name: createName.trim() || undefined,
+                    budget: createBudget || undefined,
+                    modules: editModuleTags.join(', ') || undefined,
+                    client_id:
+                      clientsList.find(
+                        (c) =>
+                          String(c.id) === String(createClientName) || c.full_name === createClientName,
+                      )?.id || undefined,
+                    project_manager_id: nameToId(createProjectManager, allEmployees),
+                    lead_id: nameToId(createBIMLead, allEmployees),
+                    bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
+                    members: membersPayload,
+                    department: createDepartment || undefined,
+                    due_date: createEndDate || undefined,
+                    start_date: createStartDate || undefined,
+                    totalhours: createTotalHours || undefined,
+                    perday: createPerDay || undefined,
+                    priority: editPriority || undefined,
+                    location: createLocation || undefined,
+                    description: createDescription || undefined,
+                    resources: createResources || undefined,
+                    required_resources: createRequiredResources || undefined,
                   })
-                  .catch(() => { })
+                  .then(({ data }) => {
+                    if (!data.success) return;
+
+                    // If new task names were added while editing, create tasks for this project.
+                    const createTasksPromise =
+                      editTaskTags.length > 0
+                        ? Promise.all(
+                            editTaskTags.map((taskName) =>
+                              api.post("/api/tasks", {
+                                projectid: selectedProjectForEdit.id,
+                                taskName,
+                              }),
+                            ),
+                          ).catch(() => undefined)
+                        : Promise.resolve();
+
+                    createTasksPromise
+                      .then(() => {
+                        setShowEditModal(false);
+                        return api.get<{ projects?: Record<string, unknown>[] }>("/api/projects");
+                      })
+                      .then((res) => {
+                        if (!res) return;
+                        setList(
+                          (res.data.projects ?? []).map((r: any) => ({
+                            id: r.id,
+                            project_name: r.project_name,
+                            progress: r.progress ?? 0,
+                            total_tasks: r.total_tasks ?? 0,
+                            completed_tasks: r.completed_tasks ?? 0,
+                            priority: r.priority ?? "Normal",
+                            budget: r.budget,
+                            module_name: r.modules,
+                            client_name: r.client_name,
+                            project_manager: r.project_manager_name,
+                            start_date: r.start_date,
+                            end_date: r.due_date,
+                            total_hours: r.totalhours,
+                            per_day: r.perday,
+                            department: r.department_name,
+                            bim_lead: r.lead_name,
+                            bim_co_ordinator: r.bim_coordinator_name,
+                            member: r.members,
+                            resources: r.resources,
+                            required_resources: r.required_resources,
+                            location: r.location,
+                            description: r.description,
+                          })),
+                        );
+                      })
+                      .catch(() => undefined);
+                  })
+                  .catch(() => undefined)
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
