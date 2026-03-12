@@ -4,6 +4,11 @@ from decimal import Decimal
 from flask import Blueprint, request, jsonify, g, current_app
 from auth_middleware import login_required
 from db import get_db
+import hashlib
+import random
+import smtplib
+import ssl
+from email.mime.text import MIMEText
 
 bp = Blueprint("vendors", __name__, url_prefix="/api/vendors")
 
@@ -32,6 +37,9 @@ def get_vendor_db():
 def vendor_cursor():
     """Return a dictionary cursor from the vendor DB connection."""
     return get_vendor_db().cursor(dictionary=True)
+
+def _md5_hash(text: str) -> str:
+    return hashlib.md5((text or "").encode()).hexdigest()
 
 
 # NOTE: Blueprint does not support teardown decorators directly.
@@ -1174,17 +1182,151 @@ def _ensure_vendor_profile_tables():
     )""")
     # Add optional columns to vendor_onboarding if missing
     for col, defn in [
+        # Company details / onboarding
+        ("country", "VARCHAR(100)"),
+        ("state", "VARCHAR(100)"),
+        ("city", "VARCHAR(100)"),
+        ("year_established", "VARCHAR(20)"),
+        ("linkedin", "VARCHAR(255)"),
+        ("trade_license_file", "VARCHAR(255)"),
+        ("gst_certificate_file", "VARCHAR(255)"),
+        ("nda_agreement_file", "VARCHAR(255)"),
+        ("contact_mobile", "VARCHAR(50)"),
+        ("contact_designation", "VARCHAR(150)"),
+        ("alternate_contact", "VARCHAR(50)"),
+        ("num_employees", "VARCHAR(50)"),
+        ("turnover_range", "VARCHAR(100)"),
+        ("core_business_areas", "TEXT"),
+        ("technical_team_size", "VARCHAR(50)"),
+        ("description", "LONGTEXT"),
         ("sectors", "TEXT"),
+        ("other_sector", "VARCHAR(255)"),
         ("services", "TEXT"),
+        ("service_categories", "TEXT"),
+        ("other_service", "VARCHAR(255)"),
         ("keywords", "TEXT"),
         ("portfolio_json", "LONGTEXT"),
+        ("software_tools", "TEXT"),
+        ("other_software", "VARCHAR(255)"),
         ("gst_number", "VARCHAR(50)"),
         ("reg_id", "VARCHAR(100)"),
+        ("billing_currency", "VARCHAR(50)"),
+        ("payment_terms", "TEXT"),
+        ("nda_agreed", "TINYINT DEFAULT 0"),
+        ("data_protection_compliant", "TINYINT DEFAULT 0"),
     ]:
         try:
             cur.execute(f"ALTER TABLE vendor_onboarding ADD COLUMN IF NOT EXISTS `{col}` {defn}")
         except Exception:
             pass
+
+
+def _ensure_vendor_profile_child_tables():
+    """Ensure vendor_portfolio and vendor_resource_profiles exist in new_swiftbim."""
+    cur = vendor_cursor()
+
+    # Main portfolio table
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS vendor_portfolio (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        project_name VARCHAR(255),
+        project_client VARCHAR(255),
+        project_sector VARCHAR(255),
+        project_description LONGTEXT,
+        project_role VARCHAR(255),
+        project_tools VARCHAR(255),
+        project_duration VARCHAR(255),
+        project_year VARCHAR(50),
+        project_files LONGTEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )"""
+    )
+
+    # Resource profiles table (new_swiftbim DB)
+    cur.execute(
+        """CREATE TABLE IF NOT EXISTS vendor_resource_profiles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        name VARCHAR(255),
+        designation VARCHAR(255),
+        discipline VARCHAR(255),
+        years_of_experience VARCHAR(50),
+        expertise TEXT,
+        role VARCHAR(255),
+        software TEXT,
+        certifications TEXT,
+        projects_worked_on TEXT,
+        email VARCHAR(255),
+        login_role VARCHAR(100),
+        vendor_employee_id INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )"""
+    )
+
+    # Backward compat: some older DBs created vendor_resource_profiles without the
+    # newer login-related columns. MySQL 5.7 does not support "ADD COLUMN IF NOT EXISTS",
+    # so we emulate it by checking SHOW COLUMNS first.
+    try:
+        cur.execute("SHOW COLUMNS FROM vendor_resource_profiles")
+        existing_cols = {row["Field"].lower() for row in cur.fetchall()}
+    except Exception:
+        existing_cols = set()
+
+    for col, defn in [
+        ("email", "VARCHAR(255)"),
+        ("login_role", "VARCHAR(100)"),
+        ("vendor_employee_id", "INT"),
+    ]:
+        if col.lower() not in existing_cols:
+            try:
+                cur.execute(f"ALTER TABLE vendor_resource_profiles ADD COLUMN `{col}` {defn}")
+            except Exception:
+                # If this fails we simply continue; worst case the assign-login
+                # endpoint will surface an error which can be debugged separately.
+                pass
+
+
+def _send_login_email(to_email: str, role: str, temp_password: str):
+    mail_server = current_app.config.get("MAIL_SERVER") or ""
+    mail_port = int(current_app.config.get("MAIL_PORT") or 587)
+    mail_use_tls = bool(current_app.config.get("MAIL_USE_TLS"))
+    mail_username = current_app.config.get("MAIL_USERNAME") or ""
+    mail_password = current_app.config.get("MAIL_PASSWORD") or ""
+    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or mail_username
+    frontend_url = current_app.config.get("FRONTEND_URL") or "http://localhost:5174"
+    login_url = f"{frontend_url}/"
+
+    subject = "SwiftBIM Resource Login"
+    body = "\n".join([
+        "You have been added as a resource in SwiftBIM.",
+        f"Role: {role}",
+        "",
+        f"Login email: {to_email}",
+        f"Temporary password: {temp_password}",
+        "",
+        f"Login here: {login_url}",
+        "",
+        "Please login and change your password after first login.",
+    ])
+
+    if not (mail_server and sender and to_email):
+        return False
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = to_email
+    try:
+        context = ssl.create_default_context()
+        with smtplib.SMTP(mail_server, mail_port, timeout=10) as server:
+            if mail_use_tls:
+                server.starttls(context=context)
+            if mail_username and mail_password:
+                server.login(mail_username, mail_password)
+            server.sendmail(sender, [to_email], msg.as_string())
+        return True
+    except Exception:
+        return False
 
 
 def _profile_completeness(v: dict) -> int:
@@ -1197,14 +1339,23 @@ def _profile_completeness(v: dict) -> int:
     return int(((filled + has_portfolio + has_docs) / (len(fields) + 2)) * 100)
 
 
-@bp.route("/profile", methods=["GET"])
-@login_required
-def get_vendor_profile():
-    """GET /api/vendors/profile — vendor's own company profile."""
-    _ensure_vendor_profile_tables()
-    email = getattr(g, "user_email", None)
+def _current_vendor_onboarding_id():
+    """
+    Resolve the vendor_onboarding.id for the current user.
+    - For vendor users (user_type=='vendor'), company_id is vendor_employee.vendor_id
+      which is the vendor_onboarding id in new_swiftbim — use it directly.
+    - Otherwise resolve by g.user_email (contact_email or email in vendor_onboarding).
+    Returns None if not found.
+    """
     cur = vendor_cursor()
-    vendor_id = None
+    if getattr(g, "user_type", None) == "vendor":
+        cid = getattr(g, "company_id", None)
+        if cid is not None:
+            cur.execute("SELECT id FROM vendor_onboarding WHERE id = %s LIMIT 1", (cid,))
+            row = cur.fetchone()
+            if row:
+                return row["id"]
+    email = getattr(g, "user_email", None)
     if email:
         cur.execute(
             "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
@@ -1212,19 +1363,128 @@ def get_vendor_profile():
         )
         row = cur.fetchone()
         if row:
-            vendor_id = row["id"]
+            return row["id"]
+    return None
+
+
+def _ensure_vendor_employee_table():
+    """
+    Ensure vendor_employee exists in the main DB (snh6_swiftproject).
+    Many auth/team endpoints read vendor_employee via get_db().
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""CREATE TABLE IF NOT EXISTS vendor_employee (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        empid VARCHAR(50),
+        full_name VARCHAR(255),
+        email VARCHAR(255) UNIQUE,
+        password VARCHAR(255),
+        phone_number VARCHAR(50),
+        role VARCHAR(100),
+        status VARCHAR(30) DEFAULT 'active'
+    )""")
+    conn.commit()
+
+
+@bp.route("/company-resources", methods=["GET"])
+@login_required
+def vendor_company_resources():
+    """
+    GET /api/vendors/company-resources
+    Return the current vendor's resources (team) from vendor_employee.
+    Works even if current session user_type isn't 'vendor' by resolving vendor_onboarding id.
+    """
+    _ensure_vendor_employee_table()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"resources": []})
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        """SELECT id, full_name, email, phone_number, role, status
+           FROM vendor_employee
+           WHERE vendor_id = %s
+           ORDER BY full_name""",
+        (vendor_id,),
+    )
+    rows = cur.fetchall()
+    return jsonify({"resources": [{k: _serialize(v) for k, v in r.items()} for r in rows]})
+
+
+@bp.route("/company-resources", methods=["POST"])
+@login_required
+def add_vendor_company_resource():
+    """
+    POST /api/vendors/company-resources
+    Body JSON: { full_name?: string, email: string, role: string }
+    Creates a vendor_employee row for the current vendor.
+    """
+    _ensure_vendor_employee_table()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip()
+    role = (data.get("role") or "").strip()
+    full_name = (data.get("full_name") or "").strip() or email.split("@")[0]
+    phone_number = (data.get("phone_number") or "").strip()
+    if not email or not role:
+        return jsonify({"success": False, "message": "email and role are required"}), 400
+    if role not in ["Vendor PM", "Vendor Bim Lead", "Vendor Employee"]:
+        return jsonify({"success": False, "message": "Invalid role"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT id FROM vendor_employee WHERE email = %s AND vendor_id = %s LIMIT 1",
+        (email, vendor_id),
+    )
+    if cur.fetchone():
+        return jsonify({"success": False, "message": "Email already exists"}), 400
+
+    # Create a temporary password (vendor can share it; user can change later)
+    temp_password = "V" + str(random.randint(100000, 999999))
+    hashed = _md5_hash(temp_password)
+    cur2 = conn.cursor()
+    cur2.execute(
+        "INSERT INTO vendor_employee (vendor_id, full_name, email, password, phone_number, role, status) VALUES (%s,%s,%s,%s,%s,%s,'active')",
+        (vendor_id, full_name, email, hashed, phone_number, role),
+    )
+    conn.commit()
+    return jsonify({"success": True, "id": cur2.lastrowid, "temp_password": temp_password})
+
+
+@bp.route("/profile", methods=["GET"])
+@login_required
+def get_vendor_profile():
+    """GET /api/vendors/profile — vendor's own company profile (from vendor_onboarding). Same shape as GET /api/vendors/<id> for PartnerView sections."""
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
 
     if not vendor_id:
         return jsonify({"profile": None, "completeness": 0, "verified": False})
 
+    cur = vendor_cursor()
     cur.execute("SELECT * FROM vendor_onboarding WHERE id=%s", (vendor_id,))
     profile = {k: _serialize(v) for k, v in (cur.fetchone() or {}).items()}
 
-    # Portfolio projects
+    # Portfolio projects (same as _fetch_vendor_full)
     cur.execute("SELECT * FROM vendor_portfolio WHERE vendor_id=%s ORDER BY id", (vendor_id,))
     profile["portfolio_projects"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
 
-    # Documents
+    # Resource profiles (same as _fetch_vendor_full, for TD-style view)
+    cur.execute(
+        "SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id",
+        (vendor_id,),
+    )
+    profile["resource_profiles"] = [
+        {k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()
+    ]
+
+    # Documents (vendor_documents for profile uploads)
     cur.execute("SELECT * FROM vendor_documents WHERE vendor_id=%s ORDER BY uploaded_at DESC", (vendor_id,))
     profile["documents"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
 
@@ -1240,25 +1500,52 @@ def update_vendor_profile():
     """PUT /api/vendors/profile — update company details."""
     _ensure_vendor_profile_tables()
     data = request.get_json(silent=True) or {}
-    email = getattr(g, "user_email", None)
-    cur = vendor_cursor()
-
-    vendor_id = None
-    if email:
-        cur.execute(
-            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
-            (email, email),
-        )
-        row = cur.fetchone()
-        if row:
-            vendor_id = row["id"]
-
+    vendor_id = _current_vendor_onboarding_id()
     if not vendor_id:
         return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    cur = vendor_cursor()
 
-    allowed = ["company_name", "address", "gst_number", "reg_id",
-               "sectors", "services", "keywords", "portfolio_json",
-               "contact_name", "contact_email", "phone", "website"]
+    allowed = [
+        # Company details
+        "company_name",
+        "country",
+        "state",
+        "city",
+        "year_established",
+        "website",
+        "linkedin",
+        "address",
+        "gst_number",
+        "reg_id",
+        # Contact person
+        "contact_name",
+        "contact_designation",
+        "contact_email",
+        "phone",
+        "contact_mobile",
+        "alternate_contact",
+        # Company overview
+        "num_employees",
+        "turnover_range",
+        "core_business_areas",
+        "technical_team_size",
+        "description",
+        # Sector/service/software
+        "sectors",
+        "other_sector",
+        "services",
+        "service_categories",
+        "other_service",
+        "software_tools",
+        "other_software",
+        # Existing
+        "keywords",
+        "portfolio_json",
+        "billing_currency",
+        "payment_terms",
+        "nda_agreed",
+        "data_protection_compliant",
+    ]
     sets, params = [], []
     for key in allowed:
         if key in data:
@@ -1274,27 +1561,205 @@ def update_vendor_profile():
     return jsonify({"success": True})
 
 
+@bp.route("/profile/resource-profiles", methods=["POST"])
+@login_required
+def add_vendor_resource_profile():
+    """POST /api/vendors/profile/resource-profiles — add a resource profile for current vendor."""
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    data = request.get_json(silent=True) or {}
+    cur = vendor_cursor()
+    cur.execute(
+        """INSERT INTO vendor_resource_profiles
+           (vendor_id, name, designation, discipline, years_of_experience, expertise, role, software, certifications, projects_worked_on)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (
+            vendor_id,
+            data.get("name"),
+            data.get("designation"),
+            data.get("discipline"),
+            data.get("years_of_experience"),
+            data.get("expertise"),
+            data.get("role"),
+            data.get("software"),
+            data.get("certifications"),
+            data.get("projects_worked_on"),
+        ),
+    )
+    get_vendor_db().commit()
+    return jsonify({"success": True, "id": cur.lastrowid})
+
+
+@bp.route("/profile/resource-profiles", methods=["GET"])
+@login_required
+def list_vendor_resource_profiles():
+    """GET /api/vendors/profile/resource-profiles — list current vendor's resource profiles from new_swiftbim."""
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"resources": []})
+    cur = vendor_cursor()
+    cur.execute("SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id", (vendor_id,))
+    rows = cur.fetchall()
+    return jsonify({"resources": [{k: _serialize(v) for k, v in r.items()} for r in rows]})
+
+
+@bp.route("/profile/resource-profiles/<int:resource_id>/assign-login", methods=["POST"])
+@login_required
+def assign_resource_login(resource_id):
+    """
+    POST /api/vendors/profile/resource-profiles/<id>/assign-login
+    Body JSON: { email: string, role: 'Vendor PM'|'Vendor Bim Lead'|'Vendor Employee' }
+    - Stores email+login_role in vendor_resource_profiles (new_swiftbim)
+    - Creates vendor_employee login (main DB) with generated password
+    - Sends email with default password + login link
+    """
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    _ensure_vendor_employee_table()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip()
+    role = (data.get("role") or "").strip()
+    # Optional explicit password from frontend (e.g. ResourcesV edit form)
+    # If blank, we will keep the existing password for existing logins.
+    raw_password = (data.get("password") or "").strip()
+    full_name = (data.get("full_name") or "").strip()
+    phone_number = (data.get("phone_number") or "").strip()
+
+    if not email or not role:
+        return jsonify({"success": False, "message": "email and role are required"}), 400
+    if role not in ["Vendor PM", "Vendor Bim Lead", "Vendor Employee"]:
+        return jsonify({"success": False, "message": "Invalid role"}), 400
+
+    # Ensure resource belongs to this vendor
+    vcur = vendor_cursor()
+    vcur.execute(
+        "SELECT id, name FROM vendor_resource_profiles WHERE id=%s AND vendor_id=%s",
+        (resource_id, vendor_id),
+    )
+    res = vcur.fetchone()
+    if not res:
+        return jsonify({"success": False, "message": "Resource not found"}), 404
+
+    # Create or update vendor_employee login in main DB
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute("SELECT id, full_name, phone_number, password FROM vendor_employee WHERE email=%s AND vendor_id=%s LIMIT 1", (email, vendor_id))
+    existing = cur.fetchone()
+
+    if existing:
+        # Email already exists for this vendor.
+        vemp_id = existing.get("id")
+        c2 = conn.cursor()
+
+        if raw_password:
+            # Caller explicitly wants to change the password.
+            temp_password = raw_password
+            hashed = _md5_hash(temp_password)
+            c2.execute(
+                "UPDATE vendor_employee SET password=%s, role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
+                (hashed, role, full_name or None, phone_number or None, vemp_id, vendor_id),
+            )
+        else:
+            # No password provided: keep existing password and only update role/status.
+            temp_password = None
+            c2.execute(
+                "UPDATE vendor_employee SET role=%s, status='active', full_name=%s, phone_number=%s WHERE id=%s AND vendor_id=%s",
+                (role, full_name or None, phone_number or None, vemp_id, vendor_id),
+            )
+
+        conn.commit()
+        vendor_employee_id = vemp_id
+    else:
+        # Fresh login for this resource
+        c2 = conn.cursor()
+        # Either use caller‑provided password or generate a temporary one.
+        if raw_password:
+            temp_password = raw_password
+        else:
+            temp_password = "V" + str(random.randint(100000, 999999))
+
+        hashed = _md5_hash(temp_password)
+        # Default full name: provided value, or resource name, or email local part.
+        if not full_name:
+            full_name = (res.get("name") or email.split("@")[0])
+        c2.execute(
+            "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status) VALUES (%s,%s,%s,%s,%s,%s,%s,'active')",
+            (vendor_id, None, full_name, email, hashed, phone_number or None, role),
+        )
+        conn.commit()
+        vendor_employee_id = c2.lastrowid
+
+    # Persist mapping + synced display fields on resource profile (new_swiftbim)
+    if full_name:
+        vcur.execute(
+            "UPDATE vendor_resource_profiles SET name=%s, email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
+            (full_name, email, role, vendor_employee_id, resource_id, vendor_id),
+        )
+    else:
+        vcur.execute(
+            "UPDATE vendor_resource_profiles SET email=%s, login_role=%s, vendor_employee_id=%s WHERE id=%s AND vendor_id=%s",
+            (email, role, vendor_employee_id, resource_id, vendor_id),
+        )
+    get_vendor_db().commit()
+
+    # Only send password email if we actually changed/created a password.
+    email_sent = False
+    if temp_password:
+        email_sent = _send_login_email(email, role, temp_password)
+    return jsonify({"success": True, "email_sent": email_sent})
+
+
+@bp.route("/profile/portfolio-projects", methods=["POST"])
+@login_required
+def add_vendor_portfolio_project():
+    """POST /api/vendors/profile/portfolio-projects — add a portfolio project for current vendor."""
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    data = request.get_json(silent=True) or {}
+    cur = vendor_cursor()
+    cur.execute(
+        """INSERT INTO vendor_portfolio
+           (vendor_id, project_name, project_client, project_sector, project_description, project_role, project_tools, project_duration, project_year, project_files)
+           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+        (
+            vendor_id,
+            data.get("project_name"),
+            data.get("project_client"),
+            data.get("project_sector"),
+            data.get("project_description"),
+            data.get("project_role"),
+            data.get("project_tools"),
+            data.get("project_duration"),
+            data.get("project_year"),
+            data.get("project_files"),
+        ),
+    )
+    get_vendor_db().commit()
+    return jsonify({"success": True, "id": cur.lastrowid})
+
+
 @bp.route("/profile/documents", methods=["POST"])
 @login_required
 def upload_vendor_document():
     """POST /api/vendors/profile/documents — upload a document (multipart)."""
     import os, uuid
     _ensure_vendor_profile_tables()
-    email = getattr(g, "user_email", None)
-    cur = vendor_cursor()
-
-    vendor_id = None
-    if email:
-        cur.execute(
-            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
-            (email, email),
-        )
-        row = cur.fetchone()
-        if row:
-            vendor_id = row["id"]
-
+    vendor_id = _current_vendor_onboarding_id()
     if not vendor_id:
         return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    cur = vendor_cursor()
 
     file = request.files.get("file")
     doc_type = request.form.get("doc_type", "general")
@@ -1323,20 +1788,10 @@ def upload_vendor_document():
 def delete_vendor_document(doc_id):
     """DELETE /api/vendors/profile/documents/<id>."""
     _ensure_vendor_profile_tables()
-    email = getattr(g, "user_email", None)
-    cur = vendor_cursor()
-    vendor_id = None
-    if email:
-        cur.execute(
-            "SELECT id FROM vendor_onboarding WHERE contact_email=%s OR email=%s LIMIT 1",
-            (email, email),
-        )
-        row = cur.fetchone()
-        if row:
-            vendor_id = row["id"]
-
+    vendor_id = _current_vendor_onboarding_id()
     if not vendor_id:
         return jsonify({"success": False, "message": "Vendor not found"}), 404
+    cur = vendor_cursor()
 
     cur.execute("DELETE FROM vendor_documents WHERE id=%s AND vendor_id=%s", (doc_id, vendor_id))
     get_vendor_db().commit()

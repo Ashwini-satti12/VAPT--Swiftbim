@@ -303,7 +303,7 @@ def me():
         return jsonify({"success": False, "message": "User not found"}), 404
     # Panel type: 1 = management (PM/CEO/BIM etc), 2 = team leader, 3 = employee
     user_role = (getattr(g, "user_role", None) or "").strip()
-    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead")
+    management_roles = ("Project Manager", "CEO", "BIM Coordinator", "Technical Director", "BIM Lead", "Vendor PM", "Vendor Bim Lead")
     is_management = user_role in management_roles
     cur.execute(
         "SELECT team_id FROM team WHERE leader = %s AND Company_id = %s LIMIT 1",
@@ -328,6 +328,7 @@ def me():
             "company_id": g.company_id,
             "is_super_admin": getattr(g, "is_super_admin", False),
             "panel_type": panel_type,
+            "user_type": user_type,
         },
     })
 
