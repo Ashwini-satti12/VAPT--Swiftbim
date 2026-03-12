@@ -106,7 +106,17 @@ const toCamelCase = (str: string): string => {
 const ROLE_OPTIONS: string[] = [];
 
 const PANEL_ACCESS_OPTIONS = [
-  'Management', 'Accounts', 'Technical Director','Admin', 'Project Manager','Client', 'Sales', 'BIM Lead','Employee','All'
+  'Management',
+  'Accounts',
+  'Technical Director',
+  'Admin',
+  'Project Manager',
+  'Client',
+  'Sales',
+  'BIM Lead',
+  'BIM Coordinator',
+  'Employee',
+  'All',
 ];
 
 const SCROLLBAR_STYLE = `

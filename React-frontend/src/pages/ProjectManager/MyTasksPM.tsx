@@ -706,13 +706,22 @@ export default function MyTasksPM() {
 
   useEffect(() => {
     if (addTaskForm.projectName) {
-      api.post<{ modules: string[] }>("/api/projects/filters/modules", { project_name: addTaskForm.projectName })
-        .then(res => setModules(res.data.modules || []))
+      const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+      if (!selectedProj) {
+        setModules([]);
+        return;
+      }
+      api
+        .post<{ success: boolean; modules: { label: string }[] }>("/api/projects/filters/modules", { projectId: selectedProj.id })
+        .then((res) => {
+          const list = Array.isArray(res.data.modules) ? res.data.modules : [];
+          setModules(list.map((m: any) => m?.label).filter(Boolean));
+        })
         .catch(() => setModules([]));
     } else {
       setModules([]);
     }
-  }, [addTaskForm.projectName]);
+  }, [addTaskForm.projectName, projects]);
 
   const employeeOptions = ["Select Employee", ...employees.map(e => e.full_name)];
   const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];

@@ -136,10 +136,12 @@ def require_panels(*allowed_panels):
             if g.is_super_admin:
                 return f(*args, **kwargs)
             panels = getattr(g, "allpannel", []) or []
-            if "All" in panels:
+            # Be tolerant to case differences in stored panel names.
+            panels_norm = {str(p).strip().lower() for p in panels if str(p).strip()}
+            if "all" in panels_norm:
                 return f(*args, **kwargs)
             for p in allowed_panels:
-                if p in panels:
+                if str(p).strip().lower() in panels_norm:
                     return f(*args, **kwargs)
             return jsonify({
                 "success": False,
@@ -201,4 +203,19 @@ def require_not_roles(*blocked_roles):
 # Combined decorator for project app: same as PHP – user must have Employee or All panel to use project APIs.
 def project_app_required(f):
     """Login + require Employee or All panel (matches PHP project/index.php and sidebar Allpannel check)."""
-    return login_required(require_panels("Employee", "All")(f))
+    # Project APIs are used across multiple internal panels (management + employee).
+    # Access is still governed by Allpannel; this just aligns the allow-list with panels present in the app.
+    return login_required(
+        require_panels(
+            "Employee",
+            "All",
+            "Management",
+            "Accounts",
+            "Technical Director",
+            "Admin",
+            "Project Manager",
+            "Sales",
+            "BIM Lead",
+            "BIM Coordinator",
+        )(f)
+    )

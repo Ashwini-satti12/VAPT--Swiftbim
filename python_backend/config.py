@@ -8,7 +8,11 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
+<<<<<<< HEAD
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+=======
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "root")
+>>>>>>> 0cb535cb679e18d4c937fefed6b4f5a4fca834a7
     MYSQL_DB = os.getenv("MYSQL_DB", "snh6_swiftproject")
     MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
     MYSQL_CURSORCLASS = "DictCursor"
