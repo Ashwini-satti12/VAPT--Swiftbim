@@ -554,6 +554,10 @@ def update_project(project_id):
     data = dict(raw) if raw else {}
     conn = get_db()
     cur = conn.cursor()
+    # MySQL may report rowcount=0 when an UPDATE doesn't change any values.
+    # So we check existence up front to avoid returning a false 404.
+    cur.execute("SELECT 1 FROM projects WHERE id = %s AND Company_id = %s", (project_id, g.company_id))
+    project_exists = cur.fetchone() is not None
     # Resolve names to IDs so we always store IDs
     if data.get("client_id") is not None:
         data["client_id"] = _resolve_client_id(cur, g.company_id, data["client_id"])
@@ -585,7 +589,8 @@ def update_project(project_id):
     params.extend([project_id, g.company_id])
     cur.execute("UPDATE projects SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
     if not cur.rowcount:
-        return jsonify({"success": False, "message": "Project not found"}), 404
+        if not project_exists:
+            return jsonify({"success": False, "message": "Project not found"}), 404
 
     # -----------------------------------------------------------------------
     # OUTSOURCE BRIDGE: if this update marks the project as Outsource
