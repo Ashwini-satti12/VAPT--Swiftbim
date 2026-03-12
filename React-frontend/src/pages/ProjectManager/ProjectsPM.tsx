@@ -88,7 +88,8 @@ interface Project {
   budget?: string;
   module_name?: string;
   client_name?: string;
-  project_manager?: string;
+  project_manager?: string;       // name (for display)
+  project_manager_id?: string;    // raw ID from API (for filtering)
   start_date?: string;
   end_date?: string;
   total_hours?: string;
@@ -102,6 +103,8 @@ interface Project {
   priority?: string;
   location?: string;
   description?: string;
+  tasks?: string;
+  document_attachment?: string;   // path/name of attached file
 }
 
 interface Milestone {
@@ -128,11 +131,9 @@ export default function ProjectsPM() {
   const [editModuleInput, setEditModuleInput] = useState('');
   const [editTaskTags, setEditTaskTags] = useState<string[]>([]);
   const [editTaskInput, setEditTaskInput] = useState('');
+  const [createTaskTags, setCreateTaskTags] = useState<string[]>([]);
+  const [createTaskInput, setCreateTaskInput] = useState('');
   const [editPriority, setEditPriority] = useState('');
-  const [editDepartment, setEditDepartment] = useState('');
-  const [editProjectManager, setEditProjectManager] = useState('');
-  const [editBIMLead, setEditBIMLead] = useState('');
-  const [editBIMCoOrd, setEditBIMCoOrd] = useState('');
   const [editMember, setEditMember] = useState('');
   const [createClientName, setCreateClientName] = useState('');
   const [createProjectManager, setCreateProjectManager] = useState('');
@@ -148,7 +149,9 @@ export default function ProjectsPM() {
   const [createPriority, setCreatePriority] = useState('');
   const [createLocation, setCreateLocation] = useState('');
   const [createDescription, setCreateDescription] = useState('');
-  const [createFile, setCreateFile] = useState<File | null>(null);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -241,13 +244,9 @@ export default function ProjectsPM() {
     setEditTaskTags([]);
     setEditTaskInput('');
     setEditPriority('');
-    setEditDepartment('');
-    setEditProjectManager('');
-    setEditBIMLead('');
-    setEditBIMCoOrd('');
     setEditMember('');
     setCreateClientName('');
-    setCreateProjectManager('');
+    setCreateProjectManager(user?.full_name || '');
     setCreateStartDate('');
     setCreateEndDate('');
     setCreateTotalHours('');
@@ -261,7 +260,11 @@ export default function ProjectsPM() {
     setCreatePriority('');
     setCreateLocation('');
     setCreateDescription('');
-    setCreateFile(null);
+    setCreateTaskTags([]);
+    setCreateTaskInput('');
+    setCreateFiles([]);
+    setExistingFiles([]);
+    setRemovedFiles([]);
     setCreateError('');
   };
   const isManagement = panelType === 1;
@@ -327,7 +330,13 @@ export default function ProjectsPM() {
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
-        setList((res.data.projects ?? []).map(mapApiProjectToProject));
+        const allProjects = (res.data.projects ?? []).map(mapApiProjectToProject);
+        // Filter: only show projects where the logged-in PM is the project manager
+        const userId = user?.id;
+        const filtered = userId
+          ? allProjects.filter(p => String(p.project_manager_id) === String(userId))
+          : allProjects;
+        setList(filtered);
       })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -345,18 +354,21 @@ export default function ProjectsPM() {
     module_name: r.modules != null ? String(r.modules) : undefined,
     client_name: r.client_name != null ? String(r.client_name) : undefined,
     project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
+    project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
     end_date: r.due_date != null ? String(r.due_date) : undefined,
     total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
     per_day: r.perday != null ? String(r.perday) : undefined,
     department: r.department_name != null ? String(r.department_name) : undefined,
-    bim_lead: r.lead_name != null ? String(r.lead_name) : undefined,
-    bim_co_ordinator: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
+    bim_lead: r.lead_id != null ? String(r.lead_id) : undefined,
+    bim_co_ordinator: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
     member: r.members != null ? String(r.members) : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
     location: r.location != null ? String(r.location) : undefined,
     description: r.description != null ? String(r.description) : undefined,
+    tasks: r.tasks != null ? String(r.tasks) : undefined,
+    document_attachment: r.document_attachment != null ? String(r.document_attachment) : undefined,
   });
 
   // Deep-link support: keep project view on refresh using ?projectId=
@@ -570,7 +582,7 @@ export default function ProjectsPM() {
                           <img src={pmProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="PM" />
                         ) : (
                           <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                             <img src={ProfileIcon} className="w-6 h-6" alt="PM" />
+                            <img src={ProfileIcon} className="w-6 h-6" alt="PM" />
                           </div>
                         );
                       })()}
@@ -587,7 +599,7 @@ export default function ProjectsPM() {
                           <img src={blProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="BIM" />
                         ) : (
                           <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                             <img src={ProfileIcon} className="w-6 h-6" alt="BIM" />
+                            <img src={ProfileIcon} className="w-6 h-6" alt="BIM" />
                           </div>
                         );
                       })()}
@@ -931,32 +943,76 @@ export default function ProjectsPM() {
                 e.preventDefault();
                 setCreateError('');
                 setCreateSubmitting(true);
-                api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
-                  project_name: createName.trim(),
-                  budget: createBudget || undefined,
-                  modules: moduleNameTags.join(', ') || undefined,
-                  client_id: clientsList.find(c => c.full_name === createClientName)?.id || undefined,
-                  project_manager_id: nameToId(createProjectManager, allEmployees),
-                  lead_id: nameToId(createBIMLead, allEmployees),
-                  bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
-                  members: selectedMemberIds.join(',') || undefined,
-                  department: createDepartment || undefined,
-                  due_date: createEndDate || undefined,
-                  start_date: createStartDate || undefined,
-                  totalhours: createTotalHours || undefined,
-                  perday: createPerDay || undefined,
-                  priority: createPriority || undefined,
-                  location: createLocation || undefined,
-                  description: createDescription || undefined,
-                  resources: createResources || undefined,
-                  required_resources: createRequiredResources || undefined,
+
+                const formData = new FormData();
+                formData.append('project_name', createName.trim());
+                if (createBudget) formData.append('budget', createBudget);
+                if (moduleNameTags.length > 0) formData.append('modules', moduleNameTags.join(', '));
+
+                const clientId = clientsList.find(c => c.full_name === createClientName)?.id;
+                if (clientId) formData.append('client_id', String(clientId));
+
+                const pmId = nameToId(createProjectManager, allEmployees);
+                if (pmId) formData.append('project_manager_id', String(pmId));
+
+                const leadId = nameToId(createBIMLead, allEmployees);
+                if (leadId) formData.append('lead_id', String(leadId));
+
+                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
+                if (bcId) formData.append('bim_coordinator_id', String(bcId));
+
+                if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
+                if (createDepartment) formData.append('department', createDepartment);
+                if (createEndDate) formData.append('due_date', createEndDate);
+                if (createStartDate) formData.append('start_date', createStartDate);
+                if (createTotalHours) formData.append('totalhours', createTotalHours);
+                if (createPerDay) formData.append('perday', createPerDay);
+                if (createPriority) formData.append('priority', createPriority);
+                if (createLocation) formData.append('location', createLocation);
+                if (createDescription) formData.append('description', createDescription);
+                if (createResources) formData.append('resources', createResources);
+                if (createRequiredResources) formData.append('required_resources', createRequiredResources);
+                if (createTaskTags.length > 0) formData.append('tasks', createTaskTags.join(', '));
+
+                // Append all files
+                createFiles.forEach(file => {
+                  formData.append('files', file);
+                });
+
+                api.post<{ success?: boolean; project_id?: number }>('/api/projects', formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
                     if (data.success) {
                       setShowCreateModal(false);
                       resetFormFields();
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({ id: r.id, project_name: r.project_name, progress: r.progress ?? 0, total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0, priority: r.priority ?? 'Normal' }))))
+                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({
+                          id: r.id,
+                          project_name: r.project_name,
+                          progress: r.progress ?? 0,
+                          total_tasks: r.total_tasks ?? 0,
+                          completed_tasks: r.completed_tasks ?? 0,
+                          priority: r.priority ?? 'Normal',
+                          budget: r.budget,
+                          module_name: r.modules,
+                          client_name: r.client_name,
+                          project_manager: r.project_manager_name,
+                          start_date: r.start_date,
+                          end_date: r.due_date,
+                          total_hours: r.totalhours,
+                          per_day: r.perday,
+                          department: r.department_name,
+                          bim_lead: r.lead_name,
+                          bim_co_ordinator: r.bim_coordinator_name,
+                          member: r.members,
+                          resources: r.resources,
+                          required_resources: r.required_resources,
+                          location: r.location,
+                          description: r.description,
+                          tasks: r.tasks,
+                          document_attachment: r.document_attachment
+                        }))))
                         .catch(() => { });
                     }
                   })
@@ -1037,6 +1093,45 @@ export default function ProjectsPM() {
                             onClick={() => setModuleNameTags(prev => prev.filter((_, i) => i !== idx))}
                             className="text-gray-400 transition-colors leading-none"
                           >
+                            x
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {/* Task Name */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Task Name <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={createTaskInput}
+                    onChange={(e) => setCreateTaskInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = createTaskInput.trim().replace(/,$/, '');
+                        if (val && !createTaskTags.includes(val)) setCreateTaskTags(prev => [...prev, val]);
+                        setCreateTaskInput('');
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Task Name"
+                  />
+                  <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    Please enter names, separated by commas, and then press enter
+                  </p>
+                  {createTaskTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {createTaskTags.map((tag, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                          {tag}
+                          <button type="button" onClick={() => setCreateTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
                             x
                           </button>
                         </span>
@@ -1281,20 +1376,58 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Attach File (full width) ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Attach File <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                    <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                      {createFile ? createFile.name : 'choose File'}
-                    </div>
-                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
-                      Browse File
-                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                {/* ── Attach File with Preview ── */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                      Attach File <span className="text-[#DD4342]">*</span>
                     </label>
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                        {createFiles.length > 0 ? `${createFiles.length} file(s) selected` : 'Choose Files'}
+                      </div>
+                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
+                        Browse Files
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files || []);
+                            setCreateFiles(prev => [...prev, ...newFiles]);
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
+
+                  {/* File Previews */}
+                  {createFiles.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {createFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                          <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-semibold text-[#333] truncate">{file.name}</p>
+                            <p className="text-[12px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1346,33 +1479,52 @@ export default function ProjectsPM() {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
                 setIsEditSubmitting(true);
-                const membersPayload = selectedMemberIds.length > 0 ? selectedMemberIds.join(',') : (editMember || undefined);
 
-                api
-                  .put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
-                    project_name: createName.trim() || undefined,
-                    budget: createBudget || undefined,
-                    modules: editModuleTags.join(', ') || undefined,
-                    client_id:
-                      clientsList.find(
-                        (c) =>
-                          String(c.id) === String(createClientName) || c.full_name === createClientName,
-                      )?.id || undefined,
-                    project_manager_id: nameToId(createProjectManager, allEmployees),
-                    lead_id: nameToId(createBIMLead, allEmployees),
-                    bim_coordinator_id: nameToId(createBIMCoOrdinator, allEmployees),
-                    members: membersPayload,
-                    department: createDepartment || undefined,
-                    due_date: createEndDate || undefined,
-                    start_date: createStartDate || undefined,
-                    totalhours: createTotalHours || undefined,
-                    perday: createPerDay || undefined,
-                    priority: editPriority || undefined,
-                    location: createLocation || undefined,
-                    description: createDescription || undefined,
-                    resources: createResources || undefined,
-                    required_resources: createRequiredResources || undefined,
-                  })
+                const formData = new FormData();
+                formData.append('project_name', createName.trim());
+                if (createBudget) formData.append('budget', createBudget);
+                if (editModuleTags.length > 0) formData.append('modules', editModuleTags.join(', '));
+
+                const client = clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName);
+                if (client) formData.append('client_id', String(client.id));
+
+                const pmId = nameToId(createProjectManager, allEmployees);
+                if (pmId) formData.append('project_manager_id', String(pmId));
+
+                const leadId = nameToId(createBIMLead, allEmployees);
+                if (leadId) formData.append('lead_id', String(leadId));
+
+                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
+                if (bcId) formData.append('bim_coordinator_id', String(bcId));
+
+                if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
+                else if (editMember) formData.append('members', editMember);
+
+                if (createDepartment) formData.append('department', createDepartment);
+                if (createEndDate) formData.append('due_date', createEndDate);
+                if (createStartDate) formData.append('start_date', createStartDate);
+                if (createTotalHours) formData.append('totalhours', createTotalHours);
+                if (createPerDay) formData.append('perday', createPerDay);
+                if (editPriority) formData.append('priority', editPriority);
+                if (createLocation) formData.append('location', createLocation);
+                if (createDescription) formData.append('description', createDescription);
+                if (createResources) formData.append('resources', createResources);
+                if (createRequiredResources) formData.append('required_resources', createRequiredResources);
+                if (editTaskTags.length > 0) formData.append('tasks', editTaskTags.join(', '));
+
+                // Handle file uploads
+                if (createFiles.length > 0) {
+                  createFiles.forEach(file => {
+                    formData.append('files', file);
+                  });
+                }
+                if (removedFiles.length > 0) {
+                  formData.append('removed_files', removedFiles.join(','));
+                }
+
+                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
+                })
                   .then(({ data }) => {
                     if (!data.success) return;
 
@@ -1380,13 +1532,13 @@ export default function ProjectsPM() {
                     const createTasksPromise =
                       editTaskTags.length > 0
                         ? Promise.all(
-                            editTaskTags.map((taskName) =>
-                              api.post("/api/tasks", {
-                                projectid: selectedProjectForEdit.id,
-                                taskName,
-                              }),
-                            ),
-                          ).catch(() => undefined)
+                          editTaskTags.map((taskName) =>
+                            api.post("/api/tasks", {
+                              projectid: String(selectedProjectForEdit.id),
+                              taskName,
+                            }),
+                          ),
+                        ).catch(() => undefined)
                         : Promise.resolve();
 
                     createTasksPromise
@@ -1420,6 +1572,8 @@ export default function ProjectsPM() {
                             required_resources: r.required_resources,
                             location: r.location,
                             description: r.description,
+                            tasks: r.tasks,
+                            document_attachment: r.document_attachment
                           })),
                         );
                       })
@@ -1428,10 +1582,11 @@ export default function ProjectsPM() {
                   .catch(() => undefined)
                   .finally(() => setIsEditSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
+              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
-                {/* Project Name */}
+
+                {/* ── Project Name ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Project Name <span className="text-[#DD4342]">*</span>
@@ -1445,7 +1600,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Budget */}
+                {/* ── Budget ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Budget <span className="text-[#DD4342]">*</span>
@@ -1459,7 +1614,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Modules Name */}
+                {/* ── Module Name ── */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Modules Name <span className="text-[#DD4342]">*</span>
@@ -1490,16 +1645,14 @@ export default function ProjectsPM() {
                       {editModuleTags.map((tag, idx) => (
                         <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
                           {tag}
-                          <button type="button" onClick={() => setEditModuleTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
-                            x
-                          </button>
+                          <button type="button" onClick={() => setEditModuleTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">x</button>
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Task Name */}
+                {/* ── Task Name ── */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Task Name <span className="text-[#DD4342]">*</span>
@@ -1530,41 +1683,38 @@ export default function ProjectsPM() {
                       {editTaskTags.map((tag, idx) => (
                         <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
                           {tag}
-                          <button type="button" onClick={() => setEditTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">
-                            x
-                          </button>
+                          <button type="button" onClick={() => setEditTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">x</button>
                         </span>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Client Name */}
+                {/* ── Client Name ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
-                  <input
-                    type="text" readOnly
-                    value={createClientName}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
-                    placeholder="Enter Client Name"
+                  <FormSelect
+                    label="Client Name" placeholder="Select Client"
+                    options={clientsList.map(c => c.full_name)} value={createClientName}
+                    onChange={setCreateClientName}
                   />
                 </div>
 
-                {/* Priority */}
+                {/* ── Project Manager ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Priority <span className="text-[#DD4342]">*</span>
+                    Project Manager <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="Priority" placeholder="Select Priority"
-                    options={priorityOptions} value={editPriority}
-                    onChange={setEditPriority}
+                    label="Project Manager" placeholder="Select project manager"
+                    options={projectManagers} value={createProjectManager}
+                    onChange={setCreateProjectManager}
                   />
                 </div>
 
-                {/* Start Date */}
+                {/* ── Project Start Date ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Project Start Date <span className="text-[#DD4342]">*</span>
@@ -1577,7 +1727,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* End Date */}
+                {/* ── Project End Date ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Project End Date <span className="text-[#DD4342]">*</span>
@@ -1590,7 +1740,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Total Hours */}
+                {/* ── Total Hours ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Total Hours <span className="text-[#DD4342]">*</span>
@@ -1604,7 +1754,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Per Day */}
+                {/* ── Per Day ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Per Day <span className="text-[#DD4342]">*</span>
@@ -1618,81 +1768,99 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Select Department */}
+                {/* ── Department ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Select Department <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
                     label="Department" placeholder="Select Department"
-                    options={departments} value={editDepartment}
-                    onChange={setEditDepartment}
+                    options={departments} value={createDepartment}
+                    onChange={setCreateDepartment}
                   />
                 </div>
 
-                {/* Select Project Manager */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Select Project Manager <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <FormSelect
-                    label="Project Manager" placeholder="Select Project Manager"
-                    options={projectManagers} value={editProjectManager}
-                    onChange={setEditProjectManager}
-                  />
-                </div>
-
-                {/* Select BIM Lead */}
+                {/* ── BIM Lead ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Select BIM Lead <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
                     label="BIM Lead" placeholder="Select BIM Lead"
-                    options={bimLeads} value={editBIMLead}
-                    onChange={setEditBIMLead}
+                    options={bimLeads} value={createBIMLead}
+                    onChange={setCreateBIMLead}
                   />
                 </div>
 
-                {/* Select BIM Co-Ordinator */}
+                {/* ── BIM Co-ordinator ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
                     label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
-                    options={bimCoordinators} value={editBIMCoOrd}
-                    onChange={setEditBIMCoOrd}
+                    options={bimCoordinators} value={createBIMCoOrdinator}
+                    onChange={setCreateBIMCoOrdinator}
                   />
                 </div>
 
-                {/* Select Member */}
-                <div className="space-y-2">
+                {/* ── Members multi-select ── */}
+                <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Select Member <span className="text-[#DD4342]">*</span>
+                    Select Members <span className="text-[#DD4342]">*</span>
                   </label>
-                  <FormSelect
-                    label="Member" placeholder="Select Member"
-                    options={allEmployees.map(e => e.full_name)} value={editMember}
-                    onChange={setEditMember}
-                  />
+                  <div
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    onClick={() => setMemberDropdownOpen(o => !o)}
+                  >
+                    {selectedMemberIds.length === 0 && <span className="text-gray-400 text-[16px] font-Gantari">Select Members</span>}
+                    {selectedMemberIds.map(id => {
+                      const emp = allEmployees.find(e => e.id === id);
+                      return emp ? (
+                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
+                          {emp.full_name}
+                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
+                        </span>
+                      ) : null;
+                    })}
+                    <span className="ml-auto text-gray-400 text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
+                  </div>
+                  {memberDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
+                      <div className="p-2 border-b">
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={e => setMemberSearch(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          placeholder="Search employees..."
+                          className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari focus:outline-none"
+                        />
+                      </div>
+                      <div className="overflow-y-auto">
+                        {allEmployees
+                          .filter(e => e.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                          .map(e => (
+                            <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={selectedMemberIds.includes(e.id)}
+                                onChange={() => setSelectedMemberIds(prev =>
+                                  prev.includes(e.id) ? prev.filter(x => x !== e.id) : [...prev, e.id]
+                                )}
+                                onClick={ev => ev.stopPropagation()}
+                                className="w-4 h-4 accent-[#DD4342]"
+                              />
+                              <span className="text-[14px] font-Gantari text-[#333]">{e.full_name}</span>
+                              <span className="ml-auto text-[12px] text-gray-400">{e.user_role}</span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Location */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Location <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text" required
-                    value={createLocation}
-                    onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
-                    placeholder="Enter Project Location"
-                  />
-                </div>
-
-                {/* Resources */}
+                {/* ── Resources ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Resources <span className="text-[#DD4342]">*</span>
@@ -1706,7 +1874,7 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Required Resources */}
+                {/* ── Required Resources ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Required Resources <span className="text-[#DD4342]">*</span>
@@ -1720,35 +1888,136 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* Project Description */}
+                {/* ── Priority ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Priority <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <FormSelect
+                    label="Priority" placeholder="Select Priority"
+                    options={priorityOptions} value={createPriority}
+                    onChange={(v) => { setCreatePriority(v); setEditPriority(v); }}
+                  />
+                </div>
+
+                {/* ── Location ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Location <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createLocation}
+                    onChange={(e) => setCreateLocation(e.target.value)}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    placeholder="Enter Project Location"
+                  />
+                </div>
+
+                {/* ── Project Description ── */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Project Description <span className="text-[#DD4342]">*</span>
                   </label>
                   <textarea
                     required
-                    rows={4}
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
+                    rows={4}
                     className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
                     placeholder="Type Project Description"
                   />
                 </div>
 
-                {/* Attach File */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Attach File <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                    <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                      {createFile ? createFile.name : 'choose File'}
-                    </div>
-                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
-                      Browse File
-                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                {/* ── Attach File with Preview (Edit) ── */}
+                <div className="md:col-span-2 space-y-4">
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                      Attach File <span className="text-[#DD4342]">*</span>
                     </label>
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                        {(createFiles.length + existingFiles.length) > 0
+                          ? `${createFiles.length + existingFiles.length} file(s) total`
+                          : 'Choose Files'}
+                      </div>
+                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
+                        Browse Files
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files || []);
+                            setCreateFiles(prev => [...prev, ...newFiles]);
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
+
+                  {/* Combined File Previews (Existing + New) */}
+                  {(existingFiles.length > 0 || createFiles.length > 0) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Existing Files */}
+                      {existingFiles.map((fileName, idx) => (
+                        <div key={`exist-${idx}`} className="flex items-center gap-3 p-3 bg-[#EEF4FF] border border-[#C7D9FF] rounded-[8px] group">
+                          <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1D7AFC]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={`${api.defaults.baseURL}/uploads/${fileName}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[14px] font-semibold text-[#1D7AFC] hover:underline truncate block cursor-pointer"
+                            >
+                              {fileName}
+                            </a>
+                            <p className="text-[12px] text-[#1D7AFC]/70">Existing File</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRemovedFiles(prev => [...prev, fileName]);
+                              setExistingFiles(prev => prev.filter(f => f !== fileName));
+                            }}
+                            className="p-1.5 rounded-full hover:bg-white text-[#1D7AFC] hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Newly Selected Files */}
+                      {createFiles.map((file, idx) => (
+                        <div key={`new-${idx}`} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                          <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-semibold text-[#333] truncate">{file.name}</p>
+                            <p className="text-[12px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1758,10 +2027,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
-                    setEditModuleTags([]);
-                    setEditModuleInput('');
-                    setEditTaskTags([]);
-                    setEditTaskInput('');
+                    resetFormFields();
                   }}
                   className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
                 >
@@ -1869,28 +2135,32 @@ export default function ProjectsPM() {
                               {canEdit && (
                                 <button
                                   onClick={() => {
-                                    resetFormFields();
+                                    setCurrentProject(p);
                                     setSelectedProjectForEdit(p);
                                     setCreateName(p.project_name ?? '');
                                     setCreateBudget(p.budget ?? '');
                                     const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
                                     setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
-                                    setCreateProjectManager(idToName(p.project_manager, allEmployees));
+                                    const pmName = idToName(p.project_manager, allEmployees);
+                                    setCreateProjectManager(pmName);
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
                                     setCreateDepartment(p.department ?? '');
-                                    setEditDepartment(p.department ?? '');
-                                    setCreateBIMLead(idToName(p.bim_lead, allEmployees));
-                                    setEditBIMLead(idToName(p.bim_lead, allEmployees));
-                                    setCreateBIMCoOrdinator(idToName(p.bim_co_ordinator, allEmployees));
-                                    setEditBIMCoOrd(idToName(p.bim_co_ordinator, allEmployees));
+                                    const blName = idToName(p.bim_lead, allEmployees);
+                                    setCreateBIMLead(blName);
+                                    const bimCoName = idToName(p.bim_co_ordinator, allEmployees);
+                                    setCreateBIMCoOrdinator(bimCoName);
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                                       setSelectedMemberIds(memIds);
+                                      // Also pre-fill single editMember field (for compatibility)
+                                      const firstMember = allEmployees.find(e => e.id === memIds[0]);
+                                      setEditMember(firstMember ? firstMember.full_name : '');
                                     } else {
                                       setSelectedMemberIds([]);
+                                      setEditMember('');
                                     }
                                     setCreateResources(p.resources ?? '');
                                     setCreateRequiredResources(p.required_resources ?? '');
@@ -1898,7 +2168,15 @@ export default function ProjectsPM() {
                                     setCreatePriority(p.priority ?? '');
                                     setCreateLocation(p.location ?? '');
                                     setCreateDescription(p.description ?? '');
+                                    setEditTaskTags(p.tasks ? p.tasks.split(',').map(t => t.trim()).filter(Boolean) : []);
                                     setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
+
+                                    // Handle existing files
+                                    const docs = p.document_attachment ? p.document_attachment.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                    setExistingFiles(docs);
+                                    setRemovedFiles([]);
+                                    setCreateFiles([]);
+
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}
@@ -1928,6 +2206,24 @@ export default function ProjectsPM() {
                           <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                             {p.project_name ?? 'Prestige Park Grove'}
                           </h3>
+                          {p.document_attachment && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {p.document_attachment.split(',').map((file, idx) => (
+                                <a
+                                  key={idx}
+                                  href={`${api.defaults.baseURL}/uploads/${file.trim()}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#1D7AFC] hover:underline bg-[#EEF4FF] px-2.5 py-1 rounded-full border border-[#C7D9FF] transition-all hover:bg-[#D9E6FF]"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                  </svg>
+                                  {file.trim()}
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
@@ -1981,23 +2277,23 @@ export default function ProjectsPM() {
                                   </div>
                                 )}
                               </>
-                              )
-                            })()}
-                          </div>
-                          {p.priority && (
-                            <div className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
-                              {p.priority}
-                            </div>
-                          )}
+                            )
+                          })()}
                         </div>
+                        {p.priority && (
+                          <div className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
+                            {p.priority}
+                          </div>
+                        )}
                       </div>
-                    );
-                  })
-                )}
-              </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Delete confirmation (Keep as modal) */}
       {deleteId !== null && (
