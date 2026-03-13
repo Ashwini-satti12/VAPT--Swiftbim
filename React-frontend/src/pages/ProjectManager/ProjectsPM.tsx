@@ -914,11 +914,9 @@ export default function ProjectsPM() {
               type="button"
               onClick={() => { setShowCreateModal(false); setCreateError(''); }}
               className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-              title="Close"
+              title="Back"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
             <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
           </div>
@@ -1456,11 +1454,9 @@ export default function ProjectsPM() {
                 resetFormFields();
               }}
               className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-              title="Close"
+              title="Back"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
             <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
           </div>

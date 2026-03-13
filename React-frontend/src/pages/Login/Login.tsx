@@ -96,15 +96,15 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-[#f5f5f7] px-4"
+      className="min-h-screen flex items-center justify-end bg-[#f5f5f7] px-4 md:pr-12 lg:pr-20"
       style={{
         backgroundImage: `url(${loginBackground})`,
         backgroundRepeat: 'no-repeat',
-        backgroundSize: 'auto 100%',
-        backgroundPosition: 'right center',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
       }}
     >
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-lg shrink-0">
         <div className="bg-white/95 rounded-[32px] shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-hidden px-10 py-10">
           <div className="mb-8">
             {!logoError ? (
@@ -230,15 +230,7 @@ export default function Login() {
                   {submitting ? 'Signing in...' : 'Login'}
                 </button>
               </div>
-              <p className="pt-1 text-center text-[11px] text-slate-500">
-                Don&apos;t have an account?{' '}
-                <button
-                  type="button"
-                  className="font-semibold text-rose-500 hover:text-rose-600"
-                >
-                  Register Now
-                </button>
-              </p>
+             
             </form>
           )}
 
@@ -397,11 +389,7 @@ export default function Login() {
             </form>
           )}
         </div>
-        <p className="text-center mt-4 text-slate-500 text-xs">
-          <Link to="/" className="hover:underline">
-            ← Back to home
-          </Link>
-        </p>
+       
       </div>
     </div>
   );
