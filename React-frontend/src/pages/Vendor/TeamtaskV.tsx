@@ -536,42 +536,33 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {(
-                            [
-                                {
-                                    id: task.assigned_to,
-                                    name: task.assigned_full_name,
-                                    avatar: task.assigned_profile_picture,
-                                },
-                                {
-                                    id: task.vendor_id,
-                                    name: task.uploader_full_name,
-                                    avatar: task.uploader_profile_picture,
-                                },
-                            ] as { id?: number; name?: string; avatar?: string }[]
-                        )
-                            .filter((p) => p.name)
-                            .slice(0, 3)
-                            .map((p, idx) => {
-                                const src = p.id != null && p.avatar ? getGlobalProfileUrl(p.id, p.avatar) : (p.avatar ? getProfileUrl(p.avatar) : "");
+                        {/* Show only the assignee's avatar/name for this task */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                                        : task.assigned_profile_picture
+                                            ? getProfileUrl(task.assigned_profile_picture)
+                                            : "";
                                 return (
                                     <div
-                                        key={`${p.name}-${idx}`}
                                         className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={p.name as string}
+                                        title={task.assigned_full_name}
                                     >
                                         {src ? (
                                             <img
                                                 src={src}
-                                                alt={p.name}
+                                                alt={task.assigned_full_name}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <span>{String(p.name)[0]}</span>
+                                            <span>{task.assigned_full_name[0]}</span>
                                         )}
                                     </div>
                                 );
-                            })}
+                            })()
+                        )}
                     </div>
                 </div>
                 <Link

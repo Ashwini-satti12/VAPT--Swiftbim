@@ -531,45 +531,77 @@ function TaskCard({
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
-        <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {(
-                            [
-                                {
-                                    id: task.assigned_to,
-                                    name: task.assigned_full_name,
-                                    avatar: task.assigned_profile_picture,
-                                },
-                                {
-                                    id: task.uploaderid,
-                                    name: task.uploader_full_name,
-                                    avatar: task.uploader_profile_picture,
-                                },
-                            ] as { id?: number; name?: string; avatar?: string }[]
-                        )
-                            .filter((p) => p.name)
-                            .slice(0, 3)
-                            .map((p, idx) => {
-                                const src = p.id != null && p.avatar ? getGlobalProfileUrl(p.id, p.avatar) : (p.avatar ? getProfileUrl(p.avatar) : "");
+                        {/* Assigned To avatar */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                                        : task.assigned_profile_picture
+                                            ? getProfileUrl(task.assigned_profile_picture)
+                                            : "";
+                                const initials = task.assigned_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
                                 return (
                                     <div
-                                        key={`${p.name}-${idx}`}
                                         className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={p.name as string}
+                                        title={`Assigned To: ${task.assigned_full_name}`}
                                     >
                                         {src ? (
                                             <img
                                                 src={src}
-                                                alt={p.name}
+                                                alt={task.assigned_full_name}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <span>{String(p.name)[0]}</span>
+                                            <span>{initials}</span>
                                         )}
                                     </div>
                                 );
-                            })}
+                            })()
+                        )}
+                        {/* Assigned By avatar */}
+                        {task.uploader_full_name && (
+                            (() => {
+                                const src =
+                                    task.uploaderid != null && task.uploader_profile_picture
+                                        ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
+                                        : task.uploader_profile_picture
+                                            ? getProfileUrl(task.uploader_profile_picture)
+                                            : "";
+                                const initials = task.uploader_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={`Assigned By: ${task.uploader_full_name}`}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.uploader_full_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
                 </div>
                 <Link
@@ -767,7 +799,29 @@ export default function MytaskV() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
+        const base = taskToFormValues(task);
+        let assignTo = base.assignTo;
+
+        // Prefer the name coming from the API (assigned_full_name)
+        if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
+            assignTo = task.assigned_full_name;
+        } else {
+            // Otherwise, if assignTo looks like an ID, resolve it using vendor_resource_profiles
+            const rawId =
+                (task.assign_to as string | undefined) ??
+                (task.assigned_to as number | undefined) ??
+                base.assignTo;
+            const idNum =
+                typeof rawId === "number" ? rawId : Number(rawId || NaN);
+            if (!Number.isNaN(idNum) && Array.isArray(employees) && employees.length > 0) {
+                const emp = employees.find((e: any) => e.id === idNum);
+                if (emp && (emp.full_name || emp.name)) {
+                    assignTo = emp.full_name || emp.name;
+                }
+            }
+        }
+
+        setAddTaskForm({ ...base, assignTo });
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };

@@ -20,6 +20,7 @@ interface Employee {
 interface Project {
     id: number;
     project_name: string;
+    modules?: string;
 }
 
 interface FormDropdownProps {
@@ -285,11 +286,22 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         module: str(t.module ?? t.modules_name ?? ""),
         taskName: str(t.task_name ?? t.taskName ?? ""),
         type: str(t.type ?? t.category ?? ""),
-        actualStartDate: dateOnly(t.start_date ?? t.startDate ?? t.Actual_start_time ?? ""),
+        actualStartDate: dateOnly(
+            t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
+        ),
         actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
-        startTime: timeOnly(t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
+        startTime: timeOnly(
+            t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+        ),
         dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-        assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+        // Prefer human-readable name when present, otherwise fall back to id
+        assignTo: str(
+            t.assign_to ??
+                t.assignTo ??
+                t.assigned_to ??
+                t.assigned_full_name ??
+                "",
+        ),
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
     };
@@ -483,15 +495,23 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
+                        {/* Show initials for assignee and uploader (if available) */}
+                        {[
+                            task.assigned_full_name,
+                            task.uploader_full_name,
+                        ]
+                            .filter((name): name is string => !!name)
+                            .slice(0, 3)
+                            .map((name, idx) => (
+                                <div
+                                    key={`${name}-${idx}`}
+                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700"
+                                    title={name}
+                                >
+                                    {name[0]}
+                                </div>
+                            ))}
                     </div>
-                    <span className="text-xs text-slate-500">+4</span>
                 </div>
                 <Link
                     to={`/tasks/${task.id}`}
@@ -802,12 +822,17 @@ export default function MytaskPMV() {
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
-            api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects")
+            // Use vendor resources (new_swiftbim.vendor_resource_profiles)
+            // instead of global employees for the dropdowns.
+            api.get<{ success?: boolean; resources?: Employee[] }>(
+                "/api/vendors/vendor-resource-profiles",
+            ),
+            // For Vendor PM, use vendor projects list (vendor_projects table)
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, empRes, projRes]) => {
+            .then(([tasksRes, resourcesRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
@@ -824,8 +849,20 @@ export default function MytaskPMV() {
 
     const projectOptions = [
         "Select Projects",
-        ...(Array.isArray(projects) ? projects : []).map(p => p?.project_name).filter(Boolean)
+        ...(Array.isArray(projects) ? projects : [])
+            .map((p) => p?.project_name)
+            .filter(Boolean),
     ];
+
+    // Module options depend on the selected project: use its comma-separated modules list
+    const selectedProjectMeta = Array.isArray(projects)
+        ? projects.find((p) => p?.project_name === addTaskForm.projectName)
+        : undefined;
+    const dynamicModuleOptions =
+        (selectedProjectMeta?.modules || "")
+            .split(",")
+            .map((m) => m.trim())
+            .filter((m) => m.length > 0);
 
     const counts = {
         todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
@@ -1274,8 +1311,10 @@ export default function MytaskPMV() {
                                         label="Select Module"
                                         options={[
                                             { value: "", label: "Select Module" },
-                                            { value: "module-1", label: "Module 1" },
-                                            { value: "module-2", label: "Module 2" },
+                                            ...dynamicModuleOptions.map((m) => ({
+                                                value: m,
+                                                label: m,
+                                            })),
                                         ]}
                                         value={addTaskForm.module}
                                         onChange={(v) =>
