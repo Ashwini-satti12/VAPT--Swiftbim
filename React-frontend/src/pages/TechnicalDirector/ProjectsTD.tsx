@@ -2498,10 +2498,10 @@ export default function ProjectsTD() {
 
       {/* Member Profile Modal */}
       {showMemberProfileModal && selectedMember && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -2531,7 +2531,7 @@ export default function ProjectsTD() {
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
               <div className="flex flex-col items-center">
                 {selectedMember.profile_picture ? (
                   <img

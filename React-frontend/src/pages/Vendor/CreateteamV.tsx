@@ -193,11 +193,11 @@ export default function CreateteamV() {
     useEffect(() => {
         Promise.all([
             api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams'),
-            api.get<{ employees?: Employee[] }>('/api/employees')
+            api.get<{ success?: boolean; resources?: Employee[] }>('/api/vendors/vendor-resource-profiles'),
         ])
-            .then(([teamsRes, empsRes]) => {
+            .then(([teamsRes, resourcesRes]) => {
                 setTeams(teamsRes.data.teams ?? []);
-                setEmployees(empsRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
             })
             .catch(() => {
                 setTeams([]);
