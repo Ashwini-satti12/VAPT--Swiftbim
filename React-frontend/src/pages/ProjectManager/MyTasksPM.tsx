@@ -13,6 +13,18 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import { TimePickerWheel } from "../../components/TimePickerWheel";
+import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+
+function formatTimeForDisplay(value: string): string {
+  if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
+  const [hStr, mStr] = value.split(":");
+  const h24 = parseInt(hStr, 10);
+  const m = mStr || "00";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const ampm = h24 < 12 ? "AM" : "PM";
+  return `${h12}:${m} ${ampm}`;
+}
 
 function TimePicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [hourStr, minStr] = value ? value.split(":") : ["", ""];
@@ -88,7 +100,7 @@ function TimePicker({ value, onChange }: { value: string; onChange: (val: string
 }
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId = "project" | "module" | "taskName" | "type" | "assignTo" | null;
+type FormDropdownId = "project" | "module" | "taskName" | "type" | "assignTo" | "type_start_time" | "type_end_time" | null;
 
 interface FormDropdownProps {
   label: string;
@@ -160,36 +172,38 @@ function FormDropdown({
         <div
           ref={dropdownRef}
           role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg max-h-60 overflow-y-auto"
+          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
         >
           {searchable && (
-            <div className="sticky top-0 bg-white p-2 border-b">
+            <div className="px-2 pb-1">
               <input
                 type="text"
-                autoFocus
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 placeholder="Search..."
-                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-[#DD4342]"
+                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
               />
             </div>
           )}
-          {filteredOptions.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              role="option"
-              onClick={() => {
-                onChange(opt.value);
-                setSearchQuery("");
-                onClose();
-              }}
-              className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
-            >
-              {opt.label}
-            </button>
-          ))}
+          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+            {filteredOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                role="option"
+                onClick={() => {
+                  onChange(opt.value);
+                  setSearchQuery("");
+                  onClose();
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -329,6 +343,69 @@ function TaskDropdown({
         </div>
       )}
     </div>
+  );
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function AttachmentPreviewItem({
+  file,
+  onRemove,
+  onPreviewClick,
+}: {
+  file: File;
+  onRemove: () => void;
+  onPreviewClick?: (file: File) => void;
+}) {
+  const isImage = file.type.startsWith("image/");
+  const [previewUrl] = useState<string | null>(() =>
+    isImage ? URL.createObjectURL(file) : null
+  );
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+  return (
+    <li className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]">
+      <button
+        type="button"
+        onClick={() => onPreviewClick?.(file)}
+        className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90"
+      >
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt=""
+            className="h-12 w-12 shrink-0 rounded object-cover border border-slate-200 cursor-pointer"
+          />
+        ) : (
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-500 cursor-pointer">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <span className="truncate block" title={file.name}>{file.name}</span>
+          <span className="text-xs text-[#8B8B8B]">{formatFileSize(file.size)}</span>
+        </div>
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
+        aria-label={`Remove ${file.name}`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </li>
   );
 }
 
@@ -734,6 +811,11 @@ export default function MyTasksPM() {
   const formTypeMenuRef = useRef<HTMLDivElement>(null);
   const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
   const formAssignMenuRef = useRef<HTMLDivElement>(null);
+  const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
+  const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
+  const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
+  const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
+  const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
   const employeeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -781,15 +863,19 @@ export default function MyTasksPM() {
               ? [formTaskNameTriggerRef, formTaskNameMenuRef]
               : openFormDropdown === "type"
                 ? [formTypeTriggerRef, formTypeMenuRef]
-                : [formAssignTriggerRef, formAssignMenuRef];
-      const inside = refs.some((r) => r.current && r.current.contains(target));
-      if (!inside) setOpenFormDropdown(null);
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [openFormDropdown]);
+                : openFormDropdown === "type_start_time"
+                    ? [formStartTimeTriggerRef, formStartTimeMenuRef]
+                    : openFormDropdown === "type_end_time"
+                        ? [formEndTimeTriggerRef, formEndTimeMenuRef]
+                        : [formAssignTriggerRef, formAssignMenuRef];
+            const inside = refs.some((r) => r.current && r.current.contains(target));
+            if (!inside) setOpenFormDropdown(null);
+          };
+          document.addEventListener("click", handleClickOutside);
+          return () => document.removeEventListener("click", handleClickOutside);
+        }, [openFormDropdown]);
 
-  useEffect(() => {
+        useEffect(() => {
     api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
     api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
   }, []);
@@ -1442,31 +1528,63 @@ export default function MyTasksPM() {
                   </div>
                 </div>
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
+                  <div className="relative">
                     <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Select Start Time
                     </label>
-                    <div className="relative">
-                      <TimePicker
-                        value={addTaskForm.startTime}
-                        onChange={(val) =>
-                          setAddTaskForm((f) => ({ ...f, startTime: val }))
-                        }
-                      />
-                    </div>
+                    <button
+                      ref={formStartTimeTriggerRef}
+                      type="button"
+                      onClick={() =>
+                        setOpenFormDropdown((d) =>
+                          d === "type_start_time" ? null : "type_start_time",
+                        )
+                      }
+                      className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                    >
+                      <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#616161]"}>
+                        {formatTimeForDisplay(addTaskForm.startTime)}
+                      </span>
+                      <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {openFormDropdown === "type_start_time" && (
+                      <div ref={formStartTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
+                        <TimePickerWheel
+                          value={addTaskForm.startTime}
+                          onChange={(v) => setAddTaskForm((f) => ({ ...f, startTime: v }))}
+                          onClose={() => setOpenFormDropdown(null)}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-[16px] font-medium text-[#000000] mb-1">
-                      Select Due Time
+                      Select End Time
                     </label>
-                    <div className="relative">
-                      <TimePicker
-                        value={addTaskForm.dueTime}
-                        onChange={(val) =>
-                          setAddTaskForm((f) => ({ ...f, dueTime: val }))
-                        }
-                      />
-                    </div>
+                    <button
+                      ref={formEndTimeTriggerRef}
+                      type="button"
+                      onClick={() =>
+                        setOpenFormDropdown((d) =>
+                          d === "type_end_time" ? null : "type_end_time",
+                        )
+                      }
+                      className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                    >
+                      <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#616161]"}>
+                        {formatTimeForDisplay(addTaskForm.dueTime)}
+                      </span>
+                      <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {openFormDropdown === "type_end_time" && (
+                      <div ref={formEndTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
+                        <TimePickerWheel
+                          value={addTaskForm.dueTime}
+                          onChange={(v) => setAddTaskForm((f) => ({ ...f, dueTime: v }))}
+                          onClose={() => setOpenFormDropdown(null)}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[16px] font-medium text-[#000000] mb-1">
@@ -1491,6 +1609,7 @@ export default function MyTasksPM() {
                       onClose={() => setOpenFormDropdown(null)}
                       triggerRef={formAssignTriggerRef}
                       dropdownRef={formAssignMenuRef}
+                      searchable
                     />
                   </div>
                 </div>
@@ -1570,34 +1689,12 @@ export default function MyTasksPM() {
                   {attachmentFiles.length > 0 && (
                     <ul className="mt-2 space-y-1">
                       {attachmentFiles.map((file, index) => (
-                        <li
-                          key={`${file.name}-${index}`}
-                          className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
-                        >
-                          <span className="truncate min-w-0" title={file.name}>
-                            {file.name}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(index)}
-                            className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
-                            aria-label={`Remove ${file.name}`}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        </li>
+                        <AttachmentPreviewItem
+                          key={`${file.name}-${index}-${file.size}`}
+                          file={file}
+                          onRemove={() => removeAttachment(index)}
+                          onPreviewClick={setAttachmentPreviewFile}
+                        />
                       ))}
                     </ul>
                   )}
@@ -1622,6 +1719,10 @@ export default function MyTasksPM() {
           </div>
         </div>
       )}
+      <AttachmentPreviewModal
+        file={attachmentPreviewFile}
+        onClose={() => setAttachmentPreviewFile(null)}
+      />
     </div>
   );
 }

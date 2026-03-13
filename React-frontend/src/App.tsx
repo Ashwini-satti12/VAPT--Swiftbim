@@ -34,8 +34,11 @@ import ManageLeavePM from './pages/ProjectManager/ManageLeavePM';
 /*Technical Director */
 import DashboardTD from './pages/TechnicalDirector/DashboardTD';
 import ConsultantTD from './pages/TechnicalDirector/ConsultantTD';
+import AddConsultantTD from './pages/TechnicalDirector/AddConsultantTD';
 import ConsultantdetailsTD from './pages/TechnicalDirector/ConsultantdetailsTD';
 import ClientTD from './pages/TechnicalDirector/ClientTD';
+import AddClientTD from './pages/TechnicalDirector/AddClientTD';
+import EditClientTD from './pages/TechnicalDirector/EditClientTD';
 import ProjectsTD from './pages/TechnicalDirector/ProjectsTD';
 import MytaskTD from './pages/TechnicalDirector/MytaskTD';
 import TeamtaskTD from './pages/TechnicalDirector/TeamtaskTD';
@@ -54,6 +57,7 @@ import ManageLeaveTD from './pages/TechnicalDirector/ManageLeaveTD';
 /* Bim Lead */
 import DashboardBL from './pages/BimLead/DashboardBL';
 import ConsultantBL from './pages/BimLead/ConsultantBL';
+import AddConsultantBL from './pages/BimLead/AddConsultantBL';
 import ConsultantdetailsBL from './pages/BimLead/ConsultantdetailsBL';
 import ProjectsBL from './pages/BimLead/ProjectsBL';
 import MytaskBL from './pages/BimLead/MytaskBL';
@@ -174,8 +178,11 @@ function App() {
             {/* Technical Director Routes */}
             <Route path="td/dashboard" element={<DashboardTD />} />
             <Route path="td/consultants" element={<ConsultantTD />} />
+            <Route path="td/consultants/add" element={<AddConsultantTD />} />
             <Route path="td/consultants/:id" element={<ConsultantdetailsTD />} />
             <Route path="td/clients" element={<ClientTD />} />
+            <Route path="td/clients/add" element={<AddClientTD />} />
+            <Route path="td/clients/:id/edit" element={<EditClientTD />} />
             <Route path="td/projects" element={<ProjectsTD />} />
             <Route path="td/mytasks" element={<MytaskTD />} />
             <Route path="td/teamtasks" element={<TeamtaskTD />} />
@@ -194,6 +201,7 @@ function App() {
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
+            <Route path="bl/consultants/add" element={<AddConsultantBL />} />
             <Route path="bl/consultants/:id" element={<ConsultantdetailsBL />} />
             <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />

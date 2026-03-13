@@ -2141,7 +2141,7 @@ export default function ProjectsPM() {
                                     setCreateBudget(p.budget ?? '');
                                     const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
                                     setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
-                                    const pmName = idToName(p.project_manager, allEmployees);
+                                    const pmName = p.project_manager ?? '';
                                     setCreateProjectManager(pmName);
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
@@ -2206,24 +2206,6 @@ export default function ProjectsPM() {
                           <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                             {p.project_name ?? 'Prestige Park Grove'}
                           </h3>
-                          {p.document_attachment && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {p.document_attachment.split(',').map((file, idx) => (
-                                <a
-                                  key={idx}
-                                  href={`${api.defaults.baseURL}/uploads/${file.trim()}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#1D7AFC] hover:underline bg-[#EEF4FF] px-2.5 py-1 rounded-full border border-[#C7D9FF] transition-all hover:bg-[#D9E6FF]"
-                                >
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                  </svg>
-                                  {file.trim()}
-                                </a>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">

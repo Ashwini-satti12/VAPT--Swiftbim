@@ -16,6 +16,7 @@ import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg'
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 interface Employee {
   id: number;
   full_name: string;
@@ -121,8 +122,8 @@ const PANEL_ACCESS_OPTIONS = [
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -132,7 +133,7 @@ const SCROLLBAR_STYLE = `
     border-radius: 10px;
   }
   .custom-scrollbar {
-    scrollbar-width: thin;
+    scrollbar-width: auto;
     scrollbar-color: #979797 transparent;
   }
 `;
@@ -214,29 +215,10 @@ export default function ConsultantTD() {
   }, []);
 
   const { user } = useAuth();
-  const [activeView, setActiveView] = useState<'list' | 'add' | 'edit' | 'invite' | 'deactive'>('list');
+  const [activeView, setActiveView] = useState<'list' | 'edit' | 'invite' | 'deactive'>('list');
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
-  const [addSubmitting, setAddSubmitting] = useState(false);
-  const [addError, setAddError] = useState('');
-  const [form, setForm] = useState({
-    full_name: '',
-    dob: '',
-    phone_number: '',
-    email: '',
-    password: '',
-    type: '',
-    user_role: '',
-    joining_date: '',
-    department: '',
-    address: '',
-    salary: '',
-    accountnumber: '',
-    roles: [] as string[],
-    profile_picture: null as File | null,
-    active: 'Active',
-  });
   const [inviteEmails, setInviteEmails] = useState('');
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
@@ -629,87 +611,6 @@ export default function ConsultantTD() {
       });
   }
 
-  function handleAddSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setAddError('');
-    if (!form.full_name.trim() || !form.email.trim() || !form.password) {
-      setAddError('Name, email and password are required.');
-      return;
-    }
-    setAddSubmitting(true);
-
-    // Build multipart form data so backend receives profile_picture file
-    const formData = new FormData();
-    formData.append('full_name', form.full_name.trim());
-    formData.append('email', form.email.trim());
-    formData.append('password', form.password);
-    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
-    if (form.user_role) formData.append('user_role', form.user_role);
-    if (form.address.trim()) formData.append('address', form.address.trim());
-    if (form.dob) formData.append('dob', form.dob);
-    if (form.type) formData.append('user_type', form.type);
-    if (form.joining_date) formData.append('doj', form.joining_date);
-    if (form.department) formData.append('department', form.department);
-    if (form.roles.length) formData.append('roles', form.roles.join(','));
-    // Backend expects 'active' or 'inactive', not 'deactive'
-    if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
-    if (form.profile_picture) {
-      formData.append('profile_picture', form.profile_picture);
-    }
-
-    api
-      .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
-        '/api/employees',
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      )
-      .then(({ data }) => {
-        if (data.success) {
-          setActiveView('list');
-          setForm({
-            full_name: '',
-            email: '',
-            password: '',
-            phone_number: '',
-            type: '',
-            user_role: 'Consultant',
-            department: '',
-            address: '',
-            dob: '',
-            joining_date: '',
-            profile_picture: null,
-            salary: '',
-            accountnumber: '',
-            roles: [],
-            active: 'Active',
-          });
-          setList((prev) => [
-            ...prev,
-            {
-              id: data.id!,
-              full_name: form.full_name,
-              email: form.email,
-              user_role: form.user_role,
-              department: form.department,
-              // Backend returns 'inactive', but frontend displays as 'deactive'
-              active: form.active === 'Active' ? 'active' : 'deactive',
-              dob: form.dob,
-              user_type: form.type,
-              doj: form.joining_date,
-              address: form.address,
-              salary: form.salary,
-              Allpannel: form.roles.join(','),
-              profile_picture: data.profile_picture || undefined,
-            },
-          ]);
-        } else {
-          setAddError(data.message || 'Failed to add consultant.');
-        }
-      })
-      .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
-      .finally(() => setAddSubmitting(false));
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -732,7 +633,7 @@ export default function ConsultantTD() {
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <button
                     type="button"
-                    onClick={() => setActiveView('add')}
+                    onClick={() => navigate('/td/consultants/add')}
                     className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
@@ -1138,193 +1039,17 @@ export default function ConsultantTD() {
         </>
       )}
 
-      {activeView === 'add' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
-          <div className="max-w-[1174px] mx-auto">
-            <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
-              <button
-                type="button"
-                onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-              >
-                <FiX className="w-5 h-5 font-bold" />
-              </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
-              <div className="w-10" /> {/* Spacer to center title */}
-            </div>
-
-            <form onSubmit={handleAddSubmit} className="space-y-6">
-              {addError && (
-                <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
-                    !
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-semibold leading-snug">Validation error</p>
-                    <p className="mt-0.5 text-[13px] leading-snug">
-                      {addError}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                {/* Column 1 */}
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="Enter Employee Name"
-                      value={form.full_name}
-                      onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="text"
-                      placeholder="Enter Phone Number"
-                      value={form.phone_number}
-                      onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="password"
-                      placeholder="Enter Password"
-                      value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
-                    <CustomDropdown
-                      options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
-                      value={form.user_role}
-                      onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
-                      placeholder="Select Role"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department <span className="text-[#DD4342]">*</span></label>
-                    <CustomDropdown
-                      options={departmentOptions}
-                      value={form.department}
-                      onChange={(val) => setForm((f) => ({ ...f, department: val }))}
-                      placeholder="Select Department"
-                    />
-                  </div>
-                </div>
-
-                {/* Column 2 */}
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="date"
-                      value={form.dob}
-                      onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="email"
-                      placeholder="Enter Email"
-                      value={form.email}
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      required
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                    <CustomDropdown
-                      options={['Trainee', 'Consultant',]}
-                      value={form.type}
-                      onChange={(val) => setForm((f) => ({ ...f, type: val }))}
-                      placeholder="Select Type"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
-                    <input
-                      type="date"
-                      value={form.joining_date}
-                      onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-lg overflow-hidden">
-                      <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                        {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                      </div>
-                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
-                        Browse File
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".jpg,.jpeg"
-                          onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Field */}
-              <div className="mt-2">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
-                <textarea
-                  rows={4}
-                  placeholder="Type your Address..."
-                  value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8  ">
-                <button
-                  type="button"
-                  onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
-                >
-                  Discard
-                </button>
-                <button
-                  type="submit"
-                  disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
-                >
-                  {addSubmitting ? 'Submitting...' : 'Submit'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
                 className="p-2 rounded-lg bg-[#F2F2F2] text-[#616161] transition-all"
+                title="Back"
               >
-                <FiX className="w-5 h-5 font-bold" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
               <div className="w-10" /> {/* Spacer to center title */}
@@ -1342,7 +1067,7 @@ export default function ConsultantTD() {
                     value={editForm.full_name}
                     onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
                     disabled
-                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#E0E0E0] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     required
                   />
                 </div>
@@ -1353,7 +1078,7 @@ export default function ConsultantTD() {
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1363,7 +1088,7 @@ export default function ConsultantTD() {
                       placeholder="Password cannot be changed here"
                       value="********"
                       disabled
-                      className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#E0E0E0] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     />
                     <p className="text-[12px] text-[#666666] mt-1 font-Gantari">Password is encrypted and cannot be viewed or edited here</p>
                   </div>
@@ -1392,7 +1117,7 @@ export default function ConsultantTD() {
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 </div>
@@ -1405,7 +1130,7 @@ export default function ConsultantTD() {
                       type="date"
                       value={editForm.dob}
                       onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 text-[14px] text-[#353535] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
@@ -1415,7 +1140,7 @@ export default function ConsultantTD() {
                     placeholder="Enter Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     required
                   />
                 </div>
@@ -1428,13 +1153,13 @@ export default function ConsultantTD() {
                     placeholder="Select Type"
                   />
                 </div>
-                <div>
+                <div className="pt-5">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
                   <input
                     type="date"
                     value={editForm.doj}
                     onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-3 text-[14px] text-[#353535] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1444,7 +1169,7 @@ export default function ConsultantTD() {
                     placeholder="0000$"
                     value={editForm.salary}
                     onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1472,15 +1197,15 @@ export default function ConsultantTD() {
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                    <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                    <div className="flex-1 px-4 text-[14px] text-[#8B8B8B] truncate">
                       {editForm.profile_picture 
                         ? editForm.profile_picture.name 
                         : currentProfilePicture 
                           ? 'Current picture shown above - Choose new file to replace' 
                           : 'Choose file (JPEG or JPG only)'}
                     </div>
-                    <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
+                    <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
                       Browse File
                       <input
                         type="file"
@@ -1509,7 +1234,7 @@ export default function ConsultantTD() {
                   placeholder="Type your Address..."
                   value={editForm.address}
                   onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-2 border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
 
@@ -1547,14 +1272,14 @@ export default function ConsultantTD() {
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="w-full sm:w-auto px-14 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px]transition-all"
+                  className="w-full sm:w-auto px-14 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px]transition-all"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px]  transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px]  transition-all"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1585,7 +1310,7 @@ export default function ConsultantTD() {
                   value={inviteEmails}
                   onChange={(e) => setInviteEmails(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52] leading-relaxed"
                   placeholder="Enter Multiple Email addresses separated by commas,"
                 />
                 <p className="text-[14px] text-[#666666] mt-3 font-medium">Separate multiple emails with commas (eg., email01@eg.com)</p>
@@ -1597,7 +1322,7 @@ export default function ConsultantTD() {
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52] leading-relaxed"
                   placeholder="Enter your Invitation Message.,"
                 />
               </div>

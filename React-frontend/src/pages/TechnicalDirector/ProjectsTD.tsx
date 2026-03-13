@@ -1294,8 +1294,7 @@ export default function ProjectsTD() {
                                   <img
                                     src={viewIcon}
                                     alt="view"
-                                    className="w-5 h-5"
-                                    style={{ filter: 'invert(40%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(95%) contrast(88%)' }}
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                   />
                                   <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
@@ -1311,7 +1310,7 @@ export default function ProjectsTD() {
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
                                   >
-                                    <img src={paymentMilestoneIcon} alt="payment milestone" className="w-5 h-5" />
+                                    <img src={paymentMilestoneIcon} alt="payment milestone" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Payment Milestones
                                     </span>
@@ -1370,7 +1369,7 @@ export default function ProjectsTD() {
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
                                   >
-                                    <img src={editIcon} alt="edit" className="w-5 h-5 hover" />
+                                    <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Edit
                                     </span>
@@ -1385,7 +1384,7 @@ export default function ProjectsTD() {
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
                                   >
-                                    <img src={deleteIcon} alt="delete" className="w-5 h-5" />
+                                    <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Delete
                                     </span>
