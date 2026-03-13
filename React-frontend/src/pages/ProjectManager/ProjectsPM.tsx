@@ -10,6 +10,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg"
 import api from '../../lib/api';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg"
+import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 
 interface Employee {
   id: number;
@@ -755,39 +756,38 @@ export default function ProjectsPM() {
         </div>
       ) : showMilestones && currentProject ? (
         <div className="flex flex-col h-full bg-white">
-          {/* Milestones Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 px-6 md:px-10 py-6 md:py-8 border-b border-slate-50">
-            <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto">
+          {/* Milestones Header - match ProjectsTD */}
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-6">
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="p-3 md:p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img src={backIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[26px] font-Gantari font-bold text-[#1A1A1A] truncate">Payment Milestones</h3>
-                <p className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#999999] mt-0.5 truncate">
-                  {currentProject.project_name ?? 'Prestige Park Grove'}_Tower 1 to 09
+              <div>
+                <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
+                  Payment Milestones
+                </h3>
+                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                  {currentProject.project_name ?? "Prestige Park Grove"}
+                  _Tower 1 to 09
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowAddMilestoneModal(true)}
-              className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[15px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm transition-colors"
               title="Add Milestone"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-              </svg>
+              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
               Add Milestone
             </button>
           </div>
 
-          {/* Milestones Content - No Scroll Version */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col px-6 md:px-10 pb-10 custom-scrollbar">
+          {/* Milestones Content - match ProjectsTD */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
             {/* Summary Cards */}
             {(() => {
               const totalAmount = milestones.reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
@@ -797,19 +797,19 @@ export default function ProjectsPM() {
 
               return (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  <div className="border border-[#AEACAC52] bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                  <div className="border border-slate-200 bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
                     <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
                     <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{totalAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
                     <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
                     <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{paidAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
                     <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
                     <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{pendingAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
+                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
                     <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
                     <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{progressPercent}%</p>
                   </div>
@@ -822,28 +822,29 @@ export default function ProjectsPM() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DD4342]"></div>
               </div>
             ) : milestones.length === 0 ? (
-              <div className="flex-1 border-2 border-slate-100 border-dashed rounded-[1.5rem] md:rounded-[2.5rem] bg-white px-6 md:px-24 py-12 md:py-0 flex flex-col items-center justify-center text-center">
-                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#353535] mb-2">No Payment Milestones Found</h4>
-                <p className="text-[14px] md:text-[15px] font-Gantari font-bold text-[#999999] mb-8 md:mb-10 max-w-sm">
+              /* Empty state - match ProjectsTD */
+              <div className="flex-1 border border-[#E5E7EB] rounded-[8px] bg-white flex flex-col items-center justify-center text-center py-20">
+                <h4 className="text-[20px] font-Gantari font-bold text-[#353535] mb-3">
+                  No Payment Milestones Found
+                </h4>
+                <p className="text-[16px] font-Gantari text-[#666666] mb-8">
                   Add your First Payment to get started with payment tracking
                 </p>
                 <button
                   onClick={() => setShowAddMilestoneModal(true)}
-                  className="flex items-center gap-2 px-8 md:px-10 py-3.5 md:py-4 rounded-xl bg-[#DD4342] text-white font-Gantari font-bold text-[16px] md:text-[18px] shadow-lg shadow-red-500/10 hover:bg-[#c93a39] transition-colors"
+                  className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
-                  </svg>
+                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Add Milestone
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
                 {milestones.map((m) => (
-                  <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex-1 min-w-0">
                       <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">{m.milestone_name}</h5>
-                      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] font-Gantari text-[#999999]">
+                      <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
                         <div className="flex items-center gap-2">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -860,7 +861,7 @@ export default function ProjectsPM() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 md:gap-8 w-full md:w-auto">
+                    <div className="flex items-center gap-8">
                       <div className="text-right">
                         <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
                         <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
@@ -2102,9 +2103,10 @@ export default function ProjectsPM() {
                                   setOpenMenuId(null);
                                   setSearchParams({ projectId: String(p.id) });
                                 }}
-                                className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari" >
-                                <img src={viewIcon} alt="view" className="w-6 h-6" />
-                                <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">View</span>
+                                className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari"
+                              >
+                                <img src={viewIcon} alt="view" className="w-6 h-6 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
                               </button>
                               {(isTechnicalDirector || isManagement) && (
                                 <button
@@ -2113,10 +2115,10 @@ export default function ProjectsPM() {
                                     setShowMilestones(true);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                  className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari"
                                 >
-                                  <img src={paymentMilestone} alt=" milestones" className="w-6 h-6" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Payment Milestones</span>
+                                  <img src={paymentMilestone} alt=" milestones" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
                                 </button>
                               )}
                               {canEdit && (
@@ -2167,10 +2169,10 @@ export default function ProjectsPM() {
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                  className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari"
                                 >
-                                  <img src={editIcon} alt="edit" className="w-6 h-6" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Edit</span>
+                                  <img src={editIcon} alt="edit" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
                                 </button>
                               )}
                               {canDelete && (
@@ -2179,10 +2181,10 @@ export default function ProjectsPM() {
                                     setDeleteId(p.id);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left hover:text-[#DD4342] font-Gantari"
+                                  className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari"
                                 >
-                                  <img src={deleteIcon} alt="delete" className="w-6 h-6" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] hover:text-[#DD4342]">Delete</span>
+                                  <img src={deleteIcon} alt="delete" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Delete</span>
                                 </button>
                               )}
                             </div>

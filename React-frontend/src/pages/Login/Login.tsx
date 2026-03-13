@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
-import SwifterzLogo from '../../assets/ProductNavbarIcons/swifterzlogo.png';
 import loginBackground from '../../assets/login_bg.png';
 
 type Step = 'login' | 'forgot' | 'otp' | 'reset';
@@ -21,7 +20,6 @@ export default function Login() {
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [resetToken, setResetToken] = useState('');
-  const [logoError, setLogoError] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   // const location = useLocation();
@@ -96,41 +94,46 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-end bg-[#f5f5f7] px-4 md:pr-12 lg:pr-20"
+      className="min-h-screen w-full flex items-center justify-end bg-[#f5f5f7] px-4 md:pr-12 lg:pr-20"
       style={{
         backgroundImage: `url(${loginBackground})`,
         backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
+        backgroundSize: '100% 100%',
+        backgroundPosition: 'right center',
       }}
     >
-      <div className="w-full max-w-lg shrink-0">
-        <div className="bg-white/95 rounded-[32px] shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-hidden px-10 py-10">
+      <div className="w-full max-w-sm shrink-0">
+        <div className="bg-white/95 rounded-2xl shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-hidden px-10 py-10">
           <div className="mb-8">
-            {!logoError ? (
-              <img
-                src={SwifterzLogo}
-                alt="Swifterz"
-                className="h-10 w-auto object-contain mb-6"
-                onError={() => setLogoError(true)}
-              />
+            {step === 'forgot' ? (
+              <>
+                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">Forgot Password?</h2>
+                <p className="text-slate-600 text-sm md:text-base text-center leading-relaxed">
+                  Don&apos;t worry! It Happens.
+                </p>
+                <p className="text-slate-600 text-sm md:text-base text-center mt-1">
+                  Please enter the email address linked with your account.
+                </p>
+              </>
+            ) : step === 'otp' ? (
+              <>
+                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">OTP Verification</h2>
+                <p className="text-slate-600 text-sm md:text-base text-center">
+                  Please enter the verification code we just sent on your email address.
+                </p>
+              </>
             ) : (
-              <div className="inline-flex h-10 px-6 rounded-full bg-slate-900 text-white items-center justify-center font-semibold mb-6">
-                Swifterz
-              </div>
+              <>
+                <p className="text-sm font-medium text-rose-500 mb-1">Welcome to SwiftBIM</p>
+                <h2 className="text-[32px] leading-tight font-semibold text-slate-900 mb-2">
+                  {step === 'login' && 'Login'}
+                  {step === 'reset' && 'Reset Password'}
+                </h2>
+                {step === 'reset' && (
+                  <p className="text-slate-500 text-sm">{message}</p>
+                )}
+              </>
             )}
-            <p className="text-sm font-medium text-rose-500 mb-1">Welcome to SwiftBIM</p>
-            <h2 className="text-[32px] leading-tight font-semibold text-slate-900 mb-2">
-              {step === 'login' && 'Login'}
-              {step === 'forgot' && 'Forgot Password'}
-              {step === 'otp' && 'Enter OTP'}
-              {step === 'reset' && 'Reset Password'}
-            </h2>
-            <p className="text-slate-500 text-sm">
-              {step === 'login' && 'Enter your details to access your account.'}
-              {step === 'forgot' && 'Provide your email to receive an OTP.'}
-              {(step === 'otp' || step === 'reset') && message}
-            </p>
           </div>
 
           {error && (
@@ -153,7 +156,7 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-[#ADADAD] text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-[#DD4342]"
                   placeholder="Username or email address"
                   required
                 />
@@ -171,7 +174,7 @@ export default function Login() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 pr-10"
+                    className="w-full px-4 py-2.5 rounded-lg border border-[#ADADAD] text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-[#DD4342] pr-10"
                     placeholder="Password"
                     required
                   />
@@ -215,17 +218,17 @@ export default function Login() {
                       setStep('forgot');
                       setError('');
                     }}
-                    className="text-[11px] font-medium text-sky-500 hover:text-sky-600"
+                    className="pt-2 text-[14px] text-[#4285F4] font-Gantari"
                   >
                     Forgot Password
                   </button>
                 </div>
               </div>
-              <div className="pt-2">
+              <div className="pt-2 flex justify-center">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full inline-flex justify-center items-center px-6 py-2.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex justify-center items-center px-16 py-2.5 rounded-lg bg-[#DD4342] text-[#FFFFFF] text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? 'Signing in...' : 'Login'}
                 </button>
@@ -235,83 +238,80 @@ export default function Login() {
           )}
 
           {step === 'forgot' && (
-            <form onSubmit={handleForgot} className="space-y-4">
+            <form onSubmit={handleForgot} className="space-y-5">
               <div>
-                <label
-                  htmlFor="forgot-email"
-                  className="block text-xs font-semibold text-slate-700 mb-1"
-                >
-                  Enter your email address
-                </label>
                 <input
                   id="forgot-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
                   placeholder="Email address"
                   required
                 />
               </div>
-              <div className="flex gap-2 justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('login');
-                    setError('');
-                  }}
-                  className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
-                >
-                  Back
-                </button>
+              <div className="flex flex-col items-center gap-3">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-2.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium disabled:opacity-50"
+                  className="w-full max-w-[280px] py-3 rounded-lg bg-[#E94E4E] hover:bg-[#d94545] text-white text-base font-semibold disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Sending...' : 'Submit'}
+                  {submitting ? 'Sending...' : 'Send Code'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStep('login'); setError(''); }}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Back
                 </button>
               </div>
             </form>
           )}
 
           {step === 'otp' && (
-            <form onSubmit={handleOtp} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="otp"
-                  className="block text-xs font-semibold text-slate-700 mb-1"
-                >
-                  OTP
-                </label>
-                <input
-                  id="otp"
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  maxLength={5}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent"
-                  placeholder="Enter OTP"
-                  required
-                />
+            <form onSubmit={handleOtp} className="space-y-6">
+              <div className="flex justify-center gap-2 sm:gap-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <input
+                    key={i}
+                    id={`otp-${i}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={otp[i] ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(-1);
+                      setOtp((prev) => {
+                        const arr = prev.split('');
+                        arr[i] = v;
+                        return arr.join('').slice(0, 4);
+                      });
+                      if (v && i < 3) document.getElementById(`otp-${i + 1}`)?.focus();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Backspace' && !otp[i] && i > 0) document.getElementById(`otp-${i - 1}`)?.focus();
+                    }}
+                    name={`otp-${i}`}
+                    className="w-12 h-12 sm:w-14 sm:h-14 text-center text-lg font-bold rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E64F4E] focus:border-transparent"
+                    aria-label={`Digit ${i + 1}`}
+                  />
+                ))}
               </div>
-              <div className="flex gap-2 justify-between">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('forgot');
-                    setError('');
-                  }}
-                  className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
-                >
-                  Back
-                </button>
+              <div className="flex flex-col items-center gap-3">
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="px-6 py-2.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium disabled:opacity-50"
+                  disabled={submitting || otp.length < 4}
+                  className="w-full max-w-[280px] py-3 rounded-lg bg-[#E64F4E] hover:bg-[#d94545] text-white text-base font-semibold disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Verifying...' : 'Reset'}
+                  {submitting ? 'Verifying...' : 'Verify'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setStep('forgot'); setError(''); setOtp(''); }}
+                  className="text-sm text-slate-500 hover:text-slate-700"
+                >
+                  Back
                 </button>
               </div>
             </form>
