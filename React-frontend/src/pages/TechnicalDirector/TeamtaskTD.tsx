@@ -1104,23 +1104,7 @@ export default function TeamtaskPM() {
           />
           <button
             type="button"
-            onClick={() => {
-              setEditingTaskId(null);
-              setAddTaskForm({
-                projectName: "",
-                module: "",
-                taskName: "",
-                type: "",
-                actualStartDate: "",
-                actualEndDate: "",
-                startTime: "",
-                dueTime: "",
-                assignTo: "",
-                description: "",
-                checklist: "",
-              });
-              setAddTaskModalOpen(true);
-            }}
+            onClick={() => navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })}
             className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
           >
             <svg

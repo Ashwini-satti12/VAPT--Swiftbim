@@ -617,16 +617,16 @@ export default function ProjectsPM() {
                     <div>
                       <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Members Involved</p>
                       {memberNames.length > 0 ? (
-                        <div className="flex flex-wrap -space-x-4">
+                        <div className="flex flex-wrap items-center -space-x-4">
                           {memberIdsForView.slice(0, 3).map((id, j) => {
-                            const emp = allEmployees.find(e => e.id === id);
+                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
                             const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                             return (
                               <div
                                 key={j}
                                 role="button"
                                 tabIndex={0}
-                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                 title={emp?.full_name}
                                 onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
                                 onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
@@ -641,15 +641,29 @@ export default function ProjectsPM() {
                           })}
                           {memberNames.length > 3 && (
                             <div
-                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                              onClick={() => {
+                              role="button"
+                              tabIndex={0}
+                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
                                 const emps = memberIdsForView
-                                  .map((id) => allEmployees.find((e) => e.id === id))
+                                  .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
                                   .filter(Boolean) as Employee[];
                                 setAllMembersList(emps);
                                 setShowAllMembersModal(true);
                               }}
-                              title="View all members"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  const emps = memberIdsForView
+                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                    .filter(Boolean) as Employee[];
+                                  setAllMembersList(emps);
+                                  setShowAllMembersModal(true);
+                                }
+                              }}
+                              title="Click to see all members"
                             >
                               +{memberNames.length - 3}
                             </div>
@@ -737,62 +751,6 @@ export default function ProjectsPM() {
                 </div>
               </div>
             </div>
-
-            {/* All Members Modal */}
-            {showAllMembersModal && (
-              <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-6 top-6 p-2.5 rounded-[10px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
-                    title="Close"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
-                    All Members ({allMembersList.length})
-                  </h3>
-
-                  <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
-                    {allMembersList.map((m) => (
-                      <div
-                        key={m.id}
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors"
-                        onClick={() => {
-                          setSelectedMember(m);
-                          setShowAllMembersModal(false);
-                          setShowMemberProfileModal(true);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setSelectedMember(m);
-                            setShowAllMembersModal(false);
-                            setShowMemberProfileModal(true);
-                          }
-                        }}
-                      >
-                        <img
-                          src={m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : ProfileIcon}
-                          onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
-                          className="w-14 h-14 rounded-full object-cover border border-slate-100"
-                          alt={m.full_name}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">{m.full_name}</p>
-                          <p className="text-[13px] font-Gantari font-bold text-[#999999] truncate">{m.user_role}</p>
-                          <p className="text-[13px] font-Gantari font-medium text-[#666666] truncate">{m.email}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       ) : showMilestones && currentProject ? (
@@ -950,21 +908,21 @@ export default function ProjectsPM() {
         </div>
       ) : showCreateModal ? (
         <div className="flex flex-col h-full bg-white">
-          {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
+          {/* Create Project Header - AddConsultantTD style */}
+          <div className="relative flex items-center justify-center px-4 border-b border-slate-50">
             <button
               type="button"
               onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors hover:bg-gray-200"
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               title="Close"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#000000]">Add New Project</h3>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1046,42 +1004,48 @@ export default function ProjectsPM() {
                   .catch(err => setCreateError(err.response?.data?.message || 'Failed to create project'))
                   .finally(() => setCreateSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
+              className="max-w-5xl mx-auto px-0 py-5 space-y-6 md:space-y-8"
             >
               {createError && (
-                <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">{createError}</p>
+                <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="flex-1">
+                    <p className="font-semibold leading-snug">Validation error</p>
+                    <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                  </div>
+                </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* ── Project Name ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Budget <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
 
                 {/* ── Module Name ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Modules Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
@@ -1098,7 +1062,7 @@ export default function ProjectsPM() {
                         setModuleNameInput('');
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1128,8 +1092,8 @@ export default function ProjectsPM() {
                   )}
                 </div>
                 {/* Task Name */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Task Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
@@ -1144,7 +1108,7 @@ export default function ProjectsPM() {
                         setCreateTaskInput('');
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1168,8 +1132,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Client Name ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1180,8 +1144,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Project Manager dropdown ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Manager <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1192,62 +1156,62 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Project Start Date ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date" required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
                 {/* ── Project End Date ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date" required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
                 {/* ── Total Hours ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Total Hours <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
 
                 {/* ── Per Day ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Per Day <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
 
                 {/* ── Department dropdown ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select Department <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1257,8 +1221,8 @@ export default function ProjectsPM() {
                   />
                 </div>
                 {/* ── BIM Lead dropdown ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select BIM Lead <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1268,8 +1232,8 @@ export default function ProjectsPM() {
                   />
                 </div>
                 {/* ── BIM Co-ordinator dropdown ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1279,25 +1243,25 @@ export default function ProjectsPM() {
                   />
                 </div>
                 {/* ── Members multi-select ── */}
-                <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2" style={{ position: 'relative' }}>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select Members <span className="text-[#DD4342]">*</span>
                   </label>
                   <div
-                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center transition-all focus-within:border-[#AEACAC52]"
                     onClick={() => setMemberDropdownOpen(o => !o)}
                   >
-                    {selectedMemberIds.length === 0 && <span className="text-gray-400 text-[16px] font-Gantari">Select Members</span>}
+                    {selectedMemberIds.length === 0 && <span className="text-[14px] text-[#8B8B8B] font-Gantari">Select Members</span>}
                     {selectedMemberIds.map(id => {
                       const emp = allEmployees.find(e => e.id === id);
                       return emp ? (
-                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
+                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
                           {emp.full_name}
                           <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                         </span>
                       ) : null;
                     })}
-                    <span className="ml-auto text-gray-400 text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
+                    <span className="ml-auto text-[#8B8B8B] text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
                   </div>
                   {memberDropdownOpen && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
@@ -1308,7 +1272,7 @@ export default function ProjectsPM() {
                           onChange={e => setMemberSearch(e.target.value)}
                           onClick={e => e.stopPropagation()}
                           placeholder="Search employees..."
-                          className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari focus:outline-none"
+                          className="w-full px-3 py-1.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         />
                       </div>
                       <div className="overflow-y-auto">
@@ -1325,8 +1289,8 @@ export default function ProjectsPM() {
                                 onClick={ev => ev.stopPropagation()}
                                 className="w-4 h-4 accent-[#DD4342]"
                               />
-                              <span className="text-[14px] font-Gantari text-[#333]">{e.full_name}</span>
-                              <span className="ml-auto text-[12px] text-gray-400">{e.user_role}</span>
+                              <span className="text-[14px] font-Gantari text-[#353535]">{e.full_name}</span>
+                              <span className="ml-auto text-[12px] text-[#8B8B8B]">{e.user_role}</span>
                             </label>
                           ))}
                       </div>
@@ -1335,36 +1299,36 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Resources ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Resources <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
 
                 {/* ── Required Resources ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Required Resources <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
 
                 {/* ── Priority dropdown ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Priority <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1375,22 +1339,22 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Location ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Location <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
 
                 {/* ── Project Description (full width) ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Description <span className="text-[#DD4342]">*</span>
                   </label>
                   <textarea
@@ -1398,22 +1362,22 @@ export default function ProjectsPM() {
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
 
                 {/* ── Attach File with Preview ── */}
                 <div className="md:col-span-2 space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Attach File <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                      <div className="flex-1 px-4 py-2 text-[14px] text-[#8B8B8B] font-Gantari truncate">
                         {createFiles.length > 0 ? `${createFiles.length} file(s) selected` : 'Choose Files'}
                       </div>
-                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
+                      <label className="px-6 py-2 bg-[#E8E8E8] text-[#616161] font-semibold text-[16px] font-Gantari cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
                         Browse Files
                         <input
                           type="file"
@@ -1458,22 +1422,22 @@ export default function ProjectsPM() {
                 </div>
               </div>
 
-              {/* Footer Buttons */}
-              <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
+              {/* Footer Buttons - AddConsultantTD style */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
                     resetFormFields();
                   }}
-                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all disabled:opacity-50"
                 >
                   {createSubmitting ? 'Creating...' : 'Submit'}
                 </button>
@@ -1483,7 +1447,7 @@ export default function ProjectsPM() {
         </div>
       ) : showEditModal ? (
         <div className="flex flex-col h-full bg-white">
-          {/* Edit Project Header */}
+          {/* Edit Project Header - AddConsultantTD style */}
           <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
             <button
               type="button"
@@ -1491,16 +1455,16 @@ export default function ProjectsPM() {
                 setShowEditModal(false);
                 resetFormFields();
               }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
+              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               title="Close"
             >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#1A1A1A]">Edit Details</h3>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto py-4 md:py-6 lg:py-10 px-0 custom-scrollbar">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1609,41 +1573,41 @@ export default function ProjectsPM() {
                   .catch(() => undefined)
                   .finally(() => setIsEditSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
+              className="max-w-5xl mx-auto px-6"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
 
                 {/* ── Project Name ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
 
                 {/* ── Budget ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Budget <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
 
                 {/* ── Module Name ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Modules Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
@@ -1658,7 +1622,7 @@ export default function ProjectsPM() {
                         setEditModuleInput('');
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1670,7 +1634,7 @@ export default function ProjectsPM() {
                   {editModuleTags.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {editModuleTags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
                           {tag}
                           <button type="button" onClick={() => setEditModuleTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">x</button>
                         </span>
@@ -1680,8 +1644,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Task Name ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Task Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
@@ -1696,7 +1660,7 @@ export default function ProjectsPM() {
                         setEditTaskInput('');
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1708,7 +1672,7 @@ export default function ProjectsPM() {
                   {editTaskTags.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {editTaskTags.map((tag, idx) => (
-                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#333333] text-[16px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
+                        <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-3 py-1 rounded-[15px]">
                           {tag}
                           <button type="button" onClick={() => setEditTaskTags(prev => prev.filter((_, i) => i !== idx))} className="text-gray-400 transition-colors leading-none">x</button>
                         </span>
@@ -1718,8 +1682,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Client Name ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Client Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1730,8 +1694,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Project Manager ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Manager <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1742,62 +1706,62 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Project Start Date ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date" required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
                 {/* ── Project End Date ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date" required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
                 {/* ── Total Hours ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Total Hours <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
 
                 {/* ── Per Day ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Per Day <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
 
                 {/* ── Department ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select Department <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1808,8 +1772,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── BIM Lead ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select BIM Lead <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1820,8 +1784,8 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── BIM Co-ordinator ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1832,25 +1796,25 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Members multi-select ── */}
-                <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2" style={{ position: 'relative' }}>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Select Members <span className="text-[#DD4342]">*</span>
                   </label>
                   <div
-                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center transition-all focus-within:border-[#AEACAC52]"
                     onClick={() => setMemberDropdownOpen(o => !o)}
                   >
-                    {selectedMemberIds.length === 0 && <span className="text-gray-400 text-[16px] font-Gantari">Select Members</span>}
+                    {selectedMemberIds.length === 0 && <span className="text-[14px] text-[#8B8B8B] font-Gantari">Select Members</span>}
                     {selectedMemberIds.map(id => {
                       const emp = allEmployees.find(e => e.id === id);
                       return emp ? (
-                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
+                        <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
                           {emp.full_name}
                           <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                         </span>
                       ) : null;
                     })}
-                    <span className="ml-auto text-gray-400 text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
+                    <span className="ml-auto text-[#8B8B8B] text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
                   </div>
                   {memberDropdownOpen && (
                     <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
@@ -1861,7 +1825,7 @@ export default function ProjectsPM() {
                           onChange={e => setMemberSearch(e.target.value)}
                           onClick={e => e.stopPropagation()}
                           placeholder="Search employees..."
-                          className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari focus:outline-none"
+                          className="w-full px-3 py-1.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         />
                       </div>
                       <div className="overflow-y-auto">
@@ -1878,8 +1842,8 @@ export default function ProjectsPM() {
                                 onClick={ev => ev.stopPropagation()}
                                 className="w-4 h-4 accent-[#DD4342]"
                               />
-                              <span className="text-[14px] font-Gantari text-[#333]">{e.full_name}</span>
-                              <span className="ml-auto text-[12px] text-gray-400">{e.user_role}</span>
+                              <span className="text-[14px] font-Gantari text-[#353535]">{e.full_name}</span>
+                              <span className="ml-auto text-[12px] text-[#8B8B8B]">{e.user_role}</span>
                             </label>
                           ))}
                       </div>
@@ -1888,36 +1852,36 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Resources ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Resources <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
 
                 {/* ── Required Resources ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Required Resources <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
 
                 {/* ── Priority ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Priority <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
@@ -1928,22 +1892,22 @@ export default function ProjectsPM() {
                 </div>
 
                 {/* ── Location ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Location <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="text" required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
 
                 {/* ── Project Description ── */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                <div className="md:col-span-2">
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                     Project Description <span className="text-[#DD4342]">*</span>
                   </label>
                   <textarea
@@ -1951,24 +1915,24 @@ export default function ProjectsPM() {
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
 
                 {/* ── Attach File with Preview (Edit) ── */}
                 <div className="md:col-span-2 space-y-4">
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                  <div>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                       Attach File <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                      <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
+                      <div className="flex-1 px-4 py-2 text-[14px] text-[#8B8B8B] font-Gantari truncate">
                         {(createFiles.length + existingFiles.length) > 0
                           ? `${createFiles.length + existingFiles.length} file(s) total`
                           : 'Choose Files'}
                       </div>
-                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
+                      <label className="px-6 py-2 bg-[#E8E8E8] text-[#616161] font-semibold text-[16px] font-Gantari cursor-pointer transition-colors whitespace-nowrap hover:bg-[#DDD]">
                         Browse Files
                         <input
                           type="file"
@@ -2048,22 +2012,22 @@ export default function ProjectsPM() {
                 </div>
               </div>
 
-              {/* Footer Buttons */}
-              <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6 pt-6 md:pt-10">
+              {/* Footer Buttons - AddConsultantTD style */}
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
                     resetFormFields();
                   }}
-                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#F1F1F1] text-gray-700 font-bold transition-all hover:bg-gray-200"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={isEditSubmitting}
-                  className="w-full sm:w-auto px-10 md:px-14 py-3.5 md:py-4 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-bold transition-all disabled:opacity-50 hover:bg-[#D5E6FF]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all disabled:opacity-50"
                 >
                   {isEditSubmitting ? 'Updating...' : 'Update Project'}
                 </button>
@@ -2248,13 +2212,21 @@ export default function ProjectsPM() {
                         }}
                         title="View project details"
                       >
-                        <div className="flex -space-x-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
                           {(() => {
-                            const memberIds_card = p.member
-                              ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                            const rawIds = p.member
+                              ? p.member.split(',').map(m => m.trim()).filter(Boolean)
                               : [];
+                            const memberIds_card = rawIds.map((m) => {
+                              const n = Number(m);
+                              return Number.isNaN(n) ? m : n;
+                            });
                             const projectEmployees = memberIds_card
-                              .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                              .map((id) =>
+                                allEmployees.find((e) =>
+                                  Number(e.id) === Number(id) || String(e.id) === String(id)
+                                )
+                              )
                               .filter(Boolean) as Employee[];
 
                             const visibleMembers = projectEmployees.slice(0, 3);
@@ -2272,7 +2244,7 @@ export default function ProjectsPM() {
                                       key={emp.id}
                                       role="button"
                                       tabIndex={0}
-                                      className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                      className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                       title={emp.full_name}
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -2307,19 +2279,21 @@ export default function ProjectsPM() {
                                   <div
                                     role="button"
                                     tabIndex={0}
-                                    className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                    className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
                                     onClick={(e) => {
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       setAllMembersList(projectEmployees);
                                       setShowAllMembersModal(true);
                                     }}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
                                         setAllMembersList(projectEmployees);
                                         setShowAllMembersModal(true);
                                       }
                                     }}
-                                    title="View all members"
+                                    title="Click to see all members"
                                   >
                                     +{remainingCount}
                                   </div>
@@ -2582,6 +2556,84 @@ export default function ProjectsPM() {
         </div>
       )}
 
+      {/* All Members Modal - shown when clicking +N on project card or in project detail (same as ProjectsTD) */}
+      {showAllMembersModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAllMembersModal(false)}
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                All Members ({allMembersList.length})
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
+              {allMembersList.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {allMembersList.map((m) => {
+                    const profileUrl = m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : null;
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedMember(m);
+                          setShowAllMembersModal(false);
+                          setShowMemberProfileModal(true);
+                        }}
+                      >
+                        {profileUrl ? (
+                          <img
+                            src={profileUrl}
+                            alt={m.full_name || 'Member'}
+                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = ProfileIcon;
+                            }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 font-bold text-lg">
+                              {(m.full_name || `E${m.id}`).charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">
+                            {m.full_name || `Employee ${m.id}`}
+                          </p>
+                          {m.user_role && (
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999] truncate">
+                              {m.user_role}
+                            </p>
+                          )}
+                          {m.email && (
+                            <p className="text-[13px] font-Gantari text-[#666666] mt-1 truncate">
+                              {m.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-[16px] font-Gantari">No members found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

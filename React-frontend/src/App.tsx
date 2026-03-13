@@ -196,6 +196,7 @@ function App() {
             <Route path="td/projects" element={<ProjectsTD />} />
             <Route path="td/mytasks" element={<MytaskTD />} />
             <Route path="td/mytasks/add" element={<AddTaskTD />} />
+            <Route path="td/teamtasks/add" element={<AddTaskTD />} />
             <Route path="td/teamtasks" element={<TeamtaskTD />} />
             <Route path="td/createteam" element={<CreateteamTD />} />
             <Route path="td/tracker" element={<TrackerTD />} />

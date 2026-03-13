@@ -163,19 +163,20 @@ export default function AddTaskTD() {
                 })
                 .then(() => {
                     handleFiles(editingTaskId);
-                    navigate("/td/mytasks");
+                    navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
                 });
         } else {
             api.post("/api/tasks", payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
-                    navigate("/td/mytasks");
+                    navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
                 }
             });
         }
     };
 
-    const goBack = () => navigate("/td/mytasks");
+    const fromTeamTasks = location.state?.from === "teamtasks";
+    const goBack = () => navigate(fromTeamTasks ? "/td/teamtasks" : "/td/mytasks");
 
     return (
         <div className="flex-1 overflow-y-auto p-2 bg-white">
