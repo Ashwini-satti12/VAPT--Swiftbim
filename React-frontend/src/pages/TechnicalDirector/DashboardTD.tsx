@@ -265,8 +265,8 @@ export default function DashboardTD() {
                         onClick={() => navigate('/td/projects')}
                         className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
                     >
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
+                        <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+                        <p className="text-[26px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
                     </div>
                     {/* Completed Projects */}
                     <div 

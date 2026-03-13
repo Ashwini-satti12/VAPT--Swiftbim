@@ -41,6 +41,7 @@ import AddClientTD from './pages/TechnicalDirector/AddClientTD';
 import EditClientTD from './pages/TechnicalDirector/EditClientTD';
 import ProjectsTD from './pages/TechnicalDirector/ProjectsTD';
 import MytaskTD from './pages/TechnicalDirector/MytaskTD';
+import AddTaskTD from './pages/TechnicalDirector/AddTaskTD';
 import TeamtaskTD from './pages/TechnicalDirector/TeamtaskTD';
 import CreateteamTD from './pages/TechnicalDirector/CreateteamTD';
 import TrackerTD from './pages/TechnicalDirector/TrackerTD';
@@ -185,6 +186,7 @@ function App() {
             <Route path="td/clients/:id/edit" element={<EditClientTD />} />
             <Route path="td/projects" element={<ProjectsTD />} />
             <Route path="td/mytasks" element={<MytaskTD />} />
+            <Route path="td/mytasks/add" element={<AddTaskTD />} />
             <Route path="td/teamtasks" element={<TeamtaskTD />} />
             <Route path="td/createteam" element={<CreateteamTD />} />
             <Route path="td/tracker" element={<TrackerTD />} />
