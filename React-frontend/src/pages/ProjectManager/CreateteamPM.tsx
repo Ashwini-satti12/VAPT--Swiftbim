@@ -352,7 +352,7 @@ export default function CreateTeamPM() {
     return (
         <div className="h-full flex flex-col p-6">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1E293B]">Team</h2>
+                <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Team</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
                     className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-xl hover:bg-[#C53030] transition-all font-bold shadow-lg shadow-red-200 active:scale-95"

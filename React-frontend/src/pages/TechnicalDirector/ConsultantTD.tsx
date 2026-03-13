@@ -1437,22 +1437,22 @@ export default function ConsultantTD() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[750px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[20px] font-semibold text-[#020202]">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
             </div>
 
             {/* Profile Section */}
-            <div className="flex items-center gap-6 px-4">
-              <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
+            <div className="flex items-center gap-4 px-4 ">
+              <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     key={`modal-${selectedEmployee.id}-${selectedEmployee.profile_picture}`}
@@ -1482,14 +1482,14 @@ export default function ConsultantTD() {
                   </div>
                 )}
               </div>
-              <div className="flex flex-col gap-1">
-                <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[16px] font-semibold text-[#353535]">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 
             {/* Details Table */}
-            <div className="px-4 sm:px-8 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1504,11 +1504,11 @@ export default function ConsultantTD() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
+                  className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[14px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
                 >
-                  <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
-                  <span className="hidden sm:inline text-[#353535] font-Gantari text-center">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
+                  <span className="text-[14px] font-Gantari text-[#020202]">{item.label}</span>
+                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#020202] text-center">:</span>
+                  <span className="text-[14px] text-[#616161] font-Gantari break-words">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>

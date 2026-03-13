@@ -2235,8 +2235,20 @@ export default function ProjectsPM() {
                           </h3>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
-                        <div className="flex -space-x-4">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto cursor-pointer"
+                        onClick={() => setSearchParams({ projectId: String(p.id) })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSearchParams({ projectId: String(p.id) });
+                          }
+                        }}
+                        title="View project details"
+                      >
+                        <div className="flex -space-x-4" onClick={(e) => e.stopPropagation()}>
                           {(() => {
                             const memberIds_card = p.member
                               ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
@@ -2262,7 +2274,8 @@ export default function ProjectsPM() {
                                       tabIndex={0}
                                       className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                       title={emp.full_name}
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setSelectedMember(emp);
                                         setShowMemberProfileModal(true);
                                       }}
@@ -2295,7 +2308,8 @@ export default function ProjectsPM() {
                                     role="button"
                                     tabIndex={0}
                                     className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setAllMembersList(projectEmployees);
                                       setShowAllMembersModal(true);
                                     }}

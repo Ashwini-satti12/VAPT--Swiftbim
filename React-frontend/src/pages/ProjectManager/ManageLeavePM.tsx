@@ -398,7 +398,7 @@ export default function ManageLeavePM() {
     };
 
     return (
-        <div className="pt-4 px-4 md:pt-6 md:px-6 lg:pt-8 lg:px-8 pb-0 flex flex-col h-full font-gantari overflow-hidden">
+        <div className=" flex flex-col h-full font-gantari overflow-hidden">
             <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
             <div
                 className="flex flex-col flex-1 min-h-0"
@@ -406,7 +406,7 @@ export default function ManageLeavePM() {
             >
             {/* Page header: heading left; Employee + Show entries right */}
             <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-                <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">Manage Leave</h1>
+                <h1 className="text-2xl md:text-[24px] font-bold text-[#353535] tracking-tight">Manage Leave</h1>
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"

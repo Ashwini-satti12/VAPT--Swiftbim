@@ -853,7 +853,7 @@ export default function MytaskTD() {
             <div className="bg-white pb-3 flex-shrink-0">
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                    <h2 className="text-2xl font-bold text-slate-800">
+                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
                         {isTeam ? "Team Task" : "My Task"}
                     </h2>
                     <div
