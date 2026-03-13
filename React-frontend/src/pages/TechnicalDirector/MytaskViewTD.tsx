@@ -25,6 +25,12 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
+    modules_name?: string;
+    category?: string;
+    Actual_start_time?: string;
+    perferstart_time?: string;
+    perferend_time?: string;
+    end_time?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -95,9 +101,10 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 export default function MytaskViewTD() {
     const location = useLocation();
     const state = location.state as { task?: Task; from?: string } | null;
-    const task = state?.task;
+    const [task, setTask] = useState<Task | undefined>(state?.task);
     const fromTeamTask = state?.from === "teamtask";
     const backToUrl = fromTeamTask ? "/td/teamtasks" : "/td/mytasks";
+    const [loading, setLoading] = useState(!task);
 
     const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
         task ? normalizeStatus(task.status, task.Approval) : "todo"
@@ -109,6 +116,27 @@ export default function MytaskViewTD() {
     const [submittingWork, setSubmittingWork] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch task if missing (on refresh)
+    useEffect(() => {
+        if (task) return;
+        const taskIdMatch = location.pathname.match(/\/tasks\/(\d+)/) || location.pathname.match(/\/view\/(\d+)/);
+        const taskId = taskIdMatch ? taskIdMatch[1] : null;
+
+        if (taskId) {
+            api.get(`/api/tasks/${taskId}`)
+                .then(res => {
+                    setTask(res.data);
+                    setStatusDisplay(normalizeStatus(res.data.status, res.data.Approval));
+                })
+                .catch(err => {
+                    console.error("Error fetching task:", err);
+                })
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
+        }
+    }, [task, location.pathname]);
 
     const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -183,10 +211,18 @@ export default function MytaskViewTD() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [statusDropdownOpen]);
 
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3d3399]"></div>
+            </div>
+        );
+    }
+
     if (!task) {
         return (
             <div className="bg-white min-h-screen p-6">
-                <p className="text-slate-600 mb-4">No task selected.</p>
+                <p className="text-slate-600 mb-4">No task selected or task not found.</p>
                 <Link
                     to={backToUrl}
                     className="text-[#3d3399] hover:underline font-medium"
@@ -198,7 +234,6 @@ export default function MytaskViewTD() {
     }
 
     const style = STATUS_STYLE[statusDisplay];
-    const taskRecord = task as unknown as Record<string, unknown>;
 
     return (
         <div className="bg-white min-h-screen">
@@ -285,14 +320,14 @@ export default function MytaskViewTD() {
                             </span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {String(taskRecord.modules_name ?? task.module ?? "—")}
+                                {String(task.modules_name || task.module || "—")}
                             </span>
                         </div>
                         <div className="flex gap-2 items-center">
                             <span className="text-black shrink-0 w-28">Category</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {String(task.type ?? taskRecord.category ?? "—")}
+                                {String(task.category || task.type || "—")}
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -310,32 +345,12 @@ export default function MytaskViewTD() {
                             </span>
                         </div>
                         <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">
-                                Actual Start Date
-                            </span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.start_date
-                                    ? formatDateDDMMYYYY(task.start_date)
-                                    : "dd/mm/yyyy"}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Start Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {task.start_date
-                                    ? formatDateDDMMYYYY(task.start_date)
+                                {task.start_date || task.Actual_start_time
+                                    ? formatDateDDMMYYYY(task.start_date || task.Actual_start_time)
                                     : "-NIL-"}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">Actual Due Date</span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.due_date
-                                    ? formatDateDDMMYYYY(task.due_date)
-                                    : "dd/mm/yyyy"}
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -351,8 +366,8 @@ export default function MytaskViewTD() {
                             </span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {task.start_time || task.due_time
-                                    ? `${formatTimeAMPM(task.start_time)} - ${formatTimeAMPM(task.due_time)}`
+                                {task.perferstart_time || task.perferend_time || task.start_time || task.due_time || task.end_time
+                                    ? `${formatTimeAMPM(task.perferstart_time || task.start_time)} - ${formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)}`
                                     : "hh:mm AM/PM - hh:mm AM/PM"}
                             </span>
                         </div>

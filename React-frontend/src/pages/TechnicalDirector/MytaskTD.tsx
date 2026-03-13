@@ -349,6 +349,7 @@ interface Task {
     uploader_full_name?: string;
     created_at?: string;
     Approval?: string;
+    Actual_start_time?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -524,7 +525,7 @@ function TaskCard({
                 </div>
             </div>
             <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-                <span>{task.start_date ? `${new Date(task.start_date).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date).getFullYear()}` : "—"}</span>
+                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
 
                 <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
             </div>
@@ -1268,7 +1269,9 @@ export default function MytaskTD() {
                                     assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
                                     description: addTaskForm.description,
                                     checklist: addTaskForm.checklist,
-                                    modules: addTaskForm.module
+                                    modules_name: addTaskForm.module,
+                                    perferstart_time: addTaskForm.startTime,
+                                    perferend_time: addTaskForm.dueTime
                                 };
 
                                 const handleFiles = (taskId: number | string) => {
@@ -1289,10 +1292,10 @@ export default function MytaskTD() {
                                         category: payload.category,
                                         description: payload.description,
                                         checklist: payload.checklist,
-                                        modules_name: payload.modules,
+                                        modules_name: payload.modules_name,
                                         Actual_start_time: payload.startdate,
-                                        start_time: payload.startTime,
-                                        due_time: payload.dueTime
+                                        perferstart_time: payload.startTime,
+                                        perferend_time: payload.dueTime
                                     }).then(() => {
                                         handleFiles(existing.id);
                                         api.get<{ tasks?: Task[] }>("/api/tasks").then(res => setList(res.data.tasks ?? []));

@@ -448,18 +448,6 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                     )}
                 </div>
             </div>
-
-            <style>{`
-                .smooth-scroll { scroll-behavior: smooth; }
-                .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #8c8c8c #f3f3f3; }
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: #f3f3f3; border-radius: 20px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: #ccc; border-radius: 20px; border: 1px solid #f3f3f3; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #aaa; }
-                
-                /* Ensure sticky header background is solid */
-                thead th { background-color: white !important; }
-            `}</style>
         </div>
     );
 }

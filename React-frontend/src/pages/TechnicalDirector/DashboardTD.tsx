@@ -28,6 +28,8 @@ type PriorityTask = {
     category: string | null;
     perferstart_time: string | null;
     perferend_time: string | null;
+    start_time: string | null;
+    end_time: string | null;
     projectid?: number;
     project_name?: string;
     involved_persons: InvolvedPerson[];
@@ -331,13 +333,15 @@ export default function DashboardTD() {
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {
-                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
+                                                    const effStart = task.perferstart_time || task.start_time;
+                                                    const effEnd = task.perferend_time || task.end_time;
+                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, effStart, effEnd, nowMs);
                                                     const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
                                                     const dateLabel = formatDateOnly(task.due_date);
-                                                    const hasStart = (task.perferstart_time || '').trim().length > 0;
-                                                    const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                                    const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
-                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                    const hasStart = (effStart || '').trim().length > 0;
+                                                    const hasEnd = (effEnd || '').trim().length > 0;
+                                                    const startLabel = hasStart ? formatTimeStringToAMPM(effStart) : '—';
+                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(effEnd) : '—';
                                                     const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
                                                     return (
                                                         <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
