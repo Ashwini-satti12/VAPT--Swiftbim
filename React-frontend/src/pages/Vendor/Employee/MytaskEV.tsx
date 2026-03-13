@@ -3,6 +3,7 @@ import { Link, useSearchParams, useLocation, useNavigate } from "react-router-do
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import api from "../../../lib/api";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import Group1 from "../../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
@@ -14,7 +15,8 @@ type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
 interface Employee {
     id: number;
-    full_name: string;
+    full_name?: string;
+    name?: string;
 }
 
 interface Project {
@@ -250,6 +252,10 @@ interface Task {
     uploader_full_name?: string;
     created_at?: string;
     Approval?: string;
+    assigned_to?: number;
+    vendor_id?: number;
+    assigned_profile_picture?: string;
+    uploader_profile_picture?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -483,15 +489,42 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
+                        {/* Show only the assignee's avatar/name for this task */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(
+                                              task.assigned_to,
+                                              task.assigned_profile_picture,
+                                          )
+                                        : "";
+                                const initials = task.assigned_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((part) => part[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={task.assigned_full_name}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.assigned_full_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
-                    <span className="text-xs text-slate-500">+4</span>
                 </div>
                 <Link
                     to={`/tasks/${task.id}`}
@@ -684,7 +717,14 @@ export default function MytaskEV() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
+        const base = taskToFormValues(task);
+        // Always prefer the name stored with the task (assigned_full_name)
+        const assignTo =
+            (task.assigned_full_name && task.assigned_full_name.trim() !== "")
+                ? task.assigned_full_name
+                : base.assignTo;
+
+        setAddTaskForm({ ...base, assignTo });
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -753,6 +793,8 @@ export default function MytaskEV() {
     const periodTriggerRef = useRef<HTMLButtonElement>(null);
     const periodMenuRef = useRef<HTMLDivElement>(null);
 
+    // No extra mapping needed here: we trust backend's assigned_full_name
+
     useEffect(() => {
         if (openDropdown === null) return;
         const handleClickOutside = (e: MouseEvent) => {
@@ -802,12 +844,14 @@ export default function MytaskEV() {
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
-            api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects")
+            api.get<{ success?: boolean; resources?: Employee[] }>(
+                "/api/vendors/vendor-resource-profiles",
+            ),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, empRes, projRes]) => {
+            .then(([tasksRes, resourcesRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
@@ -819,13 +863,29 @@ export default function MytaskEV() {
     // Data maps for dropdowns
     const employeeOptions = [
         "Select Employee",
-        ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
+        ...(Array.isArray(employees) ? employees : [])
+            .map((e) => e?.full_name || e?.name)
+            .filter(Boolean) as string[],
     ];
 
     const projectOptions = [
         "Select Projects",
-        ...(Array.isArray(projects) ? projects : []).map(p => p?.project_name).filter(Boolean)
+        ...(Array.isArray(projects) ? projects : [])
+            .map((p) => p?.project_name)
+            .filter(Boolean),
     ];
+
+    // Module options depend on selected project: use its comma-separated modules list
+    const selectedProjectMeta = Array.isArray(projects)
+        ? projects.find((p) => p?.project_name === addTaskForm.projectName)
+        : undefined;
+    const dynamicModuleOptions =
+        ((selectedProjectMeta as unknown as { modules?: string | string[] })?.modules ??
+            "")
+            .toString()
+            .split(",")
+            .map((m) => m.trim())
+            .filter((m) => m.length > 0);
 
     const counts = {
         todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
@@ -1197,7 +1257,12 @@ export default function MytaskEV() {
                                     dueDate: addTaskForm.actualEndDate,
                                     startTime: addTaskForm.startTime,
                                     dueTime: addTaskForm.dueTime,
-                                    assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                                    assignedTo:
+                                        employees.find(
+                                            (e) =>
+                                                e.full_name === addTaskForm.assignTo ||
+                                                e.name === addTaskForm.assignTo,
+                                        )?.id || addTaskForm.assignTo,
                                     description: addTaskForm.description,
                                     checklist: addTaskForm.checklist,
                                     modules: addTaskForm.module
@@ -1230,12 +1295,18 @@ export default function MytaskEV() {
                                         api.get<{ tasks?: Task[] }>("/api/tasks").then(res => setList(res.data.tasks ?? []));
                                     });
                                 } else {
-                                    api.post('/api/tasks', payload).then(res => {
-                                        if (res.data.success && res.data.task_id) {
-                                            handleFiles(res.data.task_id);
-                                            api.get<{ tasks?: Task[] }>("/api/tasks").then(r => setList(r.data.tasks ?? []));
-                                        }
-                                    });
+                                    api.post('/api/vendors/vendor-tasks/add', payload)
+                                        .then(res => {
+                                            if (res.data.success && res.data.task_id) {
+                                                handleFiles(res.data.task_id);
+                                                // Refresh vendor tasks list
+                                                const listParams: Record<string, string> = {};
+                                                if (statusFilter) listParams.status = statusFilter;
+                                                if (isTeam) listParams.condition = "1";
+                                                api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: listParams })
+                                                    .then(r => setList(r.data.tasks ?? []));
+                                            }
+                                        });
                                 }
                                 resetTaskFormAndClose();
                             }}
@@ -1274,8 +1345,10 @@ export default function MytaskEV() {
                                         label="Select Module"
                                         options={[
                                             { value: "", label: "Select Module" },
-                                            { value: "module-1", label: "Module 1" },
-                                            { value: "module-2", label: "Module 2" },
+                                            ...dynamicModuleOptions.map((m) => ({
+                                                value: m,
+                                                label: m,
+                                            })),
                                         ]}
                                         value={addTaskForm.module}
                                         onChange={(v) =>
@@ -1428,7 +1501,13 @@ export default function MytaskEV() {
                                             label="Select Assign To"
                                             options={[
                                                 { value: "", label: "Select Assign To" },
-                                                ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
+                                                ...employees
+                                                    .map((e) => e.full_name || e.name)
+                                                    .filter(Boolean)
+                                                    .map((label) => ({
+                                                        value: label as string,
+                                                        label: label as string,
+                                                    })),
                                             ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>

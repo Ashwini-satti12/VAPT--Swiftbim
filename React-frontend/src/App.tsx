@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ClientProtectedRoute } from './components/ClientProtectedRoute';
-import LandingOrRedirect from './components/LandingOrRedirect';
 import AppLayout from './components/AppLayout';
 
 import Login from './pages/Login/Login';
@@ -149,7 +148,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingOrRedirect />} />
+          {/* <Route path="/" element={<Login />} /> */}
+          <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/welcome" element={<WelcomePM />} />
@@ -304,7 +304,7 @@ function App() {
             {/* <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskV />} /> */}
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

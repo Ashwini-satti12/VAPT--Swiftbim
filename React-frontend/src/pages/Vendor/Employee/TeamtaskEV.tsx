@@ -8,6 +8,7 @@ import {
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import api from "../../../lib/api";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import Group1 from "../../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
@@ -244,6 +245,10 @@ interface Task {
     Approval?: string;
     projectid?: number;
     created_at?: string;
+    assigned_to?: number;
+    vendor_id?: number;
+    assigned_profile_picture?: string;
+    uploader_profile_picture?: string;
 }
 
 interface Employee {
@@ -485,15 +490,42 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
+                        {/* Show only the assignee's avatar/name for this task */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(
+                                              task.assigned_to,
+                                              task.assigned_profile_picture,
+                                          )
+                                        : "";
+                                const initials = task.assigned_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((part) => part[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={task.assigned_full_name}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.assigned_full_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
-                    <span className="text-xs text-slate-500">+4</span>
                 </div>
                 <Link
                     to={`/tasks/${task.id}`}
@@ -774,12 +806,14 @@ export default function TeamtaskEV() {
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
-            api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects"),
+            api.get<{ success?: boolean; resources?: Employee[] }>(
+                "/api/vendors/vendor-resource-profiles",
+            ),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, empRes, projRes]) => {
+            .then(([tasksRes, resourcesRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
