@@ -2930,7 +2930,7 @@ def delete_vendor_team(team_id):
 
 @bp.route("/vendor-resource-profiles", methods=["GET"])
 @login_required
-def list_vendor_resource_profiles():
+def list_all_vendor_resource_profiles():
     """
     GET /api/vendors/vendor-resource-profiles
     Returns all resource profiles from vendor_resource_profiles table.
