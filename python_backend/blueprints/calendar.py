@@ -45,14 +45,27 @@ def events():
         elif doj_md == current_md:
             events_list.append({"type": "work_anniversary", "full_name": full_name, "working_years": working_years})
 
+    # MANAGEMENT_ROLES same as dashboard.py (could be imported if shared, but keeping it simple)
+    MANAGEMENT_ROLES = ("Technical Director", "CEO", "Project Manager", "BIM Lead", "BIM Coordinator")
+    user_role = (getattr(g, "user_role", None) or "").strip()
+
     from datetime import timedelta
     ten_days_later = (dt + timedelta(days=30)).strftime("%Y-%m-%d")
-    cur.execute(
-        """SELECT id, project_name, due_date FROM projects
-           WHERE due_date BETWEEN %s AND %s AND FIND_IN_SET(%s, REPLACE(members, ' ', '')) AND Company_id = %s
-           ORDER BY due_date LIMIT 10""",
-        (table_date, ten_days_later, g.user_id, g.company_id),
-    )
+    
+    if user_role in MANAGEMENT_ROLES:
+        cur.execute(
+            """SELECT id, project_name, due_date FROM projects
+               WHERE due_date BETWEEN %s AND %s AND Company_id = %s
+               ORDER BY due_date LIMIT 10""",
+            (table_date, ten_days_later, g.company_id),
+        )
+    else:
+        cur.execute(
+            """SELECT id, project_name, due_date FROM projects
+               WHERE due_date BETWEEN %s AND %s AND FIND_IN_SET(%s, REPLACE(members, ' ', '')) AND Company_id = %s
+               ORDER BY due_date LIMIT 10""",
+            (table_date, ten_days_later, g.user_id, g.company_id),
+        )
     project_rows = cur.fetchall()
     for r in project_rows:
         events_list.append({

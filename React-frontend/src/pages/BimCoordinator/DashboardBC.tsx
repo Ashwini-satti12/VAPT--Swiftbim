@@ -227,13 +227,9 @@ export default function DashboardBC() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <div className="flex items-center justify-between mb-4 shrink-0">
+                    <div className="mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
-                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
                     </div>
-                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
                             <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>

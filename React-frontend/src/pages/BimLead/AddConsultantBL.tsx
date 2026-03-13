@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiX } from 'react-icons/fi';
+import { FiChevronDown } from 'react-icons/fi';
 import api from '../../lib/api';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 
 const ROLE_OPTIONS: string[] = [];
 
@@ -151,16 +152,16 @@ export default function AddConsultantBL() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-white">
+    <div className="flex-1 overflow-y-auto p-2 bg-white">
       <div className="max-w-[1174px] mx-auto">
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
           <button
             type="button"
             onClick={() => navigate('/bl/consultants')}
-            className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-            title="Close"
+            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+            title="Back"
           >
-            <FiX className="w-5 h-5 font-bold" />
+            <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             Add New Consultant
@@ -303,18 +304,18 @@ export default function AddConsultantBL() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
             <button
               type="button"
               onClick={() => navigate('/bl/consultants')}
-              className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[160px]"
+              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>

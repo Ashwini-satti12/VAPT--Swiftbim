@@ -178,7 +178,7 @@ function TeamCard({ team, employees, onEdit, onDelete, onViewDetails, onShowAllM
                                 })}
                                 {remainingCount > 0 && (
                                     <div
-                                        className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                        className="w-9 h-9 rounded-full border-1 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => onShowAllMembers(projectEmployees)}
                                     >
                                         +{remainingCount}
@@ -216,10 +216,16 @@ export default function CreateteamTD() {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+    const [showLeaderDropdown, setShowLeaderDropdown] = useState(false);
+    const [leaderDropdownUpward, setLeaderDropdownUpward] = useState(false);
+    const [memberDropdownUpward, setMemberDropdownUpward] = useState(false);
+    const [leaderSearchQuery, setLeaderSearchQuery] = useState('');
+    const [memberSearchQuery, setMemberSearchQuery] = useState('');
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
+    const leaderDropdownRef = useRef<HTMLDivElement>(null);
 
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const [selectedShowEntries, setSelectedShowEntries] = useState('show');
@@ -239,6 +245,9 @@ export default function CreateteamTD() {
         const handleClickOutside = (event: MouseEvent) => {
             if (memberDropdownRef.current && !memberDropdownRef.current.contains(event.target as Node)) {
                 setShowMemberDropdown(false);
+            }
+            if (leaderDropdownRef.current && !leaderDropdownRef.current.contains(event.target as Node)) {
+                setShowLeaderDropdown(false);
             }
             if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
                 setShowEntriesOpen(false);
@@ -331,6 +340,8 @@ export default function CreateteamTD() {
             project_lead: team.project_lead ? String(team.project_lead) : '',
             team_name: team.team_name || team.teamname || '',
         });
+        setShowLeaderDropdown(false);
+        setShowMemberDropdown(false);
         setShowEditModal(true);
     };
 
@@ -384,9 +395,9 @@ export default function CreateteamTD() {
         : teams.slice(selectedRange.start, selectedRange.end);
 
     return (
-        <div className="h-full flex flex-col p-6">
+        <div className="h-full flex flex-col p-2">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1E293B]">Team</h2>
+                <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Team</h2>
                 <div className="flex items-center gap-3">
                     {/* Show entries dropdown */}
                     <div className="relative" ref={showEntriesDropdownRef}>
@@ -428,7 +439,7 @@ export default function CreateteamTD() {
                         )}
                     </div>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
                         className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 active:scale-95"
                     >
                         <PlusIcon className="w-5 h-5 stroke-[3]" />
@@ -476,26 +487,26 @@ export default function CreateteamTD() {
             </div>
 
             {showAddModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[564px] w-full p-10 animate-in zoom-in-95 duration-200 relative">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
                         <button
                             onClick={() => setShowAddModal(false)}
-                            className="absolute top-8 left-8 p-3 bg-[#F8FAFC] rounded-[8px] text-[#1E293B] hover:bg-gray-100 transition-colors"
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B]  transition-colors"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
 
                         <div className="text-center mb-10">
-                            <h3 className="text-[28px] font-medium text-[#000000]">Create New Team</h3>
+                            <h3 className="text-[26px] font-medium text-[#000000]">Create New Team</h3>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Team Name</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Team Name</label>
                                 <input
                                     type="text"
                                     placeholder="Enter Team Name"
-                                    className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-gray-300 outline-none transition-all"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                                     value={form.team_name}
                                     onChange={(e) => setForm({ ...form, team_name: e.target.value })}
                                     required
@@ -503,58 +514,93 @@ export default function CreateteamTD() {
                             </div>
 
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Select Team Leader</label>
-                                <div className="relative">
-                                    <select
-                                        className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] appearance-none focus:ring-1 focus:ring-gray-300 outline-none transition-all cursor-pointer"
-                                        value={form.leader}
-                                        onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Select Team Leader</option>
-                                        {employees.map(e => (
-                                            <option key={e.id} value={e.id}>{e.full_name}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M5 7.5L10 12.5L15 7.5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Team Leader</label>
+                                <div className="relative" ref={leaderDropdownRef}>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Team Leader"
+                                            value={showLeaderDropdown ? leaderSearchQuery : (form.leader ? (employees.find(emp => String(emp.id) === form.leader)?.full_name ?? '') : '')}
+                                            onChange={(e) => {
+                                                setLeaderSearchQuery(e.target.value);
+                                                if (e.target.value === '') setForm((f) => ({ ...f, leader: '' }));
+                                                setShowLeaderDropdown(true);
+                                            }}
+                                            onFocus={() => {
+                                                const el = leaderDropdownRef.current;
+                                                if (el) { const rect = el.getBoundingClientRect(); setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220); }
+                                                setShowLeaderDropdown(true); setLeaderSearchQuery(form.leader ? (employees.find(emp => String(emp.id) === form.leader)?.full_name ?? '') : '');
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[10px] text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showLeaderDropdown ? 'rotate-180' : ''}`}>
+                                                <path d="M5 7.5L10 12.5L15 7.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
                                     </div>
+
+                                    {showLeaderDropdown && (
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => !leaderSearchQuery.trim() || (e.full_name?.toLowerCase().includes(leaderSearchQuery.toLowerCase())))
+                                                    .map(e => (
+                                                        <button
+                                                            key={e.id}
+                                                            type="button"
+                                                            onMouseDown={(ev) => { ev.preventDefault(); setForm({ ...form, leader: String(e.id) }); setLeaderSearchQuery(''); setShowLeaderDropdown(false); }}
+                                                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                                                        >
+                                                            {e.full_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Select Member</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Member</label>
                                 <div className="relative" ref={memberDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] flex justify-between items-center focus:ring-1 focus:ring-gray-300 outline-none transition-all"
-                                    >
-                                        <span className={form.employee.length === 0 ? "text-[#9CA3AF]" : "text-[#1E293B]"}>
-                                            {form.employee.length === 0
-                                                ? "Select Member"
-                                                : `${form.employee.length} Member(s) Selected`}
-                                        </span>
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`}>
-                                            <path d="M5 7.5L10 12.5L15 7.5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Member"
+                                            value={showMemberDropdown ? memberSearchQuery : (form.employee.length === 0 ? '' : `${form.employee.length} Member(s) Selected`)}
+                                            onChange={(e) => { setMemberSearchQuery(e.target.value); setShowMemberDropdown(true); }}
+                                            onFocus={() => {
+                                                const el = memberDropdownRef.current;
+                                                if (el) { const rect = el.getBoundingClientRect(); setMemberDropdownUpward(window.innerHeight - rect.bottom < 220); }
+                                                setShowMemberDropdown(true); setMemberSearchQuery('');
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`}>
+                                                <path d="M5 7.5L10 12.5L15 7.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </div>
 
                                     {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#F3F4F6] rounded-[10px] shadow-lg border border-gray-100 py-3 z-[110] animate-in fade-in zoom-in duration-200 origin-top max-h-60 overflow-y-auto no-scrollbar">
-                                            {employees.map(e => (
-                                                <label key={e.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-100 cursor-pointer transition-colors group">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={form.employee.includes(String(e.id))}
-                                                        onChange={() => handleMemberToggle(String(e.id))}
-                                                        className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                                                    />
-                                                    <span className="text-[16px] text-[#1E293B] group-hover:text-black">{e.full_name}</span>
-                                                </label>
-                                            ))}
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => !memberSearchQuery.trim() || (e.full_name?.toLowerCase().includes(memberSearchQuery.toLowerCase())))
+                                                    .map(e => (
+                                                        <label key={e.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={form.employee.includes(String(e.id))}
+                                                                onChange={() => handleMemberToggle(String(e.id))}
+                                                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                                            />
+                                                            <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">{e.full_name}</span>
+                                                        </label>
+                                                    ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -564,14 +610,14 @@ export default function CreateteamTD() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-12 py-3.5 bg-[#F1F1F1] text-[#616161] rounded-[8px] text-[20px] font-medium hover:bg-gray-200 transition-all active:scale-[0.98]"
+                                    className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98]"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-12 py-3.5 bg-[#DDEBFF] text-[#000000] rounded-[8px] text-[20px] font-medium hover:bg-[#CFE3FF] transition-all disabled:opacity-50 active:scale-[0.98]"
+                                    className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
                                 >
                                     {submitting ? 'Submitting...' : 'Submit'}
                                 </button>
@@ -581,85 +627,120 @@ export default function CreateteamTD() {
                 </div>
             )}
             {showEditModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[564px] w-full p-10 animate-in zoom-in-95 duration-200 relative">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
                         {/* Close button in top left as per image */}
                         <button
                             onClick={() => setShowEditModal(false)}
-                            className="absolute top-8 left-8 p-3 bg-[#F8FAFC] rounded-[8px] text-[#1E293B] hover:bg-gray-100 transition-colors"
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
 
                         <div className="text-center mb-10">
-                            <h3 className="text-[28px] font-medium text-[#000000]">Edit Team Details</h3>
+                            <h3 className="text-[26px] font-medium text-[#000000]">Edit Team Details</h3>
                         </div>
 
                         <form onSubmit={handleUpdate} className="space-y-6">
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Team Name</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Team Name</label>
                                 <input
                                     type="text"
                                     placeholder="Enter Team Name"
-                                    className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] placeholder:text-[#9CA3AF] focus:ring-1 focus:ring-gray-300 outline-none transition-all"
+                                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                                     value={editForm.team_name}
                                     onChange={(e) => setEditForm({ ...editForm, team_name: e.target.value })}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Select Team Leader</label>
-                                <div className="relative">
-                                    <select
-                                        className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] appearance-none focus:ring-1 focus:ring-gray-300 outline-none transition-all cursor-pointer"
-                                        value={editForm.leader}
-                                        onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Select Team Leader</option>
-                                        {employees.map(e => (
-                                            <option key={e.id} value={e.id}>{e.full_name}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M5 7.5L10 12.5L15 7.5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Team Leader</label>
+                                <div className="relative" ref={leaderDropdownRef}>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Team Leader"
+                                            value={showLeaderDropdown ? leaderSearchQuery : (editForm.leader ? (employees.find(emp => String(emp.id) === editForm.leader)?.full_name ?? '') : '')}
+                                            onChange={(e) => {
+                                                setLeaderSearchQuery(e.target.value);
+                                                if (e.target.value === '') setEditForm((f) => ({ ...f, leader: '' }));
+                                                setShowLeaderDropdown(true);
+                                            }}
+                                            onFocus={() => {
+                                                const el = leaderDropdownRef.current;
+                                                if (el) { const rect = el.getBoundingClientRect(); setLeaderDropdownUpward(window.innerHeight - rect.bottom < 220); }
+                                                setShowLeaderDropdown(true); setLeaderSearchQuery(editForm.leader ? (employees.find(emp => String(emp.id) === editForm.leader)?.full_name ?? '') : '');
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showLeaderDropdown ? 'rotate-180' : ''}`}>
+                                                <path d="M5 7.5L10 12.5L15 7.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
                                     </div>
+
+                                    {showLeaderDropdown && (
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => !leaderSearchQuery.trim() || (e.full_name?.toLowerCase().includes(leaderSearchQuery.toLowerCase())))
+                                                    .map(e => (
+                                                        <button
+                                                            key={e.id}
+                                                            type="button"
+                                                            onMouseDown={(ev) => { ev.preventDefault(); setEditForm({ ...editForm, leader: String(e.id) }); setLeaderSearchQuery(''); setShowLeaderDropdown(false); }}
+                                                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                                                        >
+                                                            {e.full_name}
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-[18px] font-medium text-[#000000] mb-3">Select Member</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Member</label>
                                 <div className="relative" ref={memberDropdownRef}>
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full bg-[#F3F4F6] border-none px-5 py-4 rounded-[10px] text-[16px] text-[#1E293B] flex justify-between items-center focus:ring-1 focus:ring-gray-300 outline-none transition-all"
-                                    >
-                                        <span className={editForm.employee.length === 0 ? "text-[#9CA3AF]" : "text-[#1E293B]"}>
-                                            {editForm.employee.length === 0
-                                                ? "Select Member"
-                                                : `${editForm.employee.length} Member(s) Selected`}
-                                        </span>
-                                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`}>
-                                            <path d="M5 7.5L10 12.5L15 7.5" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                        </svg>
-                                    </button>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Select Member"
+                                            value={showMemberDropdown ? memberSearchQuery : (editForm.employee.length === 0 ? '' : `${editForm.employee.length} Member(s) Selected`)}
+                                            onChange={(e) => { setMemberSearchQuery(e.target.value); setShowMemberDropdown(true); }}
+                                            onFocus={() => {
+                                                const el = memberDropdownRef.current;
+                                                if (el) { const rect = el.getBoundingClientRect(); setMemberDropdownUpward(window.innerHeight - rect.bottom < 220); }
+                                                setShowMemberDropdown(true); setMemberSearchQuery('');
+                                            }}
+                                            className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                                        />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className={`transition-transform duration-200 ${showMemberDropdown ? 'rotate-180' : ''}`}>
+                                                <path d="M5 7.5L10 12.5L15 7.5" stroke="#8B8B8B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </div>
+                                    </div>
 
                                     {showMemberDropdown && (
-                                        <div className="absolute top-full left-0 w-full mt-2 bg-[#F3F4F6] rounded-[10px] shadow-lg border border-gray-100 py-3 z-[110] animate-in fade-in zoom-in duration-200 origin-top max-h-60 overflow-y-auto no-scrollbar">
-                                            {employees.map(e => (
-                                                <label key={e.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-100 cursor-pointer transition-colors group">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={editForm.employee.includes(String(e.id))}
-                                                        onChange={() => handleMemberToggle(String(e.id), true)}
-                                                        className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                                                    />
-                                                    <span className="text-[16px] text-[#1E293B] group-hover:text-black">{e.full_name}</span>
-                                                </label>
-                                            ))}
+                                        <div className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? 'bottom-full mb-2 origin-bottom' : 'top-full mt-2 origin-top'}`}>
+                                            <div className="overflow-y-auto no-scrollbar max-h-44">
+                                                {employees
+                                                    .filter(e => !memberSearchQuery.trim() || (e.full_name?.toLowerCase().includes(memberSearchQuery.toLowerCase())))
+                                                    .map(e => (
+                                                        <label key={e.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={editForm.employee.includes(String(e.id))}
+                                                                onChange={() => handleMemberToggle(String(e.id), true)}
+                                                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                                            />
+                                                            <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">{e.full_name}</span>
+                                                        </label>
+                                                    ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -669,14 +750,14 @@ export default function CreateteamTD() {
                                 <button
                                     type="button"
                                     onClick={() => setShowEditModal(false)}
-                                    className="px-12 py-3.5 bg-[#F1F1F1] text-[#616161] rounded-[8px] text-[20px] font-medium hover:bg-gray-200 transition-all active:scale-[0.98]"
+                                    className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98]"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-12 py-3.5 bg-[#DDEBFF] text-[#000000] rounded-[8px] text-[20px] font-medium hover:bg-[#CFE3FF] transition-all disabled:opacity-50 active:scale-[0.98]"
+                                    className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
                                 >
                                     {submitting ? 'Updating...' : 'Update'}
                                 </button>
@@ -802,7 +883,7 @@ export default function CreateteamTD() {
                                                         }}
                                                     />
                                                 ) : (
-                                                    <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                                                    <div className="w-14 h-14 rounded-full border-1 border-white shadow-sm bg-slate-200 flex items-center justify-center">
                                                         <span className="text-slate-600 font-bold text-lg">
                                                             {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
                                                         </span>
@@ -839,10 +920,10 @@ export default function CreateteamTD() {
 
             {/* Member Profile Modal */}
             {showMemberProfileModal && selectedMember && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full flex flex-col animate-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto animate-in zoom-in-95 duration-200 shrink-0">
                         {/* Modal Header */}
-                        <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+                        <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
                             <button
                                 type="button"
                                 onClick={() => {
@@ -872,7 +953,7 @@ export default function CreateteamTD() {
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+                        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
                             <div className="flex flex-col items-center">
                                 {selectedMember.profile_picture ? (
                                     <img

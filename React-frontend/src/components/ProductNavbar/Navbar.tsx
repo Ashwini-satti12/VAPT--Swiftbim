@@ -357,25 +357,25 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
             {/* ── Profile Modal (View & Edit) ── */}
             {isEditMode && (
-                <div className="fixed inset-0 z-[2000] flex items-center justify-end bg-black/40 backdrop-blur-sm p-4 sm:p-8"
+                <div className="fixed inset-0 z-[2000] flex items-center justify-end bg-black/40 backdrop-blur-sm p-3 sm:p-4"
                     onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}>
                     <div
-                        className="bg-white rounded-lg shadow-2xl w-full max-w-[490px] relative p-8 transition-all animate-in slide-in-from-right duration-300"
+                        className="bg-white rounded-lg shadow-2xl w-full max-w-[min(420px,calc(100vw-1.5rem))] max-h-[calc(100vh-1.5rem)] overflow-y-auto relative p-5 sm:p-6 transition-all animate-in slide-in-from-right duration-300"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close button at top-left */}
                         <button
                             onClick={() => { setIsEditMode(false); setIsEditingActual(false); }}
-                            className="absolute top-6 left-6 p-2 rounded-lg bg-[#F4F4F4] hover:bg-slate-200 transition-colors"
+                            className="absolute top-4 left-4 p-2 rounded-lg bg-[#F4F4F4] hover:bg-slate-200 transition-colors shrink-0"
                         >
                             <img src={CloseIcon} alt="Close" className="w-4 h-4" />
                         </button>
 
                         <div className="flex flex-col items-center">
                             {/* Avatar Section */}
-                            <div className="relative group mb-4">
+                            <div className="relative group mb-3">
                                 <div
-                                    className={`w-28 h-28 rounded-full overflow-hidden bg-[#87B2D2] flex flex-col items-center justify-center shadow-sm relative ${isEditingActual ? 'cursor-pointer' : ''}`}
+                                    className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-[#87B2D2] flex flex-col items-center justify-center shadow-sm relative shrink-0 ${isEditingActual ? 'cursor-pointer' : ''}`}
                                     onClick={() => isEditingActual && fileInputRef.current?.click()}
                                 >
                                     {profilePicture ? (
@@ -406,7 +406,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                             </div>
 
                             {/* Name and Designation */}
-                            <div className="text-center mb-8 w-full px-4">
+                            <div className="text-center mb-5 w-full px-2 min-w-0">
                                 {isEditingActual ? (
                                     <div className="space-y-2">
                                         <input
@@ -426,10 +426,10 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                     </div>
                                 ) : (
                                     <>
-                                        <h3 className="text-[26px] font-bold text-[#020202] font-gantari leading-tight uppercase">
+                                        <h3 className="text-[18px] sm:text-[22px] font-bold text-[#020202] font-gantari leading-tight uppercase break-words">
                                             Hello, {profileData.name}!
                                         </h3>
-                                        <p className="text-[18px] text-[#353535] font-medium mt-1">
+                                        <p className="text-[14px] sm:text-[16px] text-[#353535] font-medium mt-1 break-words">
                                             {profileData.designation}
                                         </p>
                                     </>
@@ -437,8 +437,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                             </div>
 
                             {/* Details Card */}
-                            <div className="w-full bg-white rounded-2xl border border-[#AEACAC52] p-6 space-y-4 mb-8">
-                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
+                            <div className="w-full min-w-0 bg-white rounded-2xl border border-[#AEACAC52] p-4 sm:p-5 space-y-3 mb-5">
+                                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[13px] sm:text-[15px] gap-x-2">
                                     <label className="font-semibold text-[#1A1A1A] font-gantari">Email ID</label>
                                     <span className="text-[#353535] font-bold">:</span>
                                     {isEditingActual ? (
@@ -450,11 +450,11 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                             className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC]"
                                         />
                                     ) : (
-                                        <span className="text-[#353535] font-medium truncate">{profileData.email}</span>
+                                        <span className="text-[#353535] font-medium break-all">{profileData.email}</span>
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-[100px_20px_1fr] items-center text-[15px]">
+                                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[13px] sm:text-[15px] gap-x-2">
                                     <label className="font-semibold text-[#1A1A1A] font-gantari">Phone Num</label>
                                     <span className="text-[#353535] font-bold">:</span>
                                     {isEditingActual ? (
@@ -473,8 +473,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-[100px_20px_1fr] items-start text-[15px]">
-                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5">Address</label>
+                                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[13px] sm:text-[15px] gap-x-2">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5 shrink-0">Address</label>
                                     <span className="text-[#353535] font-bold pt-0.5">:</span>
                                     {isEditingActual ? (
                                         <textarea
@@ -482,10 +482,10 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                                             value={editData.address}
                                             onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))}
                                             placeholder="Enter Address"
-                                            className="w-full bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC] resize-none leading-relaxed"
+                                            className="w-full min-w-0 bg-[#F2F2F2] border border-[#AEACAC52] rounded-[5px] px-3 py-1.5 text-[#353535] font-medium focus:ring-0 outline-none placeholder:text-[#AEACAC] resize-none leading-relaxed"
                                         />
                                     ) : (
-                                        <span className={`font-medium ${profileData.address ? 'text-[#353535]' : 'text-slate-300'}`}>
+                                        <span className={`font-medium break-words min-w-0 ${profileData.address ? 'text-[#353535]' : 'text-slate-300'}`}>
                                             {profileData.address || 'Enter Address'}
                                         </span>
                                     )}
@@ -493,8 +493,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
                                 <hr className="border-[#AEACAC33]" />
 
-                                <div className="grid grid-cols-[100px_20px_1fr] items-start text-[15px]">
-                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5">Password</label>
+                                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[13px] sm:text-[15px] gap-x-2">
+                                    <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5 shrink-0">Password</label>
                                     <span className="text-[#353535] font-bold pt-0.5">:</span>
                                     {isEditingActual ? (
                                         <div className="space-y-2 w-full">
@@ -525,7 +525,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center justify-center gap-6 w-full">
+                            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 w-full">
                                 {isEditingActual ? (
                                     <>
                                         <button
