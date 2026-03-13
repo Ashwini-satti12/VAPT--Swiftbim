@@ -206,32 +206,52 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     }, [userType]);
 
     // ── Fetch conversation history ──────────────────────────────────────────────
-    const loadConversation = useCallback(async (contactId: number) => {
-        setMessagesLoading(true);
-        try {
-            const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string }> }>(
-                `/api/chat/conversation/${contactId}`
-            );
-            // Use Number() comparison to avoid type mismatch (DB may return string, auth returns number)
-            const myId = Number(user?.id);
-            const mapped: MessageItem[] = (data.messages || []).map((m) => ({
-                id: String(m.id),
-                text: m.message ?? "",
-                sender: Number(m.outgoing) === myId ? "user" : "contact",
-                time: formatTime(m.date),
-            }));
-            setMessages(mapped);
-            if (mapped.length > 0) {
-                lastMessageIdRef.current = parseInt(mapped[mapped.length - 1].id, 10);
-            } else {
-                lastMessageIdRef.current = 0;
+    const loadConversation = useCallback(
+        async (contactId: number) => {
+            setMessagesLoading(true);
+            try {
+                const { data } = await api.get<{
+                    messages: Array<{
+                        id: number;
+                        outgoing: number | string | null;
+                        message: string;
+                        date: string;
+                        sender_type?: string;
+                        sender?: "user" | "contact";
+                    }>;
+                }>(`/api/chat/conversation/${contactId}`);
+
+                const myId = Number(user?.id);
+                const mapped: MessageItem[] = (data.messages || []).map((m) => {
+                    let sender: "user" | "contact";
+                    if (m.sender === "user" || m.sender === "contact") {
+                        sender = m.sender;
+                    } else if (userType === "client") {
+                        sender = m.sender_type === "client" ? "user" : "contact";
+                    } else {
+                        sender = Number(m.outgoing) === myId ? "user" : "contact";
+                    }
+                    return {
+                        id: String(m.id),
+                        text: m.message ?? "",
+                        sender,
+                        time: formatTime(m.date),
+                    };
+                });
+                setMessages(mapped);
+                if (mapped.length > 0) {
+                    lastMessageIdRef.current = parseInt(mapped[mapped.length - 1].id, 10);
+                } else {
+                    lastMessageIdRef.current = 0;
+                }
+            } catch {
+                setMessages([]);
+            } finally {
+                setMessagesLoading(false);
             }
-        } catch {
-            setMessages([]);
-        } finally {
-            setMessagesLoading(false);
-        }
-    }, [user?.id]);
+        },
+        [user?.id, userType]
+    );
 
     useEffect(() => {
         if (!selectedContact) return;
@@ -247,18 +267,35 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         pollIntervalRef.current = setInterval(async () => {
             const lastId = lastMessageIdRef.current;
             try {
-                const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string }> }>(
-                    `/api/chat/conversation/${selectedContact.id}/since/${lastId}`
-                );
+                const { data } = await api.get<{
+                    messages: Array<{
+                        id: number;
+                        outgoing: number | string | null;
+                        message: string;
+                        date: string;
+                        sender_type?: string;
+                        sender?: "user" | "contact";
+                    }>;
+                }>(`/api/chat/conversation/${selectedContact.id}/since/${lastId}`);
                 const myId = Number(user?.id);
-                const newMsgs = (data.messages || []);
+                const newMsgs = data.messages || [];
                 if (newMsgs.length > 0) {
-                    const mapped: MessageItem[] = newMsgs.map((m) => ({
-                        id: String(m.id),
-                        text: m.message ?? "",
-                        sender: Number(m.outgoing) === myId ? "user" : "contact",
-                        time: formatTime(m.date),
-                    }));
+                    const mapped: MessageItem[] = newMsgs.map((m) => {
+                        let sender: "user" | "contact";
+                        if (m.sender === "user" || m.sender === "contact") {
+                            sender = m.sender;
+                        } else if (userType === "client") {
+                            sender = m.sender_type === "client" ? "user" : "contact";
+                        } else {
+                            sender = Number(m.outgoing) === myId ? "user" : "contact";
+                        }
+                        return {
+                            id: String(m.id),
+                            text: m.message ?? "",
+                            sender,
+                            time: formatTime(m.date),
+                        };
+                    });
                     setMessages((prev) => {
                         const existingIds = new Set(prev.map((x) => x.id));
                         const fresh = mapped.filter((m) => !existingIds.has(m.id));
@@ -266,13 +303,15 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                     });
                     lastMessageIdRef.current = newMsgs[newMsgs.length - 1].id;
                 }
-            } catch { /* ignore poll error */ }
+            } catch {
+                /* ignore poll error */
+            }
         }, 4000);
 
         return () => {
             if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         };
-    }, [selectedContact, user?.id]);
+    }, [selectedContact, user?.id, userType]);
 
     // ── Auto-scroll ─────────────────────────────────────────────────────────────
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -540,10 +579,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                 />
                                             )}
                                             <div
-                                                className={`relative max-w-[70%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${msg.sender === "user"
-                                                        ? "bg-[#1D4ED8] text-white rounded-br-sm"
+                                                className={`relative max-w-[70%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${
+                                                    msg.sender === "user"
+                                                        ? "bg-white text-slate-900 border border-[#AEACAC52] rounded-br-sm"
                                                         : "bg-[#F3F4F6] text-slate-900 rounded-bl-sm"
-                                                    }`}
+                                                }`}
                                                 onContextMenu={(e) => handleContextMenu(e, msg.id)}
                                             >
                                                 {msg.attachments && msg.attachments.length > 0 && (
@@ -565,8 +605,13 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                     </div>
                                                 )}
                                                 {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
-                                                <p className={`text-[10px] mt-1 text-right ${msg.sender === "user" ? "text-blue-200" : "text-slate-400"
-                                                    }`}>{msg.time}</p>
+                                                <p
+                                                    className={`text-[10px] mt-1 text-right ${
+                                                        msg.sender === "user" ? "text-slate-400" : "text-slate-400"
+                                                    }`}
+                                                >
+                                                    {msg.time}
+                                                </p>
                                             </div>
                                             {/* Avatar for user messages */}
                                             {msg.sender === "user" && (
