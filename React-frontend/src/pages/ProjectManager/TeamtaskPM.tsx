@@ -14,8 +14,81 @@ import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 
+function TimePicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
+  const [hourStr, minStr] = value ? value.split(":") : ["", ""];
+  let hour12 = hourStr ? parseInt(hourStr, 10) : "";
+  let ampm = "AM";
+  if (typeof hour12 === "number") {
+    if (hour12 >= 12) {
+      if (hour12 > 12) {
+        hour12 -= 12;
+      }
+      ampm = "PM";
+    } else if (hour12 === 0) {
+      hour12 = 12;
+    }
+  }
+
+  const h = hour12 ? String(hour12).padStart(2, "0") : "";
+  const m = minStr || "";
+
+  const handleTimeChange = (newH: string, newM: string, newAmPm: string) => {
+    if (!newH && !newM) {
+      onChange("");
+      return;
+    }
+    const safeH = newH || "12";
+    const safeM = newM || "00";
+    let h24 = parseInt(safeH, 10);
+    if (newAmPm === "PM" && h24 < 12) h24 += 12;
+    if (newAmPm === "AM" && h24 === 12) h24 = 0;
+
+    onChange(`${String(h24).padStart(2, "0")}:${safeM.padStart(2, "0")}`);
+  };
+
+  return (
+    <div className="flex items-center w-full rounded-sm bg-[#F2F3F4] px-3 py-2 border border-transparent focus-within:border-[#AEACAC52] focus-within:ring-1 focus-within:ring-[#AEACAC52] transition-all">
+      <input
+        type="text"
+        maxLength={2}
+        value={h}
+        placeholder="hh"
+        onChange={(e) => {
+          const val = e.target.value.replace(/\D/g, "");
+          let num = parseInt(val, 10);
+          if (num > 12) num = 12;
+          handleTimeChange(val ? String(num) : "", m, ampm);
+        }}
+        className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none"
+      />
+      <span className="text-[#353535] font-bold mx-1">:</span>
+      <input
+        type="text"
+        maxLength={2}
+        value={m}
+        placeholder="mm"
+        onChange={(e) => {
+          const val = e.target.value.replace(/\D/g, "");
+          let num = parseInt(val, 10);
+          if (num > 59) num = 59;
+          handleTimeChange(h, val ? String(num) : "", ampm);
+        }}
+        className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none"
+      />
+      <select
+        value={ampm}
+        onChange={(e) => handleTimeChange(h, m, e.target.value)}
+        className="ml-auto bg-transparent text-[14px] text-[#353535] focus:outline-none cursor-pointer font-medium"
+      >
+        <option value="AM">AM</option>
+        <option value="PM">PM</option>
+      </select>
+    </div>
+  );
+}
+
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
+type FormDropdownId = "project" | "module" | "taskName" | "type" | "assignTo" | null;
 
 interface FormDropdownProps {
   label: string;
@@ -27,6 +100,7 @@ interface FormDropdownProps {
   onClose: () => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
+  searchable?: boolean;
 }
 
 function FormDropdown({
@@ -39,10 +113,20 @@ function FormDropdown({
   onClose,
   triggerRef,
   dropdownRef,
+  searchable = false,
 }: FormDropdownProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   const displayLabel = value
     ? (options.find((o) => o.value === value)?.label ?? value)
     : label;
+
+  const filteredOptions = searchable
+    ? options.filter(opt =>
+      opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      opt.value === "" // always keep placeholder
+    )
+    : options;
+
   return (
     <div className="relative w-full">
       <button
@@ -52,14 +136,12 @@ function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+        className={`flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={value ? "text-black" : "text-[#8B8B8B]"}>
-          {displayLabel}
-        </span>
+        <span>{displayLabel}</span>
         <svg
           className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
           fill="none"
@@ -78,15 +160,29 @@ function FormDropdown({
         <div
           ref={dropdownRef}
           role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg max-h-60 overflow-y-auto"
         >
-          {options.map((opt) => (
+          {searchable && (
+            <div className="sticky top-0 bg-white p-2 border-b">
+              <input
+                type="text"
+                autoFocus
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Search..."
+                className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:border-[#DD4342]"
+              />
+            </div>
+          )}
+          {filteredOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
               role="option"
               onClick={() => {
                 onChange(opt.value);
+                setSearchQuery("");
                 onClose();
               }}
               className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
@@ -254,6 +350,7 @@ interface Employee {
 interface Project {
   id: number;
   project_name: string;
+  tasks?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -704,6 +801,8 @@ export default function TeamtaskPM() {
   const formProjectMenuRef = useRef<HTMLDivElement>(null);
   const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
   const formModuleMenuRef = useRef<HTMLDivElement>(null);
+  const formTaskNameTriggerRef = useRef<HTMLButtonElement>(null);
+  const formTaskNameMenuRef = useRef<HTMLDivElement>(null);
   const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
   const formTypeMenuRef = useRef<HTMLDivElement>(null);
   const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
@@ -751,9 +850,11 @@ export default function TeamtaskPM() {
           ? [formProjectTriggerRef, formProjectMenuRef]
           : openFormDropdown === "module"
             ? [formModuleTriggerRef, formModuleMenuRef]
-            : openFormDropdown === "type"
-              ? [formTypeTriggerRef, formTypeMenuRef]
-              : [formAssignTriggerRef, formAssignMenuRef];
+            : openFormDropdown === "taskName"
+              ? [formTaskNameTriggerRef, formTaskNameMenuRef]
+              : openFormDropdown === "type"
+                ? [formTypeTriggerRef, formTypeMenuRef]
+                : [formAssignTriggerRef, formAssignMenuRef];
       const inside = refs.some((r) => r.current && r.current.contains(target));
       if (!inside) setOpenFormDropdown(null);
     };
@@ -806,7 +907,7 @@ export default function TeamtaskPM() {
     ...projects.map(p => p.project_name)
   ];
   const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
-  const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
+  const taskTypes = ["Task", "Bug", "Feature"];
   const modalAssignOptions = employees.map(e => ({ value: e.full_name, label: e.full_name }));
 
   const counts = {
@@ -1226,7 +1327,7 @@ export default function TeamtaskPM() {
             >
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Project Name
                   </label>
                   <FormDropdown
@@ -1248,17 +1349,18 @@ export default function TeamtaskPM() {
                     onClose={() => setOpenFormDropdown(null)}
                     triggerRef={formProjectTriggerRef}
                     dropdownRef={formProjectMenuRef}
+                    searchable
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Select Module
                   </label>
                   <FormDropdown
                     label="Select Module"
                     options={[
                       { value: "", label: "Select Module" },
-                      ...modalModuleOptions,
+                      ...modules.map(m => ({ value: m, label: m }))
                     ]}
                     value={addTaskForm.module}
                     onChange={(v) =>
@@ -1273,41 +1375,42 @@ export default function TeamtaskPM() {
                     onClose={() => setOpenFormDropdown(null)}
                     triggerRef={formModuleTriggerRef}
                     dropdownRef={formModuleMenuRef}
+                    searchable
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Task Name
                   </label>
-                  <div className="flex">
-                    <input
-                      type="text"
-                      value={addTaskForm.taskName}
-                      onChange={(e) =>
-                        setAddTaskForm((f) => ({
-                          ...f,
-                          taskName: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter Task / Select Task"
-                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                        }`}
-                    />
-                    {editingTaskId === null && (
-                      <button
-                        type="button"
-                        className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                      >
-                        Tasklist
-                      </button>
-                    )}
-                  </div>
+                  <FormDropdown
+                    label="Select Task"
+                    options={[
+                      { value: "", label: "Select Task" },
+                      ...(projects.find(p => p.project_name === addTaskForm.projectName)?.tasks
+                        ? projects.find(p => p.project_name === addTaskForm.projectName)!.tasks!.split(',').map(t => ({ value: t.trim(), label: t.trim() }))
+                        : [])
+                    ]}
+                    value={addTaskForm.taskName}
+                    onChange={(v) =>
+                      setAddTaskForm((f) => ({ ...f, taskName: v }))
+                    }
+                    isOpen={openFormDropdown === "taskName"}
+                    onToggle={() =>
+                      setOpenFormDropdown((d) =>
+                        d === "taskName" ? null : "taskName",
+                      )
+                    }
+                    onClose={() => setOpenFormDropdown(null)}
+                    triggerRef={formTaskNameTriggerRef}
+                    dropdownRef={formTaskNameMenuRef}
+                    searchable
+                  />
                 </div>
 
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Type
                     </label>
                     <FormDropdown
@@ -1334,7 +1437,7 @@ export default function TeamtaskPM() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Actual Start Date
                     </label>
                     <input
@@ -1347,11 +1450,11 @@ export default function TeamtaskPM() {
                         }))
                       }
                       placeholder="dd/mm/yyyy"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] transition-all"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Actual End Date
                     </label>
                     <input
@@ -1364,47 +1467,39 @@ export default function TeamtaskPM() {
                         }))
                       }
                       placeholder="dd/mm/yyyy"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] transition-all"
                     />
                   </div>
                 </div>
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Select Start Time
                     </label>
-                    <input
-                      type="time"
-                      value={addTaskForm.startTime}
-                      onChange={(e) =>
-                        setAddTaskForm((f) => ({
-                          ...f,
-                          startTime: e.target.value,
-                        }))
-                      }
-                      placeholder="hh:mm"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                    />
+                    <div className="relative">
+                      <TimePicker
+                        value={addTaskForm.startTime}
+                        onChange={(val) =>
+                          setAddTaskForm((f) => ({ ...f, startTime: val }))
+                        }
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Select Due Time
                     </label>
-                    <input
-                      type="time"
-                      value={addTaskForm.dueTime}
-                      onChange={(e) =>
-                        setAddTaskForm((f) => ({
-                          ...f,
-                          dueTime: e.target.value,
-                        }))
-                      }
-                      placeholder="hh:mm"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                    />
+                    <div className="relative">
+                      <TimePicker
+                        value={addTaskForm.dueTime}
+                        onChange={(val) =>
+                          setAddTaskForm((f) => ({ ...f, dueTime: val }))
+                        }
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-medium text-[#000000] mb-1">
                       Assign To
                     </label>
                     <FormDropdown
@@ -1430,7 +1525,7 @@ export default function TeamtaskPM() {
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Description
                   </label>
                   <textarea
@@ -1443,11 +1538,11 @@ export default function TeamtaskPM() {
                     }
                     placeholder="Enter Description..."
                     rows={3}
-                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] transition-all"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Checklist
                   </label>
                   <input
@@ -1460,11 +1555,11 @@ export default function TeamtaskPM() {
                       }))
                     }
                     placeholder="Enter Reference Link"
-                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] transition-all"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-medium text-[#000000] mb-1">
                     Attachments
                   </label>
                   <input
@@ -1487,7 +1582,7 @@ export default function TeamtaskPM() {
                             : ""
                         }
                         placeholder="Upload Files"
-                        className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                        className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] transition-all truncate"
                         title={
                           attachmentFiles.length > 0
                             ? attachmentFiles.map((f) => f.name).join(", ")

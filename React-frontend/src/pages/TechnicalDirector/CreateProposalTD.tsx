@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import api from "../../lib/api";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addressIcon from "../../assets/TechnicalDirector/Vector.svg";
 import websiteIcon from "../../assets/TechnicalDirector/world-wide-web 1.svg";
 import emailIcon from "../../assets/TechnicalDirector/mail icon.svg";
@@ -301,13 +302,12 @@ export default function CreateProposalTD() {
       {/* Page Header */}
       <div className="flex items-center justify-between px-2 ">
         <button
+          type="button"
           onClick={() => navigate("/td/proposals")}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
+          className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:opacity-90"
           title="Back to proposals"
         >
-          <svg className="w-6 h-6 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
+          <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-semibold text-[#000000]">Create Proposal</h1>
         <div className="w-10"></div>

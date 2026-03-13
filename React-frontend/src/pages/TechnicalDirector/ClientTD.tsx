@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import cardBg from '../../assets/cardbg.jpg';
@@ -34,42 +34,11 @@ interface Client {
 
 export default function ClientTD() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [list, setList] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [addSubmitting, setAddSubmitting] = useState(false);
-    const [addError, setAddError] = useState('');
     const [viewId, setViewId] = useState<number | null>(null);
     const [viewClient, setViewClient] = useState<Client | null>(null);
-    const [form, setForm] = useState({
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        address: '',
-        projectName: '',
-        projectBudget: '',
-        projectStartDate: '',
-        projectEndDate: '',
-        totalHours: '',
-        companyGstNumber: '',
-        resourceInvolved: ''
-    });
-    const [editId, setEditId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        address: '',
-        projectName: '',
-        budget: '',
-        projectBudget: '',
-        projectStartDate: '',
-        projectEndDate: '',
-        totalHours: '',
-        companyGstNumber: '',
-        resourceInvolved: ''
-    });
-    const [editSubmitting, setEditSubmitting] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const canAdd = user?.panel_type === 1;
@@ -84,85 +53,14 @@ export default function ClientTD() {
     const editParam = searchParams.get('edit');
     useEffect(() => {
         if (!editParam || !list.length) return;
-        const id = parseInt(editParam, 10);
-        if (!id || !list.some((x) => x.id === id)) return;
-        setEditId(id);
-        api.get<Client & { address?: string; budget?: string }>(`/api/clients/${id}`).then(({ data }) => setEditForm({
-            fullName: data.fullName ?? '',
-            email: data.email ?? '',
-            phoneNumber: data.phoneNumber ?? '',
-            address: data.address ?? '',
-            projectName: data.projectName ?? '',
-            budget: data.budget ?? '',
-            projectBudget: data.projectBudget ?? '',
-            projectStartDate: data.projectStartDate ?? '',
-            projectEndDate: data.projectEndDate ?? '',
-            totalHours: data.totalHours ?? '',
-            companyGstNumber: data.companyGstNumber ?? '',
-            resourceInvolved: data.resourceInvolved ?? ''
-        })).catch(() => { });
-    }, [editParam, list.length]);
-
-    function handleAddSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setAddError('');
-        if (!form.fullName.trim()) {
-            setAddError('Client name is required.');
-            return;
-        }
-        setAddSubmitting(true);
-        api
-            .post<{ success: boolean; id?: number; message?: string }>('/api/clients', {
-                fullName: form.fullName.trim(),
-                email: form.email.trim() || undefined,
-                phoneNumber: form.phoneNumber.trim() || undefined,
-                address: form.address.trim() || undefined,
-            })
-            .then(({ data }) => {
-                if (data.success) {
-                    setShowAddModal(false);
-                    setForm({
-                        fullName: '',
-                        email: '',
-                        phoneNumber: '',
-                        address: '',
-                        projectName: '',
-                        projectBudget: '',
-                        projectStartDate: '',
-                        projectEndDate: '',
-                        totalHours: '',
-                        companyGstNumber: '',
-                        resourceInvolved: ''
-                    });
-                    setList((prev) => [...prev, { id: data.id!, fullName: form.fullName, email: form.email, phoneNumber: form.phoneNumber }]);
-                } else {
-                    setAddError(data.message || 'Failed to add client.');
-                }
-            })
-            .catch((err) => setAddError(err.response?.data?.message || 'Failed to add client.'))
-            .finally(() => setAddSubmitting(false));
-    }
+        const editId = parseInt(editParam, 10);
+        if (!editId || !list.some((x) => x.id === editId)) return;
+        navigate(`/td/clients/${editId}/edit`, { replace: true });
+        setSearchParams({});
+    }, [editParam, list.length, navigate, setSearchParams]);
 
     const displayName = (c: Client) => c.fullName ?? c.client_name ?? '-';
     const displayLocation = (c: Client) => c.address ?? 'Not specified';
-
-    function openEdit(id: number) {
-        setEditId(id);
-        api.get<Client>(`/api/clients/${id}`).then(({ data }) => setEditForm({
-            fullName: data.fullName ?? '',
-            email: data.email ?? '',
-            phoneNumber: data.phoneNumber ?? '',
-            address: data.address ?? '',
-            projectName: data.projectName ?? '',
-            projectBudget: data.projectBudget ?? '',
-            projectStartDate: data.projectStartDate ?? '',
-            projectEndDate: data.projectEndDate ?? '',
-            totalHours: data.totalHours ?? '',
-            companyGstNumber: data.companyGstNumber ?? '',
-            resourceInvolved: data.resourceInvolved ?? '',
-            budget: data.budget ?? ''
-        })).catch(() => { });
-    }
 
     function openView(id: number) {
         const client = list.find(c => c.id === id);
@@ -170,26 +68,6 @@ export default function ClientTD() {
             setViewClient(client);
             setViewId(id);
         }
-    }
-
-    function handleEditSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (!editId) return;
-        setEditSubmitting(true);
-        api.patch(`/api/clients/${editId}`, {
-            fullName: editForm.fullName,
-            email: editForm.email,
-            phoneNumber: editForm.phoneNumber || undefined,
-            address: editForm.address || undefined,
-            projectName: editForm.projectName || undefined,
-            budget: editForm.budget || undefined,
-            projectBudget: editForm.projectBudget || undefined,
-            projectStartDate: editForm.projectStartDate || undefined,
-            projectEndDate: editForm.projectEndDate || undefined,
-            totalHours: editForm.totalHours || undefined,
-            companyGstNumber: editForm.companyGstNumber || undefined,
-            resourceInvolved: editForm.resourceInvolved || undefined
-        }).then(() => { setList((prev) => prev.map((c) => (c.id === editId ? { ...c, ...editForm } : c))); setEditId(null); setSearchParams({}); }).catch(() => { }).finally(() => setEditSubmitting(false));
     }
 
     if (loading) {
@@ -207,7 +85,7 @@ export default function ClientTD() {
                 {canAdd && (
                     <button
                         type="button"
-                        onClick={() => setShowAddModal(true)}
+                        onClick={() => navigate('/td/clients/add')}
                         className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-white font-semibold transition shadow-md shadow-red-100"
                     >
                         <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
@@ -286,7 +164,7 @@ export default function ClientTD() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => openEdit(c.id)}
+                                            onClick={() => navigate(`/td/clients/${c.id}/edit`)}
                                             className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent"
                                         >
                                             <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
@@ -299,348 +177,6 @@ export default function ClientTD() {
                     )}
                 </div>
             </div>
-
-            {showAddModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-3xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto hide-scrollbar">
-                        {/* Header */}
-                        <div className="relative p-5">
-                            <button
-                                type="button"
-                                onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
-                            >
-                                <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
-                            </button>
-                            <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Add New Client</h3>
-                        </div>
-
-                        <div className="px-10 pb-8 pt-0">
-                            <form onSubmit={handleAddSubmit} className="space-y-4">
-                                {addError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>}
-
-                                {/* Row 1 to 5: Two Column Grid */}
-                                <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Client Name*</label>
-                                        <input
-                                            type="text"
-                                            value={form.fullName}
-                                            onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Client name"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Phone Number*</label>
-                                        <input
-                                            type="tel"
-                                            value={form.phoneNumber}
-                                            onChange={(e) => setForm((f) => ({ ...f, phoneNumber: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter phone number"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Email Address*</label>
-                                        <input
-                                            type="email"
-                                            value={form.email}
-                                            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Email Id"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company GST Number*</label>
-                                        <input
-                                            type="text"
-                                            value={form.companyGstNumber}
-                                            onChange={(e) => setForm((f) => ({ ...f, companyGstNumber: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter GST Number"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Name*</label>
-                                        <input
-                                            type="text"
-                                            value={form.projectName}
-                                            onChange={(e) => setForm((f) => ({ ...f, projectName: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Project Name"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Budget*</label>
-                                        <input
-                                            type="text"
-                                            value={form.projectBudget}
-                                            onChange={(e) => setForm((f) => ({ ...f, projectBudget: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Budget"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Start Date*</label>
-                                        <input
-                                            type="text"
-                                            value={form.projectStartDate}
-                                            onChange={(e) => setForm((f) => ({ ...f, projectStartDate: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="DD/MM/YYYY"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project End Date*</label>
-                                        <input
-                                            type="text"
-                                            value={form.projectEndDate}
-                                            onChange={(e) => setForm((f) => ({ ...f, projectEndDate: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="DD/MM/YYYY"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Total Hours*</label>
-                                        <input
-                                            type="text"
-                                            value={form.totalHours}
-                                            onChange={(e) => setForm((f) => ({ ...f, totalHours: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Total Hours"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Resource Involved*</label>
-                                        <input
-                                            type="text"
-                                            value={form.resourceInvolved}
-                                            onChange={(e) => setForm((f) => ({ ...f, resourceInvolved: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Number of resources involved"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* Row 6: Company Address (Full Width) */}
-                                    <div className="col-span-2 space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company Address*</label>
-                                        <textarea
-                                            value={form.address}
-                                            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari min-h-[80px] resize-none"
-                                            placeholder="Enter Company Address...."
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-6 justify-center pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px]"
-                                    >
-                                        Discard
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={addSubmitting}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px]"
-                                    >
-                                        {addSubmitting ? 'Submitting...' : 'Submit'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {editId !== null && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-3xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[95vh] overflow-y-auto hide-scrollbar">
-                        {/* Header */}
-                        <div className="relative p-5">
-                            <button
-                                type="button"
-                                onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
-                            >
-                                <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
-                            </button>
-                            <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">Edit Client Details</h3>
-                        </div>
-
-                        <div className="px-10 pb-8 pt-0">
-                            <form onSubmit={handleEditSubmit} className="space-y-4">
-                                {/* Row 1 to 5: Two Column Grid */}
-                                <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Client Name*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.fullName}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, fullName: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Client name"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Phone Number*</label>
-                                        <input
-                                            type="tel"
-                                            value={editForm.phoneNumber}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, phoneNumber: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter phone number"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Email Address*</label>
-                                        <input
-                                            type="email"
-                                            value={editForm.email}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Email Id"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company GST Number*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.companyGstNumber}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, companyGstNumber: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter GST Number"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Name*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.projectName}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, projectName: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Project Name"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Budget*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.projectBudget}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, projectBudget: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Budget"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project Start Date*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.projectStartDate}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, projectStartDate: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="DD/MM/YYYY"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Project End Date*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.projectEndDate}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, projectEndDate: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="DD/MM/YYYY"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Total Hours*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.totalHours}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, totalHours: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Total Hours"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Resource Involved*</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.resourceInvolved}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, resourceInvolved: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari"
-                                            placeholder="Enter Number of Resources Involved"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* Row 6: Company Address (Full Width) */}
-                                    <div className="col-span-2 space-y-1.5">
-                                        <label className="block text-[14px] font-gantari font-bold text-[#000000]">Company Address*</label>
-                                        <textarea
-                                            value={editForm.address}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F2F2F2] border-0 rounded-lg text-slate-800 placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-blue-500/10 transition outline-none text-[14px] font-gantari min-h-[80px] resize-none"
-                                            placeholder="Enter Company Address...."
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-6 justify-center pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setEditId(null); setSearchParams({}); }}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px]"
-                                    >
-                                        Discard
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={editSubmitting}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px]"
-                                    >
-                                        {editSubmitting ? 'Submitting...' : 'Submit'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {viewId !== null && viewClient && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

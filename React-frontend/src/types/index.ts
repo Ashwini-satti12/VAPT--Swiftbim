@@ -10,7 +10,7 @@ export interface User {
   /** 1 = management, 2 = team leader, 3 = employee */
   panel_type?: number;
   /** 'client' when logged in via client portal */
-  user_type?: 'employee' | 'client';
+  user_type?: 'employee' | 'client' | 'vendor';
 }
 
 export interface AuthState {

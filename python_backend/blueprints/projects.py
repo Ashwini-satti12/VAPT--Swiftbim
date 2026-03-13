@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
 import mysql.connector as mysql_connector
+import os
+from werkzeug.utils import secure_filename
 
 
 def _get_vendor_db():
@@ -505,7 +507,12 @@ def project_module_progress(project_id):
 @bp.route("", methods=["POST"])
 @project_app_required
 def create_project():
-    data = request.get_json() or request.form
+    # Handle both JSON and Form data for flexibility
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+
     project_name = data.get("project_name") or data.get("projectname")
     members = data.get("members") or ""
     department = data.get("department") or ""
@@ -522,26 +529,46 @@ def create_project():
     location = data.get("location") or None
     description = data.get("description") or None
     start_date = data.get("start_date") or None
-    # DB columns are `no_resource` and `no_resources_requried` (legacy naming).
     resources = data.get("resources") or data.get("no_resource") or None
     required_resources = data.get("required_resources") or data.get("no_resources_requried") or None
+    tasks = data.get("tasks") or ""
+
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
+
+    # Handle file uploads
+    uploaded_files = request.files.getlist("files")
+    file_paths = []
+    if uploaded_files:
+        upload_folder = current_app.config.get("UPLOAD_FOLDER")
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        
+        for file in uploaded_files:
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                # Prefix with project name or timestamp for uniqueness if needed, but keeping it simple for now
+                file.save(os.path.join(upload_folder, filename))
+                file_paths.append(filename)
+
+    document_attachment = ",".join(file_paths) if file_paths else ""
+
     conn = get_db()
     cur = conn.cursor()
-    # Resolve names to IDs so we always store IDs in DB
+    # Resolve names to IDs
     client_id = _resolve_client_id(cur, g.company_id, raw_client)
     project_manager_id = _resolve_employee_id(cur, g.company_id, raw_pm)
     lead_id = _resolve_employee_id(cur, g.company_id, raw_lead)
     bim_coordinator_id = _resolve_employee_id(cur, g.company_id, raw_bim_co)
     department = _resolve_project_department(cur, g.company_id, department)
+
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
          client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
-         resources, required_resources),
+         resources, required_resources, tasks, document_attachment),
     )
     project_id = cur.lastrowid
     return jsonify({"success": True, "project_id": project_id})
@@ -550,14 +577,55 @@ def create_project():
 @bp.route("/<int:project_id>", methods=["PUT", "PATCH"])
 @project_app_required
 def update_project(project_id):
-    raw = request.get_json() or request.form
-    data = dict(raw) if raw else {}
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+        data = dict(data) # Convert to mutable dict
+
     conn = get_db()
     cur = conn.cursor()
     # MySQL may report rowcount=0 when an UPDATE doesn't change any values.
     # So we check existence up front to avoid returning a false 404.
     cur.execute("SELECT 1 FROM projects WHERE id = %s AND Company_id = %s", (project_id, g.company_id))
     project_exists = cur.fetchone() is not None
+    if not project_exists:
+        return jsonify({"success": False, "message": "Project not found"}), 404
+
+    # Handle file uploads
+    uploaded_files = request.files.getlist("files")
+    file_paths = []
+    
+    # Get existing files if any (preserving them if the user didn't explicitly remove them, handles below)
+    cur.execute("SELECT document_attachment FROM projects WHERE id = %s", (project_id,))
+    row = cur.fetchone()
+    existing_file_str = row.get("document_attachment") if row else ""
+    existing_files = [f.strip() for f in existing_file_str.split(",") if f.strip()] if existing_file_str else []
+
+    # If the user provides a 'removed_files' list, filter existing_files
+    removed_files = data.get("removed_files", "")
+    if removed_files:
+        if isinstance(removed_files, str):
+            removed_list = [f.strip() for f in removed_files.split(",") if f.strip()]
+        else:
+            removed_list = removed_files # already a list if JSON
+        existing_files = [f for f in existing_files if f not in removed_list]
+
+    if uploaded_files:
+        upload_folder = current_app.config.get("UPLOAD_FOLDER")
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+        
+        for file in uploaded_files:
+            if file and file.filename:
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(upload_folder, filename))
+                file_paths.append(filename)
+
+    # Combine existing (not removed) and newly uploaded files
+    all_files = list(set(existing_files + file_paths))
+    data["document_attachment"] = ",".join(all_files)
+
     # Resolve names to IDs so we always store IDs
     if data.get("client_id") is not None:
         data["client_id"] = _resolve_client_id(cur, g.company_id, data["client_id"])
@@ -577,7 +645,7 @@ def update_project(project_id):
 
     allowed = ("project_name", "members", "department", "due_date", "priority", "budget", "modules", "progress",
                "client_id", "project_manager_id", "lead_id", "bim_coordinator_id", "totalhours", "perday", "location", "description", "start_date",
-               "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried")
+               "budget_ceiling", "bidding_end_date", "no_resource", "no_resources_requried", "tasks", "document_attachment")
     sets = []
     params = []
     for key in allowed:
@@ -588,9 +656,6 @@ def update_project(project_id):
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.extend([project_id, g.company_id])
     cur.execute("UPDATE projects SET " + ", ".join(sets) + " WHERE id = %s AND Company_id = %s", params)
-    if not cur.rowcount:
-        if not project_exists:
-            return jsonify({"success": False, "message": "Project not found"}), 404
 
     # -----------------------------------------------------------------------
     # OUTSOURCE BRIDGE: if this update marks the project as Outsource

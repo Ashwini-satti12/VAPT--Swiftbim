@@ -1,11 +1,15 @@
 import type { Vendor } from '../types';
 import { FaDownload } from 'react-icons/fa6';
+import { Country, State, City } from 'country-state-city';
+import { useMemo } from 'react';
 
 interface Props {
     vendor: Vendor;
+    editable?: boolean;
+    onChange?: (patch: Partial<Vendor>) => void;
 }
 
-const CompanyDetails = ({ vendor }: Props) => {
+const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
     const truncateFileName = (name: string, maxLen = 25) => {
         const lastDot = name.lastIndexOf('.');
         const ext = lastDot !== -1 ? name.slice(lastDot) : '';
@@ -13,50 +17,161 @@ const CompanyDetails = ({ vendor }: Props) => {
         return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
     };
 
+    const inputClass =
+        'w-full bg-white border border-gray-200 p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/30';
+    const readonlyClass =
+        'bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center';
+
+    const countries = useMemo(() => Country.getAllCountries(), []);
+    const selectedCountry = useMemo(
+        () => countries.find((c) => c.name === vendor.country) ?? null,
+        [countries, vendor.country],
+    );
+    const states = useMemo(() => {
+        if (!selectedCountry) return [];
+        return State.getStatesOfCountry(selectedCountry.isoCode);
+    }, [selectedCountry]);
+    const selectedState = useMemo(
+        () => states.find((s) => s.name === vendor.state) ?? null,
+        [states, vendor.state],
+    );
+    const cities = useMemo(() => {
+        if (!selectedCountry || !selectedState) return [];
+        return City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode);
+    }, [selectedCountry, selectedState]);
+
     return (
         <div className="animate-fade-in">
 
             <div className="grid grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Company Name</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
-                        {vendor.company_name}
-                    </div>
+                    {editable ? (
+                        <input
+                            className={inputClass}
+                            value={vendor.company_name ?? ''}
+                            onChange={(e) => onChange?.({ company_name: e.target.value })}
+                        />
+                    ) : (
+                        <div className={readonlyClass}>{vendor.company_name}</div>
+                    )}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Country Of Registration</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
-                        {vendor.country}
-                    </div>
+                    {editable ? (
+                        <select
+                            className={inputClass}
+                            value={vendor.country ?? ''}
+                            onChange={(e) => {
+                                const nextCountry = e.target.value;
+                                onChange?.({ country: nextCountry, state: '', city: '' });
+                            }}
+                        >
+                            <option value="">Select Country</option>
+                            {countries.map((c) => (
+                                <option key={c.isoCode} value={c.name}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <div className={readonlyClass}>{vendor.country}</div>
+                    )}
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">State</label>
+                    {editable ? (
+                        <select
+                            className={inputClass}
+                            value={vendor.state ?? ''}
+                            onChange={(e) => onChange?.({ state: e.target.value, city: '' })}
+                            disabled={!selectedCountry}
+                        >
+                            <option value="">{selectedCountry ? 'Select State' : 'Select Country first'}</option>
+                            {states.map((s) => (
+                                <option key={s.isoCode} value={s.name}>
+                                    {s.name}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <div className={readonlyClass}>{vendor.state}</div>
+                    )}
+                </div>
+
+                <div>
+                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">City</label>
+                    {editable ? (
+                        <select
+                            className={inputClass}
+                            value={vendor.city ?? ''}
+                            onChange={(e) => onChange?.({ city: e.target.value })}
+                            disabled={!selectedCountry || !selectedState}
+                        >
+                            <option value="">{selectedCountry && selectedState ? 'Select City' : 'Select State first'}</option>
+                            {cities.map((c) => (
+                                <option key={`${c.name}-${c.latitude ?? ''}-${c.longitude ?? ''}`} value={c.name}>
+                                    {c.name}
+                                </option>
+                            ))}
+                        </select>
+                    ) : (
+                        <div className={readonlyClass}>{vendor.city}</div>
+                    )}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Year Of Establishment</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
-                        {vendor.year_established}
-                    </div>
+                    {editable ? (
+                        <input
+                            className={inputClass}
+                            value={vendor.year_established ?? ''}
+                            onChange={(e) => onChange?.({ year_established: e.target.value })}
+                        />
+                    ) : (
+                        <div className={readonlyClass}>{vendor.year_established}</div>
+                    )}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">LinkedIn</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center truncate">
-                        {vendor.linkedin}
-                    </div>
+                    {editable ? (
+                        <input
+                            className={inputClass}
+                            value={vendor.linkedin ?? ''}
+                            onChange={(e) => onChange?.({ linkedin: e.target.value })}
+                        />
+                    ) : (
+                        <div className={`${readonlyClass} truncate`}>{vendor.linkedin}</div>
+                    )}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Website</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center truncate">
-                        {vendor.website}
-                    </div>
+                    {editable ? (
+                        <input
+                            className={inputClass}
+                            value={vendor.website ?? ''}
+                            onChange={(e) => onChange?.({ website: e.target.value })}
+                        />
+                    ) : (
+                        <div className={`${readonlyClass} truncate`}>{vendor.website}</div>
+                    )}
                 </div>
 
                 <div>
                     <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Address</label>
-                    <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
-                        {vendor.address}
-                    </div>
+                    {editable ? (
+                        <input
+                            className={inputClass}
+                            value={vendor.address ?? ''}
+                            onChange={(e) => onChange?.({ address: e.target.value })}
+                        />
+                    ) : (
+                        <div className={readonlyClass}>{vendor.address}</div>
+                    )}
                 </div>
 
                 <div>

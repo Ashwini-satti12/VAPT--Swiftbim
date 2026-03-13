@@ -91,6 +91,8 @@ interface Project {
   project_manager_name?: string;
   bim_lead_name?: string;
   bim_coordinator_name?: string;
+  tasks?: string;
+  document_attachment?: string;
 }
 
 interface Milestone {
@@ -117,6 +119,8 @@ export default function ProjectsBC() {
   const [editModuleInput, setEditModuleInput] = useState('');
   const [editTaskTags, setEditTaskTags] = useState<string[]>([]);
   const [editTaskInput, setEditTaskInput] = useState('');
+  const [createTaskTags, setCreateTaskTags] = useState<string[]>([]);
+  const [createTaskInput, setCreateTaskInput] = useState('');
   const [editPriority, setEditPriority] = useState('');
   const [editDepartment, setEditDepartment] = useState('');
   const [editProjectManager, setEditProjectManager] = useState('');
@@ -133,7 +137,9 @@ export default function ProjectsBC() {
   const [createBIMLead, setCreateBIMLead] = useState('');
   const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState('');
   const [createDescription, setCreateDescription] = useState('');
-  const [createFile, setCreateFile] = useState<File | null>(null);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
@@ -250,12 +256,19 @@ export default function ProjectsBC() {
     required_resources: r.required_resources,
     location: r.location,
     description: r.description,
+    tasks: r.tasks,
+    document_attachment: r.document_attachment,
   });
 
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
-        setList((res.data.projects ?? []).map(mapApiProjectToProject));
+        const allProjects = (res.data.projects ?? []);
+        const userId = user?.id;
+        const filtered = userId
+          ? allProjects.filter((p: any) => String(p.bim_coordinator_id) === String(userId))
+          : allProjects;
+        setList(filtered.map(mapApiProjectToProject));
       })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -823,23 +836,33 @@ export default function ProjectsBC() {
                 e.preventDefault();
                 setCreateError('');
                 setCreateSubmitting(true);
-                api.post<{ success?: boolean; project_id?: number }>('/api/projects', {
-                  project_name: createName.trim(),
-                  budget: createBudget || undefined,
-                  modules: moduleNameTags.join(', ') || undefined,
-                  client_id: createClientName || undefined,
-                  project_manager_id: createProjectManager || undefined,
-                  lead_id: createBIMLead || undefined,
-                  bim_coordinator_id: createBIMCoOrdinator || undefined,
-                  members: selectedMemberIds.join(',') || undefined,
-                  department: createDepartment || undefined,
-                  due_date: createEndDate || undefined,
-                  start_date: createStartDate || undefined,
-                  totalhours: createTotalHours || undefined,
-                  perday: createPerDay || undefined,
-                  priority: createPriority || undefined,
-                  location: createLocation || undefined,
-                  description: createDescription || undefined,
+                const formData = new FormData();
+                formData.append('project_name', createName.trim());
+                if (createBudget) formData.append('budget', createBudget);
+                if (moduleNameTags.length > 0) formData.append('modules', moduleNameTags.join(', '));
+                if (createClientName) formData.append('client_id', createClientName);
+                if (createProjectManager) formData.append('project_manager_id', createProjectManager);
+                if (createBIMLead) formData.append('lead_id', createBIMLead);
+                if (createBIMCoOrdinator) formData.append('bim_coordinator_id', createBIMCoOrdinator);
+                if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
+                if (createDepartment) formData.append('department', createDepartment);
+                if (createEndDate) formData.append('due_date', createEndDate);
+                if (createStartDate) formData.append('start_date', createStartDate);
+                if (createTotalHours) formData.append('totalhours', createTotalHours);
+                if (createPerDay) formData.append('perday', createPerDay);
+                if (createPriority) formData.append('priority', createPriority);
+                if (createLocation) formData.append('location', createLocation);
+                if (createDescription) formData.append('description', createDescription);
+                if (createResources) formData.append('resources', createResources);
+                if (createRequiredResources) formData.append('required_resources', createRequiredResources);
+                if (createTaskTags.length > 0) formData.append('tasks', createTaskTags.join(', '));
+
+                createFiles.forEach(file => {
+                  formData.append('files', file);
+                });
+
+                api.post<{ success?: boolean; project_id?: number }>('/api/projects', formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
                     if (data.success) {
@@ -853,8 +876,23 @@ export default function ProjectsBC() {
                       setCreateBIMCoOrdinator(''); setSelectedMemberIds([]);
                       setCreateResources(''); setCreateRequiredResources('');
                       setCreatePriority(''); setCreateLocation(''); setCreateDescription('');
+                      setCreateFiles([]); setExistingFiles([]); setRemovedFiles([]);
                       api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({ id: r.id, project_name: r.project_name, progress: r.progress ?? 0, total_tasks: r.total_tasks ?? 0, completed_tasks: r.completed_tasks ?? 0, priority: r.priority ?? 'Normal' }))))
+                        .then(res => {
+                          const allProjects = (res.data.projects ?? []);
+                          const userId = user?.id;
+                          const filtered = userId
+                            ? allProjects.filter((p: any) => String(p.bim_coordinator_id) === String(userId))
+                            : allProjects;
+                          setList(filtered.map((r: any) => ({
+                            id: r.id,
+                            project_name: r.project_name,
+                            progress: r.progress ?? 0,
+                            total_tasks: r.total_tasks ?? 0,
+                            completed_tasks: r.completed_tasks ?? 0,
+                            priority: r.priority ?? 'Normal'
+                          })));
+                        })
                         .catch(() => { });
                     }
                   })
@@ -1189,13 +1227,47 @@ export default function ProjectsBC() {
                   </label>
                   <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                     <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                      {createFile ? createFile.name : 'choose File'}
+                      {createFiles.length > 0 ? `${createFiles.length} file(s) selected` : 'Choose Files'}
                     </div>
                     <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
                       Browse File
-                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setCreateFiles(prev => [...prev, ...files]);
+                        }}
+                      />
                     </label>
                   </div>
+                  {createFiles.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {createFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                          <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-semibold text-[#333] truncate">{file.name}</p>
+                            <p className="text-[12px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1254,25 +1326,41 @@ export default function ProjectsBC() {
                   return emp ? emp.id : name;
                 };
                 const membersPayload = selectedMemberIds.length > 0 ? selectedMemberIds.join(',') : (editMember || undefined);
-                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, {
-                  project_name: createName.trim() || undefined,
-                  budget: createBudget || undefined,
-                  modules: editModuleTags.join(', ') || undefined,
-                  client_id: createClientName || undefined,
-                  project_manager_id: editNameToId(createProjectManager),
-                  lead_id: editNameToId(createBIMLead),
-                  bim_coordinator_id: editNameToId(createBIMCoOrdinator),
-                  members: membersPayload,
-                  department: createDepartment || undefined,
-                  due_date: createEndDate || undefined,
-                  start_date: createStartDate || undefined,
-                  totalhours: createTotalHours || undefined,
-                  perday: createPerDay || undefined,
-                  priority: editPriority || undefined,
-                  location: createLocation || undefined,
-                  description: createDescription || undefined,
-                  resources: createResources || undefined,
-                  required_resources: createRequiredResources || undefined,
+
+                const formData = new FormData();
+                formData.append('project_name', createName.trim());
+                if (createBudget) formData.append('budget', createBudget);
+                if (editModuleTags.length > 0) formData.append('modules', editModuleTags.join(', '));
+                if (createClientName) formData.append('client_id', createClientName);
+                const pmId = editNameToId(createProjectManager);
+                if (pmId) formData.append('project_manager_id', String(pmId));
+                const leadId = editNameToId(createBIMLead);
+                if (leadId) formData.append('lead_id', String(leadId));
+                const bcId = editNameToId(createBIMCoOrdinator);
+                if (bcId) formData.append('bim_coordinator_id', String(bcId));
+                if (membersPayload) formData.append('members', membersPayload);
+                if (createDepartment) formData.append('department', createDepartment);
+                if (createEndDate) formData.append('due_date', createEndDate);
+                if (createStartDate) formData.append('start_date', createStartDate);
+                if (createTotalHours) formData.append('totalhours', createTotalHours);
+                if (createPerDay) formData.append('perday', createPerDay);
+                if (editPriority) formData.append('priority', editPriority);
+                if (createLocation) formData.append('location', createLocation);
+                if (createDescription) formData.append('description', createDescription);
+                if (createResources) formData.append('resources', createResources);
+                if (createRequiredResources) formData.append('required_resources', createRequiredResources);
+                if (editTaskTags.length > 0) formData.append('tasks', editTaskTags.join(', '));
+                if (createFiles.length > 0) {
+                  createFiles.forEach(file => {
+                    formData.append('files', file);
+                  });
+                }
+                if (removedFiles.length > 0) {
+                  formData.append('removed_files', removedFiles.join(','));
+                }
+
+                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, formData, {
+                  headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
                     if (data.success) {
@@ -1511,28 +1599,102 @@ export default function ProjectsBC() {
                   />
                 </div>
 
-                {/* Select BIM Co-Ordinator */}
+                {/* Select BIM Co-Ordinator (read-only for BIM Coordinator) */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
                     Select BIM Co-Ordinator <span className="text-[#DD4342]">*</span>
                   </label>
-                  <FormSelect
-                    label="BIM Co-Ordinator" placeholder="Select BIM Co-Ordinator"
-                    options={bimCoordinators} value={editBIMCoOrd}
-                    onChange={setEditBIMCoOrd}
+                  <input
+                    type="text"
+                    readOnly
+                    value={editBIMCoOrd}
+                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
                   />
                 </div>
 
-                {/* Select Member */}
-                <div className="space-y-2">
+                {/* Select Members (multi-select, same as PM) */}
+                <div className="md:col-span-2 space-y-2" style={{ position: 'relative' }}>
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Select Member <span className="text-[#DD4342]">*</span>
+                    Select Members <span className="text-[#DD4342]">*</span>
                   </label>
-                  <FormSelect
-                    label="Member" placeholder="Select Member"
-                    options={allEmployees.map(e => e.full_name)} value={editMember}
-                    onChange={setEditMember}
-                  />
+                  <div
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    onClick={() => setMemberDropdownOpen(o => !o)}
+                  >
+                    {selectedMemberIds.length === 0 && (
+                      <span className="text-gray-400 text-[16px] font-Gantari">Select Members</span>
+                    )}
+                    {selectedMemberIds.map(id => {
+                      const emp = allEmployees.find(e => e.id === id);
+                      return emp ? (
+                        <span
+                          key={id}
+                          className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full"
+                        >
+                          {emp.full_name}
+                          <button
+                            type="button"
+                            onClick={ev => {
+                              ev.stopPropagation();
+                              setSelectedMemberIds(prev => prev.filter(x => x !== id));
+                            }}
+                            className="text-gray-400 hover:text-red-500 ml-1"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ) : null;
+                    })}
+                    <span className="ml-auto text-gray-400 text-sm">
+                      {memberDropdownOpen ? '▲' : '▼'}
+                    </span>
+                  </div>
+                  {memberDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg max-h-56 overflow-hidden flex flex-col">
+                      <div className="p-2 border-b">
+                        <input
+                          type="text"
+                          value={memberSearch}
+                          onChange={e => setMemberSearch(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          placeholder="Search employees..."
+                          className="w-full px-3 py-1.5 bg-[#F2F3F4] rounded-[5px] text-[14px] font-Gantari focus:outline-none"
+                        />
+                      </div>
+                      <div className="overflow-y-auto">
+                        {allEmployees
+                          .filter(e =>
+                            e.full_name.toLowerCase().includes(memberSearch.toLowerCase())
+                          )
+                          .map(e => (
+                            <label
+                              key={e.id}
+                              className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#F2F3F4] cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedMemberIds.includes(e.id)}
+                                onChange={() =>
+                                  setSelectedMemberIds(prev =>
+                                    prev.includes(e.id)
+                                      ? prev.filter(x => x !== e.id)
+                                      : [...prev, e.id]
+                                  )
+                                }
+                                onClick={ev => ev.stopPropagation()}
+                                className="w-4 h-4 accent-[#DD4342]"
+                              />
+                              <span className="text-[14px] font-Gantari text-[#333]">
+                                {e.full_name}
+                              </span>
+                              <span className="ml-auto text-[12px] text-gray-400">
+                                {e.user_role}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Location */}
@@ -1599,13 +1761,85 @@ export default function ProjectsBC() {
                   </label>
                   <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                     <div className="flex-1 px-4 py-3 text-[16px] text-gray-400 font-medium truncate">
-                      {createFile ? createFile.name : 'choose File'}
+                      {(createFiles.length + existingFiles.length) > 0
+                        ? `${createFiles.length + existingFiles.length} file(s) total`
+                        : 'Choose Files'}
                     </div>
                     <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
                       Browse File
-                      <input type="file" className="hidden" onChange={(e) => setCreateFile(e.target.files?.[0] || null)} />
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setCreateFiles(prev => [...prev, ...files]);
+                        }}
+                      />
                     </label>
                   </div>
+                  {(existingFiles.length > 0 || createFiles.length > 0) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Existing Files */}
+                      {existingFiles.map((fileName, idx) => (
+                        <div key={`exist-${idx}`} className="flex items-center gap-3 p-3 bg-[#EEF4FF] border border-[#C7D9FF] rounded-[8px] group">
+                          <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-[#1D7AFC]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <a
+                              href={`${api.defaults.baseURL}/uploads/${fileName}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[14px] font-semibold text-[#1D7AFC] hover:underline truncate block cursor-pointer"
+                            >
+                              {fileName}
+                            </a>
+                            <p className="text-[12px] text-[#1D7AFC]/70">Existing File</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const file = existingFiles[idx];
+                              setExistingFiles(prev => prev.filter((_, i) => i !== idx));
+                              setRemovedFiles(prev => [...prev, file]);
+                            }}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Newly Selected Files */}
+                      {createFiles.map((file, idx) => (
+                        <div key={`new-${idx}`} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                          <div className="w-10 h-10 rounded-lg bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[14px] font-semibold text-[#333] truncate">{file.name}</p>
+                            <p className="text-[12px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1739,22 +1973,35 @@ export default function ProjectsBC() {
                                     setCreateBudget(p.budget ?? '');
                                     // setCreateModuleName(p.module_name ?? '');
                                     setCreateClientName(p.client_name ?? '');
-                                    setCreateProjectManager(mapEmpIdToName(p.project_manager));
+                                    const pmName = mapEmpIdToName(p.project_manager);
+                                    setCreateProjectManager(pmName);
+                                    setEditProjectManager(pmName);
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
-                                    setCreateDepartment(String(p.department ?? ''));
-                                    setCreateBIMLead(mapEmpIdToName(p.bim_lead));
-                                    setCreateBIMCoOrdinator(mapEmpIdToName(p.bim_co_ordinator));
+                                    const deptVal = String(p.department ?? '');
+                                    setCreateDepartment(deptVal);
+                                    setEditDepartment(deptVal);
+
+                                    const blName = mapEmpIdToName(p.bim_lead);
+                                    setCreateBIMLead(blName);
+                                    setEditBIMLead(blName);
+
+                                    const bcName = mapEmpIdToName(p.bim_co_ordinator);
+                                    setCreateBIMCoOrdinator(bcName);
+                                    setEditBIMCoOrd(bcName);
                                     // setCreateMember(p.member ?? '');
 
                                     // Multi-select members
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                                       setSelectedMemberIds(memIds);
+                                      const firstMember = allEmployees.find(e => e.id === memIds[0]);
+                                      setEditMember(firstMember ? firstMember.full_name : '');
                                     } else {
                                       setSelectedMemberIds([]);
+                                      setEditMember('');
                                     }
                                     setCreateResources(p.resources ?? '');
                                     setCreateRequiredResources(p.required_resources ?? '');
@@ -1762,6 +2009,12 @@ export default function ProjectsBC() {
                                     setCreateLocation(p.location ?? '');
                                     setCreateDescription(p.description ?? '');
                                     setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
+                                    setEditTaskTags(p.tasks ? p.tasks.split(',').map(t => t.trim()).filter(Boolean) : []);
+
+                                    const docs = p.document_attachment ? p.document_attachment.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                    setExistingFiles(docs);
+                                    setRemovedFiles([]);
+                                    setCreateFiles([]);
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}

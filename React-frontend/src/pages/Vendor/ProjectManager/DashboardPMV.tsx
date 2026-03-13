@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../../../lib/api";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
@@ -357,15 +358,27 @@ export default function DashboardPMV() {
                                                                 <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
                                                             </div>
                                                             <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                                                {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
-                                                                    <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
-                                                                        {person.profile_picture ? (
-                                                                            <img src={person.profile_picture} alt="" className="w-full h-full object-cover" />
-                                                                        ) : (
-                                                                            <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                                {(task.involved_persons?.length ? task.involved_persons : [])
+                                                                    .slice(0, 3)
+                                                                    .map((person) => (
+                                                                        <div
+                                                                            key={person.id}
+                                                                            className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
+                                                                            title={person.full_name}
+                                                                        >
+                                                                            {person.profile_picture ? (
+                                                                                <img
+                                                                                    src={getGlobalProfileUrl(person.id, person.profile_picture)}
+                                                                                    alt=""
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
+                                                                                    {person.full_name?.slice(0, 2).toUpperCase() || '?'}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
                                                             </div>
                                                         </div>
                                                     );
