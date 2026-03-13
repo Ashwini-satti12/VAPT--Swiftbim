@@ -149,6 +149,48 @@ def get_client_budget():
 
     return jsonify({"client_budget": None})
 
+
+@bp.route("/vendor-by-role", methods=["GET"])
+@login_required
+def vendor_employees_by_role():
+    """
+    GET /api/vendors/vendor-by-role?role=Vendor PM
+    or  /api/vendors/vendor-by-role?role=Vendor Bim Lead
+
+    Returns active vendor employees filtered by vendor_employee.role.
+    Used by the vendor Projects page to populate Project Manager and BIM Lead
+    dropdowns with vendor-side roles.
+    """
+    role = request.args.get("role")
+    if not role:
+        return jsonify({"success": False, "message": "role is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                id,
+                full_name,
+                role AS user_role,
+                email,
+                phone_number,
+                vendor_id
+            FROM vendor_employee
+            WHERE status = 'active'
+              AND role = %s
+            ORDER BY full_name
+            """,
+            (role,),
+        )
+        rows = cur.fetchall()
+        employees = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e), "employees": []}), 500
+
+    return jsonify({"success": True, "employees": employees})
+
 @bp.route("", methods=["GET"])
 @login_required
 def list_vendors():
@@ -2081,16 +2123,23 @@ def list_vendor_projects():
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
-    # Join with clientinformation to expose a human-readable client_name.
-    # Many legacy rows store the *name* directly in client_id, so we fallback
-    # to vp.client_id when there is no matching client row.
+    # Resolve client_id and budget from the main projects table using project_name,
+    # then join to clientinformation to get the client's fullName.
+    # Mappings:
+    #   projects.client_id      -> clientinformation.id
+    #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
     cur.execute(
         """
         SELECT
             vp.*,
-            COALESCE(c.fullName, vp.client_id) AS client_name
+            -- Prefer client name from clientinformation; fall back to raw ids
+            COALESCE(ci.fullName, p.client_id, vp.client_id) AS client_name,
+            -- Prefer main projects.budget_ceiling / budget over vendor_projects values
+            COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
+            COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling
         FROM vendor_projects vp
-        LEFT JOIN clientinformation c ON vp.client_id = c.id
+        LEFT JOIN projects p ON p.project_name = vp.project_name
+        LEFT JOIN clientinformation ci ON ci.id = p.client_id
         WHERE vp.vendor_id = %s
         ORDER BY vp.id DESC
         """,
@@ -2422,6 +2471,37 @@ def delete_vendor_team(team_id):
     except Exception as e:
         conn.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@bp.route("/vendor-resource-profiles", methods=["GET"])
+@login_required
+def list_vendor_resource_profiles():
+    """
+    GET /api/vendors/vendor-resource-profiles
+    Returns all resource profiles from vendor_resource_profiles table.
+    Used for Team Members dropdown in vendor projects.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute(
+            """
+            SELECT
+                id,
+                name AS full_name,
+                email,
+                designation,
+                role,
+                vendor_id
+            FROM vendor_resource_profiles
+            ORDER BY name
+            """
+        )
+        rows = cur.fetchall()
+        resources = [{k: _serialize(v) for k, v in r.items()} for r in rows]
+        return jsonify({"success": True, "resources": resources})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e), "resources": []}), 500
 
 
 @bp.route("/vendor-projects/<int:project_id>", methods=["DELETE"])

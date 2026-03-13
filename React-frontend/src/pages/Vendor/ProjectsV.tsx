@@ -109,6 +109,7 @@ export default function ProjectsV() {
     const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
     const [bimLeads, setBimLeads] = useState<Employee[]>([]);
     const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
+    const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
 
     // Milestones view
     const [showMilestones, setShowMilestones] = useState(false);
@@ -126,21 +127,13 @@ export default function ProjectsV() {
     useEffect(() => {
         fetchProjects();
 
-        // Fetch all employees once, then categorize by user_role
+        // Fetch all employees once (used for team member selection, etc.)
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
                 const allEmp = data.employees ?? [];
                 setAllEmployees(allEmp);
 
-                // Exact match for project managers
-                setProjectManagers(allEmp.filter((e) => e.user_role === "Project Manager"));
-
-                // Allow both dedicated BIM roles and mapped dev roles
-                setBimLeads(
-                    allEmp.filter((e) =>
-                        ["BIM Lead", "Backend Developer"].includes(e.user_role || "")
-                    )
-                );
+                // BIM Coordinators still come from the generic employee list
                 setBimCoordinators(
                     allEmp.filter((e) =>
                         ["BIM Coordinator", "FrontEnd Developer"].includes(e.user_role || "")
@@ -149,15 +142,40 @@ export default function ProjectsV() {
             })
             .catch(() => {
                 setAllEmployees([]);
-                setProjectManagers([]);
-                setBimLeads([]);
                 setBimCoordinators([]);
+            });
+
+        // Vendor-side Project Managers (role = "Vendor PM" in vendor_employee)
+        api.get<{ success: boolean; employees?: Employee[] }>("/api/vendors/vendor-by-role?role=Vendor PM")
+            .then(({ data }) => {
+                setProjectManagers(data.employees ?? []);
+            })
+            .catch(() => {
+                setProjectManagers([]);
+            });
+
+        // Vendor-side BIM Leads (role = "Vendor Bim Lead" in vendor_employee)
+        api.get<{ success: boolean; employees?: Employee[] }>("/api/vendors/vendor-by-role?role=Vendor Bim Lead")
+            .then(({ data }) => {
+                setBimLeads(data.employees ?? []);
+            })
+            .catch(() => {
+                setBimLeads([]);
             });
 
         // Fetch clients
         api.get<{ clients?: any[] }>("/api/clients")
             .then(({ data }) => setClientsList(data.clients ?? []))
             .catch(() => setClientsList([]));
+
+        // Fetch vendor resource profiles for Team Members dropdown
+        api.get<{ success: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
+            .then(({ data }) => {
+                setVendorResourceProfiles(data.resources ?? []);
+            })
+            .catch(() => {
+                setVendorResourceProfiles([]);
+            });
 
     }, []);
 
@@ -187,6 +205,9 @@ export default function ProjectsV() {
 
     const getEmployeeName = (id: string | number | undefined): string => {
         if (!id) return "";
+        // First check vendor resource profiles, then fall back to all employees
+        const resource = vendorResourceProfiles.find(r => r.id === Number(id));
+        if (resource) return resource.full_name || "";
         const emp = allEmployees.find(e => e.id === Number(id));
         return emp?.full_name || "";
     };
@@ -265,7 +286,8 @@ export default function ProjectsV() {
     const openEdit = (p: Project) => {
         setEditId(p.id);
         setCreateName(p.project_name || "");
-        setCreateBudget(p.budget || "");
+        // Prefer budget_ceiling (final agreed budget) when editing; fall back to budget
+        setCreateBudget(p.budget_ceiling || p.budget || "");
         setCreateModuleName(p.modules || "");
         // Prefer hydrated client_name from backend; otherwise resolve via id
         setCreateClientName(
@@ -273,12 +295,24 @@ export default function ProjectsV() {
             getClientNameById(p.client_id) ||
             (p.client_id ? String(p.client_id) : "")
         );
-        setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
+        // Resolve Project Manager from projectManagers array (vendor PMs from vendor-by-role API)
+        // Fall back to allEmployees if not found in projectManagers
+        setCreateProjectManager(
+            idToName(p.project_manager_id, projectManagers) ||
+            idToName(p.project_manager_id, allEmployees) ||
+            ""
+        );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
         setCreateEndDate(p.due_date || "");
         setCreateTotalHours(p.totalhours || "");
         setCreatePerDay(p.perday || "");
-        setCreateBIMLead(idToName(p.lead_id, allEmployees));
+        // Resolve BIM Lead from bimLeads array (vendor BIM Leads from vendor-by-role API)
+        // Fall back to allEmployees if not found in bimLeads
+        setCreateBIMLead(
+            idToName(p.lead_id, bimLeads) ||
+            idToName(p.lead_id, allEmployees) ||
+            ""
+        );
         setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
         setCreateResources(p.no_resource || "");
         setCreateRequiredResources(p.no_resources_required || "");
@@ -379,10 +413,10 @@ export default function ProjectsV() {
                     <div className="flex flex-wrap gap-2 pr-4">
                         {selectedMemberIds.length > 0 ? (
                             selectedMemberIds.map(id => {
-                                const emp = allEmployees.find(e => e.id === id);
+                                const resource = vendorResourceProfiles.find(r => r.id === id);
                                 return (
                                     <span key={id} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-[#DD4342]/20 text-[#DD4342] text-xs font-bold rounded-lg shadow-sm">
-                                        {emp?.full_name || `ID: ${id}`}
+                                        {resource?.full_name || `ID: ${id}`}
                                         <div onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-600 cursor-pointer">
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -406,26 +440,48 @@ export default function ProjectsV() {
                 </button>
                 {editDropdownOpen === "members" && (
                     <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-56 overflow-y-auto custom-scrollbar">
-                        {allEmployees.map(emp => (
-                            <button
-                                key={emp.id}
-                                type="button"
-                                onClick={() => toggleMember(emp.id)}
-                                className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F4F5F7] transition-colors ${selectedMemberIds.includes(emp.id) ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${selectedMemberIds.includes(emp.id) ? "bg-[#DD4342] text-white" : "bg-slate-200 text-slate-500"}`}>
-                                        {(emp.full_name || "?")[0]}
-                                    </div>
-                                    <span className="font-semibold">{emp.full_name}</span>
+                        {vendorResourceProfiles.length === 0 ? (
+                            <div className="px-5 py-3 text-sm text-gray-500 text-center">No team members available</div>
+                        ) : (
+                            <>
+                                {vendorResourceProfiles.map(resource => {
+                                    const isSelected = selectedMemberIds.includes(resource.id);
+                                    return (
+                                        <button
+                                            key={resource.id}
+                                            type="button"
+                                            onClick={() => toggleMember(resource.id)}
+                                            className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F4F5F7] transition-colors ${isSelected ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isSelected ? "bg-[#DD4342] text-white" : "bg-slate-200 text-slate-500"}`}>
+                                                    {(resource.full_name || "?")[0]}
+                                                </div>
+                                                <span className="font-semibold">{resource.full_name}</span>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${isSelected ? "bg-[#DD4342] border-[#DD4342]" : "bg-white border-gray-300"}`}>
+                                                    {isSelected && (
+                                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                                <div className="border-t border-slate-200 mt-1 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditDropdownOpen(null)}
+                                        className="w-full px-5 py-2.5 text-sm font-semibold text-[#DD4342] hover:bg-[#FFF1F1] transition-colors"
+                                    >
+                                        Done ({selectedMemberIds.length} selected)
+                                    </button>
                                 </div>
-                                {selectedMemberIds.includes(emp.id) && (
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                )}
-                            </button>
-                        ))}
+                            </>
+                        )}
                     </div>
                 )}
             </div>
@@ -937,15 +993,15 @@ export default function ProjectsV() {
                                 <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-6">Team Overview</h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
-                                        const emp = allEmployees.find(e => e.id === Number(id));
-                                        return emp ? (
+                                        const resource = vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                        return resource ? (
                                             <div key={id} className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
-                                                    {(emp.full_name || "?")[0]}
+                                                    {(resource.full_name || "?")[0]}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-[#1E293B]">{emp.full_name}</p>
-                                                    <p className="text-xs text-[#999]">{emp.user_role || "Member"}</p>
+                                                    <p className="text-sm font-bold text-[#1E293B]">{resource.full_name}</p>
+                                                    <p className="text-xs text-[#999]">{resource.user_role || "Member"}</p>
                                                 </div>
                                             </div>
                                         ) : null;
