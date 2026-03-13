@@ -310,7 +310,7 @@ export default function TrackerPM() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
         <div className="flex items-center justify-between w-full md:w-auto">
-          <h2 className="text-2xl font-bold text-gray-900">Employee Tracking</h2>
+          <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">Employee Tracking</h2>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

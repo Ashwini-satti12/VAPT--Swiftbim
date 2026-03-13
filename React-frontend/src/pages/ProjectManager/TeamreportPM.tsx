@@ -276,7 +276,7 @@ export default function TimesheetPM() {
     <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
       {/* Header Section */}
       <div className="flex items-center justify-between flex-shrink-0 px-2">
-        <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+        <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">Time-Sheet</h2>
         {/* Download Button - moved above filters */}
         <button
           onClick={handleDownload}

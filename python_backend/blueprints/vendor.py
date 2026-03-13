@@ -2385,24 +2385,41 @@ def list_vendor_tasks():
         f"""
         SELECT
             vt.*,
-            vp.project_name,
-            e_assign.full_name AS assigned_full_name,
-            e_assign.profile_picture AS assigned_profile_picture,
-            e_by.full_name AS uploader_full_name,
-            e_by.profile_picture AS uploader_profile_picture
+            vp.project_name
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
-        LEFT JOIN employee e_assign ON vt.assigned_to = e_assign.id
-        LEFT JOIN employee e_by ON vt.vendor_id = e_by.id
         WHERE {(' AND '.join(where)) if where else '1=1'}
         ORDER BY vt.created_at DESC
         """,
         params,
     )
     rows = cur.fetchall()
+
+    # Build assignee name map from vendor_resource_profiles (new_swiftbim)
+    name_map = {}
+    try:
+        vendor_onboard_id = _current_vendor_onboarding_id()
+        if vendor_onboard_id:
+            vcur = vendor_cursor()
+            vcur.execute(
+                "SELECT id, name FROM vendor_resource_profiles WHERE vendor_id = %s",
+                (vendor_onboard_id,),
+            )
+            for vr in vcur.fetchall():
+                vid = vr.get("id")
+                nm = vr.get("name")
+                if vid is not None and nm:
+                    name_map[vid] = nm
+    except Exception:
+        name_map = {}
+
     tasks = []
     for r in rows:
         d = {k: _serialize(v) for k, v in r.items()}
+        # Resolve assignee name from vendor_resource_profiles using assigned_to id
+        assignee_id = d.get("assigned_to")
+        if assignee_id in name_map:
+            d["assigned_full_name"] = name_map[assignee_id]
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
         d["due_date"] = d.get("due_date")
@@ -2488,6 +2505,18 @@ def create_vendor_task():
     conn.commit()
     task_id = cur.lastrowid
     return jsonify({"success": True, "task_id": task_id})
+
+
+@bp.route("/vendor-tasks/add", methods=["POST"])
+@login_required
+def add_vendor_task():
+    """
+    POST /api/vendors/vendor-tasks/add
+    Thin wrapper around create_vendor_task so the frontend can use
+    a dedicated "add task" endpoint.
+    Accepts the same payload shape as /api/vendors/vendor-tasks.
+    """
+    return create_vendor_task()
 
 
 @bp.route("/vendor-tasks/<int:task_id>", methods=["PATCH", "PUT"])
@@ -2578,13 +2607,38 @@ def list_vendor_projects():
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+
+    # Determine which vendor employee IDs' projects should be visible:
+    # - For vendor users, show projects created by ANY employee in the same vendor company
+    #   (so Vendor, Vendor PM, Vendor BIM Lead etc. all see the same project list).
+    # - For non-vendor users, fall back to only this user's projects.
+    vendor_employee_ids = [user_id]
+    if getattr(g, "user_type", None) == "vendor":
+        company_id = getattr(g, "company_id", None)
+        if company_id is not None:
+            try:
+                ecur = conn.cursor(dictionary=True)
+                ecur.execute(
+                    "SELECT id FROM vendor_employee WHERE vendor_id = %s",
+                    (company_id,),
+                )
+                rows = ecur.fetchall() or []
+                ids = [r["id"] for r in rows if r.get("id") is not None]
+                if ids:
+                    vendor_employee_ids = ids
+            except Exception:
+                # On any error, keep the default [user_id] fallback
+                vendor_employee_ids = [user_id]
+
+    placeholders = ",".join(["%s"] * len(vendor_employee_ids))
+
     # Resolve client_id and budget from the main projects table using project_name,
     # then join to clientinformation to get the client's fullName.
     # Mappings:
     #   projects.client_id      -> clientinformation.id
     #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
     cur.execute(
-        """
+        f"""
         SELECT
             vp.*,
             -- Prefer client name from clientinformation; fall back to raw ids
@@ -2594,13 +2648,13 @@ def list_vendor_projects():
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling
         FROM vendor_projects vp
         LEFT JOIN projects p
-            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+            ON p.project_name = vp.project_name
         LEFT JOIN clientinformation ci
-            ON ci.id COLLATE utf8mb4_general_ci = p.client_id COLLATE utf8mb4_general_ci
-        WHERE vp.vendor_id = %s
+            ON ci.id = p.client_id
+        WHERE vp.vendor_id IN ({placeholders})
         ORDER BY vp.id DESC
         """,
-        (user_id,),
+        vendor_employee_ids,
     )
     rows = cur.fetchall()
 

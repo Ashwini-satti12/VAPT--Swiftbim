@@ -1039,7 +1039,7 @@ export default function TeamtaskPM() {
     <div className="space-y-6 overflow-auto min-h-screen">
       {/* Top row: title + dropdowns + Add task */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold text-slate-800">
+        <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
           {isTeam ? "Team Task" : "My Task"}
         </h2>
         <div

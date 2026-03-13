@@ -217,6 +217,18 @@ export default function ProjectsV() {
         return new Date(d).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
     };
 
+    // Convert stored HTML description to plain text for editing
+    const htmlToPlainText = (html: string | undefined | null): string => {
+        if (!html) return "";
+        if (typeof window === "undefined" || typeof document === "undefined") {
+            // Fallback for non-DOM environments
+            return html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").trim();
+        }
+        const div = document.createElement("div");
+        div.innerHTML = html;
+        return (div.textContent || div.innerText || "").trim();
+    };
+
     const nameToId = (name: string, list: Employee[]) => {
         const found = list.find(e => e.full_name === name);
         return found ? String(found.id) : "";
@@ -256,8 +268,9 @@ export default function ProjectsV() {
             totalhours: createTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
-            resources: createResources,
-            required_resources: createRequiredResources,
+            // Backend column names are no_resource / no_resources_required
+            no_resource: createResources,
+            no_resources_required: createRequiredResources,
             priority: createPriority,
             location: createLocation,
             description: createDescription,
@@ -318,7 +331,8 @@ export default function ProjectsV() {
         setCreateRequiredResources(p.no_resources_required || "");
         setCreatePriority(p.priority || "");
         setCreateLocation(p.location || "");
-        setCreateDescription(p.description || "");
+        // Strip HTML tags / entities so the textarea shows clean text
+        setCreateDescription(htmlToPlainText(p.description));
         setCreateDeliverables(p.deliverables || "");
 
         setSelectedMemberIds(p.members ? p.members.split(",").filter(Boolean).map(Number) : []);
@@ -342,8 +356,9 @@ export default function ProjectsV() {
             totalhours: createTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
-            resources: createResources,
-            required_resources: createRequiredResources,
+            // Backend column names are no_resource / no_resources_required
+            no_resource: createResources,
+            no_resources_required: createRequiredResources,
             priority: createPriority,
             location: createLocation,
             description: createDescription,
@@ -368,6 +383,24 @@ export default function ProjectsV() {
             .catch(() => { })
             .finally(() => setEditSubmitting(false));
     };
+
+    // When editing, once clients list is loaded, resolve numeric client_id to human-readable name
+    useEffect(() => {
+        if (!showEditModal || !editId || clientsList.length === 0) return;
+        // If current value still looks like an ID (e.g. "62"), replace it with the actual client name
+        const trimmed = createClientName.trim();
+        const looksLikeId = trimmed !== "" && /^[0-9]+$/.test(trimmed);
+        if (createClientName === "" || looksLikeId) {
+            const project = list.find((p) => p.id === editId);
+            if (!project) return;
+            const resolved =
+                project.client_name ||
+                getClientNameById(project.client_id ?? trimmed);
+            if (resolved && resolved !== createClientName) {
+                setCreateClientName(resolved);
+            }
+        }
+    }, [showEditModal, editId, clientsList, list, createClientName]);
 
 
     const toggleMember = (id: number) => {

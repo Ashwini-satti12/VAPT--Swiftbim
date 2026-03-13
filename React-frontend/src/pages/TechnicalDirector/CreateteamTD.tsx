@@ -395,9 +395,9 @@ export default function CreateteamTD() {
         : teams.slice(selectedRange.start, selectedRange.end);
 
     return (
-        <div className="h-full flex flex-col p-6">
+        <div className="h-full flex flex-col p-2">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1E293B]">Team</h2>
+                <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Team</h2>
                 <div className="flex items-center gap-3">
                     {/* Show entries dropdown */}
                     <div className="relative" ref={showEntriesDropdownRef}>
