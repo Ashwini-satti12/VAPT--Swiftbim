@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -924,18 +925,19 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'add' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                title="Back"
               >
-                <FiX className="w-5 h-5 font-bold" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
-              <div className="w-10" /> {/* Spacer to center title */}
+              <div className="w-10" />
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
@@ -951,7 +953,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Employee Name"
                       value={form.full_name}
                       onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -962,7 +964,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Phone Number"
                       value={form.phone_number}
                       onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
@@ -972,7 +974,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Password"
                       value={form.password}
                       onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1004,7 +1006,7 @@ export default function EmployeesPM() {
                       type="date"
                       value={form.dob}
                       onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
@@ -1014,7 +1016,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Email"
                       value={form.email}
                       onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1033,7 +1035,7 @@ export default function EmployeesPM() {
                       type="date"
                       value={form.joining_date}
                       onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1064,21 +1066,21 @@ export default function EmployeesPM() {
                   placeholder="Type your Address..."
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1089,18 +1091,19 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                title="Back"
               >
-                <FiX className="w-5 h-5 font-bold" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
-              <div className="w-10" /> {/* Spacer to center title */}
+              <div className="w-10" />
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-6">
@@ -1114,7 +1117,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
                     onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
                   />
@@ -1126,7 +1129,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1136,7 +1139,7 @@ export default function EmployeesPM() {
                       placeholder="******** (password hidden)"
                       value={editForm.password}
                       onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     disabled
                     />
                   </div>
@@ -1165,7 +1168,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 </div>
@@ -1178,7 +1181,7 @@ export default function EmployeesPM() {
                       type="date"
                       value={editForm.dob}
                       onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div>
@@ -1188,7 +1191,7 @@ export default function EmployeesPM() {
                     placeholder="Enter Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
                   />
@@ -1208,7 +1211,7 @@ export default function EmployeesPM() {
                     type="date"
                     value={editForm.doj}
                     onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1218,7 +1221,7 @@ export default function EmployeesPM() {
                     placeholder="0000$"
                     value={editForm.salary}
                     onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1249,7 +1252,7 @@ export default function EmployeesPM() {
                   placeholder="Type your Address..."
                   value={editForm.address}
                   onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
 
@@ -1283,18 +1286,18 @@ export default function EmployeesPM() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="w-full sm:w-auto px-14 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px]transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px]  transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1452,7 +1455,7 @@ export default function EmployeesPM() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[750px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-4 py-4 relative shadow-2xl flex flex-col gap-3 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
@@ -1462,12 +1465,12 @@ export default function EmployeesPM() {
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[20px] font-semibold text-[#020202]">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#020202]">View Details</h3>
             </div>
 
             {/* Profile Section: show uploaded photo if available, otherwise initials */}
-            <div className="flex items-center gap-6 px-4">
-              <div className="w-[100px] h-[100px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
+            <div className="flex items-center gap-2 px-0">
+              <div className="w-[38px] h-[38px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     src={getProfileUrl(selectedEmployee.profile_picture)}
@@ -1485,13 +1488,13 @@ export default function EmployeesPM() {
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[16px] font-semibold text-[#353535]">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 
             {/* Details Table */}
-            <div className="px-4 sm:px-8 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1505,9 +1508,9 @@ export default function EmployeesPM() {
                 { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
-                  <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
-                  <span className="hidden sm:inline text-[#353535] font-Gantari text-center">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
+                  <span className="text-[14px] font-semibold font-Gantari text-[#000000]">{item.label}</span>
+                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#000000] text-center">:</span>
+                  <span className="text-[14px] text-[#616161] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>

@@ -187,6 +187,10 @@ def create_task():
     )
     modules = data.get("modules_name") or data.get("modules") or data.get("module") or ""
 
+    # Preferred times
+    prefer_start = data.get("perferstart_time") or data.get("startTime") or data.get("start_time")
+    prefer_end = data.get("perferend_time") or data.get("dueTime") or data.get("due_time")
+
     status = data.get("status") or "Todo"
     import random
 
@@ -195,8 +199,8 @@ def create_task():
 
     cur.execute(
         """INSERT INTO tasks (projectid, uploaderid, task_name, assigned_to, due_date, category, description, checklist,
-           document_attachment, status, ticket, Actual_start_time, modules_name, Company_id)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           document_attachment, status, ticket, Actual_start_time, modules_name, perferstart_time, perferend_time, Company_id)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (
             project_id,
             g.user_id,
@@ -211,6 +215,8 @@ def create_task():
             ticket,
             start_date,
             modules,
+            prefer_start,
+            prefer_end,
             g.company_id,
         ),
     )
@@ -245,7 +251,7 @@ def update_task(task_id):
     conn = get_db()
     cur = conn.cursor()
     # Build dynamic update
-    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "status", "modules_name", "Actual_start_time")
+    allowed = ("task_name", "assigned_to", "due_date", "category", "description", "checklist", "status", "modules_name", "Actual_start_time", "perferstart_time", "perferend_time")
     sets = []
     params = []
     for key in allowed:

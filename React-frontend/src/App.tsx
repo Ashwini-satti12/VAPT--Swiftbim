@@ -2,7 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ClientProtectedRoute } from './components/ClientProtectedRoute';
-import LandingOrRedirect from './components/LandingOrRedirect';
 import AppLayout from './components/AppLayout';
 
 import Login from './pages/Login/Login';
@@ -10,6 +9,9 @@ import ClientLogin from './pages/Client/ClientLogin';
 import DashboardPM from './pages/ProjectManager/DashboardPM';
 import EmployeesPM from './pages/ProjectManager/EmployeesPM';
 import Clients from './pages/Client/Clients';
+import AddClient from './pages/Client/AddClient';
+import EditClient from './pages/Client/EditClient';
+import ViewClientDetails from './pages/Client/ViewClientDetails';
 import ProjectsPM from './pages/ProjectManager/ProjectsPM';
 import MyTasksPM from './pages/ProjectManager/MyTasksPM';
 import MytaskViewPM from './pages/ProjectManager/MytaskViewPM';
@@ -39,8 +41,10 @@ import ConsultantdetailsTD from './pages/TechnicalDirector/ConsultantdetailsTD';
 import ClientTD from './pages/TechnicalDirector/ClientTD';
 import AddClientTD from './pages/TechnicalDirector/AddClientTD';
 import EditClientTD from './pages/TechnicalDirector/EditClientTD';
+import ClientViewTD from './pages/TechnicalDirector/ClientViewTD';
 import ProjectsTD from './pages/TechnicalDirector/ProjectsTD';
 import MytaskTD from './pages/TechnicalDirector/MytaskTD';
+import AddTaskTD from './pages/TechnicalDirector/AddTaskTD';
 import TeamtaskTD from './pages/TechnicalDirector/TeamtaskTD';
 import CreateteamTD from './pages/TechnicalDirector/CreateteamTD';
 import TrackerTD from './pages/TechnicalDirector/TrackerTD';
@@ -58,6 +62,7 @@ import ManageLeaveTD from './pages/TechnicalDirector/ManageLeaveTD';
 import DashboardBL from './pages/BimLead/DashboardBL';
 import ConsultantBL from './pages/BimLead/ConsultantBL';
 import AddConsultantBL from './pages/BimLead/AddConsultantBL';
+import EditConsultantBL from './pages/BimLead/EditConsultantBL';
 import ConsultantdetailsBL from './pages/BimLead/ConsultantdetailsBL';
 import ProjectsBL from './pages/BimLead/ProjectsBL';
 import MytaskBL from './pages/BimLead/MytaskBL';
@@ -143,7 +148,8 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingOrRedirect />} />
+          {/* <Route path="/" element={<Login />} /> */}
+          <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/client-login" element={<ClientLogin />} />
           <Route path="/welcome" element={<WelcomePM />} />
@@ -159,6 +165,9 @@ function App() {
             <Route path="employees" element={<EmployeesPM />} />
             <Route path="employees/:id" element={<EmployeeDetailPM />} />
             <Route path="clients" element={<Clients />} />
+            <Route path="clients/add" element={<AddClient />} />
+            <Route path="clients/:id/edit" element={<EditClient />} />
+            <Route path="clients/:id/view" element={<ViewClientDetails />} />
             <Route path="clients/:id" element={<ClientDetail />} />
             <Route path="projects" element={<ProjectsPM />} />
             <Route path="projects/:id" element={<ProjectDetailPM />} />
@@ -182,9 +191,12 @@ function App() {
             <Route path="td/consultants/:id" element={<ConsultantdetailsTD />} />
             <Route path="td/clients" element={<ClientTD />} />
             <Route path="td/clients/add" element={<AddClientTD />} />
+            <Route path="td/clients/:id/view" element={<ClientViewTD />} />
             <Route path="td/clients/:id/edit" element={<EditClientTD />} />
             <Route path="td/projects" element={<ProjectsTD />} />
             <Route path="td/mytasks" element={<MytaskTD />} />
+            <Route path="td/mytasks/add" element={<AddTaskTD />} />
+            <Route path="td/teamtasks/add" element={<AddTaskTD />} />
             <Route path="td/teamtasks" element={<TeamtaskTD />} />
             <Route path="td/createteam" element={<CreateteamTD />} />
             <Route path="td/tracker" element={<TrackerTD />} />
@@ -202,6 +214,7 @@ function App() {
             <Route path="bl/dashboard" element={<DashboardBL />} />
             <Route path="bl/consultants" element={<ConsultantBL />} />
             <Route path="bl/consultants/add" element={<AddConsultantBL />} />
+            <Route path="bl/consultants/:id/edit" element={<EditConsultantBL />} />
             <Route path="bl/consultants/:id" element={<ConsultantdetailsBL />} />
             <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
@@ -291,7 +304,7 @@ function App() {
             {/* <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskV />} /> */}
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

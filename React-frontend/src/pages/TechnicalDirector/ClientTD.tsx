@@ -7,8 +7,6 @@ import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
 import callIcon from '../../assets/ProjectManager/Client/callicon.svg';
 import messageIcon from '../../assets/ProjectManager/Client/message.svg';
 import mailIcon from '../../assets/ProjectManager/Client/mailicon.svg';
-import closeIcon from '../../assets/ProjectManager/Client/closebuttonicon.svg';
-import colonIcon from '../../assets/ProjectManager/Client/colonicon.svg';
 import editIcon from '../../assets/ProjectManager/Client/Editicon.svg';
 import plusIcon from '../../assets/ProjectManager/Client/plusicon.svg';
 import profileImg from '../../assets/ProjectManager/Chat/clientcardprofile image.png';
@@ -37,8 +35,6 @@ export default function ClientTD() {
     const navigate = useNavigate();
     const [list, setList] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
-    const [viewId, setViewId] = useState<number | null>(null);
-    const [viewClient, setViewClient] = useState<Client | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
 
     const canAdd = user?.panel_type === 1;
@@ -62,14 +58,6 @@ export default function ClientTD() {
     const displayName = (c: Client) => c.fullName ?? c.client_name ?? '-';
     const displayLocation = (c: Client) => c.address ?? 'Not specified';
 
-    function openView(id: number) {
-        const client = list.find(c => c.id === id);
-        if (client) {
-            setViewClient(client);
-            setViewId(id);
-        }
-    }
-
     if (loading) {
         return (
             <div className="flex justify-center py-24">
@@ -81,7 +69,7 @@ export default function ClientTD() {
     return (
         <div className="h-full flex flex-col">
             <div className="flex items-center justify-between flex-shrink-0">
-                <h2 className="text-2xl font-bold text-slate-800">Clients</h2>
+                <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Clients</h2>
                 {canAdd && (
                     <button
                         type="button"
@@ -156,7 +144,7 @@ export default function ClientTD() {
                                     <div className="grid grid-cols-2 gap-3 mt-auto">
                                         <button
                                             type="button"
-                                            onClick={() => openView(c.id)}
+                                            onClick={() => navigate(`/td/clients/${c.id}/view`)}
                                             className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm"
                                         >
                                             <img src={viewIcon} alt="View" className="w-5 h-5 object-contain" />
@@ -177,70 +165,6 @@ export default function ClientTD() {
                     )}
                 </div>
             </div>
-
-            {viewId !== null && viewClient && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-xl w-full transition-all animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto hide-scrollbar">
-                        {/* Header */}
-                        <div className="relative p-6">
-                            <button
-                                type="button"
-                                onClick={() => { setViewId(null); setViewClient(null); }}
-                                className="absolute left-6 top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80"
-                            >
-                                <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
-                            </button>
-                            <h3 className="text-center text-xl font-gantari font-semibold text-[#020202]">View Client Details</h3>
-                        </div>
-
-                        <div className="px-10 pb-10 pt-2 space-y-8">
-                            {/* Progress Bar */}
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[15px] font-gantari font-semibold text-[#000000]">Project Progress</span>
-                                    <span className="text-[15px] font-gantari font-semibold text-slate-600">66%</span>
-                                </div>
-                                <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full transition-all duration-300 shadow-sm"
-                                        style={{
-                                            width: '66%',
-                                            background: 'linear-gradient(90deg, #FF9861 0%, #FFB68D 100%)'
-                                        }}
-                                    ></div>
-                                </div>
-                            </div>
-
-                            {/* Client Details */}
-                            <div className="space-y-4 pt-2">
-                                {[
-                                    { label: 'Client Name', value: viewClient.fullName },
-                                    { label: 'Phone Number', value: viewClient.phoneNumber },
-                                    { label: 'Email ID', value: viewClient.email },
-                                    { label: 'Company Address', value: viewClient.address },
-                                    { label: 'Company GST Number', value: viewClient.companyGstNumber },
-                                    { label: 'Project Name', value: viewClient.projectName },
-                                    { label: 'Project Budget', value: viewClient.projectBudget ? `${viewClient.projectBudget} $` : '-' },
-                                    { label: 'Received Amount', value: '800M $' },
-                                    { label: 'Pending Amount', value: '400M $' },
-                                    { label: 'Project Start Date', value: viewClient.projectStartDate || 'dd/mm/yyyy' },
-                                    { label: 'Project End Date', value: viewClient.projectEndDate || 'dd/mm/yyyy' },
-                                    { label: 'Total Hours', value: viewClient.totalHours ? `${viewClient.totalHours}hrs` : '0000hrs' },
-                                    { label: 'Resources Involved', value: viewClient.resourceInvolved || '0000' }
-                                ].map((row, idx) => (
-                                    <div key={idx} className="flex items-center text-[15px] font-gantari">
-                                        <span className="text-[#000000] font-semibold w-48 flex-shrink-0">{row.label}</span>
-                                        <span className="mx-4 flex-shrink-0">
-                                            <img src={colonIcon} alt=":" className="w-1.5 h-3.5 object-contain" />
-                                        </span>
-                                        <span className="text-slate-500 flex-1 truncate">{row.value || '-'}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

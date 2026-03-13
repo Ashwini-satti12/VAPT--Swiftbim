@@ -823,61 +823,76 @@ export default function ProjectsTD() {
                         <p className="text-md font-Gantari font-semibold text-[#000000]">
                           Members Involved
                         </p>
-                        <div className="flex -space-x-3">
+                        <div className="flex items-center -space-x-3">
                           {(() => {
-                            // Get members from project
-                            const memberIds = selectedProjectForView.member
-                              ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                            // Get members from project (IDs can be numeric or string from API)
+                            const rawIds = selectedProjectForView.member
+                              ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean)
                               : [];
+                            const memberIds = rawIds.map((m) => {
+                              const n = Number(m);
+                              return Number.isNaN(n) ? m : n;
+                            });
 
-                            // Get employee data for members
+                            // Resolve employee data: match by both number and string ID so we don't miss anyone
                             const projectMembers = memberIds
-                              .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                              .map((id) =>
+                                allEmployees.find(
+                                  (e) =>
+                                    Number(e.id) === Number(id) || String(e.id) === String(id)
+                                )
+                              )
                               .filter(Boolean) as Employee[];
 
                             // Show up to 3 members, then +X for remaining
                             const visibleMembers = projectMembers.slice(0, 3);
                             const remainingCount = Math.max(0, projectMembers.length - 3);
+                            const hasMore = remainingCount > 0;
+                            const hasIdsButNoResolved =
+                              visibleMembers.length === 0 &&
+                              projectMembers.length === 0 &&
+                              memberIds.length > 0;
 
                             // Helper to get profile image URL
                             const getProfileImageUrl = (emp: Employee) => {
                               return getGlobalProfileUrl(emp.id, emp.profile_picture);
                             };
 
+                            const openAllMembersModal = () => {
+                              setAllMembersList(projectMembers);
+                              setShowAllMembersModal(true);
+                            };
+
                             return (
                               <>
                                 {visibleMembers.length > 0 ? (
-                                  visibleMembers.map((emp) => {
-                                    const profileUrl = getProfileImageUrl(emp);
-                                    return (
-                                      <div
-                                        key={emp.id}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
-                                        title={emp.full_name || `Employee ${emp.id}`}
-                                      >
-                                        {profileUrl ? (
-                                          <img
-                                            src={profileUrl}
-                                            alt={emp.full_name || "Member"}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (e.target as HTMLImageElement).src = ProfileIcon;
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })
+                                  visibleMembers.map((emp) => (
+                                    <div
+                                      key={emp.id}
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                      title={emp.full_name || `Employee ${emp.id}`}
+                                    >
+                                      {getProfileImageUrl(emp) ? (
+                                        <img
+                                          src={getProfileImageUrl(emp)}
+                                          alt={emp.full_name || "Member"}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ProfileIcon;
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
                                 ) : (
-                                  // Fallback: show placeholder if no members
                                   [1, 2, 3].map((j) => (
                                     <div
                                       key={j}
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
                                     >
                                       <img
                                         src={ProfileIcon}
@@ -887,14 +902,23 @@ export default function ProjectsTD() {
                                     </div>
                                   ))
                                 )}
-                                {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
+                                {(hasMore || hasIdsButNoResolved) && (
                                   <div
-                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors shrink-0"
-                                    onClick={() => {
-                                      setAllMembersList(projectMembers);
-                                      setShowAllMembersModal(true);
+                                    role="button"
+                                    tabIndex={0}
+                                    className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all shrink-0 select-none"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      openAllMembersModal();
                                     }}
-                                    title={`Click to see all members`}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        openAllMembersModal();
+                                      }
+                                    }}
+                                    title="Click to see all members"
                                   >
                                     +{remainingCount || memberIds.length}
                                   </div>
@@ -2498,10 +2522,10 @@ export default function ProjectsTD() {
 
       {/* Member Profile Modal */}
       {showMemberProfileModal && selectedMember && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
               <button
                 type="button"
                 onClick={() => {
@@ -2531,7 +2555,7 @@ export default function ProjectsTD() {
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
               <div className="flex flex-col items-center">
                 {selectedMember.profile_picture ? (
                   <img

@@ -531,45 +531,77 @@ function TaskCard({
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
-        <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {(
-                            [
-                                {
-                                    id: task.assigned_to,
-                                    name: task.assigned_full_name,
-                                    avatar: task.assigned_profile_picture,
-                                },
-                                {
-                                    id: task.uploaderid,
-                                    name: task.uploader_full_name,
-                                    avatar: task.uploader_profile_picture,
-                                },
-                            ] as { id?: number; name?: string; avatar?: string }[]
-                        )
-                            .filter((p) => p.name)
-                            .slice(0, 3)
-                            .map((p, idx) => {
-                                const src = p.id != null && p.avatar ? getGlobalProfileUrl(p.id, p.avatar) : (p.avatar ? getProfileUrl(p.avatar) : "");
+                        {/* Assigned To avatar */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                                        : task.assigned_profile_picture
+                                            ? getProfileUrl(task.assigned_profile_picture)
+                                            : "";
+                                const initials = task.assigned_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
                                 return (
                                     <div
-                                        key={`${p.name}-${idx}`}
                                         className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={p.name as string}
+                                        title={`Assigned To: ${task.assigned_full_name}`}
                                     >
                                         {src ? (
                                             <img
                                                 src={src}
-                                                alt={p.name}
+                                                alt={task.assigned_full_name}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <span>{String(p.name)[0]}</span>
+                                            <span>{initials}</span>
                                         )}
                                     </div>
                                 );
-                            })}
+                            })()
+                        )}
+                        {/* Assigned By avatar */}
+                        {task.uploader_full_name && (
+                            (() => {
+                                const src =
+                                    task.uploaderid != null && task.uploader_profile_picture
+                                        ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
+                                        : task.uploader_profile_picture
+                                            ? getProfileUrl(task.uploader_profile_picture)
+                                            : "";
+                                const initials = task.uploader_full_name
+                                    .split(" ")
+                                    .filter(Boolean)
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase();
+                                return (
+                                    <div
+                                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={`Assigned By: ${task.uploader_full_name}`}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={task.uploader_full_name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>{initials}</span>
+                                        )}
+                                    </div>
+                                );
+                            })()
+                        )}
                     </div>
                 </div>
                 <Link
@@ -657,6 +689,10 @@ export default function MytaskV() {
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [tasklistOpen, setTasklistOpen] = useState(false);
+    const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+    const [loadingRecentTasks, setLoadingRecentTasks] = useState(false);
+    const tasklistRef = useRef<HTMLDivElement>(null);
 
     const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
     const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
@@ -763,7 +799,29 @@ export default function MytaskV() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
+        const base = taskToFormValues(task);
+        let assignTo = base.assignTo;
+
+        // Prefer the name coming from the API (assigned_full_name)
+        if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
+            assignTo = task.assigned_full_name;
+        } else {
+            // Otherwise, if assignTo looks like an ID, resolve it using vendor_resource_profiles
+            const rawId =
+                (task.assign_to as string | undefined) ??
+                (task.assigned_to as number | undefined) ??
+                base.assignTo;
+            const idNum =
+                typeof rawId === "number" ? rawId : Number(rawId || NaN);
+            if (!Number.isNaN(idNum) && Array.isArray(employees) && employees.length > 0) {
+                const emp = employees.find((e: any) => e.id === idNum);
+                if (emp && (emp.full_name || emp.name)) {
+                    assignTo = emp.full_name || emp.name;
+                }
+            }
+        }
+
+        setAddTaskForm({ ...base, assignTo });
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -875,18 +933,55 @@ export default function MytaskV() {
     }, [openFormDropdown]);
 
     useEffect(() => {
+        if (!tasklistOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (tasklistRef.current && !tasklistRef.current.contains(e.target as Node)) {
+                setTasklistOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [tasklistOpen]);
+
+    const fetchRecentTasks = () => {
+        if (tasklistOpen) {
+            setTasklistOpen(false);
+            return;
+        }
+        setLoadingRecentTasks(true);
+        api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
+            .then((res) => {
+                const tasks = res.data.tasks ?? [];
+                // Get the most recent tasks (already sorted by created_at DESC from API)
+                setRecentTasks(tasks.slice(0, 10));
+                setTasklistOpen(true);
+            })
+            .catch(() => {
+                setRecentTasks([]);
+            })
+            .finally(() => {
+                setLoadingRecentTasks(false);
+            });
+    };
+
+    const selectTaskFromList = (task: Task) => {
+        setAddTaskForm(taskToFormValues(task));
+        setTasklistOpen(false);
+    };
+
+    useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) params.condition = "1";
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
-            api.get<{ employees?: Employee[] }>("/api/employees"),
+            api.get<{ success?: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
         ])
-            .then(([tasksRes, empRes, projRes]) => {
+            .then(([tasksRes, resourcesRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
@@ -1386,12 +1481,47 @@ export default function MytaskV() {
                                                 }`}
                                         />
                                         {editingTaskId === null && (
-                                            <button
-                                                type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                                            >
-                                                Tasklist
-                                            </button>
+                                            <div className="relative" ref={tasklistRef}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        fetchRecentTasks();
+                                                    }}
+                                                    className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                >
+                                                    {loadingRecentTasks ? "Loading..." : "Tasklist"}
+                                                </button>
+                                                {tasklistOpen && (
+                                                    <div className="absolute top-full right-0 mt-1 z-50 w-80 rounded-lg border border-slate-200 bg-white shadow-lg max-h-96 overflow-y-auto">
+                                                        <div className="p-2 border-b border-slate-200 sticky top-0 bg-white">
+                                                            <h4 className="text-sm font-semibold text-slate-800 px-2 py-1">
+                                                                Recent Tasks
+                                                            </h4>
+                                                        </div>
+                                                        <div className="py-1">
+                                                            {recentTasks.length === 0 ? (
+                                                                <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                                                                    No recent tasks found
+                                                                </div>
+                                                            ) : (
+                                                                recentTasks.map((task) => (
+                                                                    <button
+                                                                        key={task.id}
+                                                                        type="button"
+                                                                        onClick={() => selectTaskFromList(task)}
+                                                                        className="w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 transition-colors"
+                                                                    >
+                                                                        <div className="font-medium truncate">
+                                                                            {task.task_name || "Untitled Task"}
+                                                                        </div>
+                                                                    </button>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

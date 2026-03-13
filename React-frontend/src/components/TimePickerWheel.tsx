@@ -62,9 +62,18 @@ export function TimePickerWheel({
 
   return (
     <div className="bg-[#F5F5F5] rounded-lg p-3 border border-slate-200 shadow-lg min-w-[200px]">
+      <style>{`
+        .time-picker-wheel-invisible-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .time-picker-wheel-invisible-scroll::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
       <div className="flex items-stretch gap-0">
         {/* Hours */}
-        <div className="flex-1 flex flex-col max-h-[180px] overflow-y-auto custom-scrollbar py-1">
+        <div className="time-picker-wheel-invisible-scroll flex-1 flex flex-col max-h-[180px] overflow-y-auto py-1">
           {hours.map((h) => (
             <button
               key={h}
@@ -82,7 +91,7 @@ export function TimePickerWheel({
         </div>
         <span className="text-black font-bold self-center px-0.5">:</span>
         {/* Minutes */}
-        <div className="flex-1 flex flex-col max-h-[180px] overflow-y-auto custom-scrollbar py-1">
+        <div className="time-picker-wheel-invisible-scroll flex-1 flex flex-col max-h-[180px] overflow-y-auto py-1">
           {minutes.map((m) => (
             <button
               key={m}
@@ -99,7 +108,7 @@ export function TimePickerWheel({
           ))}
         </div>
         {/* AM/PM */}
-        <div className="flex-1 flex flex-col max-h-[180px] overflow-y-auto custom-scrollbar py-1">
+        <div className="time-picker-wheel-invisible-scroll flex-1 flex flex-col max-h-[180px] overflow-y-auto py-1">
           {ampms.map((a) => (
             <button
               key={a}

@@ -110,25 +110,6 @@ export default function ConsultantBL() {
     const [showInactiveModal, setShowInactiveModal] = useState(false);
     const [inactiveIds, setInactiveIds] = useState<number[]>([]);
     const [inactiveSubmitting, setInactiveSubmitting] = useState(false);
-    const [editId, setEditId] = useState<number | null>(null);
-    const [editForm, setEditForm] = useState({
-        full_name: '',
-        email: '',
-        phone_number: '',
-        user_role: 'Consultant',
-        department: '',
-        address: '',
-        dob: '',
-        password: '',
-        user_type: '',
-        doj: '',
-        salary: '',
-        accountnumber: '',
-        profile_picture: null as File | null,
-        roles: [] as string[],
-        active: 'Active',
-    });
-    const [editSubmitting, setEditSubmitting] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -197,29 +178,12 @@ export default function ConsultantBL() {
     useEffect(() => {
         if (editParam && list.length) {
             const id = parseInt(editParam, 10);
-            const emp = list.find((e) => e.id === id);
-            if (emp) {
-                setEditId(id);
-                setEditForm({
-                    full_name: emp.full_name,
-                    email: emp.email,
-                    phone_number: emp.phone_number || '',
-                    user_role: emp.user_role || 'Consultant',
-                    department: emp.department || '',
-                    address: emp.address || '',
-                    dob: emp.dob || '',
-                    password: '',
-                    user_type: emp.user_type || '',
-                    doj: emp.doj || '',
-                    salary: emp.salary || '',
-                    accountnumber: emp.accountnumber || '',
-                    profile_picture: null,
-                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                    active: emp.active === 'active' ? 'Active' : 'Deactivate',
-                });
+            if (id && Number.isFinite(id) && list.some((e) => e.id === id)) {
+                navigate(`/bl/consultants/${id}/edit`, { replace: true });
+                setSearchParams({});
             }
         }
-    }, [editParam, list]);
+    }, [editParam, list, navigate, setSearchParams]);
 
     const filteredList = list.filter((emp) => {
         if (statusFilter === 'All') return true;
@@ -274,122 +238,6 @@ export default function ConsultantBL() {
         });
     }
 
-    function handleEditSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (!editId) return;
-        setEditSubmitting(true);
-
-        const hasNewFile = !!editForm.profile_picture;
-
-        // If user selected a new profile picture, send multipart/form-data
-        if (hasNewFile) {
-            const formData = new FormData();
-            formData.append('full_name', editForm.full_name);
-            formData.append('email', editForm.email);
-            if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
-            if (editForm.user_role) formData.append('user_role', editForm.user_role);
-            if (editForm.department) formData.append('department', editForm.department);
-            if (editForm.address) formData.append('address', editForm.address);
-            if (editForm.dob) formData.append('dob', editForm.dob);
-            if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
-            if (editForm.doj) formData.append('doj', editForm.doj);
-            if (editForm.salary) formData.append('salary', editForm.salary);
-            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
-            if (editForm.user_type) formData.append('user_type', editForm.user_type);
-            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
-            if (editForm.password) formData.append('password', editForm.password);
-            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
-
-            api
-                .patch<{ success: boolean; profile_picture?: string | null }>(
-                    `/api/employees/${editId}`,
-                    formData,
-                    { headers: { 'Content-Type': 'multipart/form-data' } }
-                )
-                .then(({ data }) => {
-                    const newPic = data.profile_picture || undefined;
-                    setList((prev) =>
-                        prev.map((e) =>
-                            e.id === editId
-                                ? {
-                                      ...e,
-                                      full_name: editForm.full_name,
-                                      email: editForm.email,
-                                      phone_number: editForm.phone_number,
-                                      user_role: editForm.user_role,
-                                      department: editForm.department,
-                                      address: editForm.address,
-                                      dob: editForm.dob,
-                                      doj: editForm.doj,
-                                      salary: editForm.salary,
-                                      accountnumber: editForm.accountnumber,
-                                      user_type: editForm.user_type,
-                                      Allpannel: editForm.roles.join(','),
-                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
-                                      profile_picture: newPic ?? e.profile_picture,
-                                  }
-                                : e
-                        )
-                    );
-                    setEditId(null);
-                    setSearchParams({});
-                })
-                .catch((err) => {
-                    console.error('Update failed:', err);
-                })
-                .finally(() => setEditSubmitting(false));
-        } else {
-            // No new file: send JSON payload
-            const payload = {
-                full_name: editForm.full_name,
-                email: editForm.email,
-                phone_number: editForm.phone_number || undefined,
-                user_role: editForm.user_role,
-                department: editForm.department || undefined,
-                address: editForm.address || undefined,
-                dob: editForm.dob || undefined,
-                doj: editForm.doj || undefined,
-                active: editForm.active === 'Active' ? 'active' : 'inactive',
-                salary: editForm.salary || undefined,
-                accountnumber: editForm.accountnumber || undefined,
-                user_type: editForm.user_type || undefined,
-                Allpannel: editForm.roles.join(','),
-                ...(editForm.password ? { password: editForm.password } : {})
-            };
-
-            api.patch(`/api/employees/${editId}`, payload)
-                .then(() => {
-                    setList((prev) => prev.map((e) => {
-                        if (e.id === editId) {
-                            return {
-                                ...e,
-                                full_name: editForm.full_name,
-                                email: editForm.email,
-                                phone_number: editForm.phone_number,
-                                user_role: editForm.user_role,
-                                department: editForm.department,
-                                address: editForm.address,
-                                dob: editForm.dob,
-                                doj: editForm.doj,
-                                salary: editForm.salary,
-                                accountnumber: editForm.accountnumber,
-                                user_type: editForm.user_type,
-                                Allpannel: payload.Allpannel,
-                                active: editForm.active === 'Active' ? 'active' : 'inactive',
-                            };
-                        }
-                        return e;
-                    }));
-                    setEditId(null);
-                    setSearchParams({});
-                })
-                .catch((err) => {
-                    console.error('Update failed:', err);
-                })
-                .finally(() => setEditSubmitting(false));
-        }
-    }
-
     if (loading) {
         return (
             <div className="flex justify-center py-12">
@@ -400,7 +248,7 @@ export default function ConsultantBL() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
-            <div className="sticky top-0 z-50 bg-white shadow-sm px-2 pb-6">
+            <div className="sticky top-0 z-50 bg-white px-2 pb-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pt-4">
                     <h2 className="text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight">Consultant</h2>
                     <div className="flex flex-wrap items-center gap-6">
@@ -458,36 +306,6 @@ export default function ConsultantBL() {
                     >
                         <FiGrid className="w-6 h-6" />
                     </button>
-
-                    {/* Show: dropdown */}
-                    <div className="relative">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F2] rounded-[5px]">
-                            <span className="text-[14px] font-Gantari text-[#6B6B6B]">Show:</span>
-                            <div className="relative">
-                                <select
-                                    value={itemsPerPage === 0 ? 'All' : String(itemsPerPage)}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val === 'All') {
-                                            setItemsPerPage(0);
-                                            setCurrentPage(1);
-                                        } else {
-                                            setItemsPerPage(parseInt(val, 10));
-                                            setCurrentPage(1);
-                                        }
-                                    }}
-                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
-                                >
-                                    {/* As requested: 12, 20, ... All */}
-                                    <option value="12">10</option>
-                                    <option value="20">20</option>
-                                    <option value="30">30</option>
-                                    <option value="All">All</option>
-                                </select>
-                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Status filter dropdown */}
                     <div className="relative">
@@ -603,8 +421,6 @@ export default function ConsultantBL() {
                                             </button>
                                         </div>
 
-                                        <hr className="border-slate-200" />
-
                                         {/* Actions Grid */}
                                         <div className="grid grid-cols-2 gap-4">
                                             <button
@@ -617,26 +433,7 @@ export default function ConsultantBL() {
                                             {canAdd && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        setEditId(emp.id);
-                                                        setEditForm({
-                                                            full_name: emp.full_name,
-                                                            email: emp.email,
-                                                            phone_number: emp.phone_number || '',
-                                                            user_role: emp.user_role || 'Consultant',
-                                                            department: emp.department || '',
-                                                            address: emp.address || '',
-                                                            dob: emp.dob || '',
-                                                            password: '',
-                                                            user_type: emp.user_type || '',
-                                                            doj: emp.doj || '',
-                                                            salary: emp.salary || '',
-                                                            accountnumber: emp.accountnumber || '',
-                                                            profile_picture: null,
-                                                            roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                                                            active: emp.active === 'active' ? 'Active' : 'Deactivate',
-                                                        });
-                                                    }}
+                                                    onClick={() => navigate(`/bl/consultants/${emp.id}/edit`)}
                                                     className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
                                                 >
                                                     <img src={editIcon} alt="Edit" className="text-xl" /> Edit
@@ -930,269 +727,24 @@ export default function ConsultantBL() {
                 document.body
             )}
 
-            {editId !== null && createPortal(
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-                    <div className="bg-white rounded-[15px] max-w-[1174px] w-full px-[30px] py-[30px] max-h-[92vh] overflow-y-auto relative shadow-2xl custom-scrollbar">
-                        {/* Header Section */}
-                        <div className="flex items-center justify-center mb-6 relative group">
-                            <button
-                                type="button"
-                                onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-                            >
-                                <FiX className="w-5 h-5 font-bold" />
-                            </button>
-                            <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
-                        </div>
-
-                        <form onSubmit={handleEditSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-
-                                {/* Column 1 */}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter employee name"
-                                            value={editForm.full_name}
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Phone Number"
-                                            value={editForm.phone_number}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
-                                        <input
-                                            type="password"
-                                            placeholder="******** (password hidden)"
-                                            value=""
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                        />
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.user_role}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, user_role: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Role</option>
-                                                {roles.map((r) => (
-                                                    <option key={r} value={r}>{r}</option>
-                                                ))}
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.department}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Department</option>
-                                                {departments.map((dept) => (
-                                                    <option key={dept} value={dept}>{dept}</option>
-                                                ))}
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Account Number"
-                                            value={editForm.accountnumber}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Column 2 */}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.dob}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email</label>
-                                        <input
-                                            type="email"
-                                            placeholder="Enter Email"
-                                            value={editForm.email}
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.user_type}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, user_type: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Type</option>
-                                                <option value="Trainee">Trainee</option>
-                                                <option value="Consultant">Consultant</option>
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.doj}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
-                                        <input
-                                            type="text"
-                                            placeholder="0000$"
-                                            value={editForm.salary}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                                        <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                                            <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                                                {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                                            </div>
-                                            <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer hover:bg-slate-300 transition-colors shrink-0 font-Gantari">
-                                                Browse File
-                                                <input
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept=".jpg,.jpeg"
-                                                    onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Full Width Field */}
-                            <div className="mt-2">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
-                                <textarea
-                                    rows={4}
-                                    placeholder="Enter Address"
-                                    value={editForm.address}
-                                    onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
-                                />
-                            </div>
-
-                            {/* Panel Access Section */}
-                            <div className="mt-4 bg-[#F9F9F9] p-8 rounded-[10px] border border-[#E0E0E0]">
-                                <h4 className="text-[18px] font-bold text-[#000000] mb-8 font-Gantari">Select Panel Access Control</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-6">
-                                    {PANEL_ROLES.map((role, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center gap-4 cursor-pointer group"
-                                            onClick={() => {
-                                                const currentRoles = [...editForm.roles];
-                                                if (currentRoles.includes(role)) {
-                                                    setEditForm({ ...editForm, roles: currentRoles.filter(r => r !== role) });
-                                                } else {
-                                                    setEditForm({ ...editForm, roles: [...currentRoles, role] });
-                                                }
-                                            }}
-                                        >
-                                            <div className={`w-[24px] h-[24px] rounded-[5px] border-2 flex items-center justify-center transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#D1D1D1] group-hover:border-[#3d3399]'}`}>
-                                                {editForm.roles.includes(role) && (
-                                                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <span className="text-[16px] font-medium text-[#353535] group-hover:text-[#000000] font-Gantari">{role}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Form Actions */}
-                            <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
-                                <button
-                                    type="button"
-                                    onClick={() => { setEditId(null); setSearchParams({}); }}
-                                    className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
-                                >
-                                    Discard
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={editSubmitting}
-                                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
-                                >
-                                    {editSubmitting ? 'Submitting...' : 'Submit'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>,
-                document.body
-            )}
             {showDetailsModal && selectedEmployee && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-                    <div className="bg-white rounded-[15px] max-w-[750px] w-full px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+                    <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
                         {/* Header */}
-                        <div className="flex items-center justify-center relative">
+                        <div className="flex items-center justify-center relative shrink-0">
                             <button
                                 type="button"
                                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
-                            <h3 className="text-[20px] font-semibold text-[#020202]">View Details</h3>
+                            <h3 className="text-[24px] font-semibold text-[#000000] font-Gantari">View Details</h3>
                         </div>
 
                         {/* Profile Section */}
-                        <div className="flex items-center gap-6 px-4">
-                            <div className="w-[100px] h-[100px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 flex items-center justify-center">
+                        <div className="flex items-center gap-4 px-4">
+                            <div className="w-[38px] h-[38px] rounded-full overflow-hidden bg-[#F4F4F4] shrink-0 flex items-center justify-center">
                                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                                     <img
                                         src={`/uploads/employee/${selectedEmployee.profile_picture.replace(/\\/g, '/')}`}
@@ -1204,19 +756,19 @@ export default function ConsultantBL() {
                                         }}
                                     />
                                 ) : (
-                                    <span className="text-[32px] font-bold text-[#000000]">
+                                    <span className="text-sm font-bold text-[#000000]">
                                         {selectedEmployee.full_name?.charAt(0) || 'U'}
                                     </span>
                                 )}
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <h4 className="text-[24px] font-bold text-[#000000]">{selectedEmployee.full_name}</h4>
-                                <p className="text-[16px] font-semibold text-[#353535]">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+                            <div className="flex flex-col gap-0.5">
+                                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{selectedEmployee.full_name}</h4>
+                                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
                             </div>
                         </div>
 
                         {/* Details Table */}
-                        <div className="px-8 space-y-4 pt-2">
+                        <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
                             {[
                                 { label: 'Date of Birth', value: selectedEmployee.dob },
                                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1229,10 +781,13 @@ export default function ConsultantBL() {
                                 { label: 'Account Number', value: selectedEmployee.accountnumber },
                                 { label: 'Salary', value: selectedEmployee.salary },
                             ].map((item, idx) => (
-                                <div key={idx} className="grid grid-cols-[140px_20px_1fr] text-[15px] gap-15">
-                                    <span className="font-semibold font-Gantari text-[#00000] ">{item.label}</span>
-                                    <span className="text-[#353535]  font-Gantari text-center ">:</span>
-                                    <span className="text-[#353535] font-Gantari font-medium break-words">{item.value}</span>
+                                <div
+                                    key={idx}
+                                    className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[14px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none"
+                                >
+                                    <span className="text-[14px] font-Gantari text-[#020202]">{item.label}</span>
+                                    <span className="hidden sm:inline text-[14px] font-Gantari text-[#020202] text-center">:</span>
+                                    <span className="text-[14px] text-[#616161] font-Gantari break-words">{item.value || 'N/A'}</span>
                                 </div>
                             ))}
                         </div>

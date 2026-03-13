@@ -25,6 +25,12 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     Approval?: string;
+    modules_name?: string;
+    category?: string;
+    Actual_start_time?: string;
+    perferstart_time?: string;
+    perferend_time?: string;
+    end_time?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -105,6 +111,7 @@ export default function MytaskViewBC() {
     const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
     const [submittingWork, setSubmittingWork] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [loading, setLoading] = useState(!task);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +171,31 @@ export default function MytaskViewBC() {
     }, [selectedImagePreview]);
 
     useEffect(() => {
+        if (!task) {
+            const taskId = location.pathname.split("/").pop();
+            if (taskId && !isNaN(Number(taskId))) {
+                setLoading(true);
+                api.get(`/api/tasks/${taskId}`)
+                    .then(res => {
+                        if (res.data.task) {
+                            // The API usually returns the task directly or inside a wrapper
+                            // If res.data.task is available, used that, otherwise check res.data
+                            const fetched = res.data.task || res.data;
+                            // Update status display once data is in
+                            setStatusDisplay(normalizeStatus(fetched.status, fetched.Approval));
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching task:", err);
+                    })
+                    .finally(() => setLoading(false));
+            } else {
+                setLoading(false);
+            }
+        }
+    }, [task, location.pathname]);
+
+    useEffect(() => {
         if (!task) return;
         const next = normalizeStatus(task.status, task.Approval);
         setStatusDisplay(next);
@@ -180,10 +212,18 @@ export default function MytaskViewBC() {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [statusDropdownOpen]);
 
+    if (loading) {
+        return (
+            <div className="bg-white min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
+
     if (!task) {
         return (
             <div className="bg-white min-h-screen p-6">
-                <p className="text-slate-600 mb-4">No task selected.</p>
+                <p className="text-slate-600 mb-4">No task selected or task not found.</p>
                 <Link
                     to="/bc/mytasks"
                     className="text-[#3d3399] hover:underline font-medium"
@@ -195,7 +235,6 @@ export default function MytaskViewBC() {
     }
 
     const style = STATUS_STYLE[statusDisplay];
-    const taskRecord = task as unknown as Record<string, unknown>;
 
     return (
         <div className="bg-white min-h-screen">
@@ -282,14 +321,14 @@ export default function MytaskViewBC() {
                             </span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {String(taskRecord.modules_name ?? task.module ?? "—")}
+                                {String(task.modules_name || task.module || "—")}
                             </span>
                         </div>
                         <div className="flex gap-2 items-center">
                             <span className="text-black shrink-0 w-28">Category</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {String(task.type ?? taskRecord.category ?? "—")}
+                                {String(task.category || task.type || "—")}
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -307,32 +346,12 @@ export default function MytaskViewBC() {
                             </span>
                         </div>
                         <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">
-                                Actual Start Date
-                            </span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.start_date
-                                    ? formatDateDDMMYYYY(task.start_date)
-                                    : "dd/mm/yyyy"}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Start Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {task.start_date
-                                    ? formatDateDDMMYYYY(task.start_date)
+                                {task.start_date || task.Actual_start_time
+                                    ? formatDateDDMMYYYY(task.start_date || task.Actual_start_time)
                                     : "-NIL-"}
-                            </span>
-                        </div>
-                        <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">Actual Due Date</span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.due_date
-                                    ? formatDateDDMMYYYY(task.due_date)
-                                    : "dd/mm/yyyy"}
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -348,8 +367,8 @@ export default function MytaskViewBC() {
                             </span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {task.start_time || task.due_time
-                                    ? `${formatTimeAMPM(task.start_time)} - ${formatTimeAMPM(task.due_time)}`
+                                {task.perferstart_time || task.perferend_time || task.start_time || task.due_time || task.end_time
+                                    ? `${formatTimeAMPM(task.perferstart_time || task.start_time)} - ${formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)}`
                                     : "hh:mm AM/PM - hh:mm AM/PM"}
                             </span>
                         </div>

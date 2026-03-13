@@ -536,42 +536,33 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {(
-                            [
-                                {
-                                    id: task.assigned_to,
-                                    name: task.assigned_full_name,
-                                    avatar: task.assigned_profile_picture,
-                                },
-                                {
-                                    id: task.vendor_id,
-                                    name: task.uploader_full_name,
-                                    avatar: task.uploader_profile_picture,
-                                },
-                            ] as { id?: number; name?: string; avatar?: string }[]
-                        )
-                            .filter((p) => p.name)
-                            .slice(0, 3)
-                            .map((p, idx) => {
-                                const src = p.id != null && p.avatar ? getGlobalProfileUrl(p.id, p.avatar) : (p.avatar ? getProfileUrl(p.avatar) : "");
+                        {/* Show only the assignee's avatar/name for this task */}
+                        {task.assigned_full_name && (
+                            (() => {
+                                const src =
+                                    task.assigned_to != null && task.assigned_profile_picture
+                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                                        : task.assigned_profile_picture
+                                            ? getProfileUrl(task.assigned_profile_picture)
+                                            : "";
                                 return (
                                     <div
-                                        key={`${p.name}-${idx}`}
                                         className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={p.name as string}
+                                        title={task.assigned_full_name}
                                     >
                                         {src ? (
                                             <img
                                                 src={src}
-                                                alt={p.name}
+                                                alt={task.assigned_full_name}
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (
-                                            <span>{String(p.name)[0]}</span>
+                                            <span>{task.assigned_full_name[0]}</span>
                                         )}
                                     </div>
                                 );
-                            })}
+                            })()
+                        )}
                     </div>
                 </div>
                 <Link
@@ -644,6 +635,10 @@ export default function TeamtaskV() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
+    const [tasklistOpen, setTasklistOpen] = useState(false);
+    const [recentTasks, setRecentTasks] = useState<Task[]>([]);
+    const [loadingRecentTasks, setLoadingRecentTasks] = useState(false);
+    const tasklistRef = useRef<HTMLDivElement>(null);
     const merged = [
         ...localTasks,
         ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
@@ -869,18 +864,54 @@ export default function TeamtaskV() {
     }, [openFormDropdown]);
 
     useEffect(() => {
+        if (!tasklistOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (tasklistRef.current && !tasklistRef.current.contains(e.target as Node)) {
+                setTasklistOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [tasklistOpen]);
+
+    const fetchRecentTasks = () => {
+        if (tasklistOpen) {
+            setTasklistOpen(false);
+            return;
+        }
+        setLoadingRecentTasks(true);
+        api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
+            .then((res) => {
+                const tasks = res.data.tasks ?? [];
+                setRecentTasks(tasks.slice(0, 10));
+                setTasklistOpen(true);
+            })
+            .catch(() => {
+                setRecentTasks([]);
+            })
+            .finally(() => {
+                setLoadingRecentTasks(false);
+            });
+    };
+
+    const selectTaskFromList = (task: Task) => {
+        setAddTaskForm(taskToFormValues(task));
+        setTasklistOpen(false);
+    };
+
+    useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
         if (isTeam) params.condition = "1";
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
-            api.get<{ employees?: Employee[] }>("/api/employees"),
+            api.get<{ success?: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles"),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, empRes, projRes]) => {
+            .then(([tasksRes, resourcesRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
@@ -1411,12 +1442,47 @@ export default function TeamtaskV() {
                                                 }`}
                                         />
                                         {editingTaskId === null && (
-                                            <button
-                                                type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                                            >
-                                                Tasklist
-                                            </button>
+                                            <div className="relative" ref={tasklistRef}>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        fetchRecentTasks();
+                                                    }}
+                                                    className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                >
+                                                    {loadingRecentTasks ? "Loading..." : "Tasklist"}
+                                                </button>
+                                                {tasklistOpen && (
+                                                    <div className="absolute top-full right-0 mt-1 z-50 w-80 rounded-lg border border-slate-200 bg-white shadow-lg max-h-96 overflow-y-auto">
+                                                        <div className="p-2 border-b border-slate-200 sticky top-0 bg-white">
+                                                            <h4 className="text-sm font-semibold text-slate-800 px-2 py-1">
+                                                                Recent Tasks
+                                                            </h4>
+                                                        </div>
+                                                        <div className="py-1">
+                                                            {recentTasks.length === 0 ? (
+                                                                <div className="px-4 py-3 text-sm text-slate-500 text-center">
+                                                                    No recent tasks found
+                                                                </div>
+                                                            ) : (
+                                                                recentTasks.map((task) => (
+                                                                    <button
+                                                                        key={task.id}
+                                                                        type="button"
+                                                                        onClick={() => selectTaskFromList(task)}
+                                                                        className="w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 transition-colors"
+                                                                    >
+                                                                        <div className="font-medium truncate">
+                                                                            {task.task_name || "Untitled Task"}
+                                                                        </div>
+                                                                    </button>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>

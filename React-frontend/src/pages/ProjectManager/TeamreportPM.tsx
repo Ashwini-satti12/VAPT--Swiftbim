@@ -276,7 +276,7 @@ export default function TimesheetPM() {
     <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
       {/* Header Section */}
       <div className="flex items-center justify-between flex-shrink-0 px-2">
-        <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+        <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">Time-Sheet</h2>
         {/* Download Button - moved above filters */}
         <button
           onClick={handleDownload}
@@ -523,73 +523,6 @@ export default function TimesheetPM() {
           </div>
         )}
       </div>
-
-      {/* Pagination - same design as TeamReportTD */}
-      {!loading && totalInRange > 0 && (
-        <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
-          <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-            <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-            <button
-              type="button"
-              onClick={goPrevWindow}
-              disabled={!canPrevWindow}
-              className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-              Prev
-            </button>
-            {visiblePageRanges.map((pr, i) => {
-              const pageNum = effectiveWindowStart + i;
-              const isActive = pageNum === activePage;
-              return (
-                <button
-                  key={pr.label}
-                  type="button"
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                >
-                  {pr.label}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={goNextWindow}
-              disabled={!canNextWindow}
-              className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-            </button>
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        .smooth-scroll {
-          scroll-behavior: smooth;
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #8c8c8c #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f3f3f3;
-          border-radius: 20px;
-          margin: 10px 0;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #8c8c8c;
-          border-radius: 20px;
-          border: 2px solid #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #666666;
-        }
-      `}</style>
     </div>
   );
 }

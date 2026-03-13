@@ -36,7 +36,7 @@ export default function PartnerTD() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
                 <div>
-                    <h2 className="text-2xl font-bold text-slate-800 font-gantari">Partners</h2>
+                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Partners</h2>
                     {/* <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p> */}
                 </div>
             </div>

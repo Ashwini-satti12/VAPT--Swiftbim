@@ -27,6 +27,11 @@ interface Task {
     Approval?: string;
 }
 
+interface Employee {
+    id: number;
+    full_name?: string;
+}
+
 function formatDateDDMMYYYY(d?: string): string {
     if (!d) return "dd/mm/yyyy";
     const date = new Date(d);
@@ -110,6 +115,7 @@ export default function MytaskViewV() {
     const [submittingWork, setSubmittingWork] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [vendorResourceProfiles, setVendorResourceProfiles] = useState<Employee[]>([]);
 
     const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -149,6 +155,17 @@ export default function MytaskViewV() {
             setStatusDropdownOpen(false);
         }
     };
+
+    // Fetch vendor resource profiles so we can resolve assigned_to IDs to names
+    useEffect(() => {
+        api.get<{ success: boolean; resources?: Employee[] }>("/api/vendors/vendor-resource-profiles")
+            .then(({ data }) => {
+                setVendorResourceProfiles(data.resources ?? []);
+            })
+            .catch(() => {
+                setVendorResourceProfiles([]);
+            });
+    }, []);
 
     const handleImageSubmit = async () => {
         if (!task || !selectedImage || submittingWork) return;
@@ -209,6 +226,23 @@ export default function MytaskViewV() {
 
     const style = STATUS_STYLE[statusDisplay];
     const taskRecord = task as unknown as Record<string, unknown>;
+
+    const resolveAssignedName = (): string => {
+        if (!task) return "—";
+        if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
+            return task.assigned_full_name;
+        }
+        const rawId =
+            task.assign_to ??
+            (taskRecord.assigned_to as string | number | undefined) ??
+            "";
+        const idNum = typeof rawId === "number" ? rawId : Number(rawId);
+        if (!Number.isNaN(idNum) && vendorResourceProfiles.length > 0) {
+            const emp = vendorResourceProfiles.find((e) => e.id === idNum);
+            if (emp?.full_name) return emp.full_name;
+        }
+        return typeof rawId === "string" && rawId.trim() !== "" ? String(rawId) : "—";
+    };
 
     return (
         <div className="bg-white min-h-screen">
@@ -318,7 +352,7 @@ export default function MytaskViewV() {
                             <span className="text-black shrink-0 w-28">Assigned To</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
-                                {task.assigned_full_name ?? task.assign_to ?? "—"}
+                                {resolveAssignedName()}
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -332,7 +366,7 @@ export default function MytaskViewV() {
                                     : "dd/mm/yyyy"}
                             </span>
                         </div>
-                        <div className="flex gap-2">
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Start Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
@@ -340,7 +374,7 @@ export default function MytaskViewV() {
                                     ? formatDateDDMMYYYY(task.start_date)
                                     : "-NIL-"}
                             </span>
-                        </div>
+                        </div> */}
                         <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Actual Due Date</span>
                             <span className="text-black shrink-0">:</span>
@@ -350,14 +384,14 @@ export default function MytaskViewV() {
                                     : "dd/mm/yyyy"}
                             </span>
                         </div>
-                        <div className="flex gap-2">
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Due Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
                                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
                             </span>
-                        </div>
-                        <div className="flex gap-2">
+                        </div> */}
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
                                 Preferred Time
                             </span>
@@ -367,7 +401,7 @@ export default function MytaskViewV() {
                                     ? `${formatTimeAMPM(task.start_time)} - ${formatTimeAMPM(task.due_time)}`
                                     : "hh:mm AM/PM - hh:mm AM/PM"}
                             </span>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
