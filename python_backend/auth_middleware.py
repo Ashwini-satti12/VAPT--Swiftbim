@@ -204,7 +204,7 @@ def require_not_roles(*blocked_roles):
 def project_app_required(f):
     """Login + require Employee or All panel (matches PHP project/index.php and sidebar Allpannel check)."""
     # Project APIs are used across multiple internal panels (management + employee).
-    # Access is still governed by Allpannel; this just aligns the allow-list with panels present in the app.
+    # Vendor users have Allpannel "Vendor" and need access to profile, dropdowns, etc. on vendor pages.
     return login_required(
         require_panels(
             "Employee",
@@ -217,5 +217,6 @@ def project_app_required(f):
             "Sales",
             "BIM Lead",
             "BIM Coordinator",
+            "Vendor",
         )(f)
     )
