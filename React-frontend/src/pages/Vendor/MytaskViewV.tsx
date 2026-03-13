@@ -332,7 +332,7 @@ export default function MytaskViewV() {
                                     : "dd/mm/yyyy"}
                             </span>
                         </div>
-                        <div className="flex gap-2">
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Start Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
@@ -340,7 +340,7 @@ export default function MytaskViewV() {
                                     ? formatDateDDMMYYYY(task.start_date)
                                     : "-NIL-"}
                             </span>
-                        </div>
+                        </div> */}
                         <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Actual Due Date</span>
                             <span className="text-black shrink-0">:</span>
@@ -350,14 +350,14 @@ export default function MytaskViewV() {
                                     : "dd/mm/yyyy"}
                             </span>
                         </div>
-                        <div className="flex gap-2">
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 w-28">Due Date</span>
                             <span className="text-black shrink-0">:</span>
                             <span className="text-[#616161]">
                                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
                             </span>
-                        </div>
-                        <div className="flex gap-2">
+                        </div> */}
+                        {/* <div className="flex gap-2">
                             <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
                                 Preferred Time
                             </span>
@@ -367,7 +367,7 @@ export default function MytaskViewV() {
                                     ? `${formatTimeAMPM(task.start_time)} - ${formatTimeAMPM(task.due_time)}`
                                     : "hh:mm AM/PM - hh:mm AM/PM"}
                             </span>
-                        </div>
+                        </div> */}
                     </div>
 
                     <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">

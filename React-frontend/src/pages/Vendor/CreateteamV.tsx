@@ -1,13 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
-
-// Get API base URL for image URLs (so uploaded profile pictures load correctly)
-const getApiBaseUrl = () => {
-    return import.meta.env.VITE_API_URL || '';
-};
 
 interface Employee {
     id: number;
@@ -126,18 +122,7 @@ function TeamCard({
                     {memberIds.slice(0, 5).map((eid) => {
                         const emp = getEmp(eid);
                         const name = emp?.full_name || 'N/A';
-                        const avatar = emp?.profile_picture;
-
-                        let avatarUrl = '';
-                        if (avatar && avatar.trim() !== '') {
-                            let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
-                            if (!normalized.includes('/')) {
-                                normalized = `employee/${normalized}`;
-                            } else if (normalized.startsWith('profiles/')) {
-                                normalized = `employee/${normalized.replace('profiles/', '')}`;
-                            }
-                            avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
-                        }
+                        const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
 
                         return (
                             <div
@@ -208,11 +193,11 @@ export default function CreateteamV() {
     useEffect(() => {
         Promise.all([
             api.get<{ teams?: Team[] }>('/api/vendors/vendor-teams'),
-            api.get<{ employees?: Employee[] }>('/api/employees')
+            api.get<{ success?: boolean; resources?: Employee[] }>('/api/vendors/vendor-resource-profiles'),
         ])
-            .then(([teamsRes, empsRes]) => {
+            .then(([teamsRes, resourcesRes]) => {
                 setTeams(teamsRes.data.teams ?? []);
-                setEmployees(empsRes.data.employees ?? []);
+                setEmployees(resourcesRes.data.resources ?? []);
             })
             .catch(() => {
                 setTeams([]);
@@ -584,17 +569,7 @@ export default function CreateteamV() {
                                         {(() => {
                                             const emp = getEmp(selectedTeam.leader);
                                             const name = emp?.full_name || 'N/A';
-                                            const avatar = emp?.profile_picture;
-                                            let avatarUrl = '';
-                                            if (avatar && avatar.trim() !== '') {
-                                                let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
-                                                if (!normalized.includes('/')) {
-                                                    normalized = `employee/${normalized}`;
-                                                } else if (normalized.startsWith('profiles/')) {
-                                                    normalized = `employee/${normalized.replace('profiles/', '')}`;
-                                                }
-                                                avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
-                                            }
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
                                             return (
                                                 <>
                                                     <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center font-bold overflow-hidden">
@@ -617,17 +592,7 @@ export default function CreateteamV() {
                                         {selectedTeam.employee.split(',').filter(Boolean).map(eid => {
                                             const emp = getEmp(eid);
                                             const name = emp?.full_name || 'N/A';
-                                            const avatar = emp?.profile_picture;
-                                            let avatarUrl = '';
-                                            if (avatar && avatar.trim() !== '') {
-                                                let normalized = avatar.replace(/\\/g, '/').trim().replace(/^\d+\s+/, '').replace(/^\/+/, '');
-                                                if (!normalized.includes('/')) {
-                                                    normalized = `employee/${normalized}`;
-                                                } else if (normalized.startsWith('profiles/')) {
-                                                    normalized = `employee/${normalized.replace('profiles/', '')}`;
-                                                }
-                                                avatarUrl = `${getApiBaseUrl()}/uploads/${normalized}`;
-                                            }
+                                            const avatarUrl = emp ? getGlobalProfileUrl(emp.id, emp.profile_picture) : '';
                                             return (
                                                 <div key={eid} className="flex items-center gap-2.5 p-2.5 bg-[#F8FAFC] rounded-lg border border-[#F1F5F9]">
                                                     <div className="w-7 h-7 rounded-lg bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 overflow-hidden">
