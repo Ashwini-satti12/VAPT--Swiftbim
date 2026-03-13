@@ -31,7 +31,7 @@ export default function Login() {
     setSubmitting(true);
     const result = await login(email, password);
     setSubmitting(false);
-    if (result.success) navigate('/', { replace: true });
+    if (result.success) navigate('/dashboard', { replace: true });
     else setError(result.message || 'Login failed');
   }
 
