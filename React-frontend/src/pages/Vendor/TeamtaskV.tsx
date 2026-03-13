@@ -8,6 +8,7 @@ import {
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
@@ -246,6 +247,8 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    assigned_to?: number;
+    vendor_id?: number;
     assigned_profile_picture?: string;
     uploader_profile_picture?: string;
     Approval?: string;
@@ -536,34 +539,39 @@ function TaskCard({
                         {(
                             [
                                 {
+                                    id: task.assigned_to,
                                     name: task.assigned_full_name,
                                     avatar: task.assigned_profile_picture,
                                 },
                                 {
+                                    id: task.vendor_id,
                                     name: task.uploader_full_name,
                                     avatar: task.uploader_profile_picture,
                                 },
-                            ] as { name?: string; avatar?: string }[]
+                            ] as { id?: number; name?: string; avatar?: string }[]
                         )
                             .filter((p) => p.name)
                             .slice(0, 3)
-                            .map((p, idx) => (
-                                <div
-                                    key={`${p.name}-${idx}`}
-                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                    title={p.name as string}
-                                >
-                                    {p.avatar ? (
-                                        <img
-                                            src={getProfileUrl(p.avatar)}
-                                            alt={p.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <span>{String(p.name)[0]}</span>
-                                    )}
-                                </div>
-                            ))}
+                            .map((p, idx) => {
+                                const src = p.id != null && p.avatar ? getGlobalProfileUrl(p.id, p.avatar) : (p.avatar ? getProfileUrl(p.avatar) : "");
+                                return (
+                                    <div
+                                        key={`${p.name}-${idx}`}
+                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                        title={p.name as string}
+                                    >
+                                        {src ? (
+                                            <img
+                                                src={src}
+                                                alt={p.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span>{String(p.name)[0]}</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                     </div>
                 </div>
                 <Link

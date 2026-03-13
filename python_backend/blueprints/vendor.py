@@ -2593,8 +2593,10 @@ def list_vendor_projects():
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling
         FROM vendor_projects vp
-        LEFT JOIN projects p ON p.project_name = vp.project_name
-        LEFT JOIN clientinformation ci ON ci.id = p.client_id
+        LEFT JOIN projects p
+            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+        LEFT JOIN clientinformation ci
+            ON ci.id COLLATE utf8mb4_general_ci = p.client_id COLLATE utf8mb4_general_ci
         WHERE vp.vendor_id = %s
         ORDER BY vp.id DESC
         """,
@@ -2933,11 +2935,10 @@ def delete_vendor_team(team_id):
 def list_all_vendor_resource_profiles():
     """
     GET /api/vendors/vendor-resource-profiles
-    Returns all resource profiles from vendor_resource_profiles table.
+    Returns all resource profiles from vendor_resource_profiles table (new_swiftbim).
     Used for Team Members dropdown in vendor projects.
     """
-    conn = get_db()
-    cur = conn.cursor(dictionary=True)
+    cur = vendor_cursor()
     try:
         cur.execute(
             """

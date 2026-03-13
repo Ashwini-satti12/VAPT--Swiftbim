@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
