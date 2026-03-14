@@ -14,6 +14,7 @@ import EditClient from './pages/Client/EditClient';
 import ViewClientDetails from './pages/Client/ViewClientDetails';
 import ProjectsPM from './pages/ProjectManager/ProjectsPM';
 import MyTasksPM from './pages/ProjectManager/MyTasksPM';
+import AddTaskPM from './pages/ProjectManager/AddTaskPM';
 import MytaskViewPM from './pages/ProjectManager/MytaskViewPM';
 import CreateteamPM from './pages/ProjectManager/CreateteamPM';
 import TeamtaskPM from './pages/ProjectManager/TeamtaskPM';
@@ -172,6 +173,7 @@ function App() {
             <Route path="projects" element={<ProjectsPM />} />
             <Route path="projects/:id" element={<ProjectDetailPM />} />
             <Route path="tasks" element={<MyTasksPM />} />
+            <Route path="tasks/add" element={<AddTaskPM />} />
             <Route path="tasks/taskview" element={<MytaskViewPM />} />
             <Route path="tasks/team" element={<MyTasksPM />} />
             <Route path="tasks/:id" element={<TaskDetailPM />} />
