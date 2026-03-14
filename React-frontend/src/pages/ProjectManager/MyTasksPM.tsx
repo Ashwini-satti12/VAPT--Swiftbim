@@ -8,6 +8,8 @@ import {
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
@@ -20,6 +22,11 @@ type DropdownId = "employee" | "projects" | "show" | "period" | null;
 interface Employee {
   id: number;
   full_name: string;
+  employee_id?: string;
+  email?: string;
+  phone?: string;
+  user_role?: string;
+  profile_picture?: string;
 }
 
 interface Project {
@@ -192,19 +199,37 @@ function normalizeStatus(
 function TaskCard({
   task,
   status,
+  employees,
   onViewTask,
   onEditTask,
   onDeleteTask,
+  onOpenMemberProfile,
+  onOpenInvolvedList,
 }: {
   task: Task;
   status: "todo" | "in_progress" | "completed" | "approved" | "rejected";
+  employees: Employee[];
   onViewTask?: (task: Task) => void;
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
+  onOpenMemberProfile?: (emp: Employee) => void;
+  onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
   const progress = task.progress ?? 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Resolve involved persons from task assignee
+  const involvedPersons: Employee[] = (() => {
+    const name = task.assigned_full_name || task.assign_to;
+    if (!name || !name.trim()) return [];
+    const emp = employees.find(
+      (e) => e.full_name === name.trim() || String(e.id) === String(name)
+    );
+    return emp ? [emp] : [];
+  })();
+  const visibleInvolved = involvedPersons.slice(0, 3);
+  const remainingCount = Math.max(0, involvedPersons.length - 3);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -327,16 +352,75 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
-          <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                title="Assignee"
-              />
-            ))}
+          <div className="flex -space-x-2" onClick={(e) => e.stopPropagation()}>
+            {visibleInvolved.length > 0 ? (
+              <>
+                {visibleInvolved.map((emp) => {
+                  const url = emp.profile_picture
+                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                    : null;
+                  return (
+                    <div
+                      key={emp.id}
+                      role="button"
+                      tabIndex={0}
+                      className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                      title={emp.full_name}
+                      onClick={() => onOpenMemberProfile?.(emp)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") onOpenMemberProfile?.(emp);
+                      }}
+                    >
+                      {url ? (
+                        <img
+                          src={url}
+                          alt={emp.full_name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = ProfileIcon;
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-[10px] font-bold">
+                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {[1, 2, 3].slice(visibleInvolved.length).map((i) => (
+                  <div
+                    key={`ph-${i}`}
+                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
+                    aria-hidden
+                  />
+                ))}
+              </>
+            ) : (
+              [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
+                  aria-hidden
+                />
+              ))
+            )}
           </div>
-          <span className="text-xs text-slate-500">+4</span>
+          <div
+            role="button"
+            tabIndex={0}
+            className="text-xs text-slate-500 cursor-pointer hover:text-slate-700 select-none"
+            title="Involved persons"
+            onClick={() => onOpenInvolvedList?.(involvedPersons)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpenInvolvedList?.(involvedPersons);
+              }
+            }}
+          >
+            +{remainingCount > 0 ? remainingCount : (involvedPersons.length > 0 ? involvedPersons.length : "0")}
+          </div>
         </div>
         <Link
           to={`/tasks/${task.id}`}
@@ -396,6 +480,10 @@ export default function MyTasksPM() {
   const [selectedShow, setSelectedShow] = useState<string | null>("Show");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  const [showInvolvedModal, setShowInvolvedModal] = useState(false);
+  const [involvedList, setInvolvedList] = useState<Employee[]>([]);
   const navigate = useNavigate();
 
   const openEditTask = (task: Task) => {
@@ -693,9 +781,12 @@ export default function MyTasksPM() {
               key={task.id}
               task={task}
               status={normalizeStatus(task.status, task.Approval)}
+              employees={employees}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
+              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+              onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
             />
           ))}
         </div>
@@ -720,9 +811,12 @@ export default function MyTasksPM() {
               key={task.id}
               task={task}
               status={normalizeStatus(task.status, task.Approval)}
+              employees={employees}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
+              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+              onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
             />
           ))}
         </div>
@@ -747,9 +841,12 @@ export default function MyTasksPM() {
               key={task.id}
               task={task}
               status={normalizeStatus(task.status, task.Approval)}
+              employees={employees}
               onViewTask={openViewTask}
               onEditTask={openEditTask}
               onDeleteTask={openDeleteTask}
+              onOpenMemberProfile={(emp) => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+              onOpenInvolvedList={(list) => { setInvolvedList(list); setShowInvolvedModal(true); }}
             />
           ))}
         </div>
@@ -806,6 +903,143 @@ export default function MyTasksPM() {
               >
                 Yes, Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Profile Modal */}
+      {showMemberProfileModal && selectedMember && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">Member Profile</h3>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+              <div className="flex flex-col items-center">
+                {selectedMember.profile_picture ? (
+                  <img
+                    src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                    alt={selectedMember.full_name || "Member"}
+                    className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                    onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                  />
+                ) : (
+                  <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
+                    <span className="text-slate-600 font-bold text-3xl">{(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}</span>
+                  </div>
+                )}
+                <div className="w-full space-y-4">
+                  <div>
+                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
+                    <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || "Not Available"}</p>
+                  </div>
+                  {selectedMember.employee_id && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.employee_id}</p>
+                    </div>
+                  )}
+                  {selectedMember.email && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.email}</p>
+                    </div>
+                  )}
+                  {selectedMember.phone && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.phone}</p>
+                    </div>
+                  )}
+                  {selectedMember.user_role && (
+                    <div>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
+                      <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.user_role}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Involved Persons Modal */}
+      {showInvolvedModal && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[80vh] flex flex-col">
+            <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setShowInvolvedModal(false); setInvolvedList([]); }}
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">Involved Persons ({involvedList.length})</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-10 py-6 custom-scrollbar">
+              {involvedList.length > 0 ? (
+                <div className="space-y-3">
+                  {involvedList.map((m) => {
+                    const profileUrl = m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : null;
+                    return (
+                      <div
+                        key={m.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setShowInvolvedModal(false);
+                          setSelectedMember(m);
+                          setShowMemberProfileModal(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setShowInvolvedModal(false);
+                            setSelectedMember(m);
+                            setShowMemberProfileModal(true);
+                          }
+                        }}
+                      >
+                        {profileUrl ? (
+                          <img
+                            src={profileUrl}
+                            alt={m.full_name || "Member"}
+                            className="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                            <span className="text-slate-600 font-bold text-lg">{(m.full_name || `E${m.id}`).charAt(0).toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">{m.full_name || `Employee ${m.id}`}</p>
+                          {m.user_role && <p className="text-[14px] font-Gantari text-[#666666] truncate">{m.user_role}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-[14px] font-Gantari text-[#666666]">No involved persons.</p>
+              )}
             </div>
           </div>
         </div>

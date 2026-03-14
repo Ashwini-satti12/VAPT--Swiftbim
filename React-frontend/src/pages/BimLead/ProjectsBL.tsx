@@ -178,7 +178,8 @@ export default function ProjectsBL() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
-
+  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
 
   // Select Options States
   const [projectManagers, setProjectManagers] = useState<string[]>([]);
@@ -625,8 +626,12 @@ export default function ProjectsBL() {
                               return (
                                 <div
                                   key={emp.id}
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                  role="button"
+                                  tabIndex={0}
+                                  className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                   title={emp.full_name || `Employee ${emp.id}`}
+                                  onClick={() => { setSelectedMember(emp); setShowMemberProfileModal(true); }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
                                 >
                                   {profileUrl ? (
                                     <img
@@ -649,7 +654,43 @@ export default function ProjectsBL() {
                             [1, 2, 3].map((j) => (
                               <div
                                 key={j}
-                                className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0"
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                title="Click to see involved members"
+                                onClick={() => {
+                                  const fallback =
+                                    memberIds.length > 0
+                                      ? memberIds.map((id) => ({
+                                          id,
+                                          full_name: `#${id}`,
+                                          employee_id: "",
+                                          email: "",
+                                          phone: "",
+                                          user_role: "",
+                                        }))
+                                      : [];
+                                  setAllMembersList(projectMembers.length > 0 ? projectMembers : (fallback as unknown as Employee[]));
+                                  setShowAllMembersModal(true);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    const fallback =
+                                      memberIds.length > 0
+                                        ? memberIds.map((id) => ({
+                                            id,
+                                            full_name: `#${id}`,
+                                            employee_id: "",
+                                            email: "",
+                                            phone: "",
+                                            user_role: "",
+                                          }))
+                                        : [];
+                                    setAllMembersList(projectMembers.length > 0 ? projectMembers : (fallback as unknown as Employee[]));
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
                               >
                                 <img
                                   src={ProfileIcon}
@@ -661,8 +702,10 @@ export default function ProjectsBL() {
                           )}
                           {(remainingCount > 0 || (visibleMembers.length === 0 && projectMembers.length === 0 && memberIds.length > 0)) && (
                             <div
-                              className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 transition-colors"
-                              title={`Click to see all members`}
+                              role="button"
+                              tabIndex={0}
+                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                              title="Click to see all members"
                               onClick={() => {
                                 const fallback =
                                   memberIds.length > 0
@@ -677,6 +720,24 @@ export default function ProjectsBL() {
                                     : [];
                                 setAllMembersList(projectMembers.length > 0 ? projectMembers : (fallback as unknown as Employee[]));
                                 setShowAllMembersModal(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  const fallback =
+                                    memberIds.length > 0
+                                      ? memberIds.map((id) => ({
+                                        id,
+                                        full_name: `#${id}`,
+                                        employee_id: "",
+                                        email: "",
+                                        phone: "",
+                                        user_role: "",
+                                      }))
+                                      : [];
+                                  setAllMembersList(projectMembers.length > 0 ? projectMembers : (fallback as unknown as Employee[]));
+                                  setShowAllMembersModal(true);
+                                }
                               }}
                             >
                               +{remainingCount || memberIds.length}
@@ -767,9 +828,76 @@ export default function ProjectsBL() {
               </div>
             </div>
 
+            {/* Member Profile Modal */}
+            {showMemberProfileModal && selectedMember && (
+              <div className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen overflow-y-auto p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col my-auto shrink-0">
+                  <div className="relative flex items-center justify-center px-10 py-6 border-b border-slate-100 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
+                      className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                      title="Close"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                    <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">Member Profile</h3>
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-10 py-8 custom-scrollbar">
+                    <div className="flex flex-col items-center">
+                      {selectedMember.profile_picture ? (
+                        <img
+                          src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                          alt={selectedMember.full_name || 'Member'}
+                          className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
+                          onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
+                        />
+                      ) : (
+                        <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
+                          <span className="text-slate-600 font-bold text-3xl">{(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}</span>
+                        </div>
+                      )}
+                      <div className="w-full space-y-4">
+                        <div>
+                          <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
+                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.full_name || 'Not Available'}</p>
+                        </div>
+                        {selectedMember.employee_id && (
+                          <div>
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
+                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.employee_id}</p>
+                          </div>
+                        )}
+                        {selectedMember.email && (
+                          <div>
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
+                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.email}</p>
+                          </div>
+                        )}
+                        {selectedMember.phone && (
+                          <div>
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
+                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.phone}</p>
+                          </div>
+                        )}
+                        {selectedMember.user_role && (
+                          <div>
+                            <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
+                            <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">{selectedMember.user_role}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* All Members Modal */}
             {showAllMembersModal && (
-              <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+              <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                 <div className="bg-white rounded-[2rem] shadow-2xl max-w-3xl w-full p-6 md:p-10 relative">
                   <button
                     type="button"
@@ -787,7 +915,25 @@ export default function ProjectsBL() {
 
                   <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
                     {allMembersList.map((m) => (
-                      <div key={m.id} className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100">
+                      <div
+                        key={m.id}
+                        role="button"
+                        tabIndex={0}
+                        className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedMember(m);
+                          setShowAllMembersModal(false);
+                          setShowMemberProfileModal(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedMember(m);
+                            setShowAllMembersModal(false);
+                            setShowMemberProfileModal(true);
+                          }
+                        }}
+                      >
                         <img
                           src={m.profile_picture ? getGlobalProfileUrl(m.id, m.profile_picture) : ProfileIcon}
                           onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }}
