@@ -28,81 +28,49 @@ function formatTimeForDisplay(value: string): string {
   return `${h12}:${m} ${ampm}`;
 }
 
+/* Unused - using TimePickerWheel
 function TimePicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
   const [hourStr, minStr] = value ? value.split(":") : ["", ""];
   let hour12 = hourStr ? parseInt(hourStr, 10) : "";
   let ampm = "AM";
   if (typeof hour12 === "number") {
-    if (hour12 >= 12) {
-      if (hour12 > 12) {
-        hour12 -= 12;
-      }
-      ampm = "PM";
-    } else if (hour12 === 0) {
-      hour12 = 12;
-    }
+    if (hour12 >= 12) { if (hour12 > 12) hour12 -= 12; ampm = "PM"; }
+    else if (hour12 === 0) hour12 = 12;
   }
-
   const h = hour12 ? String(hour12).padStart(2, "0") : "";
   const m = minStr || "";
-
   const handleTimeChange = (newH: string, newM: string, newAmPm: string) => {
-    if (!newH && !newM) {
-      onChange("");
-      return;
-    }
-    const safeH = newH || "12";
-    const safeM = newM || "00";
+    if (!newH && !newM) { onChange(""); return; }
+    const safeH = newH || "12", safeM = newM || "00";
     let h24 = parseInt(safeH, 10);
     if (newAmPm === "PM" && h24 < 12) h24 += 12;
     if (newAmPm === "AM" && h24 === 12) h24 = 0;
-
     onChange(`${String(h24).padStart(2, "0")}:${safeM.padStart(2, "0")}`);
   };
-
   return (
     <div className="flex items-center w-full rounded-sm bg-[#F2F3F4] px-3 py-2 border border-transparent focus-within:border-[#AEACAC52] focus-within:ring-1 focus-within:ring-[#AEACAC52] transition-all">
-      <input
-        type="text"
-        maxLength={2}
-        value={h}
-        placeholder="hh"
-        onChange={(e) => {
-          const val = e.target.value.replace(/\D/g, "");
-          let num = parseInt(val, 10);
-          if (num > 12) num = 12;
-          handleTimeChange(val ? String(num) : "", m, ampm);
-        }}
-        className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none"
-      />
+      <input type="text" maxLength={2} value={h} placeholder="hh" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 12) num = 12; handleTimeChange(val ? String(num) : "", m, ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
       <span className="text-[#353535] font-bold mx-1">:</span>
-      <input
-        type="text"
-        maxLength={2}
-        value={m}
-        placeholder="mm"
-        onChange={(e) => {
-          const val = e.target.value.replace(/\D/g, "");
-          let num = parseInt(val, 10);
-          if (num > 59) num = 59;
-          handleTimeChange(h, val ? String(num) : "", ampm);
-        }}
-        className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none"
-      />
-      <select
-        value={ampm}
-        onChange={(e) => handleTimeChange(h, m, e.target.value)}
-        className="ml-auto bg-transparent text-[14px] text-[#353535] focus:outline-none cursor-pointer font-medium"
-      >
+      <input type="text" maxLength={2} value={m} placeholder="mm" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 59) num = 59; handleTimeChange(h, val ? String(num) : "", ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
+      <select value={ampm} onChange={(e) => handleTimeChange(h, m, e.target.value)} className="ml-auto bg-transparent text-[14px] text-[#353535] focus:outline-none cursor-pointer font-medium">
         <option value="AM">AM</option>
         <option value="PM">PM</option>
       </select>
     </div>
   );
 }
+*/
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId = "project" | "module" | "taskName" | "type" | "assignTo" | "type_start_time" | "type_end_time" | null;
+type FormDropdownId =
+  | "project"
+  | "module"
+  | "taskName"
+  | "type"
+  | "assignTo"
+  | "type_start_time"
+  | "type_end_time"
+  | null;
 
 interface FormDropdownProps {
   label: string;
@@ -135,10 +103,11 @@ function FormDropdown({
     : label;
 
   const filteredOptions = searchable
-    ? options.filter(opt =>
-      opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      opt.value === "" // always keep placeholder
-    )
+    ? options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          opt.value === "", // always keep placeholder
+      )
     : options;
 
   return (
@@ -247,16 +216,19 @@ function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-      if (!q) return options;
-      const first = options[0];
-      const isPlaceholderOption = (o: string) =>
-        o === first && (first === "Select Employee" || first === "Select Projects");
-      return options.filter((opt) => {
-        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-        const name = String(opt ?? "").trim().toLowerCase();
-        return name.includes(q);
-      });
-    })()
+        if (!q) return options;
+        const first = options[0];
+        const isPlaceholderOption = (o: string) =>
+          o === first &&
+          (first === "Select Employee" || first === "Select Projects");
+        return options.filter((opt) => {
+          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+          const name = String(opt ?? "")
+            .trim()
+            .toLowerCase();
+          return name.includes(q);
+        });
+      })()
     : options;
   const listMaxHeight = `${maxVisibleItems * 40}px`;
 
@@ -274,14 +246,16 @@ function TaskDropdown({
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+        <span
+          className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}
+        >
           {label.toLowerCase() === "show" && selected && selected !== label ? (
             <>
               <span className="text-sm text-[#353535]">Show:</span>{" "}
               <span>{selected}</span>
             </>
           ) : (
-            selected ?? label
+            (selected ?? label)
           )}
         </span>
         <img
@@ -354,7 +328,7 @@ function AttachmentPreviewItem({
 }) {
   const isImage = file.type.startsWith("image/");
   const [previewUrl] = useState<string | null>(() =>
-    isImage ? URL.createObjectURL(file) : null
+    isImage ? URL.createObjectURL(file) : null,
   );
   useEffect(() => {
     return () => {
@@ -376,14 +350,28 @@ function AttachmentPreviewItem({
           />
         ) : (
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-500 cursor-pointer">
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <span className="truncate block" title={file.name}>{file.name}</span>
-          <span className="text-xs text-[#8B8B8B]">{formatFileSize(file.size)}</span>
+          <span className="truncate block" title={file.name}>
+            {file.name}
+          </span>
+          <span className="text-xs text-[#8B8B8B]">
+            {formatFileSize(file.size)}
+          </span>
         </div>
       </button>
       <button
@@ -392,8 +380,18 @@ function AttachmentPreviewItem({
         className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
         aria-label={`Remove ${file.name}`}
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        <svg
+          className="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </li>
@@ -480,21 +478,21 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
 }
 
-function formatDateRange(start?: string, end?: string): string {
-  if (!start && !end) return "—";
-  const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-  const fmtShort = (s: string) => {
-    const d = new Date(s);
-    return `${d.getDate()} ${months[d.getMonth()]}`;
-  };
-  const fmtFull = (s: string) => {
-    const d = new Date(s);
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  };
-  if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-  if (start) return fmtFull(start);
-  return end ? fmtFull(end) : "—";
-}
+// function formatDateRange(start?: string, end?: string): string {
+//   if (!start && !end) return "—";
+//   const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+//   const fmtShort = (s: string) => {
+//     const d = new Date(s);
+//     return `${d.getDate()} ${months[d.getMonth()]}`;
+//   };
+//   const fmtFull = (s: string) => {
+//     const d = new Date(s);
+//     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+//   };
+//   if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
+//   if (start) return fmtFull(start);
+//   return end ? fmtFull(end) : "—";
+// }
 
 function normalizeStatus(
   s: string | undefined,
@@ -510,6 +508,7 @@ function normalizeStatus(
   return "todo";
 }
 
+/* Unused
 const STATUS_STYLE: Record<
   "todo" | "in_progress" | "completed",
   { label: string; dot: string; bg: string }
@@ -530,6 +529,7 @@ const STATUS_STYLE: Record<
     bg: "bg-emerald-100 text-emerald-800",
   },
 };
+*/
 
 function TaskCard({
   task,
@@ -657,9 +657,7 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-slate-600">Progress</span>
-        <span className="text-xs font-medium text-slate-700">
-          {progress}%
-        </span>
+        <span className="text-xs font-medium text-slate-700">{progress}%</span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
         <div
@@ -693,7 +691,16 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+const SHOW_OPTIONS = [
+  "Show",
+  "1-50",
+  "51-100",
+  "101-150",
+  "151-200",
+  "201-250",
+  "251-300",
+  "All",
+];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -706,7 +713,9 @@ export default function TeamtaskPM() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const isTeam =
-    searchParams.get("condition") === "1" || pathname.includes("teamtask") || pathname.endsWith("/team");
+    searchParams.get("condition") === "1" ||
+    pathname.includes("teamtask") ||
+    pathname.endsWith("/team");
   const statusFilter =
     searchParams.get("status") || searchParams.get("taskstatus");
   const STORAGE_KEY = "pm_teamTask_localTasks";
@@ -755,14 +764,20 @@ export default function TeamtaskPM() {
   const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
   const allTasks = allTasksBase.filter((t: any) => {
     // Employee filter
-    if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
+    if (
+      selectedEmployee &&
+      !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)
+    ) {
       if (t.assigned_full_name !== selectedEmployee) return false;
     }
     // Project filter
-    if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
+    if (
+      selectedProject &&
+      !["Select Projects", "Show All", "Projects"].includes(selectedProject)
+    ) {
       if (t.project_name !== selectedProject) return false;
     }
-    // Period filter 
+    // Period filter
     if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
       const taskDate = new Date(t.created_at || t.start_date || "");
       const now = new Date();
@@ -857,16 +872,22 @@ export default function TeamtaskPM() {
 
   const confirmDeleteTask = () => {
     if (deleteTaskId !== null) {
-      api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-        api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-          .then(res => setList(res.data.tasks ?? []));
-        setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setDeletedIds((prev) =>
-          prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-        );
-      }).finally(() => {
-        setDeleteTaskId(null);
-      });
+      api
+        .delete(`/api/tasks/${deleteTaskId}`)
+        .then(() => {
+          api
+            .get<{
+              tasks?: Task[];
+            }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+            .then((res) => setList(res.data.tasks ?? []));
+          setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+          setDeletedIds((prev) =>
+            prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+          );
+        })
+        .finally(() => {
+          setDeleteTaskId(null);
+        });
     }
   };
 
@@ -905,7 +926,8 @@ export default function TeamtaskPM() {
   const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
   const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
   const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
-  const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
+  const [attachmentPreviewFile, setAttachmentPreviewFile] =
+    useState<File | null>(null);
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
   const employeeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -954,19 +976,19 @@ export default function TeamtaskPM() {
               : openFormDropdown === "type"
                 ? [formTypeTriggerRef, formTypeMenuRef]
                 : openFormDropdown === "type_start_time"
-                    ? [formStartTimeTriggerRef, formStartTimeMenuRef]
-                    : openFormDropdown === "type_end_time"
-                        ? [formEndTimeTriggerRef, formEndTimeMenuRef]
-                        : [formAssignTriggerRef, formAssignMenuRef];
-            const inside = refs.some((r) => r.current && r.current.contains(target));
-            if (!inside) setOpenFormDropdown(null);
-          };
-          document.addEventListener("click", handleClickOutside);
-          return () => document.removeEventListener("click", handleClickOutside);
-        }, [openFormDropdown]);
+                  ? [formStartTimeTriggerRef, formStartTimeMenuRef]
+                  : openFormDropdown === "type_end_time"
+                    ? [formEndTimeTriggerRef, formEndTimeMenuRef]
+                    : [formAssignTriggerRef, formAssignMenuRef];
+      const inside = refs.some((r) => r.current && r.current.contains(target));
+      if (!inside) setOpenFormDropdown(null);
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [openFormDropdown]);
 
-        useEffect(() => {
-          const params: Record<string, string> = {};
+  useEffect(() => {
+    const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
     if (isTeam) params.condition = "1";
 
@@ -991,11 +1013,17 @@ export default function TeamtaskPM() {
       setModules([]);
       return;
     }
-    const selectedProj = projects.find(p => p.project_name === addTaskForm.projectName);
+    const selectedProj = projects.find(
+      (p) => p.project_name === addTaskForm.projectName,
+    );
     if (selectedProj) {
-      api.post<{ success: boolean; modules: { label: string }[] }>("/api/projects/filters/modules", { projectId: selectedProj.id })
+      api
+        .post<{ success: boolean; modules: { label: string }[] }>(
+          "/api/projects/filters/modules",
+          { projectId: selectedProj.id },
+        )
         .then(({ data }) => {
-          setModules(data.modules.map(m => m.label));
+          setModules(data.modules.map((m) => m.label));
         })
         .catch(() => setModules([]));
     }
@@ -1003,18 +1031,26 @@ export default function TeamtaskPM() {
 
   const employeeOptions = [
     "Select Employee",
-    ...employees.map(e => e.full_name)
+    ...employees.map((e) => e.full_name),
   ];
   const projectOptions = [
     "Select Projects",
-    ...projects.map(p => p.project_name)
+    ...projects.map((p) => p.project_name),
   ];
-  const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
-  const taskTypes = ["Task", "Bug", "Feature"];
-  const modalAssignOptions = employees.map(e => ({ value: e.full_name, label: e.full_name }));
+  const modalProjectOptions = projects.map((p) => ({
+    value: p.project_name,
+    label: p.project_name,
+  }));
+  // taskTypes unused: ["Task", "Bug", "Feature"]
+  const modalAssignOptions = employees.map((e) => ({
+    value: e.full_name,
+    label: e.full_name,
+  }));
 
   const counts = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
+    todo: allTasks.filter(
+      (t) => normalizeStatus(t.status, t.Approval) === "todo",
+    ).length,
     in_progress: allTasks.filter(
       (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ).length,
@@ -1024,7 +1060,9 @@ export default function TeamtaskPM() {
   };
 
   const tasksByStatus = {
-    todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
+    todo: allTasks.filter(
+      (t) => normalizeStatus(t.status, t.Approval) === "todo",
+    ),
     in_progress: allTasks.filter(
       (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
     ),
@@ -1168,7 +1206,9 @@ export default function TeamtaskPM() {
             className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
           >
             <span className="text-xl font-bold text-[#0D1829]">To Do</span>
-            <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+            <span className="text-xl font-bold text-[#0D1829]">
+              ({counts.todo})
+            </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group1} alt="Group1" className="w-8 h-8" />
             </div>
@@ -1182,8 +1222,12 @@ export default function TeamtaskPM() {
             }
             className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
           >
-            <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
-            <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+            <span className="text-xl font-bold text-[#0D1829]">
+              In Progress
+            </span>
+            <span className="text-xl font-bold text-[#0D1829]">
+              ({counts.in_progress})
+            </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group2} alt="Group2" className="w-8 h-8" />
             </div>
@@ -1198,7 +1242,9 @@ export default function TeamtaskPM() {
             className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
           >
             <span className="text-xl font-bold text-[#0D1829]">Completed</span>
-            <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+            <span className="text-xl font-bold text-[#0D1829]">
+              ({counts.completed})
+            </span>
             <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
               <img src={Group3} alt="Group3" className="w-8 h-8" />
             </div>
@@ -1209,75 +1255,75 @@ export default function TeamtaskPM() {
       {/* Task columns scrollable area - match MytaskTD */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-          }}
-        >
-          {displayedTasksByStatus.todo.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="todo"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-          }}
-        >
-          {displayedTasksByStatus.in_progress.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="in_progress"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-          }}
-        >
-          {displayedTasksByStatus.completed.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="completed"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
-        </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+            }}
+          >
+            {displayedTasksByStatus.todo.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="todo"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+            }}
+          >
+            {displayedTasksByStatus.in_progress.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="in_progress"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+            }}
+          >
+            {displayedTasksByStatus.completed.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="completed"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1376,52 +1422,65 @@ export default function TeamtaskPM() {
                   : null;
 
                 const payload = {
-                  projectid: projects.find(p => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+                  projectid:
+                    projects.find(
+                      (p) => p.project_name === addTaskForm.projectName,
+                    )?.id || addTaskForm.projectName,
                   taskName: addTaskForm.taskName,
                   category: addTaskForm.type,
                   startdate: addTaskForm.actualStartDate,
                   dueDate: addTaskForm.actualEndDate,
                   startTime: addTaskForm.startTime,
                   dueTime: addTaskForm.dueTime,
-                  assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                  assignedTo:
+                    employees.find((e) => e.full_name === addTaskForm.assignTo)
+                      ?.id || addTaskForm.assignTo,
                   description: addTaskForm.description,
                   checklist: addTaskForm.checklist,
-                  modules: addTaskForm.module
+                  modules: addTaskForm.module,
                 };
 
                 const handleFiles = (taskId: number | string) => {
                   if (attachmentFiles.length > 0) {
                     const formData = new FormData();
-                    attachmentFiles.forEach(f => formData.append("image", f));
+                    attachmentFiles.forEach((f) => formData.append("image", f));
                     api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                      headers: { 'Content-Type': 'multipart/form-data' }
+                      headers: { "Content-Type": "multipart/form-data" },
                     });
                   }
                 };
 
                 if (isEditing && existing) {
-                  api.patch(`/api/tasks/${existing.id}`, {
-                    task_name: payload.taskName,
-                    assigned_to: payload.assignedTo,
-                    due_date: payload.dueDate,
-                    category: payload.category,
-                    description: payload.description,
-                    checklist: payload.checklist,
-                    modules_name: payload.modules,
-                    Actual_start_time: payload.startdate,
-                    start_time: payload.startTime,
-                    due_time: payload.dueTime
-                  }).then(() => {
-                    handleFiles(existing.id);
-                    api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                      .then(res => setList(res.data.tasks ?? []));
-                  });
+                  api
+                    .patch(`/api/tasks/${existing.id}`, {
+                      task_name: payload.taskName,
+                      assigned_to: payload.assignedTo,
+                      due_date: payload.dueDate,
+                      category: payload.category,
+                      description: payload.description,
+                      checklist: payload.checklist,
+                      modules_name: payload.modules,
+                      Actual_start_time: payload.startdate,
+                      start_time: payload.startTime,
+                      due_time: payload.dueTime,
+                    })
+                    .then(() => {
+                      handleFiles(existing.id);
+                      api
+                        .get<{
+                          tasks?: Task[];
+                        }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                        .then((res) => setList(res.data.tasks ?? []));
+                    });
                 } else {
-                  api.post('/api/tasks', payload).then(res => {
+                  api.post("/api/tasks", payload).then((res) => {
                     if (res.data.success && res.data.task_id) {
                       handleFiles(res.data.task_id);
-                      api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                        .then(r => setList(r.data.tasks ?? []));
+                      api
+                        .get<{
+                          tasks?: Task[];
+                        }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                        .then((r) => setList(r.data.tasks ?? []));
                     }
                   });
                 }
@@ -1463,7 +1522,7 @@ export default function TeamtaskPM() {
                     label="Select Module"
                     options={[
                       { value: "", label: "Select Module" },
-                      ...modules.map(m => ({ value: m, label: m }))
+                      ...modules.map((m) => ({ value: m, label: m })),
                     ]}
                     value={addTaskForm.module}
                     onChange={(v) =>
@@ -1490,9 +1549,16 @@ export default function TeamtaskPM() {
                     label="Select Task"
                     options={[
                       { value: "", label: "Select Task" },
-                      ...(projects.find(p => p.project_name === addTaskForm.projectName)?.tasks
-                        ? projects.find(p => p.project_name === addTaskForm.projectName)!.tasks!.split(',').map(t => ({ value: t.trim(), label: t.trim() }))
-                        : [])
+                      ...(projects.find(
+                        (p) => p.project_name === addTaskForm.projectName,
+                      )?.tasks
+                        ? projects
+                            .find(
+                              (p) => p.project_name === addTaskForm.projectName,
+                            )!
+                            .tasks!.split(",")
+                            .map((t) => ({ value: t.trim(), label: t.trim() }))
+                        : []),
                     ]}
                     value={addTaskForm.taskName}
                     onChange={(v) =>
@@ -1589,16 +1655,39 @@ export default function TeamtaskPM() {
                       }
                       className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
                     >
-                      <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#616161]"}>
+                      <span
+                        className={
+                          addTaskForm.startTime
+                            ? "text-[#353535]"
+                            : "text-[#616161]"
+                        }
+                      >
                         {formatTimeForDisplay(addTaskForm.startTime)}
                       </span>
-                      <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      <svg
+                        className="ml-2 h-4 w-4 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
                     </button>
                     {openFormDropdown === "type_start_time" && (
-                      <div ref={formStartTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
+                      <div
+                        ref={formStartTimeMenuRef}
+                        className="absolute top-full left-0 z-20 mt-1"
+                      >
                         <TimePickerWheel
                           value={addTaskForm.startTime}
-                          onChange={(v) => setAddTaskForm((f) => ({ ...f, startTime: v }))}
+                          onChange={(v) =>
+                            setAddTaskForm((f) => ({ ...f, startTime: v }))
+                          }
                           onClose={() => setOpenFormDropdown(null)}
                         />
                       </div>
@@ -1618,16 +1707,39 @@ export default function TeamtaskPM() {
                       }
                       className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
                     >
-                      <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#616161]"}>
+                      <span
+                        className={
+                          addTaskForm.dueTime
+                            ? "text-[#353535]"
+                            : "text-[#616161]"
+                        }
+                      >
                         {formatTimeForDisplay(addTaskForm.dueTime)}
                       </span>
-                      <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      <svg
+                        className="ml-2 h-4 w-4 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
                     </button>
                     {openFormDropdown === "type_end_time" && (
-                      <div ref={formEndTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
+                      <div
+                        ref={formEndTimeMenuRef}
+                        className="absolute top-full left-0 z-20 mt-1"
+                      >
                         <TimePickerWheel
                           value={addTaskForm.dueTime}
-                          onChange={(v) => setAddTaskForm((f) => ({ ...f, dueTime: v }))}
+                          onChange={(v) =>
+                            setAddTaskForm((f) => ({ ...f, dueTime: v }))
+                          }
                           onClose={() => setOpenFormDropdown(null)}
                         />
                       </div>
