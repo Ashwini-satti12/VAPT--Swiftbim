@@ -1,67 +1,79 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import api from '../../lib/api';
-import loginBackground from '../../assets/login_bg.png';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import api from "../../lib/api";
+import loginBackground from "../../assets/login_bg.png";
 
-type Step = 'login' | 'forgot' | 'otp' | 'reset';
+type Step = "login" | "forgot" | "otp" | "reset";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [password1, setPassword1] = useState('');
-  const [password2, setPassword2] = useState('');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [password1, setPassword1] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPassword1, setShowPassword1] = useState(false);
   const [showPassword2, setShowPassword2] = useState(false);
-  const [step, setStep] = useState<Step>('login');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [step, setStep] = useState<Step>("login");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [resetToken, setResetToken] = useState('');
+  const [resetToken, setResetToken] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
   // const location = useLocation();
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
     const result = await login(email, password);
     setSubmitting(false);
-    if (result.success) navigate('/dashboard', { replace: true });
-    else setError(result.message || 'Login failed');
+    if (result.success) navigate("/dashboard", { replace: true });
+    else setError(result.message || "Login failed");
   }
 
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
     try {
-      const { data } = await api.post<{ success: boolean; message?: string }>('/api/auth/forgot-password', { email });
+      const { data } = await api.post<{ success: boolean; message?: string }>(
+        "/api/auth/forgot-password",
+        { email },
+      );
       if (data.success) {
-        setStep('otp');
-        setMessage('Enter the OTP sent to your email.');
-      } else setError(data.message || 'Failed');
+        setStep("otp");
+        setMessage("Enter the OTP sent to your email.");
+      } else setError(data.message || "Failed");
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send OTP');
+      setError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to send OTP",
+      );
     }
     setSubmitting(false);
   }
 
   async function handleOtp(e: React.FormEvent) {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
     try {
-      const { data } = await api.post<{ success: boolean; reset_token?: string }>('/api/auth/verify-otp', { email, otp });
+      const { data } = await api.post<{
+        success: boolean;
+        reset_token?: string;
+      }>("/api/auth/verify-otp", { email, otp });
       if (data.success && data.reset_token) {
         setResetToken(data.reset_token);
-        setStep('reset');
-        setMessage('Set your new password.');
-      } else setError('Invalid OTP.');
+        setStep("reset");
+        setMessage("Set your new password.");
+      } else setError("Invalid OTP.");
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Invalid OTP');
+      setError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Invalid OTP",
+      );
     }
     setSubmitting(false);
   }
@@ -69,25 +81,31 @@ export default function Login() {
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     if (password1 !== password2) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
-    setError('');
+    setError("");
     setSubmitting(true);
     try {
-      const { data } = await api.post<{ success: boolean; message?: string }>('/api/auth/reset-password', {
-        reset_token: resetToken,
-        password1,
-        password2,
-      });
+      const { data } = await api.post<{ success: boolean; message?: string }>(
+        "/api/auth/reset-password",
+        {
+          reset_token: resetToken,
+          password1,
+          password2,
+        },
+      );
       if (data.success) {
-        setMessage('Password updated. You can now sign in.');
-        setStep('login');
-        setPassword1('');
-        setPassword2('');
-      } else setError(data.message || 'Failed');
+        setMessage("Password updated. You can now sign in.");
+        setStep("login");
+        setPassword1("");
+        setPassword2("");
+      } else setError(data.message || "Failed");
     } catch (err: unknown) {
-      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to reset');
+      setError(
+        (err as { response?: { data?: { message?: string } } })?.response?.data
+          ?.message || "Failed to reset",
+      );
     }
     setSubmitting(false);
   }
@@ -97,17 +115,19 @@ export default function Login() {
       className="min-h-screen w-full flex items-center justify-end bg-[#f5f5f7] px-4 md:pr-12 lg:pr-20"
       style={{
         backgroundImage: `url(${loginBackground})`,
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: '100% 100%',
-        backgroundPosition: 'right center',
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "100% 100%",
+        backgroundPosition: "right center",
       }}
     >
       <div className="w-full max-w-sm shrink-0">
         <div className="bg-white/95 rounded-2xl shadow-[0_18px_40px_rgba(15,23,42,0.18)] overflow-hidden px-10 py-10">
           <div className="mb-8">
-            {step === 'forgot' ? (
+            {step === "forgot" ? (
               <>
-                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">Forgot Password?</h2>
+                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">
+                  Forgot Password?
+                </h2>
                 <p className="text-slate-600 text-sm md:text-base text-center leading-relaxed">
                   Don&apos;t worry! It Happens.
                 </p>
@@ -115,21 +135,26 @@ export default function Login() {
                   Please enter the email address linked with your account.
                 </p>
               </>
-            ) : step === 'otp' ? (
+            ) : step === "otp" ? (
               <>
-                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">OTP Verification</h2>
+                <h2 className="text-[28px] md:text-[32px] font-bold text-slate-900 mb-3 text-center">
+                  OTP Verification
+                </h2>
                 <p className="text-slate-600 text-sm md:text-base text-center">
-                  Please enter the verification code we just sent on your email address.
+                  Please enter the verification code we just sent on your email
+                  address.
                 </p>
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-rose-500 mb-1">Welcome to SwiftBIM</p>
+                <p className="text-sm font-medium text-rose-500 mb-1">
+                  Welcome to SwiftBIM
+                </p>
                 <h2 className="text-[32px] leading-tight font-semibold text-slate-900 mb-2">
-                  {step === 'login' && 'Login'}
-                  {step === 'reset' && 'Reset Password'}
+                  {step === "login" && "Login"}
+                  {step === "reset" && "Reset Password"}
                 </h2>
-                {step === 'reset' && (
+                {step === "reset" && (
                   <p className="text-slate-500 text-sm">{message}</p>
                 )}
               </>
@@ -142,7 +167,7 @@ export default function Login() {
             </div>
           )}
 
-          {step === 'login' && (
+          {step === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label
@@ -171,7 +196,7 @@ export default function Login() {
                   </label>
                   <input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg border border-[#ADADAD] text-slate-900 placeholder-[#808080] text-sm focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-[#DD4342] pr-10"
@@ -182,10 +207,17 @@ export default function Login() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-8 text-slate-400 hover:text-slate-700"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -194,7 +226,12 @@ export default function Login() {
                         />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -215,8 +252,8 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => {
-                      setStep('forgot');
-                      setError('');
+                      setStep("forgot");
+                      setError("");
                     }}
                     className="pt-2 text-[14px] text-[#4285F4] font-Gantari"
                   >
@@ -230,14 +267,13 @@ export default function Login() {
                   disabled={submitting}
                   className="inline-flex justify-center items-center px-16 py-2.5 rounded-lg bg-[#DD4342] text-[#FFFFFF] text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Signing in...' : 'Login'}
+                  {submitting ? "Signing in..." : "Login"}
                 </button>
               </div>
-             
             </form>
           )}
 
-          {step === 'forgot' && (
+          {step === "forgot" && (
             <form onSubmit={handleForgot} className="space-y-5">
               <div>
                 <input
@@ -256,11 +292,14 @@ export default function Login() {
                   disabled={submitting}
                   className="w-full max-w-[280px] py-3 rounded-lg bg-[#E94E4E] hover:bg-[#d94545] text-white text-base font-semibold disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Sending...' : 'Send Code'}
+                  {submitting ? "Sending..." : "Send Code"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setStep('login'); setError(''); }}
+                  onClick={() => {
+                    setStep("login");
+                    setError("");
+                  }}
                   className="text-sm text-slate-500 hover:text-slate-700"
                 >
                   Back
@@ -269,7 +308,7 @@ export default function Login() {
             </form>
           )}
 
-          {step === 'otp' && (
+          {step === "otp" && (
             <form onSubmit={handleOtp} className="space-y-6">
               <div className="flex justify-center gap-2 sm:gap-3">
                 {[0, 1, 2, 3].map((i) => (
@@ -279,18 +318,20 @@ export default function Login() {
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
-                    value={otp[i] ?? ''}
+                    value={otp[i] ?? ""}
                     onChange={(e) => {
-                      const v = e.target.value.replace(/\D/g, '').slice(-1);
+                      const v = e.target.value.replace(/\D/g, "").slice(-1);
                       setOtp((prev) => {
-                        const arr = prev.split('');
+                        const arr = prev.split("");
                         arr[i] = v;
-                        return arr.join('').slice(0, 4);
+                        return arr.join("").slice(0, 4);
                       });
-                      if (v && i < 3) document.getElementById(`otp-${i + 1}`)?.focus();
+                      if (v && i < 3)
+                        document.getElementById(`otp-${i + 1}`)?.focus();
                     }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Backspace' && !otp[i] && i > 0) document.getElementById(`otp-${i - 1}`)?.focus();
+                      if (e.key === "Backspace" && !otp[i] && i > 0)
+                        document.getElementById(`otp-${i - 1}`)?.focus();
                     }}
                     name={`otp-${i}`}
                     className="w-12 h-12 sm:w-14 sm:h-14 text-center text-lg font-bold rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#E64F4E] focus:border-transparent"
@@ -304,11 +345,15 @@ export default function Login() {
                   disabled={submitting || otp.length < 4}
                   className="w-full max-w-[280px] py-3 rounded-lg bg-[#E64F4E] hover:bg-[#d94545] text-white text-base font-semibold disabled:opacity-50 transition"
                 >
-                  {submitting ? 'Verifying...' : 'Verify'}
+                  {submitting ? "Verifying..." : "Verify"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setStep('forgot'); setError(''); setOtp(''); }}
+                  onClick={() => {
+                    setStep("forgot");
+                    setError("");
+                    setOtp("");
+                  }}
                   className="text-sm text-slate-500 hover:text-slate-700"
                 >
                   Back
@@ -317,7 +362,7 @@ export default function Login() {
             </form>
           )}
 
-          {step === 'reset' && (
+          {step === "reset" && (
             <form onSubmit={handleReset} className="space-y-4">
               <div className="relative">
                 <label
@@ -328,7 +373,7 @@ export default function Login() {
                 </label>
                 <input
                   id="newpassword"
-                  type={showPassword1 ? 'text' : 'password'}
+                  type={showPassword1 ? "text" : "password"}
                   value={password1}
                   onChange={(e) => setPassword1(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent pr-10"
@@ -340,7 +385,7 @@ export default function Login() {
                   className="absolute right-3 top-8 text-slate-400 hover:text-slate-700"
                   aria-label="Toggle visibility"
                 >
-                  {showPassword1 ? '🙈' : '👁'}
+                  {showPassword1 ? "🙈" : "👁"}
                 </button>
               </div>
               <div className="relative">
@@ -352,7 +397,7 @@ export default function Login() {
                 </label>
                 <input
                   id="confirmpassword"
-                  type={showPassword2 ? 'text' : 'password'}
+                  type={showPassword2 ? "text" : "password"}
                   value={password2}
                   onChange={(e) => setPassword2(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-400 focus:border-transparent pr-10"
@@ -364,15 +409,15 @@ export default function Login() {
                   className="absolute right-3 top-8 text-slate-400 hover:text-slate-700"
                   aria-label="Toggle visibility"
                 >
-                  {showPassword2 ? '🙈' : '👁'}
+                  {showPassword2 ? "🙈" : "👁"}
                 </button>
               </div>
               <div className="flex gap-2 justify-between">
                 <button
                   type="button"
                   onClick={() => {
-                    setStep('otp');
-                    setError('');
+                    setStep("otp");
+                    setError("");
                   }}
                   className="px-4 py-2.5 rounded-full border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
                 >
@@ -383,13 +428,12 @@ export default function Login() {
                   disabled={submitting}
                   className="px-6 py-2.5 rounded-full bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium disabled:opacity-50"
                 >
-                  {submitting ? 'Submitting...' : 'Submit'}
+                  {submitting ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </form>
           )}
         </div>
-       
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 /** Value is 24h "HH:mm" (e.g. "15:00"). */
 export function TimePickerWheel({
@@ -39,14 +39,18 @@ export function TimePickerWheel({
     }
   }, [value]);
 
-  const to24h = () => {
-    let h24 = hour12;
-    if (ampm === "AM" && hour12 === 12) h24 = 0;
-    else if (ampm === "PM" && hour12 !== 12) h24 = hour12 + 12;
-    return `${String(h24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-  };
+  // const to24h = () => {
+  //   let h24 = hour12;
+  //   if (ampm === "AM" && hour12 === 12) h24 = 0;
+  //   else if (ampm === "PM" && hour12 !== 12) h24 = hour12 + 12;
+  //   return `${String(h24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+  // };
 
-  const handleSelect = (newHour12?: number, newMin?: number, newAmpm?: "AM" | "PM") => {
+  const handleSelect = (
+    newHour12?: number,
+    newMin?: number,
+    newAmpm?: "AM" | "PM",
+  ) => {
     const h = newHour12 ?? hour12;
     const m = newMin ?? minute;
     const a = newAmpm ?? ampm;
