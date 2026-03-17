@@ -631,7 +631,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                             {contextMenu &&
                                 createPortal(
                                     <div
-                                        className="fixed z-[9999] bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 min-w-[160px]"
+                                        className="fixed z-9999 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 min-w-[160px]"
                                         style={{ left: contextMenu.x, top: contextMenu.y }}
                                     >
                                         <button type="button" onClick={() => setContextMenu(null)}
