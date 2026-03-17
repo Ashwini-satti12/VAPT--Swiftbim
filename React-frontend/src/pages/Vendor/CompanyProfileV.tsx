@@ -70,22 +70,17 @@ export default function CompanyProfileV() {
     const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
     useEffect(() => {
-        refreshProfile().finally(() => setLoading(false));
+        api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile')
+            .then(({ data }) => {
+                const v = profileToVendor(data.profile ?? null);
+                setVendor(v);
+                setDraft(v ? { ...v } : null);
+                setCompleteness(data.completeness ?? 0);
+                setVerified(data.verified ?? false);
+            })
+            .catch(() => setError('Failed to load company profile'))
+            .finally(() => setLoading(false));
     }, []);
-
-    const refreshProfile = async () => {
-        try {
-            setError(null);
-            const { data } = await api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile');
-            const v = profileToVendor(data.profile ?? null);
-            setVendor(v);
-            setDraft(v ? { ...v } : null);
-            setCompleteness(data.completeness ?? 0);
-            setVerified(data.verified ?? false);
-        } catch {
-            setError('Failed to load company profile');
-        }
-    };
 
     const activeVendor = useMemo(() => {
         if (!vendor) return null;
@@ -101,17 +96,10 @@ export default function CompanyProfileV() {
         });
     };
 
-    const listToJson = (val: unknown) => {
-        if (Array.isArray(val)) return JSON.stringify(val);
+    const listTextToJson = (val: unknown) => {
         if (val == null) return '';
         const s = String(val).trim();
         if (!s) return '';
-        try {
-            const parsed = JSON.parse(s);
-            if (Array.isArray(parsed)) return JSON.stringify(parsed);
-        } catch {
-            // ignore
-        }
         const list = s.split(',').map((x) => x.trim()).filter(Boolean);
         return JSON.stringify(list);
     };
@@ -130,8 +118,6 @@ export default function CompanyProfileV() {
             await api.put('/api/vendors/profile', {
                 company_name: draft.company_name,
                 country: draft.country,
-                state: draft.state,
-                city: draft.city,
                 year_established: draft.year_established,
                 website: draft.website,
                 linkedin: draft.linkedin,
@@ -140,8 +126,7 @@ export default function CompanyProfileV() {
                 contact_name: draft.contact_name,
                 contact_designation: draft.contact_designation,
                 contact_email: draft.contact_email,
-                contact_mobile: draft.contact_mobile || '',
-                phone: draft.phone || '',
+                phone: draft.contact_mobile || draft.phone || '',
                 alternate_contact: draft.alternate_contact,
 
                 num_employees: draft.num_employees,
@@ -150,94 +135,24 @@ export default function CompanyProfileV() {
                 technical_team_size: draft.technical_team_size,
                 description: draft.description,
 
-                sectors: listToJson(draft.sectors),
-                other_sector: draft.other_sector,
-                service_categories: listToJson(draft.service_categories),
-                other_service: draft.other_service,
-                software_tools: listToJson(draft.software_tools),
-                other_software: draft.other_software,
+                sectors: listTextToJson(draft.sectors),
+                service_categories: listTextToJson(draft.service_categories),
+                software_tools: listTextToJson(draft.software_tools),
             });
 
             // Refresh from backend so UI reflects DB values
-            await refreshProfile();
+            const { data } = await api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile');
+            const v = profileToVendor(data.profile ?? null);
+            setVendor(v);
+            setDraft(v ? { ...v } : null);
+            setCompleteness(data.completeness ?? 0);
+            setVerified(data.verified ?? false);
             setEditMode(false);
             setSaveMsg('Profile updated successfully.');
         } catch {
             setSaveMsg('Failed to save changes. Please try again.');
         } finally {
             setSaving(false);
-        }
-    };
-
-    // Resource modal
-    const [resourceOpen, setResourceOpen] = useState(false);
-    const [resourceForm, setResourceForm] = useState({
-        name: '',
-        designation: '',
-        discipline: '',
-        years_of_experience: '',
-        expertise: '',
-        role: '',
-        software: '',
-        certifications: '',
-        projects_worked_on: '',
-    });
-    const [resourceBusy, setResourceBusy] = useState(false);
-
-    const addResource = async () => {
-        setResourceBusy(true);
-        try {
-            await api.post('/api/vendors/profile/resource-profiles', resourceForm);
-            setResourceOpen(false);
-            setResourceForm({
-                name: '',
-                designation: '',
-                discipline: '',
-                years_of_experience: '',
-                expertise: '',
-                role: '',
-                software: '',
-                certifications: '',
-                projects_worked_on: '',
-            });
-            await refreshProfile();
-        } finally {
-            setResourceBusy(false);
-        }
-    };
-
-    // Project modal
-    const [projectOpen, setProjectOpen] = useState(false);
-    const [projectForm, setProjectForm] = useState({
-        project_name: '',
-        project_client: '',
-        project_sector: '',
-        project_description: '',
-        project_role: '',
-        project_tools: '',
-        project_duration: '',
-        project_year: '',
-    });
-    const [projectBusy, setProjectBusy] = useState(false);
-
-    const addProject = async () => {
-        setProjectBusy(true);
-        try {
-            await api.post('/api/vendors/profile/portfolio-projects', projectForm);
-            setProjectOpen(false);
-            setProjectForm({
-                project_name: '',
-                project_client: '',
-                project_sector: '',
-                project_description: '',
-                project_role: '',
-                project_tools: '',
-                project_duration: '',
-                project_year: '',
-            });
-            await refreshProfile();
-        } finally {
-            setProjectBusy(false);
         }
     };
 
@@ -256,17 +171,8 @@ export default function CompanyProfileV() {
                 return (
                     <div className="space-y-3">
                         {editMode && (
-                            <div className="flex items-center justify-between">
-                                <div className="text-xs text-gray-500 font-gantari">
-                                    Add/update resources you entered in onboarding.
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setResourceOpen(true)}
-                                    className="px-3 py-1.5 text-xs font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d]"
-                                >
-                                    + Add Resource
-                                </button>
+                            <div className="text-xs text-gray-500 font-gantari">
+                                Resources editing will be added next (currently view-only).
                             </div>
                         )}
                         <Resources vendor={activeVendor} />
@@ -276,17 +182,8 @@ export default function CompanyProfileV() {
                 return (
                     <div className="space-y-3">
                         {editMode && (
-                            <div className="flex items-center justify-between">
-                                <div className="text-xs text-gray-500 font-gantari">
-                                    Add/update portfolio projects you entered in onboarding.
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setProjectOpen(true)}
-                                    className="px-3 py-1.5 text-xs font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg hover:bg-[#c93d3d]"
-                                >
-                                    + Add Project
-                                </button>
+                            <div className="text-xs text-gray-500 font-gantari">
+                                Portfolio editing will be added next (currently view-only).
                             </div>
                         )}
                         <PortfolioProject vendor={activeVendor} />
@@ -398,118 +295,6 @@ export default function CompanyProfileV() {
                     {renderContent()}
                 </div>
             </div>
-
-            {/* Add Resource Modal */}
-            {resourceOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-                    <div className="w-full max-w-xl bg-white rounded-xl p-5 border border-gray-200">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-gantari font-bold text-[#12141D]">Add Resource</h3>
-                            <button onClick={() => setResourceOpen(false)} className="text-gray-500 hover:text-gray-800">×</button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {[
-                                ['Name', 'name'],
-                                ['Designation', 'designation'],
-                                ['Discipline', 'discipline'],
-                                ['Years of experience', 'years_of_experience'],
-                                ['Expertise', 'expertise'],
-                                ['Role', 'role'],
-                                ['Software', 'software'],
-                                ['Certifications (text)', 'certifications'],
-                            ].map(([label, key]) => (
-                                <div key={key}>
-                                    <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">{label}</label>
-                                    <input
-                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
-                                        value={(resourceForm as any)[key]}
-                                        onChange={(e) => setResourceForm((f) => ({ ...f, [key]: e.target.value }))}
-                                    />
-                                </div>
-                            ))}
-                            <div className="sm:col-span-2">
-                                <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Projects Worked On</label>
-                                <input
-                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
-                                    value={resourceForm.projects_worked_on}
-                                    onChange={(e) => setResourceForm((f) => ({ ...f, projects_worked_on: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button
-                                onClick={() => setResourceOpen(false)}
-                                className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                disabled={resourceBusy}
-                                onClick={addResource}
-                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg disabled:opacity-60"
-                            >
-                                {resourceBusy ? 'Adding…' : 'Add'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Add Project Modal */}
-            {projectOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-                    <div className="w-full max-w-xl bg-white rounded-xl p-5 border border-gray-200">
-                        <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-gantari font-bold text-[#12141D]">Add Project</h3>
-                            <button onClick={() => setProjectOpen(false)} className="text-gray-500 hover:text-gray-800">×</button>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {[
-                                ['Project Name', 'project_name'],
-                                ['Client', 'project_client'],
-                                ['Sector', 'project_sector'],
-                                ['Role', 'project_role'],
-                                ['Tools', 'project_tools'],
-                                ['Duration', 'project_duration'],
-                                ['Year', 'project_year'],
-                            ].map(([label, key]) => (
-                                <div key={key}>
-                                    <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">{label}</label>
-                                    <input
-                                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
-                                        value={(projectForm as any)[key]}
-                                        onChange={(e) => setProjectForm((f) => ({ ...f, [key]: e.target.value }))}
-                                    />
-                                </div>
-                            ))}
-                            <div className="sm:col-span-2">
-                                <label className="block text-xs font-semibold font-gantari text-[#717171] mb-1">Description</label>
-                                <textarea
-                                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-gantari"
-                                    rows={3}
-                                    value={projectForm.project_description}
-                                    onChange={(e) => setProjectForm((f) => ({ ...f, project_description: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                            <button
-                                onClick={() => setProjectOpen(false)}
-                                className="px-4 py-2 text-sm font-semibold font-gantari bg-white border border-gray-200 rounded-lg"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                disabled={projectBusy}
-                                onClick={addProject}
-                                className="px-4 py-2 text-sm font-semibold font-gantari bg-[#DE3D3A] text-white rounded-lg disabled:opacity-60"
-                            >
-                                {projectBusy ? 'Adding…' : 'Add'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
