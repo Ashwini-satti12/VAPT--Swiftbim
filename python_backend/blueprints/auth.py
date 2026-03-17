@@ -188,8 +188,16 @@ def client_login():
 @login_required
 def logout():
     conn = get_db()
+    user_type = getattr(g, "user_type", "employee")
+    table = "vendor_employee" if user_type == "vendor" else "employee"
     with conn.cursor() as cur:
-        cur.execute("UPDATE employee SET status = 'Offline' WHERE id = %s", (g.user_id,))
+        # Vendor employee uses 'status' (active/inactive), but maybe offline is not stored similarly. 
+        # But we will update the relevant table if we track 'Offline' there.
+        # Actually, vendor_employee status tracks 'active' vs 'inactive', so changing it to 'Offline' 
+        # might break their login completely since it's used for active check!
+        # employee uses 'active' for active/inactive, and 'status' for Online/Offline.
+        if user_type == "employee":
+            cur.execute(f"UPDATE {table} SET status = 'Offline' WHERE id = %s", (g.user_id,))
     return jsonify({"success": True, "message": "Logged out"})
 
 
