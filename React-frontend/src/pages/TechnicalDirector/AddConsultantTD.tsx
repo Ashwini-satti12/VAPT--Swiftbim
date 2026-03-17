@@ -82,6 +82,9 @@ export default function AddConsultantTD() {
     address: '',
     profile_picture: null as File | null,
   });
+  const [countryCode, setCountryCode] = useState('+91');
+
+  const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971'];
 
   useEffect(() => {
     api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
@@ -118,13 +121,31 @@ export default function AddConsultantTD() {
       setAddError('Name, email and password are required.');
       return;
     }
+
+    if (form.dob) {
+      const today = new Date();
+      const dobDate = new Date(form.dob);
+      today.setHours(0, 0, 0, 0);
+      dobDate.setHours(0, 0, 0, 0);
+      if (dobDate > today) {
+        setAddError('Date of birth cannot be in the future.');
+        return;
+      }
+    }
+
+    const cleanPhone = form.phone_number.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length !== 12) {
+      setAddError('Phone number must be exactly 12 digits.');
+      return;
+    }
+
     setAddSubmitting(true);
 
     const formData = new FormData();
     formData.append('full_name', form.full_name.trim());
     formData.append('email', form.email.trim());
     formData.append('password', form.password);
-    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+    if (cleanPhone) formData.append('phone_number', `${countryCode}${cleanPhone}`);
     if (form.user_role) formData.append('user_role', form.user_role);
     if (form.address.trim()) formData.append('address', form.address.trim());
     if (form.dob) formData.append('dob', form.dob);
@@ -194,14 +215,33 @@ export default function AddConsultantTD() {
                 />
               </div>
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Enter Phone Number"
-                  value={form.phone_number}
-                  onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                />
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Phone Number <span className="text-[#DD4342]">*</span>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="px-3 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari focus:border-[#AEACAC52] outline-none"
+                  >
+                    {COUNTRY_CODES.map((code) => (
+                      <option key={code} value={code}>
+                        {code}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Enter Phone Number"
+                    value={form.phone_number}
+                    maxLength={12}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      setForm((f) => ({ ...f, phone_number: digitsOnly }));
+                    }}
+                    className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
