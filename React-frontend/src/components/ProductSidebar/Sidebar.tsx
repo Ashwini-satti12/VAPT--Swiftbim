@@ -505,7 +505,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       },
       {
         name: "Manage Leave",
-        path: "pm/manage-leave",
+        path: "/pm/manage-leave",
         iconSrc: teamReportIcon,
         activeIconSrc: whiteTeamReportIcon,
         isVisible: true,

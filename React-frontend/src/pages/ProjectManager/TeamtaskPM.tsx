@@ -1136,23 +1136,7 @@ export default function TeamtaskPM() {
             />
             <button
               type="button"
-              onClick={() => {
-                setEditingTaskId(null);
-                setAddTaskForm({
-                  projectName: "",
-                  module: "",
-                  taskName: "",
-                  type: "",
-                  actualStartDate: "",
-                  actualEndDate: "",
-                  startTime: "",
-                  dueTime: "",
-                  assignTo: "",
-                  description: "",
-                  checklist: "",
-                });
-                setAddTaskModalOpen(true);
-              }}
+              onClick={() => navigate("/tasks/add")}
               className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
