@@ -526,7 +526,7 @@ def list_opportunities():
         # Check which ones current vendor already bid on
         already_bid = set()
         if vendor_id:
-            cur.execute("SELECT opportunity_id FROM vendor_bids WHERE vendor_id = %s", (vendor_id,))
+            cur.execute("SELECT opportunity_id FROM snh6_swiftproject.vendor_bids WHERE vendor_id = %s", (vendor_id,))
             already_bid = {r["opportunity_id"] for r in cur.fetchall()}
 
         cur.execute(
@@ -585,7 +585,7 @@ def submit_bid(opportunity_id):
 
     try:
         cur.execute(
-            """INSERT INTO vendor_bids (vendor_id, opportunity_id, bid_amount, notes, timeline, team_size, status, created_at)
+            """INSERT INTO snh6_swiftproject.vendor_bids (vendor_id, opportunity_id, bid_amount, notes, timeline, team_size, status, created_at)
                VALUES (%s, %s, %s, %s, %s, %s, 'submitted', NOW())
                ON DUPLICATE KEY UPDATE bid_amount = VALUES(bid_amount), notes = VALUES(notes),
                timeline = VALUES(timeline), team_size = VALUES(team_size), status = 'submitted'""",
@@ -621,7 +621,7 @@ def my_bids():
         cur.execute(
             """SELECT vb.*, vbidding.project_name, vbidding.outsource_budget,
                       vbidding.budget_ceiling, vbidding.bid_deadline
-               FROM vendor_bids vb
+               FROM snh6_swiftproject.vendor_bids vb
                LEFT JOIN vendor_bidding vbidding ON vbidding.id = vb.opportunity_id
                WHERE vb.vendor_id = %s
                ORDER BY vb.created_at DESC""",
@@ -908,7 +908,7 @@ def list_bidding():
     try:
         cur.execute(
             """SELECT vb.*,
-                  (SELECT COUNT(*) FROM vendor_bids vbid WHERE vbid.opportunity_id = vb.id) AS total_bids,
+                  (SELECT COUNT(*) FROM snh6_swiftproject.vendor_bids vbid WHERE vbid.opportunity_id = vb.id) AS total_bids,
                   CASE
                     WHEN vb.bid_deadline IS NULL THEN 'active'
                     WHEN vb.bid_deadline >= CURDATE() THEN 'active'
@@ -949,39 +949,37 @@ def bidding_bids(bidding_id):
     except Exception:
         opportunity = None
 
-    # Fetch bids - join employee table from main DB for vendor info
+    # Fetch bids - join vendor_employee table for vendor info
     bids = []
     try:
-        # Get bids from vendor_bidding table
+        # Pull bids and vendor identity in one query.
+        # IMPORTANT: vendor_bids.vendor_id is expected to reference vendor_employee.id.
         cur.execute(
-            """SELECT * FROM vendor_bids
-               WHERE opportunity_id = %s
-               ORDER BY bid_amount ASC""",
+            """
+            SELECT vb.*,
+                   ve.full_name AS vendor_name,
+                   ve.email AS vendor_email,
+                   ve.phone_number AS vendor_phone,
+                   ve.full_name AS company_name
+            FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vb.vendor_id
+            WHERE vb.opportunity_id = %s
+            ORDER BY vb.bid_amount ASC
+            """,
             (bidding_id,),
         )
-        rows = cur.fetchall()
+        rows = cur.fetchall() or []
 
-        if rows:
-            # Get employee info since we're already on main DB
-            vendor_ids = [r["vendor_id"] for r in rows]
-            placeholders = ",".join(["%s"] * len(vendor_ids))
-            cur.execute(
-                f"""SELECT id, full_name, email, phone_number, user_role
-                   FROM employee WHERE id IN ({placeholders})""",
-                vendor_ids,
-            )
-            emp_map = {r["id"]: r for r in cur.fetchall()}
-
-            for i, r in enumerate(rows):
-                entry = {k: _serialize(v) for k, v in r.items()}
-                emp = emp_map.get(r["vendor_id"], {})
-                entry["vendor_name"] = emp.get("full_name") or f"Vendor #{r['vendor_id']}"
-                entry["vendor_email"] = emp.get("email") or ""
-                entry["vendor_phone"] = emp.get("phone_number") or ""
-                entry["company_name"] = emp.get("full_name") or ""
-                entry["rank"] = i + 1
-                entry["is_top4"] = i < 4
-                bids.append(entry)
+        for i, r in enumerate(rows):
+            entry = {k: _serialize(v) for k, v in r.items()}
+            # Fallbacks if vendor_employee row is missing
+            entry["vendor_name"] = entry.get("vendor_name") or f"Vendor #{entry.get('vendor_id')}"
+            entry["vendor_email"] = entry.get("vendor_email") or ""
+            entry["vendor_phone"] = entry.get("vendor_phone") or ""
+            entry["company_name"] = entry.get("company_name") or entry["vendor_name"]
+            entry["rank"] = i + 1
+            entry["is_top4"] = i < 4
+            bids.append(entry)
 
     except Exception as e:
         bids = []
@@ -1005,7 +1003,7 @@ def accept_bid(bidding_id, bid_id):
     cur = conn.cursor(dictionary=True)
     try:
         cur.execute(
-            "UPDATE vendor_bids SET status = 'shortlisted' WHERE id = %s AND opportunity_id = %s",
+            "UPDATE snh6_swiftproject.vendor_bids SET status = 'shortlisted' WHERE id = %s AND opportunity_id = %s",
             (bid_id, bidding_id),
         )
         if cur.rowcount == 0:
@@ -1017,9 +1015,9 @@ def accept_bid(bidding_id, bid_id):
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
                    e.full_name AS vendor_name, e.email AS vendor_email, e.phone_number AS vendor_phone
-            FROM vendor_bids vb
+            FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN employee e ON e.id = vb.vendor_id
+            LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
             WHERE vb.id = %s
             """,
             (bid_id,),
@@ -1043,7 +1041,7 @@ def reject_bid(bidding_id, bid_id):
     cur = conn.cursor(dictionary=True)
     try:
         cur.execute(
-            "UPDATE vendor_bids SET status = 'lost' WHERE id = %s AND opportunity_id = %s",
+            "UPDATE snh6_swiftproject.vendor_bids SET status = 'lost' WHERE id = %s AND opportunity_id = %s",
             (bid_id, bidding_id),
         )
         if cur.rowcount == 0:
@@ -1103,9 +1101,9 @@ def accepted_bids():
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
                    e.full_name AS vendor_name, e.email AS vendor_email,
                    (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
-            FROM vendor_bids vb
+            FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
-            LEFT JOIN employee e ON e.id = vb.vendor_id
+            LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """
@@ -2619,7 +2617,7 @@ def list_vendor_projects():
             try:
                 ecur = conn.cursor(dictionary=True)
                 ecur.execute(
-                    "SELECT id FROM vendor_employee WHERE vendor_id = %s",
+                    "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
                     (company_id,),
                 )
                 rows = ecur.fetchall() or []
@@ -2633,24 +2631,23 @@ def list_vendor_projects():
     placeholders = ",".join(["%s"] * len(vendor_employee_ids))
 
     # Resolve client_id and budget from the main projects table using project_name,
-    # then join to clientinformation to get the client's fullName.
     # Mappings:
-    #   projects.client_id      -> clientinformation.id
+    #   projects.client_id      -> new_swiftbim.users.id
     #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
     cur.execute(
         f"""
         SELECT
             vp.*,
-            -- Prefer client name from clientinformation; fall back to raw ids
-            COALESCE(ci.fullName, p.client_id, vp.client_id) AS client_name,
+            -- Prefer client name from new_swiftbim.users; fall back to raw ids
+            COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
             -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling
-        FROM vendor_projects vp
-        LEFT JOIN projects p
-            ON p.project_name = vp.project_name
-        LEFT JOIN clientinformation ci
-            ON ci.id = p.client_id
+        FROM snh6_swiftproject.vendor_projects vp
+        LEFT JOIN snh6_swiftproject.projects p
+            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+        LEFT JOIN new_swiftbim.users u
+            ON u.id = p.client_id
         WHERE vp.vendor_id IN ({placeholders})
         ORDER BY vp.id DESC
         """,
@@ -2669,7 +2666,7 @@ def list_vendor_projects():
                 project_id,
                 COUNT(*) AS total_tasks,
                 SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
-            FROM vendor_task
+            FROM snh6_swiftproject.vendor_task
             WHERE project_id IN ({placeholders})
             GROUP BY project_id
             """,
@@ -2715,7 +2712,7 @@ def vendor_project_task_stats(project_id: int):
             SUM(CASE WHEN status = 'Todo' THEN 1 ELSE 0 END) AS todo,
             SUM(CASE WHEN status = 'InProgress' THEN 1 ELSE 0 END) AS inprogress,
             SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed
-        FROM vendor_task
+        FROM snh6_swiftproject.vendor_task
         WHERE project_id = %s
         """,
         (project_id,),
@@ -2780,7 +2777,7 @@ def create_vendor_project():
     if not insert_cols:
         return jsonify({"success": False, "message": "No data provided"}), 400
 
-    sql = f"INSERT INTO vendor_projects ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)})"
+    sql = f"INSERT INTO snh6_swiftproject.vendor_projects ({', '.join(insert_cols)}) VALUES ({', '.join(placeholders)})"
     try:
         cur.execute(sql, tuple(values))
         conn.commit()
@@ -2820,7 +2817,7 @@ def update_vendor_project(project_id):
         return jsonify({"success": False, "message": "No fields to update"}), 400
 
     values.append(project_id)
-    sql = f"UPDATE vendor_projects SET {', '.join(fields)} WHERE id = %s"
+    sql = f"UPDATE snh6_swiftproject.vendor_projects SET {', '.join(fields)} WHERE id = %s"
     try:
         cur.execute(sql, tuple(values))
         conn.commit()
@@ -3023,7 +3020,7 @@ def delete_vendor_project(project_id):
     conn = get_db()
     cur = conn.cursor()
     try:
-        cur.execute("DELETE FROM vendor_projects WHERE id = %s", (project_id,))
+        cur.execute("DELETE FROM snh6_swiftproject.vendor_projects WHERE id = %s", (project_id,))
         conn.commit()
         return jsonify({"success": True})
     except Exception as e:
