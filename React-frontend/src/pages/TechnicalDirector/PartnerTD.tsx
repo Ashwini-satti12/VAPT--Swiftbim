@@ -32,9 +32,9 @@ export default function PartnerTD() {
     }
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full min-h-0 flex flex-col flex-1 -mb-4">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-4">
                 <div>
                     <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Partners</h2>
                     {/* <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p> */}
@@ -77,9 +77,9 @@ export default function PartnerTD() {
                 </div>
             </div> */}
 
-            {/* Grid */}
-            <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Grid — fills remaining height; no extra bottom padding */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-0">
                     {allList.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No partners found.
