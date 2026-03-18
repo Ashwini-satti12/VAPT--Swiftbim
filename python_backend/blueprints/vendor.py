@@ -1868,6 +1868,65 @@ def get_vendor_profile():
     cur.execute("SELECT * FROM vendor_onboarding WHERE id=%s", (vendor_id,))
     profile = {k: _serialize(v) for k, v in (cur.fetchone() or {}).items()}
 
+    # Phone number should come from vendor_employee (snh6_swiftproject DB)
+    try:
+        conn = get_db()
+        ecur = conn.cursor(dictionary=True)
+        ecur.execute(
+            "SELECT phone_number FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (getattr(g, "user_id", None),),
+        )
+        erow = ecur.fetchone() or {}
+        phone = (erow.get("phone_number") or "").strip()
+        if phone:
+            profile["phone"] = phone
+            # Keep contact_mobile in sync for UIs that read it
+            profile["contact_mobile"] = profile.get("contact_mobile") or phone
+    except Exception:
+        pass
+
+    # Address should be combined from vendor_onboarding (new_swiftbim DB), supporting multiple locations
+    try:
+        company_name = (profile.get("company_name") or "").strip()
+        loc_rows = []
+        if company_name:
+            cur.execute(
+                """
+                SELECT *
+                FROM vendor_onboarding
+                WHERE company_name = %s
+                ORDER BY id
+                """,
+                (company_name,),
+            )
+            loc_rows = cur.fetchall() or []
+
+        def _fmt_location(r: dict) -> str:
+            parts = []
+            for key in ("address", "city", "state", "country"):
+                v = (r.get(key) or "").strip()
+                if v:
+                    parts.append(v)
+            return ", ".join(parts).strip(", ").strip()
+
+        locations = []
+        for r in (loc_rows or [profile]):
+            s = _fmt_location(r)
+            if s:
+                locations.append(s)
+
+        combined = ""
+        if len(locations) == 1:
+            combined = locations[0]
+        elif len(locations) > 1:
+            combined = "\n".join([f"{i + 1}. {loc}" for i, loc in enumerate(locations)])
+
+        if combined:
+            profile["address"] = combined
+            profile["address_locations"] = locations
+    except Exception:
+        pass
+
     # Portfolio projects (same as _fetch_vendor_full)
     cur.execute("SELECT * FROM vendor_portfolio WHERE vendor_id=%s ORDER BY id", (vendor_id,))
     profile["portfolio_projects"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
@@ -1955,6 +2014,27 @@ def update_vendor_profile():
     params.append(vendor_id)
     cur.execute(f"UPDATE vendor_onboarding SET {', '.join(sets)} WHERE id = %s", params)
     get_vendor_db().commit()
+
+    # If vendor updated contact_mobile (or phone), keep vendor_employee.phone_number in sync.
+    try:
+        new_phone = (data.get("contact_mobile") or data.get("phone") or "").strip()
+        if new_phone:
+            conn = get_db()
+            mcur = conn.cursor(dictionary=True)
+            mcur.execute(
+                "SELECT phone_number FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (getattr(g, "user_id", None),),
+            )
+            row = mcur.fetchone() or {}
+            current_phone = (row.get("phone_number") or "").strip()
+            if current_phone != new_phone:
+                mcur.execute(
+                    "UPDATE snh6_swiftproject.vendor_employee SET phone_number = %s WHERE id = %s",
+                    (new_phone, getattr(g, "user_id", None)),
+                )
+                conn.commit()
+    except Exception:
+        pass
     return jsonify({"success": True})
 
 
@@ -2164,12 +2244,14 @@ def upload_vendor_document():
     if not file:
         return jsonify({"success": False, "message": "No file provided"}), 400
 
-    upload_dir = current_app.config.get("UPLOAD_FOLDER", "static/uploads/vendor_docs")
+    upload_root = current_app.config.get("UPLOAD_FOLDER", "uploads")
+    upload_dir = os.path.join(upload_root, "vendor_docs")
     os.makedirs(upload_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = os.path.join(upload_dir, filename)
     file.save(filepath)
+    # Keep stored URLs compatible with existing frontend expectations
     file_url = f"/static/uploads/vendor_docs/{filename}"
 
     cur.execute(

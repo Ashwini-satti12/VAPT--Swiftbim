@@ -737,18 +737,18 @@ export default function ProjectsPM() {
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
                   </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-md font-Gantari font-medium text-[#666666]">No Document Available</span>
+                    </div>
+                  </div>
                   {/* <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resourcesg</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
                   </div> */}
-                </div>
-              </div>
-              <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
-                <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535] mb-2 sm:mb-0">Project Document</span>
-                <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-md font-Gantari font-medium text-[#666666]">No Document Available</span>
                 </div>
               </div>
             </div>
