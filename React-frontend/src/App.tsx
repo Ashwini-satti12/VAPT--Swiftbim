@@ -57,6 +57,7 @@ import PartnerView from './pages/TechnicalDirector/PartnerView/PartnerView';
 import BiddingTD from './pages/TechnicalDirector/BiddingTD';
 import ProposalTD from './pages/TechnicalDirector/ProposalTD';
 import CreateProposalTD from './pages/TechnicalDirector/CreateProposalTD';
+import ViewProposalTD from './pages/TechnicalDirector/ViewProposalTD';
 import ManageLeaveTD from './pages/TechnicalDirector/ManageLeaveTD';
 
 /* Bim Lead */
@@ -211,6 +212,7 @@ function App() {
             <Route path="td/manage-proposal" element={<ProposalTD />} />
             <Route path="td/proposals" element={<ProposalTD />} />
             <Route path="td/create-proposal" element={<CreateProposalTD />} />
+            <Route path="td/view-proposal" element={<ViewProposalTD />} />
             <Route path="td/manage-leave" element={<ManageLeaveTD />} />
             {/* Bim Lead Routes */}
             <Route path="bl/dashboard" element={<DashboardBL />} />

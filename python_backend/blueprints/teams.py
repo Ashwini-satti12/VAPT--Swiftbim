@@ -27,6 +27,13 @@ def create_team():
     leader = data.get("leader")
     employee_ids = data.get("employee") or data.get("employees") or []
     project_lead = data.get("project_lead")
+    project_id = data.get("project_id")
+    if project_id is not None and project_id != "":
+        try:
+            project_id = int(project_id)
+        except (TypeError, ValueError):
+            project_id = None
+    project_name = data.get("project_name")
     if isinstance(employee_ids, str):
         employee_ids = [x.strip() for x in employee_ids.split(",") if x.strip()]
     employee_str = ",".join(str(x) for x in employee_ids)
@@ -34,9 +41,18 @@ def create_team():
         return jsonify({"success": False, "message": "leader required"}), 400
     conn = get_db()
     cur = conn.cursor()
+    # Resolve project_name from project_id if not provided
+    if not project_name and project_id:
+        cur.execute(
+            "SELECT project_name FROM projects WHERE id = %s AND Company_id = %s",
+            (project_id, g.company_id),
+        )
+        row = cur.fetchone()
+        if row:
+            project_name = row.get("project_name")
     cur.execute(
-        "INSERT INTO team (teamname, leader, employee, project_lead, Company_id) VALUES (%s, %s, %s, %s, %s)",
-        (teamname, leader, employee_str, project_lead or 0, g.company_id),
+        "INSERT INTO team (teamname, leader, employee, project_lead, project_name, Company_id) VALUES (%s, %s, %s, %s, %s, %s)",
+        (teamname, leader, employee_str, project_lead or 0, project_name, g.company_id),
     )
     return jsonify({"success": True, "id": cur.lastrowid})
 
@@ -79,7 +95,27 @@ def update_team(team_id):
                     val = ",".join(x.strip() for x in val.split(",") if x.strip())
             sets.append(f"`{key}` = %s")
             params.append(val)
-            
+
+    # Resolve and set project_name (from project_id or direct project_name)
+    project_name = data.get("project_name")
+    project_id = data.get("project_id")
+    if project_id not in (None, "") and project_name is None:
+        try:
+            project_id = int(project_id)
+        except (TypeError, ValueError):
+            project_id = None
+    if project_name is None and project_id not in (None, ""):
+        cur.execute(
+            "SELECT project_name FROM projects WHERE id = %s AND Company_id = %s",
+            (project_id, g.company_id),
+        )
+        row = cur.fetchone()
+        if row:
+            project_name = row.get("project_name")
+    if project_name is not None:
+        sets.append("`project_name` = %s")
+        params.append(project_name)
+
     if not sets:
         return jsonify({"success": False, "message": "No fields to update"}), 400
     params.extend([team_id, g.company_id])
