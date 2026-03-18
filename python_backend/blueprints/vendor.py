@@ -1100,10 +1100,20 @@ def accepted_bids():
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
                    e.full_name AS vendor_name, e.email AS vendor_email,
-                   (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
+                   tp.id AS proposal_id, tp.status AS proposal_status,
+                   (tp.id IS NOT NULL) AS proposal_exists
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN (
+                SELECT t1.*
+                FROM td_proposals t1
+                INNER JOIN (
+                    SELECT bid_id, MAX(id) AS max_id
+                    FROM td_proposals
+                    GROUP BY bid_id
+                ) t2 ON t1.id = t2.max_id
+            ) tp ON tp.bid_id = vb.id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """
@@ -1113,6 +1123,26 @@ def accepted_bids():
     except Exception as e:
         bids = []
     return jsonify({"bids": bids})
+
+
+@bp.route("/proposals/td/<int:proposal_id>", methods=["GET"])
+@login_required
+def td_get_proposal(proposal_id: int):
+    """
+    GET /api/vendors/proposals/td/<proposal_id>
+    Fetch a single TD-created proposal from td_proposals (main DB).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"proposal": None}), 404
+        proposal = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"proposal": proposal})
+    except Exception:
+        return jsonify({"proposal": None}), 500
 
 
 @bp.route("/proposals/td-create", methods=["POST"])

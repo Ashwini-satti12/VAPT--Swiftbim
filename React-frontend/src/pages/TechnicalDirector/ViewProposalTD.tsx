@@ -47,21 +47,18 @@ export default function ViewProposalTD() {
     const location = useLocation();
     const state: any = (location && (location as any).state) || {};
     const bid = state?.bid || null;
+    const proposalId = state?.proposalId || null;
 
     const [loading, setLoading] = useState(true);
     const [proposal, setProposal] = useState<any>(null);
 
     useEffect(() => {
-        if (!bid?.opportunity_id) {
+        if (!proposalId) {
             setLoading(false);
             return;
         }
 
-        api.get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
-            params: {
-                opportunity_id: bid.opportunity_id,
-            },
-        })
+        api.get<{ proposal?: any }>(`/api/vendors/proposals/td/${proposalId}`)
         .then(({ data }) => {
             if (data.proposal) {
                 setProposal(data.proposal);
@@ -73,7 +70,7 @@ export default function ViewProposalTD() {
         .finally(() => {
             setLoading(false);
         });
-    }, [bid?.opportunity_id]);
+    }, [proposalId]);
 
     const techs = safeParse(proposal?.technologies_used);
     const payments = safeParsePayment(proposal?.payment_terms);
@@ -119,9 +116,16 @@ export default function ViewProposalTD() {
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-4 gap-x-6 bg-[#F9FAFB] rounded-lg p-5">
                                 <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Vendor</span><span className="text-[#020202] text-sm font-bold font-gantari">{proposal.vendor_name || bid?.vendor_name || '—'}</span></div>
                                 <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Email</span><span className="text-[#020202] text-sm font-bold font-gantari">{proposal.email_address || proposal.vendor_email || bid?.vendor_email || '—'}</span></div>
-                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Service ID</span><span className="text-[#020202] text-sm font-bold font-gantari">{bid?.opportunity_id ? `OPP-${bid.opportunity_id}` : '—'}</span></div>
+                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Service ID</span><span className="text-[#020202] text-sm font-bold font-gantari">{proposal.opportunity_id ? `OPP-${proposal.opportunity_id}` : (bid?.opportunity_id ? `OPP-${bid.opportunity_id}` : '—')}</span></div>
                                 <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Created On</span><span className="text-[#020202] text-sm font-bold font-gantari">{formatDate(proposal.created_at)}</span></div>
                             </div>
+                            {proposal.status && (
+                                <div className="mt-4 text-center">
+                                    <span className="inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari bg-[#EAF0FB] text-[#1967D2]">
+                                        Status: {proposal.status}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* 1. Executive Summary */}
@@ -135,11 +139,11 @@ export default function ViewProposalTD() {
                         )}
 
                         {/* 2. About Us */}
-                        {proposal.aboutus && (
+                        {(proposal.about_us || proposal.aboutus) && (
                             <div className="mb-8">
                                 <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">2. About Us</h2>
                                 <div className="bg-[#F9FAFB] rounded-md px-5 py-4">
-                                    <p className="text-[15px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(proposal.aboutus)}</p>
+                                    <p className="text-[15px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(proposal.about_us || proposal.aboutus)}</p>
                                 </div>
                                 {(proposal.address || proposal.website_url || proposal.email_address) && (
                                     <div className="mt-4 space-y-3 pl-4 border-l-2 border-gray-200">

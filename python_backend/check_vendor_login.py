@@ -7,7 +7,7 @@ load_dotenv()
 conn_vendor = mysql.connector.connect(
     host=os.getenv("MYSQL_HOST", "localhost"),
     user=os.getenv("MYSQL_USER", "root"),
-    password="root@123",
+    password="",
     database="new_swiftbim",
     port=int(os.getenv("MYSQL_PORT", 3306))
 )

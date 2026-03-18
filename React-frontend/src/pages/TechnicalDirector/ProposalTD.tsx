@@ -20,6 +20,8 @@ interface AcceptedBid {
   outsource_budget: number;
   budget_ceiling: number;
   proposal_exists?: boolean;
+  proposal_id?: number;
+  proposal_status?: string;
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
@@ -195,6 +197,10 @@ export default function ProposalTD() {
               <tbody className="divide-y divide-gray-50">
                 {displayList.map((bid, index) => {
                   const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
+                  const displayStatus =
+                    bid.proposal_exists && bid.proposal_status
+                      ? bid.proposal_status
+                      : bid.status;
                   return (
                     <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                       <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
@@ -207,8 +213,8 @@ export default function ProposalTD() {
                       </td>
                       <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(bid.status)}`}>
-                          {getStatusLabel(bid.status)}
+                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(displayStatus)}`}>
+                          {getStatusLabel(displayStatus)}
                         </span>
                       </td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
@@ -238,9 +244,8 @@ export default function ProposalTD() {
                             onClick={() =>
                               bid.proposal_exists && navigate("/td/view-proposal", {
                                 state: {
+                                  proposalId: bid.proposal_id,
                                   bid,
-                                  projectName: bid.project_name,
-                                  opportunityId: bid.opportunity_id,
                                 },
                               })
                             }

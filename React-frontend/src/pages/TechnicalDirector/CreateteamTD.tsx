@@ -417,12 +417,21 @@ export default function CreateteamTD() {
   };
 
   const handleEditClick = (team: Team) => {
+    const inferredProjectId =
+      team.project_id != null
+        ? String(team.project_id)
+        : team.project_name
+          ? String(
+              projects.find((p) => p.project_name === team.project_name)?.id ??
+                "",
+            )
+          : "";
     setSelectedTeam(team);
     setEditForm({
       leader: String(team.leader),
       employee: team.employee ? team.employee.split(",").filter(Boolean) : [],
       project_lead: team.project_lead ? String(team.project_lead) : "",
-      project_id: team.project_id ? String(team.project_id) : "",
+      project_id: inferredProjectId,
       team_name: team.team_name || team.teamname || "",
     });
     setShowLeaderDropdown(false);
@@ -1156,6 +1165,15 @@ export default function CreateteamTD() {
             </div>
 
             <div className="space-y-6">
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  Project
+                </h4>
+                <p className="font-semibold text-slate-800">
+                  {selectedTeam.project_name || "N/A"}
+                </p>
+              </div>
+
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                 <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
                   Leadership

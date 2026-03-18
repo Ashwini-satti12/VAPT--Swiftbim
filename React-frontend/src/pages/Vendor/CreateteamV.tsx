@@ -265,12 +265,18 @@ export default function CreateteamV() {
     };
 
     const handleEditClick = (team: Team) => {
+        const inferredProjectId =
+            team.project_id != null
+                ? String(team.project_id)
+                : team.project_name
+                    ? String(projects.find(p => p.project_name === team.project_name)?.id ?? '')
+                    : '';
         setSelectedTeam(team);
         setEditForm({
             leader: String(team.leader),
             employee: team.employee.split(',').filter(Boolean),
             project_lead: team.project_lead ? String(team.project_lead) : '',
-            project_id: team.project_id ? String(team.project_id) : '',
+            project_id: inferredProjectId,
             team_name: team.team_name || team.teamname || '',
         });
         setShowEditModal(true);
@@ -611,6 +617,11 @@ export default function CreateteamV() {
                                 <div>
                                     <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Name</label>
                                     <div className="text-[18px] font-bold text-[#1E293B]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Project</label>
+                                    <div className="text-[16px] font-bold text-[#334155]">{selectedTeam.project_name || 'N/A'}</div>
                                 </div>
 
                                 <div>
