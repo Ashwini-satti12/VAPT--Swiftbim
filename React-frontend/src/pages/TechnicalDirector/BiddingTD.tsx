@@ -169,9 +169,6 @@ export default function BiddingTD() {
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
                                             <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {project.project_name}
-                                                {project.description && (
-                                                    <div className="text-xs text-[#616161] font-normal mt-0.5 line-clamp-1">{project.description}</div>
-                                                )}
                                             </td>
                                             <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {formatBudget(project.budget_ceiling || project.outsource_budget)}
