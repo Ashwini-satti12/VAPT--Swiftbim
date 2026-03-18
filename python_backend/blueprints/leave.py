@@ -26,20 +26,23 @@ def list_leave_types():
 @project_app_required
 def list_applications():
     # PHP: tblleaves JOIN employee LEFT JOIN holiday; status 0=pending, 1=approved, 2=declined
+    role_filter = request.args.get("role") or request.args.get("user_role")
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        """SELECT tblleaves.id AS lid, tblleaves.empid, tblleaves.leave_type, tblleaves.posting_date, tblleaves.description,
-                  tblleaves.status, tblleaves.from_date, tblleaves.to_date, tblleaves.starttime, tblleaves.endtime,
-                  employee.full_name, employee.id AS employee_id, employee.user_role AS role,
-                  CASE WHEN holiday.id IS NULL THEN 'Others' ELSE holiday.title END AS title
-           FROM tblleaves
-           JOIN employee ON tblleaves.empid = employee.id
-           LEFT JOIN holiday ON tblleaves.leave_type = holiday.id
-           WHERE tblleaves.Company_id = %s
-           ORDER BY tblleaves.id DESC""",
-        (g.company_id,),
-    )
+    sql = """SELECT tblleaves.id AS lid, tblleaves.empid, tblleaves.leave_type, tblleaves.posting_date, tblleaves.description,
+                    tblleaves.status, tblleaves.from_date, tblleaves.to_date, tblleaves.starttime, tblleaves.endtime,
+                    employee.full_name, employee.id AS employee_id, employee.user_role AS role,
+                    CASE WHEN holiday.id IS NULL THEN 'Others' ELSE holiday.title END AS title
+             FROM tblleaves
+             JOIN employee ON tblleaves.empid = employee.id
+             LEFT JOIN holiday ON tblleaves.leave_type = holiday.id
+             WHERE tblleaves.Company_id = %s"""
+    params = [g.company_id]
+    if role_filter:
+        sql += " AND employee.user_role = %s"
+        params.append(role_filter)
+    sql += " ORDER BY tblleaves.id DESC"
+    cur.execute(sql, tuple(params))
     rows = cur.fetchall()
     applications = []
     for r in rows:
@@ -151,6 +154,38 @@ def approve_leave(app_id):
         (app_id, g.company_id),
     )
     if cur.rowcount:
+        # Notify employee
+        try:
+            cur.execute("SELECT empid, from_date, to_date FROM tblleaves WHERE id = %s AND Company_id = %s", (app_id, g.company_id))
+            row = cur.fetchone() or {}
+            empid = row.get("empid")
+            # ensure deep-link columns exist
+            try:
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            except Exception:
+                pass
+
+            if empid:
+                title = "Leave approved"
+                msg = "Your leave request has been approved."
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (empid, None, title, msg, "leave_status", "leave", app_id, g.company_id),
+                )
+        except Exception:
+            pass
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Not found"}), 404
 
@@ -166,5 +201,37 @@ def reject_leave(app_id):
         (app_id, g.company_id),
     )
     if cur.rowcount:
+        # Notify employee
+        try:
+            cur.execute("SELECT empid FROM tblleaves WHERE id = %s AND Company_id = %s", (app_id, g.company_id))
+            row = cur.fetchone() or {}
+            empid = row.get("empid")
+            # ensure deep-link columns exist
+            try:
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            except Exception:
+                pass
+
+            if empid:
+                title = "Leave rejected"
+                msg = "Your leave request has been rejected."
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (empid, None, title, msg, "leave_status", "leave", app_id, g.company_id),
+                )
+        except Exception:
+            pass
         return jsonify({"success": True})
     return jsonify({"success": False, "message": "Not found"}), 404

@@ -105,6 +105,7 @@ export default function EditConsultantBL() {
         roles: [] as string[],
         active: 'Active',
     });
+    const todayISO = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         const employeeId = id ? parseInt(id, 10) : NaN;
@@ -168,6 +169,17 @@ export default function EditConsultantBL() {
         const employeeId = id ? parseInt(id, 10) : NaN;
         if (!employeeId || !Number.isFinite(employeeId)) return;
         setEditError('');
+
+        if (form.dob) {
+            const today = new Date();
+            const dobDate = new Date(form.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setEditError('Date of birth cannot be in the future.');
+                return;
+            }
+        }
         setEditSubmitting(true);
 
         const hasNewFile = !!form.profile_picture;
@@ -322,6 +334,7 @@ export default function EditConsultantBL() {
                                     type="date"
                                     value={form.dob}
                                     onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                    max={todayISO}
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
                             </div>

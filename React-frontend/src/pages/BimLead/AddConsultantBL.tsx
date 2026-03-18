@@ -82,6 +82,7 @@ export default function AddConsultantBL() {
     address: '',
     profile_picture: null as File | null,
   });
+  const todayISO = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
@@ -117,6 +118,17 @@ export default function AddConsultantBL() {
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
       setAddError('Name, email and password are required.');
       return;
+    }
+
+    if (form.dob) {
+      const today = new Date();
+      const dobDate = new Date(form.dob);
+      today.setHours(0, 0, 0, 0);
+      dobDate.setHours(0, 0, 0, 0);
+      if (dobDate > today) {
+        setAddError('Date of birth cannot be in the future.');
+        return;
+      }
     }
     setAddSubmitting(true);
 
@@ -241,6 +253,7 @@ export default function AddConsultantBL() {
                   type="date"
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  max={todayISO}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>

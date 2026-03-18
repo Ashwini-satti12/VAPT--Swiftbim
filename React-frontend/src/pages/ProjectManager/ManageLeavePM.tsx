@@ -240,7 +240,7 @@ export default function ManageLeavePM() {
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
                     role: app.role || undefined,
-                    leaveType: app.title || 'Others',
+                    leaveType: formatApiDate(app.leave_type) || 'Others',
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -653,12 +653,7 @@ export default function ManageLeavePM() {
                         </div>
                         <div className="px-6 py-6">
                             <div className="space-y-4">
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
+                               <div className="flex items-start gap-2">
                                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
                                     <span className="shrink-0 text-[#616161]">:</span>
                                     <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>

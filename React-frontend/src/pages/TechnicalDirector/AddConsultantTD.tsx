@@ -83,6 +83,7 @@ export default function AddConsultantTD() {
     profile_picture: null as File | null,
   });
   const [countryCode, setCountryCode] = useState('+91');
+  const todayISO = new Date().toISOString().split('T')[0];
 
   const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971'];
 
@@ -281,6 +282,7 @@ export default function AddConsultantTD() {
                   type="date"
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  max={todayISO}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>

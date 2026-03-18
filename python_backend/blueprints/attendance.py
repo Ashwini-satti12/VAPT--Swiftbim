@@ -22,7 +22,11 @@ def attendance_tracker():
     - Status (Online / Offline)
     """
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
+
+    # Optional role filter (comma-separated), e.g. roles=BIM Coordinator,BIM Modeler
+    roles_param = (request.args.get("roles") or "").strip()
+    roles_filter = [r.strip() for r in roles_param.split(",") if r.strip()] if roles_param else []
 
     # Optional date filter from query string (YYYY-MM-DD)
     date_param = (request.args.get("date") or "").strip()
@@ -41,7 +45,7 @@ def attendance_tracker():
     if date_filter:
         cur.execute(
             """
-            SELECT a.*, e.full_name, e.status AS employee_status
+            SELECT a.*, e.full_name, e.status AS employee_status, e.id AS employee_db_id
             FROM attendance a
             JOIN employee e ON a.employee_id = e.email
             WHERE a.Company_id = %s AND a.date = %s
@@ -52,7 +56,7 @@ def attendance_tracker():
     else:
         cur.execute(
             """
-            SELECT a.*, e.full_name, e.status AS employee_status
+            SELECT a.*, e.full_name, e.status AS employee_status, e.id AS employee_db_id
             FROM attendance a
             JOIN employee e ON a.employee_id = e.email
             WHERE a.Company_id = %s
@@ -61,11 +65,40 @@ def attendance_tracker():
             (g.company_id,),
         )
 
+    # Apply role filter in-memory (safe, avoids dynamic SQL on legacy schemas)
+    # Cached per employee email to avoid N+1 queries.
+    role_cache = {}
+
     rows = cur.fetchall()
     records = []
 
+    # If we're looking at today's data and employee is Offline but time_out is still NULL,
+    # auto-close the attendance row so tracker always shows the time out and total hours.
+    today_ddmmyyyy = datetime.now().strftime("%d-%m-%Y")
+    should_autoclose = bool(date_filter and date_filter == today_ddmmyyyy)
+
     for r in rows:
         d = dict(r)
+        if roles_filter:
+            # we need employee role; fetch once per unique email if requested
+            try:
+                emp_email = d.get("employee_id")
+                if emp_email:
+                    if emp_email in role_cache:
+                        role = role_cache[emp_email]
+                    else:
+                        cur2 = conn.cursor(dictionary=True)
+                        cur2.execute(
+                            "SELECT user_role FROM employee WHERE email = %s AND Company_id = %s",
+                            (emp_email, g.company_id),
+                        )
+                        erow = cur2.fetchone() or {}
+                        role = (erow.get("user_role") or "").strip()
+                        role_cache[emp_email] = role
+                    if role not in roles_filter:
+                        continue
+            except Exception:
+                continue
 
         # --- Date ---
         raw_date = d.get("date")
@@ -118,10 +151,41 @@ def attendance_tracker():
         if raw_status is not None and str(raw_status).strip() != "":
             status = str(raw_status).strip()
 
+        if should_autoclose:
+            try:
+                is_offline = (status or "").strip().lower() == "offline"
+                if is_offline and not time_out and time_in and d.get("id"):
+                    now_time = datetime.now().strftime("%H:%M:%S")
+                    total_hms = None
+                    try:
+                        t_in = datetime.strptime(str(time_in).strip(), "%H:%M:%S")
+                        t_out = datetime.strptime(now_time, "%H:%M:%S")
+                        sec = int((t_out - t_in).total_seconds())
+                        if sec < 0:
+                            sec = 0
+                        h = sec // 3600
+                        m = (sec % 3600) // 60
+                        s = sec % 60
+                        total_hms = f"{h:02d}:{m:02d}:{s:02d}"
+                    except Exception:
+                        total_hms = None
+
+                    cur.execute(
+                        "UPDATE attendance SET time_out = %s, total_hours = %s WHERE id = %s AND Company_id = %s",
+                        (now_time, total_hms, int(d.get("id")), g.company_id),
+                    )
+                    conn.commit()
+                    time_out = now_time
+                    if total_hms is not None:
+                        total_hours = total_hms
+            except Exception:
+                pass
+
         records.append(
             {
                 "id": d.get("id"),
                 "employee_id": d.get("employee_id"),
+                "employee_db_id": d.get("employee_db_id"),
                 "full_name": d.get("full_name"),
                 "date": date_str or None,
                 "date_iso": date_iso,

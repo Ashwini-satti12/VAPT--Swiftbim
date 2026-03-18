@@ -4,6 +4,7 @@ import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface LocationEntry {
     id: number;
+    employee_db_id?: number | null;
     full_name?: string;
     /** Original attendance date string (d-m-Y or Y-m-d) */
     date?: string | null;
@@ -151,7 +152,9 @@ export default function TrackerTD() {
     useEffect(() => {
         api
             // Ask backend for today's attendance only (backend expects YYYY-MM-DD)
-            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker', { params: { date: todayIso } })
+            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker', {
+                params: { date: todayIso, roles: 'BIM Coordinator,BIM Modeler,BIM Moduler' },
+            })
             .then(({ data }) => {
                 const records = (data.records ?? []).map((item) => ({
                     ...item,
@@ -186,6 +189,18 @@ export default function TrackerTD() {
                     return Number.isNaN(d.getTime()) ? null : d;
                 };
 
+                const parseTimeOnly = (raw: any): string | null => {
+                    if (!raw) return null;
+                    const s = String(raw).trim();
+                    if (!s) return null;
+                    // accept "HH:MM" or "HH:MM:SS"
+                    if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(s)) {
+                        const [hh, mm, ss] = s.split(':');
+                        return `${String(hh).padStart(2, '0')}:${mm}:${ss ?? '00'}`;
+                    }
+                    return null;
+                };
+
                 const sameDay = (d: Date) => {
                     const y = d.getFullYear();
                     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -203,31 +218,64 @@ export default function TrackerTD() {
                     const status = String(t.status || '').toLowerCase();
                     if (status === 'completed') return;
 
+                    const assignedIdRaw = (t as any).assigned_to ?? (t as any).assignedTo ?? (t as any).assigned_to_id;
+                    const assignedKey =
+                        assignedIdRaw != null && String(assignedIdRaw).trim() !== ''
+                            ? String(assignedIdRaw)
+                            : '';
                     const name = (t.assigned_full_name || '').trim();
-                    if (!name) return;
+                    if (!assignedKey && !name) return;
 
-                    // Determine task window
-                    const start =
-                        parseDateTime(t.start_time) ||
-                        parseDateTime(t.Actual_start_time) ||
-                        parseDateTime(t.due_date);
-                    const end = parseDateTime(t.end_time) || parseDateTime(t.endTime) || null;
+                    // Determine task window.
+                    // Prefer explicit datetime columns; otherwise use preferred time window on the selected date.
+                    const preferStartTime =
+                        parseTimeOnly((t as any).perferstart_time) ||
+                        parseTimeOnly((t as any).prefer_start_time) ||
+                        parseTimeOnly((t as any).startTime);
+                    const preferEndTime =
+                        parseTimeOnly((t as any).perferend_time) ||
+                        parseTimeOnly((t as any).prefer_end_time) ||
+                        parseTimeOnly((t as any).dueTime);
+
+                    let start =
+                        parseDateTime((t as any).start_time) ||
+                        parseDateTime((t as any).Actual_start_time) ||
+                        parseDateTime((t as any).due_date);
+                    let end =
+                        parseDateTime((t as any).end_time) ||
+                        parseDateTime((t as any).endTime) ||
+                        null;
+
+                    // If we only have preferred time(s), build start/end within today's date
+                    if (!start && preferStartTime) start = new Date(`${targetDate}T${preferStartTime}`);
+                    if (!end && preferEndTime) end = new Date(`${targetDate}T${preferEndTime}`);
 
                     if (!start) return;
                     if (!sameDay(start)) return;
 
                     // If no selected time, treat any task on today as busy
                     if (!selectedDt) {
-                        busy[name] = true;
+                        if (assignedKey) busy[assignedKey] = true;
+                        if (name) busy[name] = true; // fallback
                         return;
                     }
 
                     // If end exists, check overlap; otherwise assume busy from start time onward for today
                     if (end && !Number.isNaN(end.getTime())) {
-                        if (selectedDt >= start && selectedDt <= end) busy[name] = true;
+                        // If preferred end is before start (bad data), treat as start-only
+                        if (end < start) end = null;
+                    }
+                    if (end && !Number.isNaN(end.getTime())) {
+                        if (selectedDt >= start && selectedDt <= end) {
+                            if (assignedKey) busy[assignedKey] = true;
+                            if (name) busy[name] = true;
+                        }
                     } else {
                         // start-only: busy if selected time is after start (same day)
-                        if (selectedDt >= start) busy[name] = true;
+                        if (selectedDt >= start) {
+                            if (assignedKey) busy[assignedKey] = true;
+                            if (name) busy[name] = true;
+                        }
                     }
                 });
 
@@ -278,7 +326,9 @@ export default function TrackerTD() {
 
         if (selectedStatus) {
             const name = (item.full_name || '').trim();
-            const status = name && busyMap[name] ? 'Busy' : 'Available';
+            const entryKey = item.employee_db_id != null ? String(item.employee_db_id) : name;
+            const status =
+                (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
             matchesStatus = status === selectedStatus;
         }
 
@@ -306,7 +356,9 @@ export default function TrackerTD() {
             const totalHours = formatTotalHours(loc.total_hours, rawTimeIn, rawTimeOut);
 
             const name = (loc.full_name || '').trim();
-            const statusLabel = name && busyMap[name] ? 'Busy' : 'Available';
+            const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
+            const statusLabel =
+                (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
 
             return [
                 slNo,
@@ -529,7 +581,9 @@ export default function TrackerTD() {
 
                                                 {(() => {
                                                     const name = (loc.full_name || '').trim();
-                                                    const statusLabel = name && busyMap[name] ? 'Busy' : 'Available';
+                                                    const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
+                                                    const statusLabel =
+                                                        (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
                                                     const colorClass =
                                                         statusLabel === 'Busy'
                                                             ? 'bg-[#FCE8E8] text-[#D93025]'

@@ -153,6 +153,7 @@ export default function ConsultantBC() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Deactive'>('All');
+    const todayISO = new Date().toISOString().split('T')[0];
 
     const canAdd = user?.panel_type === 1;
 
@@ -299,6 +300,18 @@ export default function ConsultantBC() {
         setEditSubmitting(true);
         setEditError('');
 
+        if (editForm.dob) {
+            const today = new Date();
+            const dobDate = new Date(editForm.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setEditSubmitting(false);
+                setEditError('Date of birth cannot be in the future.');
+                return;
+            }
+        }
+
         const hasNewFile = !!editForm.profile_picture;
 
         // If user selected a new profile picture, send multipart/form-data
@@ -434,6 +447,17 @@ export default function ConsultantBC() {
         if (!form.full_name.trim() || !form.email.trim() || !form.password) {
             setAddError('Name, email and password are required.');
             return;
+        }
+
+        if (form.dob) {
+            const today = new Date();
+            const dobDate = new Date(form.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setAddError('Date of birth cannot be in the future.');
+                return;
+            }
         }
         setAddSubmitting(true);
 
@@ -1001,6 +1025,7 @@ export default function ConsultantBC() {
                                             type="date"
                                             value={form.dob}
                                             onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
                                         />
                                     </div>
@@ -1359,6 +1384,7 @@ export default function ConsultantBC() {
                                             type="date"
                                             value={editForm.dob}
                                             onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
                                         />
                                     </div>
