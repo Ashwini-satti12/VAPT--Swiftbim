@@ -128,6 +128,19 @@ export default function ViewProposalTD() {
                             )}
                         </div>
 
+                        {proposal.reason && (
+                            <div className="mb-8">
+                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
+                                    Vendor Note / Request
+                                </h2>
+                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4">
+                                    <p className="text-[15px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">
+                                        {proposal.reason}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 1. Executive Summary */}
                         {proposal.executive_summary && (
                             <div className="mb-8">

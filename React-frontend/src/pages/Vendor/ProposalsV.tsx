@@ -80,6 +80,7 @@ export default function ProposalsV() {
         if (s === 'accepted') return 'bg-[#E6F4EA] text-[#1E7E34]';
         if (s === 'rejected') return 'bg-[#FFF1F2] text-[#BE123C]';
         if (s === 'clarification_requested') return 'bg-[#EAF0FB] text-[#1967D2]';
+        if (s === 'expired') return 'bg-[#F2F2F2] text-[#616161]';
         return 'bg-[#F2F2F2] text-[#616161]';
     };
 
@@ -90,6 +91,7 @@ export default function ProposalsV() {
         if (s === 'accepted') return 'Accepted';
         if (s === 'rejected') return 'Rejected';
         if (s === 'clarification_requested') return 'Clarification';
+        if (s === 'expired') return 'Expired';
         return status || 'Unknown';
     };
 
@@ -129,7 +131,9 @@ export default function ProposalsV() {
         const techs = safeParse(selected.technologies_used);
         const commercials = safeParse(selected.commercial_offer);
         const payments = safeParse(selected.payment_terms);
-        const isPending = (selected.status || '').toLowerCase() === 'sent' || (selected.status || '').toLowerCase() === 'pending';
+        const statusLower = (selected.status || '').toLowerCase();
+        const isPending = statusLower === 'sent' || statusLower === 'pending';
+        const isExpired = statusLower === 'expired';
         const currencyLabel = selected.selected_currency || selected.currency || 'AED';
 
         return (
@@ -363,8 +367,8 @@ export default function ProposalsV() {
                             </div>
                         )}
 
-                        {/* Action Buttons for pending proposals */}
-                        {isPending && (
+                        {/* Action Buttons for pending proposals (disabled after expiry) */}
+                        {isPending && !isExpired && (
                             <div className="pt-8 space-y-4">
                                 <div className="flex flex-row flex-wrap gap-3 items-center justify-center">
                                     <button
@@ -444,6 +448,11 @@ export default function ProposalsV() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+                        {isExpired && (
+                            <div className="pt-8 text-center text-sm font-semibold text-[#616161]">
+                                This proposal has expired (no response within 2 days).
                             </div>
                         )}
                 </div>
