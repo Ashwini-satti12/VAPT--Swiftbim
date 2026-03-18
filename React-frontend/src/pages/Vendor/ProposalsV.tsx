@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import addressIcon from '../../assets/TechnicalDirector/Vector.svg';
+import websiteIcon from '../../assets/TechnicalDirector/world-wide-web 1.svg';
+import emailIcon from '../../assets/TechnicalDirector/mail icon.svg';
 
 type Proposal = {
     id: number;
@@ -52,6 +56,9 @@ export default function ProposalsV() {
     const [clarNote, setClarNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+    /** Reject / Request panels: textarea shown only after clicking the action button */
+    const [showRejectInput, setShowRejectInput] = useState(false);
+    const [showRequestInput, setShowRequestInput] = useState(false);
 
     const fetchProposals = () => {
         api.get<{ proposals: Proposal[] }>('/api/vendors/proposals')
@@ -91,10 +98,18 @@ export default function ProposalsV() {
         try {
             const reason = action === 'reject' ? rejectReason : action === 'clarification' ? clarNote : '';
             await api.post(`/api/vendors/proposals/${proposalId}/respond`, { action, reason });
-            setSuccessMsg(`Proposal ${action === 'accept' ? 'accepted — project created!' : action === 'reject' ? 'rejected' : 'clarification requested'} successfully!`);
+            if (action === 'accept') {
+                setSuccessMsg('Successfully accepted');
+            } else if (action === 'reject') {
+                setSuccessMsg('Proposal rejected successfully.');
+            } else {
+                setSuccessMsg('Clarification request sent successfully.');
+            }
             setSelected(null);
             setRejectReason('');
             setClarNote('');
+            setShowRejectInput(false);
+            setShowRequestInput(false);
             fetchProposals();
             if (action === 'accept') {
                 setTimeout(() => navigate('/v/projects'), 1500);
@@ -118,80 +133,111 @@ export default function ProposalsV() {
         const currencyLabel = selected.selected_currency || selected.currency || 'AED';
 
         return (
-            <div className="flex flex-col h-full bg-white">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 flex-shrink-0 border-b border-gray-100">
-                    <div className="flex items-center gap-4">
-                        <button onClick={() => { setSelected(null); setRejectReason(''); setClarNote(''); }}
-                            className="p-2.5 rounded-xl bg-[#F2F2F2] hover:bg-slate-200 transition-colors">
-                            <svg className="w-5 h-5 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-                        </button>
-                        <h2 className="text-xl font-semibold text-[#020202] font-gantari">View Proposal</h2>
+            <div className="w-full min-w-0 px-0 pt-1 pb-6 space-y-8 flex flex-col min-h-full bg-white font-gantari relative overflow-y-auto custom-scrollbar">
+                {successMsg && (
+                    <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+                        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{successMsg}</span>
                     </div>
-                    <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(selected.status)}`}>
+                )}
+                {/* Page header — aligned with CreateProposalTD */}
+                <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full flex-shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => { setSelected(null); setRejectReason(''); setClarNote(''); setShowRejectInput(false); setShowRequestInput(false); }}
+                        className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:opacity-90"
+                        title="Back to proposals"
+                    >
+                        <img src={backIcon} alt="" className="w-5 h-5" />
+                    </button>
+                    <h1 className="text-2xl font-semibold text-[#000000]">View Proposal</h1>
+                    <span className={`inline-flex items-center justify-center px-3 py-1.5 rounded-md text-xs font-bold min-w-[4.5rem] ${getStatusBadge(selected.status)}`}>
                         {getStatusLabel(selected.status)}
                     </span>
                 </div>
 
-                {/* Scrollable content inside white container */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-6">
-                    <div className="bg-white border border-[rgb(89,89,89)]/20 rounded-xl shadow-sm p-8 w-full space-y-0">
-
-                        {/* Project Header */}
-                        <div className="mb-8">
-                            <h1 className="font-gantari font-semibold text-xl text-[#020202] text-center mb-6">
-                                {selected.project_name || `Proposal #${selected.id}`}
-                            </h1>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6 bg-[#F9FAFB] rounded-lg p-5">
-                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Vendor</span><span className="text-[#020202] text-sm font-bold font-gantari">{selected.vendor_name || '—'}</span></div>
-                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Currency</span><span className="text-[#020202] text-sm font-bold font-gantari">{currencyLabel}</span></div>
-                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Email</span><span className="text-[#020202] text-sm font-bold font-gantari">{selected.email_address || '—'}</span></div>
-                                <div><span className="text-[#8B8B8B] block text-xs font-semibold font-gantari mb-1">Received On</span><span className="text-[#020202] text-sm font-bold font-gantari">{formatDate(selected.created_at)}</span></div>
-                            </div>
+                <div className="flex-1 space-y-10 px-4 sm:px-6 lg:px-8 w-full min-w-0">
+                    {/* Summary banner — CreateProposalTD-style */}
+                    <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
+                        <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Project Name</p>
+                            <p className="font-semibold text-[#616161] text-base truncate text-center uppercase tracking-wide">{selected.project_name || `Proposal #${selected.id}`}</p>
                         </div>
+                        <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Vendor Name</p>
+                            <p className="font-semibold text-[#616161] text-base truncate text-center">{selected.vendor_name || '—'}</p>
+                        </div>
+                        <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Currency</p>
+                            <p className="font-semibold text-[#616161] text-base text-center">{currencyLabel}</p>
+                        </div>
+                        <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Email</p>
+                            <p className="font-semibold text-[#616161] text-base truncate text-center">{selected.email_address || '—'}</p>
+                        </div>
+                        <div className="flex-1 min-w-[140px] px-6 sm:px-2 last:border-r-0 sm:border-r-0">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Received On</p>
+                            <p className="font-semibold text-[#616161] text-base text-center">{formatDate(selected.created_at)}</p>
+                        </div>
+                    </div>
 
                         {/* 1. Executive Summary */}
                         {selected.executive_summary && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    1. Executive Summary
-                                </h2>
-                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4">
-                                    <p className="text-[15px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.executive_summary)}</p>
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">1. Executive Summary</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-transparent">
+                                    <p className="text-base text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.executive_summary)}</p>
                                 </div>
                             </div>
                         )}
 
                         {/* 2. About Us */}
                         {selected.about_us && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    2. About Us
-                                </h2>
-                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4">
-                                    <p className="text-[15px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.about_us)}</p>
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">2. About Us</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3">
+                                    <p className="text-base text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.about_us)}</p>
                                 </div>
                                 {(selected.address || selected.website_url || selected.email_address) && (
-                                    <div className="mt-4 space-y-3 pl-4 border-l-2 border-gray-200">
-                                        <h3 className="font-gantari font-semibold text-[#020202] text-sm">Our Location:</h3>
+                                    <div className="space-y-4 pt-2 w-full">
                                         {selected.address && (
-                                            <div className="flex items-start gap-3">
-                                                <span className="mt-0.5 min-w-[20px] text-center">📍</span>
-                                                <span className="text-[15px] text-[#353535] font-gantari">{selected.address}</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                                    <img src={addressIcon} alt="" className="w-5 h-5" />
+                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                        <span>Address</span>
+                                                        <span>:</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[#616161] font-medium text-base flex-1">{selected.address}</span>
                                             </div>
                                         )}
                                         {selected.website_url && (
-                                            <div className="flex items-center gap-3">
-                                                <span className="min-w-[20px] text-center">🌐</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                                    <img src={websiteIcon} alt="" className="w-5 h-5" />
+                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                        <span>Website</span>
+                                                        <span>:</span>
+                                                    </div>
+                                                </div>
                                                 <a href={selected.website_url.startsWith('http') ? selected.website_url : `https://${selected.website_url}`}
                                                     target="_blank" rel="noopener noreferrer"
-                                                    className="text-[15px] text-[#1967D2] font-gantari font-medium hover:underline">{selected.website_url}</a>
+                                                    className="text-[#1967D2] font-medium hover:underline text-base flex-1 truncate">{selected.website_url}</a>
                                             </div>
                                         )}
                                         {selected.email_address && (
-                                            <div className="flex items-center gap-3">
-                                                <span className="min-w-[20px] text-center">✉️</span>
-                                                <span className="text-[15px] text-[#353535] font-gantari">{selected.email_address}</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex items-center gap-3 min-w-[140px] shrink-0">
+                                                    <img src={emailIcon} alt="" className="w-5 h-5" />
+                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                        <span>Email</span>
+                                                        <span>:</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[#616161] font-medium text-base flex-1">{selected.email_address}</span>
                                             </div>
                                         )}
                                     </div>
@@ -201,26 +247,22 @@ export default function ProposalsV() {
 
                         {/* 3. Scope of Work */}
                         {selected.scope_of_work && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    3. Scope of Work
-                                </h2>
-                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">3. Scope of Work</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.scope_of_work }} />
                             </div>
                         )}
 
                         {/* Technology Table */}
                         {techs.length > 0 && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    Technology to be Used
-                                </h2>
-                                <div className="bg-gray-100 rounded-md overflow-hidden border border-gray-200">
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">Technology to be Used</h2>
+                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="bg-[#F2F2F2]">
-                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-gray-700 text-sm">S.No</th>
+                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-gray-700 text-sm">Sl.No</th>
                                                 <th className="px-4 py-3 text-left font-gantari font-bold text-gray-700 text-sm">Software</th>
                                             </tr>
                                         </thead>
@@ -243,37 +285,31 @@ export default function ProposalsV() {
 
                         {/* 4. Deliverables */}
                         {selected.deliverables && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    4. Deliverables
-                                </h2>
-                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">4. Deliverables</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.deliverables }} />
                             </div>
                         )}
 
                         {/* 5.1 Exclusions */}
                         {selected.exclusions && stripHtml(selected.exclusions) && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    5.1 Exclusions
-                                </h2>
-                                <div className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">5. Exclusions</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.exclusions }} />
                             </div>
                         )}
 
                         {/* 6. Commercial Offer */}
                         {commercials.length > 0 && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    6. Commercial Offer
-                                </h2>
-                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-gray-200">
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">6. Commercial Offer</h2>
+                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="bg-[#F2F2F2]">
-                                                <th className="px-6 py-3 text-left w-16 font-gantari font-semibold text-[#020202] text-sm">S.No</th>
+                                                <th className="px-6 py-3 text-left w-16 font-gantari font-semibold text-[#020202] text-sm">Sl.No</th>
                                                 <th className="px-6 py-3 text-left font-gantari font-semibold text-[#020202] text-sm">Milestone</th>
                                                 <th className="px-6 py-3 text-center w-36 font-gantari font-semibold text-[#020202] text-sm">Duration</th>
                                                 <th className="px-6 py-3 text-center w-36 font-gantari font-semibold text-[#020202] text-sm">Resources</th>
@@ -300,15 +336,13 @@ export default function ProposalsV() {
 
                         {/* 6.1 Payment Terms */}
                         {payments.length > 0 && (
-                            <div className="mb-8">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-3">
-                                    6.1 Payment Terms
-                                </h2>
-                                <div className="bg-gray-100 rounded-md overflow-hidden border border-gray-200">
+                            <div className="space-y-4">
+                                <h2 className="font-bold text-lg text-[#020202]">6. Payment Terms</h2>
+                                <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="bg-[#F2F2F2] border-b">
-                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-sm">S.No</th>
+                                            <tr className="bg-[#F2F2F2] border-b border-[#AEACAC52]">
+                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-sm">Sl.No</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Payment Basis</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Terms</th>
                                                 <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Timeline (Weeks)</th>
@@ -331,38 +365,87 @@ export default function ProposalsV() {
 
                         {/* Action Buttons for pending proposals */}
                         {isPending && (
-                            <div className="pt-6 border-t border-gray-100 space-y-4">
-                                <h2 className="font-gantari font-bold text-lg text-[#020202] mb-2">Respond to Proposal</h2>
-                                <div className="flex items-center justify-center gap-4">
-                                    <button disabled={submitting} onClick={() => handleAction(selected.id, 'accept')}
-                                        className="flex-1 max-w-xs py-3 bg-[#22C55E] text-white rounded-md font-bold font-gantari text-sm hover:bg-[#16A34A] transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                                        Accept Proposal
+                            <div className="pt-8 space-y-4">
+                                <div className="flex flex-row flex-wrap gap-3 items-center justify-center">
+                                    <button
+                                        type="button"
+                                        disabled={submitting}
+                                        onClick={() => handleAction(selected.id, 'accept')}
+                                        className="shrink-0 w-[100px] sm:w-[112px] py-2.5 px-3 rounded-md border border-[#AEACAC52] bg-[#E1F6EB] text-[#008F22] font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+                                    >
+                                        Accept
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={submitting}
+                                        onClick={() => { setShowRejectInput(true); setShowRequestInput(false); }}
+                                        className={`shrink-0 w-[100px] sm:w-[112px] py-2.5 px-3 rounded-md font-semibold text-sm transition-colors disabled:opacity-60 ${showRejectInput ? 'border-2 border-[#DD4342] bg-[#FFF2F2] text-[#DD4342]' : 'border border-[#AEACAC52] bg-[#FFF2F2] text-[#DD4342] hover:opacity-90'}`}
+                                    >
+                                        Reject
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={submitting}
+                                        onClick={() => { setShowRequestInput(true); setShowRejectInput(false); }}
+                                        className={`shrink-0 w-[100px] sm:w-[112px] py-2.5 px-3 rounded-md font-semibold text-sm transition-colors disabled:opacity-60 ${showRequestInput ? 'border-2 border-[#1967D2] bg-[#DBEAFE] text-[#1D4ED8]' : 'border border-[#AEACAC52] bg-[#DBEAFE] text-[#1967D2] hover:opacity-90'}`}
+                                    >
+                                        Request
                                     </button>
                                 </div>
 
-                                <div className="border border-[#FCA5A5] rounded-xl p-5">
-                                    <p className="text-sm font-bold font-gantari text-[#020202] mb-3">Reject Proposal</p>
-                                    <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="Reason for rejection (optional)..." rows={2}
-                                        className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-sm placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] mb-3" />
-                                    <button disabled={submitting} onClick={() => handleAction(selected.id, 'reject')}
-                                        className="bg-[#F2F2F2] hover:bg-[#FFE5E5] text-[#DE3D3A] font-gantari font-medium px-6 py-2 rounded-md transition-colors focus:outline-none text-sm">
-                                        ✕ Reject
-                                    </button>
-                                </div>
+                                {showRejectInput && (
+                                    <div className="w-full border border-[#AEACAC52] rounded-md p-5 bg-white">
+                                        <p className="text-sm font-bold text-[#020202] mb-3">Reject Proposal</p>
+                                        <textarea
+                                            value={rejectReason}
+                                            onChange={(e) => setRejectReason(e.target.value)}
+                                            placeholder="Reason for rejection (optional)..."
+                                            rows={3}
+                                            className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] mb-3"
+                                        />
+                                        <div className="flex justify-center w-full">
+                                            <button
+                                                type="button"
+                                                disabled={submitting}
+                                                onClick={() => handleAction(selected.id, 'reject')}
+                                                className="inline-flex items-center justify-center gap-2 bg-[#DD4342] text-white hover:opacity-90 font-semibold px-8 py-2.5 rounded-lg transition-all text-sm disabled:opacity-60 min-w-[140px]"
+                                            >
+                                                {submitting ? (
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : null}
+                                                Reject
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
-                                <div className="border border-[#BFDBFE] rounded-xl p-5">
-                                    <p className="text-sm font-bold font-gantari text-[#020202] mb-3">Request Clarification</p>
-                                    <textarea value={clarNote} onChange={e => setClarNote(e.target.value)} placeholder="What do you need clarified?..." rows={2}
-                                        className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-sm placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] mb-3" />
-                                    <button disabled={submitting} onClick={() => handleAction(selected.id, 'clarification')}
-                                        className="bg-[#F2F2F2] hover:bg-[#EFF6FF] text-[#1D4ED8] font-gantari font-medium px-6 py-2 rounded-md transition-colors focus:outline-none text-sm">
-                                        💬 Request Clarification
-                                    </button>
-                                </div>
+                                {showRequestInput && (
+                                    <div className="w-full border border-[#AEACAC52] rounded-md p-5 bg-white">
+                                        <p className="text-sm font-bold text-[#020202] mb-3">Request Clarification</p>
+                                        <textarea
+                                            value={clarNote}
+                                            onChange={(e) => setClarNote(e.target.value)}
+                                            placeholder="Enter your reason or what you need clarified..."
+                                            rows={3}
+                                            className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] mb-3"
+                                        />
+                                        <div className="flex justify-center w-full">
+                                            <button
+                                                type="button"
+                                                disabled={submitting}
+                                                onClick={() => handleAction(selected.id, 'clarification')}
+                                                className="inline-flex items-center justify-center gap-2 bg-[#DD4342] text-white hover:opacity-90 font-semibold px-8 py-2.5 rounded-lg transition-all text-sm disabled:opacity-60 min-w-[140px]"
+                                            >
+                                                {submitting ? (
+                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : null}
+                                                Send request
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
-                    </div>
                 </div>
             </div>
         );
@@ -457,7 +540,7 @@ export default function ProposalsV() {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <button onClick={() => { setSelected(proposal); setRejectReason(''); setClarNote(''); }}
+                                                <button onClick={() => { setSelected(proposal); setRejectReason(''); setClarNote(''); setShowRejectInput(false); setShowRequestInput(false); }}
                                                     className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100 transition-all">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

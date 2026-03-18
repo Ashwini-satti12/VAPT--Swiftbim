@@ -3,7 +3,8 @@ import api from "../../lib/api";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { FaCircleDollarToSlot } from "react-icons/fa6";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 
@@ -211,6 +212,9 @@ export default function ProjectsV() {
         const emp = allEmployees.find(e => e.id === Number(id));
         return emp?.full_name || "";
     };
+
+    const getMemberForAvatar = (id: number): Employee | undefined =>
+        vendorResourceProfiles.find((r) => r.id === id) || allEmployees.find((e) => e.id === id);
 
     const formatDate = (d: string | undefined) => {
         if (!d) return "—";
@@ -1088,66 +1092,134 @@ export default function ProjectsV() {
                                     list.map(p => {
                                         const progress = Math.round(Number(p.progress) || 0);
                                         const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
-                                        const rad = 28;
-                                        const circ = 2 * Math.PI * rad;
+                                        const radius = 28;
+                                        const circumference = 2 * Math.PI * radius;
+                                        const strokeOffset = circumference - (progress / 100) * circumference;
+                                        const isHighPri =
+                                            (p.priority || "").toLowerCase() === "high" ||
+                                            (p.priority || "").toLowerCase() === "urgent";
                                         return (
-                                            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between">
+                                            <div
+                                                key={p.id}
+                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 min-h-[220px]"
+                                            >
                                                 <div>
-                                                    <div className="flex justify-between items-start mb-6">
-                                                        <h3 className="text-[20px] font-semibold text-[#353535] leading-tight">{p.project_name ?? "Untitled"}</h3>
-                                                        <div className="relative">
-                                                            <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full">
-                                                                <img src={Dot} alt="" className="w-6 h-6" />
-                                                            </button>
-                                                            <div className={`absolute -right-40 w-50 bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] z-20 transition-all ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible"}`}>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><VscEye /> View</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><BiEdit /> Edit</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><FaCircleDollarToSlot /> Milestones</button>
-                                                                <button onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-2.5 hover:text-[#DD4342] font-semibold text-[#6B6B6B] text-sm"><RiDeleteBin5Fill /> Delete</button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-6 mt-4 mb-8">
-                                                        <div className="relative flex items-center justify-center w-20 h-20">
-                                                            <svg className="w-full h-full transform -rotate-90">
-                                                                <circle cx="40" cy="40" r={rad} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                                                <circle cx="40" cy="40" r={rad} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                                                    strokeDasharray={circ} strokeDashoffset={circ - (progress / 100) * circ} strokeLinecap="round" />
+                                                    <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                                                        <div className="relative flex items-center justify-center shrink-0">
+                                                            <svg className="w-20 h-20 transform -rotate-90">
+                                                                <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                                <circle
+                                                                    cx="40"
+                                                                    cy="40"
+                                                                    r={radius}
+                                                                    stroke="#0a9344"
+                                                                    strokeWidth="6"
+                                                                    fill="transparent"
+                                                                    strokeDasharray={circumference}
+                                                                    strokeDashoffset={strokeOffset}
+                                                                    strokeLinecap="round"
+                                                                    style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                                                                />
                                                             </svg>
-                                                            <span className="absolute font-bold">{progress}%</span>
+                                                            <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                                {progress}%
+                                                            </span>
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between mb-2">
-                                                                <span className="text-[15px] font-bold text-[#8B8B8B]">Progress</span>
-                                                                <span className="text-[15px] font-bold">{progress}%</span>
-                                                            </div>
-                                                            <div className="h-2 w-full bg-[#F1F4F9] rounded-full overflow-hidden">
-                                                                <div className="h-full bg-[#0a9344]" style={{ width: `${progress}%` }}></div>
-                                                            </div>
+                                                        <div className="relative shrink-0 project-menu-container">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id))}
+                                                            className="p-2 rounded-full border border-slate-800/80 text-[#353535] hover:bg-slate-50 transition-colors"
+                                                            aria-label="More actions"
+                                                        >
+                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
+                                                            </svg>
+                                                        </button>
+                                                        <div
+                                                            className={`absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-[#E5E5E5] shadow-lg z-30 py-1 overflow-hidden transition-all ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                            >
+                                                                <VscEye /> View
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                            >
+                                                                <BiEdit /> Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                            >
+                                                                <FaCircleDollarToSlot /> Milestones
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
+                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                            >
+                                                                <RiDeleteBin5Fill /> Delete
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="border-t border-[#F1F1F1] pt-5 mt-auto flex items-center justify-between">
-                                                    <div className="flex -space-x-4">
-                                                        {memberIds.slice(0, 3).map(id => (
-                                                            <div key={id} className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
-                                                                {(getEmployeeName(id) || "?")[0]}
-                                                            </div>
-                                                        ))}
-                                                        {memberIds.length > 3 && (
-                                                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">
-                                                                +{memberIds.length - 3}
-                                                            </div>
+
+                                                    <div className="mb-4 px-2 -mt-1 text-center">
+                                                        <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] uppercase tracking-wide leading-tight line-clamp-3">
+                                                            {p.project_name ?? "Untitled"}
+                                                        </h3>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto gap-3">
+                                                    <div className="flex -space-x-4 min-w-0">
+                                                        {memberIds.length === 0 ? (
+                                                            <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                        ) : (
+                                                            <>
+                                                                {memberIds.slice(0, 3).map((id) => {
+                                                                    const emp = getMemberForAvatar(id);
+                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                                    return (
+                                                                        <div
+                                                                            key={id}
+                                                                            className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0"
+                                                                        >
+                                                                            {url ? (
+                                                                                <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                            ) : (
+                                                                                <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
+                                                                                    {(getEmployeeName(id) || "?")[0]?.toUpperCase()}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                {memberIds.length > 3 && (
+                                                                    <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-[#1967D2] bg-white flex items-center justify-center text-[11px] font-bold text-[#1967D2] shrink-0">
+                                                                        +{memberIds.length - 3}
+                                                                    </div>
+                                                                )}
+                                                            </>
                                                         )}
                                                     </div>
-                                                    {p.priority && (
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.priority === "High" || p.priority === "Urgent" ? "bg-[#FFF1F2] text-[#BE123C]" : p.priority === "Medium" ? "bg-[#FFF8E7] text-[#92400E]" : "bg-[#E6F4EA] text-[#1E7E34]"}`}>
+                                                    {p.priority ? (
+                                                        <div
+                                                            className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm shrink-0 ${isHighPri ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}
+                                                        >
                                                             {p.priority}
-                                                        </span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-sky-700 text-lg font-bold font-Gantari shrink-0">
+                                                            —
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>
