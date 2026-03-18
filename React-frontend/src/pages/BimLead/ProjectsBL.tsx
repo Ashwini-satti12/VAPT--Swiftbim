@@ -1088,44 +1088,33 @@ export default function ProjectsBL() {
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                      Required Resources
+                      Project Document
                     </span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">
-                      :
-                    </span>
-                    <span className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#666666]">
-                      {selectedProjectForView.required_resources || "N/A"}
-                    </span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <div className="flex items-center gap-3">
+                      <a
+                        href="#"
+                        className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline truncate max-w-[150px] md:max-w-none"
+                      >
+                        Document.pdf
+                      </a>
+                      <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors shrink-0">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="mt-10 md:mt-12 flex flex-col sm:flex-row sm:items-center">
-                <span className="w-full sm:w-48 text-[15px] md:text-[16px] font-Gantari font-bold text-[#1A1A1A] mb-2 sm:mb-0">
-                  Project Document
-                </span>
-                <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                <div className="flex items-center gap-3">
-                  <a
-                    href="#"
-                    className="text-[14px] md:text-[16px] font-Gantari font-bold text-[#1D7AFC] hover:underline truncate max-w-[150px] md:max-w-none"
-                  >
-                    Document.pdf
-                  </a>
-                  <button className="p-2 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] hover:bg-[#D5E6FF] transition-colors shrink-0">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      />
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>

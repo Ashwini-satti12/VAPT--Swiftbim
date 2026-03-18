@@ -83,6 +83,28 @@ def login():
     if active_status not in ["active", "1"]:
         return jsonify({"success": False, "message": "Account is inactive."}), 403
 
+    # Keep vendor phone_number synced from vendor_onboarding.contact_mobile (new_swiftbim)
+    if user_type == "vendor":
+        try:
+            with conn.cursor(dictionary=True) as cur:
+                cur.execute(
+                    "SELECT contact_mobile FROM new_swiftbim.vendor_onboarding WHERE id = %s LIMIT 1",
+                    (company_id,),
+                )
+                vo = cur.fetchone() or {}
+                onboarding_phone = (vo.get("contact_mobile") or "").strip()
+                current_phone = (row.get("phone_number") or "").strip()
+                if onboarding_phone and onboarding_phone != current_phone:
+                    cur.execute(
+                        "UPDATE snh6_swiftproject.vendor_employee SET phone_number = %s WHERE id = %s",
+                        (onboarding_phone, user_id),
+                    )
+                    conn.commit()
+                    # Keep response consistent for any downstream use
+                    row["phone_number"] = onboarding_phone
+        except Exception:
+            pass
+
     # Update status to Online
     with conn.cursor() as cur:
         cur.execute("UPDATE employee SET status = 'Online' WHERE email = %s", (email,))
