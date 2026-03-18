@@ -685,6 +685,76 @@ def vendor_proposals():
         try:
             main_conn = get_db()
             main_cur = main_conn.cursor(dictionary=True)
+            # Auto-expire TD proposals after 2 days (Sent/Pending only) and notify TD once
+            try:
+                main_cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'td_proposals' AND COLUMN_NAME = 'expired_notified' LIMIT 1"
+                )
+                has_flag = main_cur.fetchone() is not None
+                if not has_flag:
+                    main_cur.execute("ALTER TABLE td_proposals ADD COLUMN expired_notified TINYINT(1) NOT NULL DEFAULT 0")
+                    main_conn.commit()
+
+                main_cur.execute(
+                    """
+                    SELECT id, project_name, vendor_name
+                    FROM td_proposals
+                    WHERE vendor_id = %s
+                      AND (status = 'sent' OR status = 'pending')
+                      AND created_at < (NOW() - INTERVAL 2 DAY)
+                      AND expired_notified = 0
+                    """,
+                    (user_id,),
+                )
+                to_expire = main_cur.fetchall() or []
+                if to_expire:
+                    main_cur.execute(
+                        """
+                        UPDATE td_proposals
+                        SET status = 'expired'
+                        WHERE vendor_id = %s
+                          AND (status = 'sent' OR status = 'pending')
+                          AND created_at < (NOW() - INTERVAL 2 DAY)
+                        """,
+                        (user_id,),
+                    )
+                    # Mark notified for these rows
+                    ids = [r["id"] for r in to_expire if r.get("id")]
+                    if ids:
+                        placeholders = ",".join(["%s"] * len(ids))
+                        main_cur.execute(
+                            f"UPDATE td_proposals SET expired_notified = 1 WHERE id IN ({placeholders})",
+                            ids,
+                        )
+                    main_conn.commit()
+
+                    # Send notification(s) to TD
+                    try:
+                        if getattr(g, "company_id", None):
+                            ncur = main_conn.cursor(dictionary=True)
+                            ncur.execute(
+                                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                                (g.company_id,),
+                            )
+                            td_ids = [r["id"] for r in (ncur.fetchall() or []) if r.get("id")]
+                            for r in to_expire:
+                                project_name = r.get("project_name") or "Proposal"
+                                vendor_name = r.get("vendor_name") or "Vendor"
+                                title = "Proposal expired"
+                                msg = f"Proposal for '{project_name}' from {vendor_name} expired (no response within 2 days)."
+                                for td_id in td_ids:
+                                    ncur.execute(
+                                        """
+                                        INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                                        VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                                        """,
+                                        (td_id, None, title, msg, "proposal_expired", g.company_id),
+                                    )
+                            main_conn.commit()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
             main_cur.execute(
                 """SELECT * FROM td_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
                 (user_id,),
@@ -838,9 +908,38 @@ def respond_to_proposal(proposal_id):
     try:
         main_conn = get_db()
         main_cur = main_conn.cursor(dictionary=True)
+        # Block responses after 2 days: if expired, update status and return error
+        main_cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        proposal_row = main_cur.fetchone()
+        if proposal_row:
+            try:
+                from datetime import datetime, timedelta
+                created_at = proposal_row.get("created_at")
+                if created_at and datetime.now() > (created_at + timedelta(days=2)):
+                    if (proposal_row.get("status") or "").lower() not in ("accepted", "rejected", "expired"):
+                        main_cur.execute(
+                            "UPDATE td_proposals SET status = 'expired' WHERE id = %s",
+                            (proposal_id,),
+                        )
+                        main_conn.commit()
+                    return jsonify({"success": False, "message": "Proposal expired"}), 400
+            except Exception:
+                pass
+        # Ensure td_proposals has 'reason' column (older DBs may not)
+        try:
+            main_cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'td_proposals' AND COLUMN_NAME = 'reason' LIMIT 1"
+            )
+            has_reason = main_cur.fetchone() is not None
+            if not has_reason:
+                main_cur.execute("ALTER TABLE td_proposals ADD COLUMN reason TEXT NULL")
+                main_conn.commit()
+        except Exception:
+            pass
+
         main_cur.execute(
-            "UPDATE td_proposals SET status = %s WHERE id = %s",
-            (new_status, proposal_id),
+            "UPDATE td_proposals SET status = %s, reason = %s WHERE id = %s",
+            (new_status, reason, proposal_id),
         )
         if main_cur.rowcount > 0:
             updated = True
@@ -852,6 +951,36 @@ def respond_to_proposal(proposal_id):
 
     if not updated:
         return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+    # Notify Technical Director(s) about vendor response / expiry
+    try:
+        if proposal_data and getattr(g, "company_id", None):
+            main_conn = get_db()
+            ncur = main_conn.cursor(dictionary=True)
+            # Find all TDs in this company
+            ncur.execute(
+                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                (g.company_id,),
+            )
+            td_ids = [r["id"] for r in (ncur.fetchall() or []) if r.get("id")]
+            if td_ids:
+                project_name = proposal_data.get("project_name") or "Proposal"
+                vendor_name = proposal_data.get("vendor_name") or "Vendor"
+                title = "Proposal update"
+                msg = f"{vendor_name} {new_status.replace('_', ' ')} for '{project_name}'."
+                if action in ("reject", "clarification") and reason:
+                    msg += f" Note: {reason}"
+                for td_id in td_ids:
+                    ncur.execute(
+                        """
+                        INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                        VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                        """,
+                        (td_id, None, title, msg, "proposal_status", g.company_id),
+                    )
+                main_conn.commit()
+    except Exception:
+        pass
 
     # On accept → auto-create vendor project
     project_id = None
@@ -1100,10 +1229,20 @@ def accepted_bids():
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
                    e.full_name AS vendor_name, e.email AS vendor_email,
-                   (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
+                   tp.id AS proposal_id, tp.status AS proposal_status,
+                   (tp.id IS NOT NULL) AS proposal_exists
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN (
+                SELECT t1.*
+                FROM td_proposals t1
+                INNER JOIN (
+                    SELECT bid_id, MAX(id) AS max_id
+                    FROM td_proposals
+                    GROUP BY bid_id
+                ) t2 ON t1.id = t2.max_id
+            ) tp ON tp.bid_id = vb.id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """
@@ -1113,6 +1252,26 @@ def accepted_bids():
     except Exception as e:
         bids = []
     return jsonify({"bids": bids})
+
+
+@bp.route("/proposals/td/<int:proposal_id>", methods=["GET"])
+@login_required
+def td_get_proposal(proposal_id: int):
+    """
+    GET /api/vendors/proposals/td/<proposal_id>
+    Fetch a single TD-created proposal from td_proposals (main DB).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"proposal": None}), 404
+        proposal = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"proposal": proposal})
+    except Exception:
+        return jsonify({"proposal": None}), 500
 
 
 @bp.route("/proposals/td-create", methods=["POST"])
@@ -1160,6 +1319,7 @@ def td_create_proposal():
                 exclusions TEXT,
                 commercial_offer JSON,
                 payment_terms JSON,
+                reason TEXT,
                 status VARCHAR(50) DEFAULT 'Sent',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

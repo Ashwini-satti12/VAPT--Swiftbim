@@ -52,6 +52,13 @@ interface Team {
   leader_name?: string;
   employee: string;
   project_lead?: number;
+  project_id?: number;
+  project_name?: string;
+}
+
+interface Project {
+  id: number;
+  project_name?: string;
 }
 
 function TeamCard({
@@ -262,6 +269,7 @@ function TeamCard({
 export default function CreateteamTD() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -322,6 +330,7 @@ export default function CreateteamTD() {
     leader: "",
     employee: [] as string[],
     project_lead: "",
+    project_id: "",
     team_name: "",
   });
 
@@ -329,6 +338,7 @@ export default function CreateteamTD() {
     leader: "",
     employee: [] as string[],
     project_lead: "",
+    project_id: "",
     team_name: "",
   });
 
@@ -336,14 +346,17 @@ export default function CreateteamTD() {
     Promise.all([
       api.get<{ teams?: Team[] }>("/api/teams"),
       api.get<{ employees?: Employee[] }>("/api/employees"),
+      api.get<{ projects?: Project[] }>("/api/projects"),
     ])
-      .then(([teamsRes, empsRes]) => {
+      .then(([teamsRes, empsRes, projectsRes]) => {
         setTeams(teamsRes.data.teams ?? []);
         setEmployees(empsRes.data.employees ?? []);
+        setProjects(projectsRes.data.projects ?? []);
       })
       .catch(() => {
         setTeams([]);
         setEmployees([]);
+        setProjects([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -359,6 +372,7 @@ export default function CreateteamTD() {
         leader: form.leader,
         employee: form.employee.join(","),
         project_lead: form.project_lead || undefined,
+        project_id: form.project_id ? Number(form.project_id) : undefined,
       })
       .then(({ data }) => {
         if (data.success) {
@@ -371,6 +385,7 @@ export default function CreateteamTD() {
             leader: "",
             employee: [],
             project_lead: "",
+            project_id: "",
             team_name: "",
           });
         }
@@ -402,11 +417,21 @@ export default function CreateteamTD() {
   };
 
   const handleEditClick = (team: Team) => {
+    const inferredProjectId =
+      team.project_id != null
+        ? String(team.project_id)
+        : team.project_name
+          ? String(
+              projects.find((p) => p.project_name === team.project_name)?.id ??
+                "",
+            )
+          : "";
     setSelectedTeam(team);
     setEditForm({
       leader: String(team.leader),
       employee: team.employee ? team.employee.split(",").filter(Boolean) : [],
       project_lead: team.project_lead ? String(team.project_lead) : "",
+      project_id: inferredProjectId,
       team_name: team.team_name || team.teamname || "",
     });
     setShowLeaderDropdown(false);
@@ -437,6 +462,7 @@ export default function CreateteamTD() {
         leader: editForm.leader,
         employee: editForm.employee.join(","),
         project_lead: editForm.project_lead || 0,
+        project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
       })
       .then(({ data }) => {
         if (data.success) {
@@ -617,6 +643,29 @@ export default function CreateteamTD() {
                   }
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                  Select Project
+                </label>
+                <select
+                  value={form.project_id}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, project_id: e.target.value }))
+                  }
+                  required
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                >
+                  <option value="" disabled>
+                    Select Project
+                  </option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.project_name ?? `Project ${p.id}`}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -861,6 +910,29 @@ export default function CreateteamTD() {
 
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                  Select Project
+                </label>
+                <select
+                  value={editForm.project_id}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, project_id: e.target.value }))
+                  }
+                  required
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                >
+                  <option value="" disabled>
+                    Select Project
+                  </option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.project_name ?? `Project ${p.id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[16px] font-medium text-[#000000] mb-3">
                   Select Team Leader
                 </label>
                 <div className="relative" ref={leaderDropdownRef}>
@@ -1093,6 +1165,15 @@ export default function CreateteamTD() {
             </div>
 
             <div className="space-y-6">
+              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  Project
+                </h4>
+                <p className="font-semibold text-slate-800">
+                  {selectedTeam.project_name || "N/A"}
+                </p>
+              </div>
+
               <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
                 <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
                   Leadership

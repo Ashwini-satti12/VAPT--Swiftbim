@@ -20,6 +20,8 @@ interface AcceptedBid {
   outsource_budget: number;
   budget_ceiling: number;
   proposal_exists?: boolean;
+  proposal_id?: number;
+  proposal_status?: string;
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
@@ -70,9 +72,18 @@ export default function ProposalTD() {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
   };
 
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  const getStatusLabel = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'accepted') return 'Accepted';
+    if (s === 'pending') return 'Pending';
+    return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+  };
+
+  const getStatusBadge = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'accepted') return 'bg-[#E6F4EA] text-[#1E7E34]';
+    if (s === 'pending' || s === 'active') return 'bg-[#EAF0FB] text-[#1967D2]';
+    return 'bg-[#F2F2F2] text-[#616161]';
   };
 
   const filtered = bids;
@@ -179,13 +190,17 @@ export default function ProposalTD() {
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Accepted On</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                   <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {displayList.map((bid, index) => {
                   const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
+                  const displayStatus =
+                    bid.proposal_exists && bid.proposal_status
+                      ? bid.proposal_status
+                      : bid.status;
                   return (
                     <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                       <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
@@ -197,19 +212,16 @@ export default function ProposalTD() {
                         {formatCurrency(bid.bid_amount)}
                       </td>
                       <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
-                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formatDate(bid.created_at)}</td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        {bid.proposal_exists ? (
-                          <div className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#F0FDF4] text-[#15803D] border border-[#DCFCE7]">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                            </svg>
-                            Proposal Sent
-                          </div>
-                        ) : (
+                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(displayStatus)}`}>
+                          {getStatusLabel(displayStatus)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                        <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() =>
-                              navigate("/td/create-proposal", {
+                              !bid.proposal_exists && navigate("/td/create-proposal", {
                                 state: {
                                   bid,
                                   projectName: bid.project_name,
@@ -217,12 +229,38 @@ export default function ProposalTD() {
                                 },
                               })
                             }
-                            className="flex items-center justify-center gap-2 mx-auto px-4 py-3 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all"
+                            disabled={!!bid.proposal_exists}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                                bid.proposal_exists 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:bg-[#c23b3a]'
+                            }`}
                           >
                             <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
-                            Create Proposal
+                            Create
                           </button>
-                        )}
+                          
+                          <button
+                            onClick={() =>
+                              bid.proposal_exists && navigate("/td/view-proposal", {
+                                state: {
+                                  proposalId: bid.proposal_id,
+                                  bid,
+                                },
+                              })
+                            }
+                            disabled={!bid.proposal_exists}
+                            title="View Proposal"
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                                !bid.proposal_exists 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:bg-[#c23b3a]'
+                            }`}
+                          >
+                            <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
+                            view
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

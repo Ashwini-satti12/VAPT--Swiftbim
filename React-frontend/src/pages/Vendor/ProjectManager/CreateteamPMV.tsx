@@ -18,6 +18,13 @@ interface Team {
     leader_name?: string;
     employee: string;
     project_lead?: number;
+    project_id?: number;
+    project_name?: string;
+}
+
+interface Project {
+    id: number;
+    project_name?: string;
 }
 
 
@@ -125,6 +132,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
 export default function CreateteamPMV() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -148,6 +156,7 @@ export default function CreateteamPMV() {
         leader: '',
         employee: [] as string[],
         project_lead: '',
+        project_id: '',
         team_name: '',
     });
 
@@ -155,21 +164,25 @@ export default function CreateteamPMV() {
         leader: '',
         employee: [] as string[],
         project_lead: '',
+        project_id: '',
         team_name: '',
     });
 
     useEffect(() => {
         Promise.all([
             api.get<{ teams?: Team[] }>('/api/teams'),
-            api.get<{ employees?: Employee[] }>('/api/employees')
+            api.get<{ employees?: Employee[] }>('/api/employees'),
+            api.get<{ projects?: Project[] }>('/api/projects')
         ])
-            .then(([teamsRes, empsRes]) => {
+            .then(([teamsRes, empsRes, projectsRes]) => {
                 setTeams(teamsRes.data.teams ?? []);
                 setEmployees(empsRes.data.employees ?? []);
+                setProjects(projectsRes.data.projects ?? []);
             })
             .catch(() => {
                 setTeams([]);
                 setEmployees([]);
+                setProjects([]);
             })
             .finally(() => setLoading(false));
     }, []);
@@ -183,14 +196,15 @@ export default function CreateteamPMV() {
             team_name: form.team_name,
             leader: form.leader,
             employee: form.employee.join(','),
-            project_lead: form.project_lead || undefined
+            project_lead: form.project_lead || undefined,
+            project_id: form.project_id ? Number(form.project_id) : undefined,
         })
             .then(({ data }) => {
                 if (data.success) {
                     setShowAddModal(false);
                     // Refresh data instead of page reload for better UX
                     api.get<{ teams?: Team[] }>('/api/teams').then(res => setTeams(res.data.teams ?? []));
-                    setForm({ leader: '', employee: [], project_lead: '', team_name: '' });
+                    setForm({ leader: '', employee: [], project_lead: '', project_id: '', team_name: '' });
                 }
             })
             .catch(() => { })
@@ -220,11 +234,18 @@ export default function CreateteamPMV() {
     };
 
     const handleEditClick = (team: Team) => {
+        const inferredProjectId =
+            team.project_id != null
+                ? String(team.project_id)
+                : team.project_name
+                    ? String(projects.find(p => p.project_name === team.project_name)?.id ?? '')
+                    : '';
         setSelectedTeam(team);
         setEditForm({
             leader: String(team.leader),
             employee: team.employee.split(',').filter(Boolean),
             project_lead: team.project_lead ? String(team.project_lead) : '',
+            project_id: inferredProjectId,
             team_name: team.team_name || team.teamname || '',
         });
         setShowEditModal(true);
@@ -240,6 +261,7 @@ export default function CreateteamPMV() {
             leader: editForm.leader,
             employee: editForm.employee.join(','),
             project_lead: editForm.project_lead || 0,
+            project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
         })
             .then(({ data }) => {
                 if (data.success) {
@@ -338,6 +360,23 @@ export default function CreateteamPMV() {
                                         placeholder="Enter team name"
                                         required
                                     />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
+                                    <select
+                                        value={form.project_id}
+                                        onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        required
+                                    >
+                                        <option value="">Select Project</option>
+                                        {projects.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.project_name ?? `Project ${p.id}`}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="space-y-2">
@@ -441,6 +480,23 @@ export default function CreateteamPMV() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <label className="text-[14px] font-bold text-[#475569] block">Project</label>
+                                    <select
+                                        value={editForm.project_id}
+                                        onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        required
+                                    >
+                                        <option value="">Select Project</option>
+                                        {projects.map((p) => (
+                                            <option key={p.id} value={p.id}>
+                                                {p.project_name ?? `Project ${p.id}`}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
                                     <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
                                     <select
                                         value={editForm.leader}
@@ -527,6 +583,11 @@ export default function CreateteamPMV() {
                                 <div>
                                     <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Team Name</label>
                                     <div className="text-[18px] font-bold text-[#1E293B]">{selectedTeam.team_name || selectedTeam.teamname || 'Unnamed Team'}</div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[13px] text-[#64748B] block mb-1 font-medium">Project</label>
+                                    <div className="text-[16px] font-bold text-[#334155]">{selectedTeam.project_name || 'N/A'}</div>
                                 </div>
 
                                 <div>
