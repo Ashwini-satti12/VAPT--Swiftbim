@@ -89,13 +89,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           activeIconSrc: whiteConsultantIcon,
           isVisible: true,
         },
-        {
-          name: "Clients",
-          path: "/td/clients",
-          iconSrc: clientIcon,
-          activeIconSrc: whiteClientIcon,
-          isVisible: true,
-        },
+        // {
+        //   name: "Clients",
+        //   path: "/td/clients",
+        //   iconSrc: clientIcon,
+        //   activeIconSrc: whiteClientIcon,
+        //   isVisible: true,
+        // },
         {
           name: "Partners",
           path: "/td/partner",
@@ -505,7 +505,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       },
       {
         name: "Manage Leave",
-        path: "pm/manage-leave",
+        path: "/pm/manage-leave",
         iconSrc: teamReportIcon,
         activeIconSrc: whiteTeamReportIcon,
         isVisible: true,

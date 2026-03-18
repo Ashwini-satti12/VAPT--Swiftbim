@@ -32,9 +32,9 @@ export default function PartnerTD() {
     }
 
     return (
-        <div className="h-full flex flex-col">
+        <div className="h-full min-h-0 flex flex-col flex-1 -mb-4">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-4">
                 <div>
                     <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Partners</h2>
                     {/* <p className="text-sm text-slate-500 mt-1 font-gantari">View and manage approved vendor profiles — only Technical Director has bidding access</p> */}
@@ -77,9 +77,9 @@ export default function PartnerTD() {
                 </div>
             </div> */}
 
-            {/* Grid */}
-            <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Grid — fills remaining height; no extra bottom padding */}
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-0">
                     {allList.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No partners found.
@@ -88,49 +88,39 @@ export default function PartnerTD() {
                         allList.map((partner) => (
                             <div
                                 key={partner.id}
-                                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col"
+                                className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E8E8E8] overflow-hidden flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow duration-300"
                             >
-                                <div className="p-6 flex-1 flex flex-col pt-7">
-                                    {/* Company Name + Status */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h3 className="text-[17px] font-bold text-slate-800 font-sora line-clamp-2 flex-1 pr-2">
-                                            {displayName(partner)}
-                                        </h3>
-                                        {/* <span className={`shrink-0 text-[11px] font-bold uppercase px-2.5 py-1 rounded-full border ${STATUS_BADGE[partner.status] ?? 'bg-[#F2F2F2] text-[#717171] border-transparent'}`}>
-                                            {partner.status}
-                                        </span> */}
-                                    </div>
+                                <div className="p-6 flex-1 flex flex-col">
+                                    <h3 className="text-[18px] md:text-[20px] font-bold text-[#000000] font-Gantari leading-tight line-clamp-2 mb-4">
+                                        {displayName(partner)}
+                                    </h3>
 
-                                    <div className="mt-1 flex flex-col gap-1.5 flex-1">
-                                        {partner.contact_name && (
-                                            <p className="text-[14px] text-slate-600 font-medium font-gantari">
-                                                👤 {partner.contact_name}
-                                                {partner.contact_designation && <span className="text-[#717171]"> · {partner.contact_designation}</span>}
-                                            </p>
-                                        )}
-                                        {partner.city && (
-                                            <p className="text-[13px] text-slate-500 font-gantari">
-                                                📍 {[partner.city, partner.state, partner.country].filter(Boolean).join(', ')}
-                                            </p>
-                                        )}
-                                        {partner.contact_email && (
-                                            <p className="text-[13px] text-slate-500 font-gantari truncate">
-                                                ✉️ {partner.contact_email}
-                                            </p>
-                                        )}
-                                        {partner.num_employees && (
-                                            <p className="text-[13px] text-slate-500 font-gantari">
-                                                🏢 {partner.num_employees} employees
-                                            </p>
-                                        )}
-                                    </div>
+                                    <p className="text-[13px] font-Gantari font-medium text-[#9E9E9E] mb-1">
+                                        Director Name
+                                    </p>
+                                    <p className="text-[16px] font-bold text-[#000000] font-Gantari leading-snug">
+                                        {partner.contact_name || '—'}
+                                    </p>
+                                    <p className="text-[14px] text-[#353535] font-Gantari mt-2 truncate" title={partner.contact_email || undefined}>
+                                        {partner.contact_email || '—'}
+                                    </p>
 
-                                    <div className="mt-6 border-t border-gray-100/80 pt-5">
+                                    <div className="my-5 border-t border-[#E5E5E5]" />
+
+                                    <div className="flex items-center justify-between gap-3 mt-auto">
+                                        <span className="text-[14px] font-Gantari font-medium text-[#757575]">
+                                            {partner.num_employees
+                                                ? `${partner.num_employees}+ Employees`
+                                                : '—'}
+                                        </span>
                                         <Link
                                             to={`/td/partner/${partner.id}`}
-                                            className="flex items-center justify-center w-full py-2.5 rounded-lg bg-[#DD4342] text-white font-medium text-[14px] hover:bg-[#c93d3d] transition-colors font-gantari"
+                                            className="inline-flex items-center gap-1.5 text-[14px] font-Gantari font-medium text-[#757575] hover:text-[#353535] transition-colors shrink-0"
                                         >
-                                            View Details
+                                            Details
+                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
                                         </Link>
                                     </div>
                                 </div>
