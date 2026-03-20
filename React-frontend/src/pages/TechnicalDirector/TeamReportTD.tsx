@@ -8,9 +8,18 @@ interface TimesheetEntry {
     task_name?: string;
     start_date?: string; // Format: DD/MM/YYYY
     end_date?: string;   // Format: DD/MM/YYYY
+    task_date_ymd?: string; // Internal stable YYYY-MM-DD for date filtering
     duration?: string;
     assignee_name?: string;
     team?: string;
+    start_time?: string;
+    end_time?: string;
+    Actual_start_time?: string;
+    due_date?: string;
+    perferstart_time?: string;
+    perferend_time?: string;
+    Pause?: number;
+    restart?: number;
 }
 
 
@@ -109,12 +118,62 @@ export default function TeamReportTD() {
         return '';
     };
 
-    // Format date from ISO string to DD/MM/YYYY
-    const formatDateDisplay = (date: Date | null): string => {
-        if (!date) return '-';
-        const d = date.getDate().toString().padStart(2, '0');
-        const m = (date.getMonth() + 1).toString().padStart(2, '0');
-        const y = date.getFullYear();
+    const shiftYmd = (ymd: string, deltaDays: number): string => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
+        const dt = new Date(Date.UTC(yy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + deltaDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const parseDateLike = (value: any): Date | null => {
+        if (!value) return null;
+        if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+        const s = String(value).trim();
+        if (!s) return null;
+
+        // YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            const [yy, mm, dd] = s.split('-').map(Number);
+            const d = new Date(yy, mm - 1, dd);
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+        // DD/MM/YYYY
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yy] = s.split('/').map(Number);
+            const d = new Date(yy, mm - 1, dd);
+            return Number.isNaN(d.getTime()) ? null : d;
+        }
+
+        const parsed = new Date(s);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const parseTimeOnDate = (timeValue: any, baseDate: Date | null): Date | null => {
+        if (!timeValue || !baseDate) return null;
+        const s = String(timeValue).trim();
+        const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (!m) return null;
+        const hh = Number(m[1]);
+        const mm = Number(m[2]);
+        const ss = Number(m[3] || 0);
+        if (hh > 23 || mm > 59 || ss > 59) return null;
+        const d = new Date(baseDate);
+        d.setHours(hh, mm, ss, 0);
+        return d;
+    };
+
+    // Format date from Date/string to DD/MM/YYYY
+    const formatDateDisplay = (date: Date | string | null | undefined): string => {
+        const dObj = parseDateLike(date);
+        if (!dObj) return '-';
+        const dateObj = dObj;
+        const d = dateObj.getDate().toString().padStart(2, '0');
+        const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        const y = dateObj.getFullYear();
         return `${d}/${m}/${y}`;
     };
 
@@ -141,8 +200,9 @@ export default function TeamReportTD() {
         if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
             [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
         }
-        if (effectiveStart) payload.startDate = effectiveStart;
-        if (effectiveEnd) payload.endDate = effectiveEnd;
+        // Expand backend query by +/- 1 day to avoid timezone edge misses.
+        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
 
         const loadFilters = async () => {
             try {
@@ -213,11 +273,50 @@ export default function TeamReportTD() {
             .then(({ data }) => {
                 const tasks = data.completed_tasks ?? [];
                 const mapped: TimesheetEntry[] = tasks.map((t) => {
-                    const start = t.start_time ? new Date(t.start_time) : null;
-                    const end = t.end_time ? new Date(t.end_time) : null;
-                    const startDisplay = formatDateDisplay(start);
-                    const endDisplay = formatDateDisplay(end || start);
-                    const duration = formatDuration(start, end);
+                    const baseDate =
+                        parseDateLike(t.due_date) ||
+                        parseDateLike(t.start_time) ||
+                        parseDateLike(t.Actual_start_time) ||
+                        parseDateLike(t.start_date) ||
+                        parseDateLike(t.date);
+                    const start =
+                        parseDateLike(t.start_time) ||
+                        parseDateLike(t.Actual_start_time) ||
+                        parseTimeOnDate(t.perferstart_time, baseDate) ||
+                        baseDate;
+                    const end =
+                        parseDateLike(t.end_time) ||
+                        parseTimeOnDate(t.perferend_time, baseDate) ||
+                        parseDateLike(t.end_date) ||
+                        parseDateLike(t.due_date) ||
+                        start;
+
+                    let duration = formatDuration(start, end);
+                    if (duration !== 'hh:mm:ss') {
+                        // Keep parity with other team report pages where Pause/restart are applied.
+                        const pauseSeconds = Number(t.Pause || 0);
+                        const restartSeconds = Number(t.restart || 0);
+                        const [h, m, s] = duration.split(':').map(Number);
+                        let total = (h || 0) * 3600 + (m || 0) * 60 + (s || 0);
+                        total = total - pauseSeconds + restartSeconds;
+                        if (total < 0) total = 0;
+                        const hh = String(Math.floor(total / 3600)).padStart(2, '0');
+                        const mm = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+                        const ss = String(total % 60).padStart(2, '0');
+                        duration = `${hh}:${mm}:${ss}`;
+                    }
+
+                    const startDisplay = formatDateDisplay(start || t.start_date || t.date || t.due_date);
+                    const endDisplay = formatDateDisplay(end || t.end_date || t.due_date || t.start_date || t.date);
+                    const taskDateYmd =
+                        toYmd(t.start_date) ||
+                        toYmd(t.end_date) ||
+                        toYmd(t.date) ||
+                        toYmd(t.start_time) ||
+                        toYmd(t.end_time) ||
+                        toYmd(t.Actual_start_time) ||
+                        toYmd(t.due_date) ||
+                        toYmd(startDisplay);
 
                     return {
                         id: t.id,
@@ -225,9 +324,18 @@ export default function TeamReportTD() {
                         task_name: t.task_name || '-',
                         start_date: startDisplay,
                         end_date: endDisplay,
+                        task_date_ymd: taskDateYmd,
                         duration,
                         assignee_name: t.assigned_name || '',
                         team: t.teamname || undefined,
+                        start_time: t.start_time,
+                        end_time: t.end_time,
+                        Actual_start_time: t.Actual_start_time,
+                        due_date: t.due_date,
+                        perferstart_time: t.perferstart_time,
+                        perferend_time: t.perferend_time,
+                        Pause: Number(t.Pause || 0),
+                        restart: Number(t.restart || 0),
                     };
                 });
                 setList(mapped);
@@ -249,7 +357,7 @@ export default function TeamReportTD() {
                     [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
                 }
 
-                const itemKey = toYmd(item.start_date);
+                const itemKey = item.task_date_ymd || toYmd(item.start_date);
                 if (!itemKey) return false;
                 if (effectiveStart && itemKey < effectiveStart) return false;
                 if (effectiveEnd && itemKey > effectiveEnd) return false;
@@ -315,8 +423,8 @@ export default function TeamReportTD() {
     return (
         <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
-            <div className="flex items-center justify-between flex-shrink-0 px-2">
-                <h2 className="text-2xl font-semibold text-[#000000]">Time-Sheet</h2>
+            <div className="flex items-center justify-end flex-shrink-0 px-2">
+                {/* <h2 className="text-2xl font-semibold text-[#000000]">Time-Sheet</h2> */}
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
@@ -331,7 +439,7 @@ export default function TeamReportTD() {
 
             {/* Filter Row */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-semibold text-[#000000]">Month Report</h3>
+                <h3 className="text-xl font-semibold text-[#000000]">Monthly Report</h3>
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
@@ -522,7 +630,7 @@ export default function TeamReportTD() {
                             <tr className="border-b border-gray-100 bg-white">
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Task</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Name</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Start Date</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">End Date</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Duration</th>

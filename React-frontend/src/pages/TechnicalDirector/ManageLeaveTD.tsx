@@ -317,7 +317,7 @@ export default function ManageLeave() {
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>

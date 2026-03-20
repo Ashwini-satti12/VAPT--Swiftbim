@@ -6,6 +6,52 @@ from auth_middleware import project_app_required
 bp = Blueprint("leave", __name__, url_prefix="/api/leave")
 
 
+def _resolve_leave_type_id(cur, company_id: int, raw_leave_type):
+    """
+    Resolve incoming leave type payload to a valid holiday.id.
+    Supports:
+    - numeric id (existing holiday row)
+    - title text (matches existing row by title, case-insensitive)
+    - unknown title text (auto-creates holiday row, then returns new id)
+    """
+    if raw_leave_type is None:
+        return None
+
+    value = str(raw_leave_type).strip()
+    if not value:
+        return None
+
+    # If frontend sent id directly
+    if value.isdigit():
+        leave_type_id = int(value)
+        if leave_type_id > 0:
+            cur.execute(
+                "SELECT id FROM holiday WHERE id = %s AND Company_id = %s LIMIT 1",
+                (leave_type_id, company_id),
+            )
+            row = cur.fetchone()
+            if row:
+                return int(row["id"])
+        return None
+
+    # Frontend sent title text; try existing type first
+    cur.execute(
+        "SELECT id FROM holiday WHERE Company_id = %s AND LOWER(title) = LOWER(%s) LIMIT 1",
+        (company_id, value),
+    )
+    row = cur.fetchone()
+    if row:
+        return int(row["id"])
+
+    # Create new leave type so tblleaves always stores a valid id
+    cur.execute(
+        """INSERT INTO holiday (title, leave_type, days_count, hours_per_duration, Company_id)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (value, "1", 0, 0, company_id),
+    )
+    return int(cur.lastrowid)
+
+
 @bp.route("/types", methods=["GET"])
 @project_app_required
 def list_leave_types():
@@ -32,7 +78,11 @@ def list_applications():
     sql = """SELECT tblleaves.id AS lid, tblleaves.empid, tblleaves.leave_type, tblleaves.posting_date, tblleaves.description,
                     tblleaves.status, tblleaves.from_date, tblleaves.to_date, tblleaves.starttime, tblleaves.endtime,
                     employee.full_name, employee.id AS employee_id, employee.user_role AS role,
-                    CASE WHEN holiday.id IS NULL THEN 'Others' ELSE holiday.title END AS title
+                    CASE
+                        WHEN holiday.id IS NOT NULL THEN holiday.title
+                        WHEN tblleaves.leave_type IS NULL OR tblleaves.leave_type = '' OR tblleaves.leave_type = '0' THEN 'Others'
+                        ELSE tblleaves.leave_type
+                    END AS title
              FROM tblleaves
              JOIN employee ON tblleaves.empid = employee.id
              LEFT JOIN holiday ON tblleaves.leave_type = holiday.id
@@ -59,7 +109,7 @@ def list_applications():
 def apply_leave():
     # PHP: INSERT INTO tblleaves (empid, leave_type, description, Company_id, starttime, endtime, leave_lop) or (..., to_date, from_date, days_count, ...)
     data = request.get_json() or request.form
-    leavetype = data.get("leavetype") or data.get("leave_type") or data.get("leave_type_id")
+    leavetype_raw = data.get("leavetype") or data.get("leave_type") or data.get("leave_type_id")
     description = data.get("description") or ""
     fromdate = data.get("from_date") or data.get("fromdate")
     todate = data.get("to_date") or data.get("todate")
@@ -67,11 +117,14 @@ def apply_leave():
     endtime = data.get("endtime") or ""
     days_count = data.get("days_count")
     leave_lop = data.get("leave_lop") or 0
-    if not leavetype:
+    if not leavetype_raw:
         return jsonify({"success": False, "message": "leavetype required"}), 400
     conn = get_db()
     cur = conn.cursor()
     try:
+        leavetype = _resolve_leave_type_id(cur, g.company_id, leavetype_raw)
+        if not leavetype:
+            return jsonify({"success": False, "message": "Invalid leave type"}), 400
         if fromdate and todate:
             cur.execute(
                 """INSERT INTO tblleaves (empid, leave_type, to_date, from_date, description, Company_id, days_count, leave_lop)
@@ -103,12 +156,18 @@ def update_leave(app_id: int):
 
     # Map incoming keys to actual DB columns
     col_updates = {}
+    leave_type_raw = None
     if "leavetype" in data:
-        col_updates["leave_type"] = data["leavetype"]
+        leave_type_raw = data["leavetype"]
     if "leave_type" in data:
-        col_updates["leave_type"] = data["leave_type"]
+        leave_type_raw = data["leave_type"]
     if "leave_type_id" in data:
-        col_updates["leave_type"] = data["leave_type_id"]
+        leave_type_raw = data["leave_type_id"]
+    if leave_type_raw is not None:
+        resolved_leave_type = _resolve_leave_type_id(cur, g.company_id, leave_type_raw)
+        if not resolved_leave_type:
+            return jsonify({"success": False, "message": "Invalid leave type"}), 400
+        col_updates["leave_type"] = resolved_leave_type
 
     if "from_date" in data:
         col_updates["from_date"] = data["from_date"]
@@ -137,6 +196,24 @@ def update_leave(app_id: int):
         + ", ".join(set_clauses)
         + " WHERE id = %s AND empid = %s AND Company_id = %s AND status = '0'",
         params,
+    )
+    if cur.rowcount:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "message": "Not found or not editable"}), 404
+
+
+@bp.route("/applications/<int:app_id>", methods=["DELETE"])
+@project_app_required
+def delete_leave(app_id: int):
+    """
+    Allow an employee to delete their own pending leave application.
+    This prevents deleted items from reappearing after a frontend refresh.
+    """
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM tblleaves WHERE id = %s AND empid = %s AND Company_id = %s AND status = '0'",
+        (app_id, g.user_id, g.company_id),
     )
     if cur.rowcount:
         return jsonify({"success": True})

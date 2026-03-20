@@ -219,6 +219,7 @@ export default function EmployeesPM() {
     full_name: '',
     dob: '',
     phone_number: '',
+    country_code: '+91',
     email: '',
     password: '',
     type: '',
@@ -242,6 +243,7 @@ export default function EmployeesPM() {
     full_name: '',
     email: '',
     phone_number: '',
+    country_code: '+91',
     user_role: '',
     department: '',
     address: '',
@@ -256,6 +258,35 @@ export default function EmployeesPM() {
     active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const COUNTRY_CODES = ['+91', '+1', '+44', '+971', '+65', '+81'];
+
+  const getDateMinusDaysInput = (days: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Per your request: disable selecting "yesterday and above"
+  // => allow only dates <= (today - 2 days)
+  const dobMaxDate = getDateMinusDaysInput(2);
+
+  const parsePhone = (raw: string): { country_code: string; phone_digits: string } => {
+    const s = String(raw || '').trim();
+    const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.length - a.length);
+    for (const code of sortedCodes) {
+      if (s.startsWith(code)) {
+        return {
+          country_code: code,
+          phone_digits: s.slice(code.length).replace(/\D/g, ''),
+        };
+      }
+    }
+    return { country_code: COUNTRY_CODES[0], phone_digits: s.replace(/\D/g, '') };
+  };
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -307,10 +338,12 @@ export default function EmployeesPM() {
       if (emp) {
         setEditId(id);
         setActiveView('edit');
+        const parsed = parsePhone(emp.phone_number || '');
         setEditForm({
           full_name: emp.full_name,
           email: emp.email,
-          phone_number: emp.phone_number || '',
+          phone_number: parsed.phone_digits,
+          country_code: parsed.country_code,
           user_role: emp.user_role || '',
           department: emp.department || '',
           address: emp.address || '',
@@ -389,13 +422,31 @@ export default function EmployeesPM() {
   function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!editId) return;
+
+    const phoneDigits = String(editForm.phone_number || '').replace(/\D/g, '');
+    if (!editForm.country_code) {
+      alert('Please select country code.');
+      return;
+    }
+    if (phoneDigits.length !== 12) {
+      alert('Phone number must be exactly 12 digits.');
+      return;
+    }
+    if (editForm.dob && editForm.dob > dobMaxDate) {
+      alert('Date of birth cannot be yesterday and above.');
+      return;
+    }
+
     setEditSubmitting(true);
 
     // Build payload with all fields from redesign
     const payload = {
       full_name: editForm.full_name,
       email: editForm.email,
-      phone_number: editForm.phone_number || undefined,
+      phone_number:
+        editForm.phone_number && editForm.country_code
+          ? `${editForm.country_code}${editForm.phone_number}`.replace(/\s+/g, '')
+          : undefined,
       user_role: editForm.user_role,
       department: editForm.department || undefined,
       address: editForm.address || undefined,
@@ -456,13 +507,35 @@ export default function EmployeesPM() {
       setAddError('Name, email and password are required.');
       return;
     }
+
+    if (!form.country_code) {
+      setAddError('Please select country code.');
+      return;
+    }
+
+    const phoneDigits = String(form.phone_number || '').replace(/\D/g, '');
+    if (phoneDigits.length !== 12) {
+      setAddError('Phone number must be exactly 12 digits.');
+      return;
+    }
+
+    if (form.dob && form.dob > dobMaxDate) {
+      setAddError(`Date of birth cannot be ${dobMaxDate.split('-')[2]}/${dobMaxDate.split('-')[1]}/${dobMaxDate.split('-')[0]} or later.`);
+      return;
+    }
+
     setAddSubmitting(true);
 
     const formData = new FormData();
     formData.append('full_name', form.full_name.trim());
     formData.append('email', form.email.trim());
     formData.append('password', form.password);
-    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+    if (form.phone_number.trim()) {
+      formData.append(
+        'phone_number',
+        `${form.country_code}${form.phone_number.trim()}`.replace(/\s+/g, '')
+      );
+    }
     if (form.user_role) formData.append('user_role', form.user_role);
     if (form.address.trim()) formData.append('address', form.address.trim());
     if (form.dob) formData.append('dob', form.dob);
@@ -491,6 +564,7 @@ export default function EmployeesPM() {
             email: '',
             password: '',
             phone_number: '',
+            country_code: '+91',
             type: '',
             user_role: 'Consultant',
             department: '',
@@ -744,10 +818,12 @@ export default function EmployeesPM() {
                           onClick={() => {
                             setEditId(emp.id);
                             setActiveView('edit');
+                            const parsed = parsePhone(emp.phone_number || '');
                             setEditForm({
                               full_name: emp.full_name,
                               email: emp.email,
-                              phone_number: emp.phone_number || '',
+                              phone_number: parsed.phone_digits,
+                              country_code: parsed.country_code,
                               user_role: emp.user_role || 'Consultant',
                               department: emp.department || '',
                               address: emp.address || '',
@@ -779,6 +855,9 @@ export default function EmployeesPM() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
+                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
+                      Sl.No
+                    </th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
@@ -789,13 +868,19 @@ export default function EmployeesPM() {
                 <tbody className="divide-y divide-slate-200">
                   {paginatedList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => (
+                    paginatedList.map((emp, idx) => {
+                      const slNo = (currentPage - 1) * itemsPerPage + idx + 1;
+                      const slNoDisplay = String(slNo).padStart(2, '0');
+                      return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#6B6B6B]">
+                          {slNoDisplay}
+                        </td>
                         <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                           {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                         </td>
@@ -861,7 +946,8 @@ export default function EmployeesPM() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -959,13 +1045,34 @@ export default function EmployeesPM() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter Phone Number"
-                      value={form.phone_number}
-                      onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    />
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
+                        <CustomDropdown
+                          options={COUNTRY_CODES}
+                          value={form.country_code}
+                          onChange={(val) => setForm((f) => ({ ...f, country_code: val }))}
+                          placeholder="Select Code"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <input
+                          type="text"
+                          placeholder="Enter Phone Number"
+                          value={form.phone_number}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                            }))
+                          }
+                          className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        />
+                      </div>
+                    </div>
+                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== 12 && (
+                      <p className="text-[12px] text-red-600 mt-2">Phone must be exactly 12 digits.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
@@ -1007,6 +1114,7 @@ export default function EmployeesPM() {
                       value={form.dob}
                       onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      max={dobMaxDate}
                     />
                   </div>
                   <div>
@@ -1124,13 +1232,31 @@ export default function EmployeesPM() {
                 </div>
                 <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                  <input
-                      type="text"
-                      placeholder="Enter Phone Number"
-                      value={editForm.phone_number}
-                      onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
+                      <CustomDropdown
+                        options={COUNTRY_CODES}
+                        value={editForm.country_code}
+                        onChange={(val) => setEditForm((f) => ({ ...f, country_code: val }))}
+                        placeholder="Select Code"
+                      />
+                    </div>
+                    <div className="flex-[2]">
+                      <input
+                        type="text"
+                        placeholder="Enter Phone Number"
+                        value={editForm.phone_number}
+                        onChange={(e) =>
+                          setEditForm((f) => ({
+                            ...f,
+                            phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                          }))
+                        }
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
@@ -1182,6 +1308,7 @@ export default function EmployeesPM() {
                       value={editForm.dob}
                       onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      max={dobMaxDate}
                     />
                   </div>
                   <div>

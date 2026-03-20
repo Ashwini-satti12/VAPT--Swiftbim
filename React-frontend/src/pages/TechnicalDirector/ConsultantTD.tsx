@@ -897,7 +897,7 @@ export default function ConsultantTD() {
                       return (
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {serialNumber}
+                            {String(serialNumber).padStart(2, '0')}
                           </td>
                           <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                             {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}

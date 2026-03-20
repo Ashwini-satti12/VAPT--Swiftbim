@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
@@ -153,7 +153,13 @@ export default function ConsultantBC() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Deactive'>('All');
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const statusDropdownRef = useRef<HTMLDivElement | null>(null);
     const todayISO = new Date().toISOString().split('T')[0];
+
+    const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971', '+33', '+49', '+82', '+86'];
+    const [countryCode, setCountryCode] = useState('+91');
+    const [editCountryCode, setEditCountryCode] = useState('+91');
 
     const canAdd = user?.panel_type === 1;
 
@@ -229,10 +235,12 @@ export default function ConsultantBC() {
             if (emp) {
                 setEditId(id);
                 setEditError('');
+                const inferred = inferPhoneParts(emp.phone_number);
+                setEditCountryCode(inferred.code);
                 setEditForm({
                     full_name: emp.full_name,
                     email: emp.email,
-                    phone_number: emp.phone_number || '',
+                    phone_number: inferred.digits.slice(0, 12),
                     user_role: emp.user_role || 'Consultant',
                     department: emp.department || '',
                     address: emp.address || '',
@@ -244,15 +252,46 @@ export default function ConsultantBC() {
                     accountnumber: emp.accountnumber || '',
                     profile_picture: null,
                     roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                    active: emp.active === 'active' ? 'Active' : 'Deactivate',
+                    active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
                 });
             }
         }
     }, [editParam, list]);
 
+    const isEmployeeActive = (emp: Employee): boolean => {
+        return (emp.active || '').toString().trim().toLowerCase() === 'active';
+    };
+
+    const inferPhoneParts = (phone: string | undefined): { code: string; digits: string } => {
+        const raw = (phone || '').toString().trim();
+        const digitsOnly = raw.startsWith('+') ? raw.slice(1).replace(/\D/g, '') : raw.replace(/\D/g, '');
+        for (const code of COUNTRY_CODES) {
+            const codeDigits = code.replace('+', '');
+            if (digitsOnly.startsWith(codeDigits)) {
+                return {
+                    code,
+                    digits: digitsOnly.slice(codeDigits.length),
+                };
+            }
+        }
+        return { code: COUNTRY_CODES[0], digits: digitsOnly };
+    };
+
+    // Close status dropdown on outside click
+    useEffect(() => {
+        if (!statusDropdownOpen) return;
+        const onMouseDown = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+                setStatusDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onMouseDown);
+        return () => document.removeEventListener('mousedown', onMouseDown);
+    }, [statusDropdownOpen]);
+
     const filteredList = list.filter((emp) => {
         if (statusFilter === 'All') return true;
-        const isActive = (emp.active || '').toLowerCase() === 'active';
+        const isActive = isEmployeeActive(emp);
         return statusFilter === 'Active' ? isActive : !isActive;
     });
 
@@ -312,6 +351,14 @@ export default function ConsultantBC() {
             }
         }
 
+        const editCleanPhone = (editForm.phone_number || '').replace(/\D/g, '');
+        if (!editCleanPhone || editCleanPhone.length !== 12) {
+            setEditSubmitting(false);
+            setEditError('Phone number must be exactly 12 digits.');
+            return;
+        }
+        const fullEditPhone = `${editCountryCode}${editCleanPhone}`;
+
         const hasNewFile = !!editForm.profile_picture;
 
         // If user selected a new profile picture, send multipart/form-data
@@ -319,7 +366,7 @@ export default function ConsultantBC() {
             const formData = new FormData();
             formData.append('full_name', editForm.full_name);
             formData.append('email', editForm.email);
-            if (editForm.phone_number) formData.append('phone_number', editForm.phone_number);
+            formData.append('phone_number', fullEditPhone);
 
             const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
             if (!shouldOmitUserRole && editForm.user_role) formData.append('user_role', editForm.user_role);
@@ -355,7 +402,7 @@ export default function ConsultantBC() {
                                       ...e,
                                       full_name: editForm.full_name,
                                       email: editForm.email,
-                                      phone_number: editForm.phone_number,
+                                      phone_number: fullEditPhone,
                                       user_role: editForm.user_role,
                                       department: editForm.department,
                                       address: editForm.address,
@@ -386,7 +433,7 @@ export default function ConsultantBC() {
             const payload = {
                 full_name: editForm.full_name,
                 email: editForm.email,
-                phone_number: editForm.phone_number || undefined,
+                phone_number: fullEditPhone,
                 ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
                 department: editForm.department || undefined,
                 address: editForm.address || undefined,
@@ -414,7 +461,7 @@ export default function ConsultantBC() {
                                       ...e,
                                       full_name: editForm.full_name,
                                       email: editForm.email,
-                                      phone_number: editForm.phone_number,
+                                      phone_number: fullEditPhone,
                                       user_role: editForm.user_role,
                                       department: editForm.department,
                                       address: editForm.address,
@@ -449,6 +496,12 @@ export default function ConsultantBC() {
             return;
         }
 
+        const cleanPhone = (form.phone_number || '').replace(/\D/g, '');
+        if (!cleanPhone || cleanPhone.length !== 12) {
+            setAddError('Phone number must be exactly 12 digits.');
+            return;
+        }
+
         if (form.dob) {
             const today = new Date();
             const dobDate = new Date(form.dob);
@@ -463,10 +516,12 @@ export default function ConsultantBC() {
 
         // Use multipart/form-data so backend receives profile_picture file
         const formData = new FormData();
+        const addedEmail = form.email.trim();
+        const fullPhone = `${countryCode}${cleanPhone}`;
         formData.append('full_name', form.full_name.trim());
-        formData.append('email', form.email.trim());
+        formData.append('email', addedEmail);
         formData.append('password', form.password);
-        if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+        formData.append('phone_number', fullPhone);
         if (form.user_role) formData.append('user_role', form.user_role);
         if (form.address.trim()) formData.append('address', form.address.trim());
         if (form.dob) formData.append('dob', form.dob);
@@ -486,7 +541,11 @@ export default function ConsultantBC() {
             )
             .then(({ data }) => {
                 if (data.success) {
+                    // Send welcome mail to the newly created consultant.
+                    // Backend: POST /api/employees/invite
+                    api.post('/api/employees/invite', { emails: [addedEmail], message: '' }).catch(() => { });
                     setShowAddModal(false);
+                    setCountryCode('+91');
                     setForm({
                         full_name: '',
                         email: '',
@@ -506,10 +565,10 @@ export default function ConsultantBC() {
                         {
                             id: data.id!,
                             full_name: form.full_name,
-                            email: form.email,
+                            email: addedEmail,
                             user_role: form.user_role,
                             department: form.department,
-                            phone_number: form.phone_number,
+                            phone_number: fullPhone,
                             address: form.address,
                             dob: form.dob,
                             user_type: form.type,
@@ -625,25 +684,81 @@ export default function ConsultantBC() {
                     </div>
 
                     {/* Status filter dropdown */}
-                    <div className="relative">
+                    <div className="relative" ref={statusDropdownRef}>
                         <div className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-[5px]">
                             <span className="text-[14px] font-Gantari text-[#353535]">Status</span>
-                            <div className="relative">
-                                <select
-                                    value={statusFilter}
-                                    onChange={(e) => {
-                                        setStatusFilter(e.target.value as 'All' | 'Active' | 'Deactive');
-                                        setCurrentPage(1);
-                                    }}
-                                    className="bg-transparent border-none outline-none cursor-pointer text-[14px] font-semibold text-[#353535] pr-5 appearance-none"
-                                >
-                                    <option value="All">All</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Deactive">Deactive</option>
-                                </select>
-                                <FiChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setStatusDropdownOpen((v) => !v)}
+                                className={`flex items-center justify-between gap-3 px-4 py-2 rounded-[5px] border transition-colors ${
+                                    statusFilter === 'Active'
+                                        ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]'
+                                        : statusFilter === 'Deactive'
+                                            ? 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'
+                                            : 'bg-white border-slate-200 text-[#353535]'
+                                }`}
+                            >
+                                <span className="text-[14px] font-semibold font-Gantari">
+                                    {statusFilter === 'All' ? 'All' : statusFilter === 'Active' ? 'Active' : 'Deactivate'}
+                                </span>
+                                <FiChevronDown
+                                    className={`w-4 h-4 text-slate-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}
+                                />
+                            </button>
                         </div>
+
+                        {statusDropdownOpen && (
+                            <div className="absolute right-0 top-full mt-2 w-[180px] bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden z-[100]">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('All');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'All' ? 'text-[#DD4342]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    All
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('Active');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'Active' ? 'text-[#008F22]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                                        Active
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('Deactive');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'Deactive' ? 'text-[#E00100]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                                        Deactivate
+                                    </span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -652,12 +767,12 @@ export default function ConsultantBC() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden pr-2 custom-scrollbar relative">
                 {viewMode === 'card' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {list.length === 0 ? (
+                        {filteredList.length === 0 ? (
                             <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
                                 No consultants found.
                             </div>
                         ) : (
-                            list.map((emp) => (
+                            filteredList.map((emp) => (
                                 <div key={emp.id} className="bg-white rounded-2xl overflow-hidden border-2 border-slate-200 transition-all ">
                                     {/* Image Section */}
                                     <div className="relative h-40 overflow-hidden group">
@@ -672,10 +787,10 @@ export default function ConsultantBC() {
 
                                         {/* Top Status - Pill Shape */}
                                         <div className="absolute top-4 right-4 z-10">
-                                            <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                                                <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                                                <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                                                    {emp.active === 'active' ? 'Active' : 'Deactive'}
+                                            <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                                                <span className={`w-2 h-2 rounded-full ${isEmployeeActive(emp) ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                                                <span className={`text-[11px] font-semibold ${isEmployeeActive(emp) ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                                                    {isEmployeeActive(emp) ? 'Active' : 'Deactive'}
                                                 </span>
                                             </div>
                                         </div>
@@ -754,10 +869,12 @@ export default function ConsultantBC() {
                                                     onClick={() => {
                                                         setEditId(emp.id);
                                                         setEditError('');
+                                                        const inferred = inferPhoneParts(emp.phone_number);
+                                                        setEditCountryCode(inferred.code);
                                                         setEditForm({
                                                             full_name: emp.full_name,
                                                             email: emp.email,
-                                                            phone_number: emp.phone_number || '',
+                                                            phone_number: inferred.digits.slice(0, 12),
                                                             user_role: emp.user_role || 'Consultant',
                                                             department: emp.department || '',
                                                             address: emp.address || '',
@@ -769,7 +886,7 @@ export default function ConsultantBC() {
                                                             accountnumber: emp.accountnumber || '',
                                                             profile_picture: null,
                                                             roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                                                            active: emp.active === 'active' ? 'Active' : 'Deactivate',
+                                                            active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
                                                         });
                                                     }}
                                                     className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
@@ -807,9 +924,10 @@ export default function ConsultantBC() {
                                     ) : (
                                         paginatedList.map((emp, idx) => {
                                             const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
+                                            const slNoPadded = String(slNo).padStart(2, '0');
                                             return (
                                             <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}>
-                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{slNo}</td>
+                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{slNoPadded}</td>
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.empid || `EMP0${emp.id + 10}`}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
@@ -830,7 +948,7 @@ export default function ConsultantBC() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                                                            <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${isEmployeeActive(emp) ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                                         </div>
                                                         <span className="text-[15px] font-semibold font-Gantari text-[#353535]">{emp.full_name}</span>
                                                     </div>
@@ -863,8 +981,8 @@ export default function ConsultantBC() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center">
-                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${emp.active === 'active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
-                                                            {emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
+                                                            {isEmployeeActive(emp) ? 'Active' : 'Deactivate'}
                                                             <FiChevronDown className="w-5 h-5 opacity-70" />
                                                         </button>
                                                     </div>
@@ -963,14 +1081,32 @@ export default function ConsultantBC() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Phone Number"
-                                            value={form.phone_number}
-                                            onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">
+                                            Phone Number <span className="text-[#DD4342]">*</span>
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={countryCode}
+                                                onChange={(e) => setCountryCode(e.target.value)}
+                                                className="px-3 py-2.5 text-[14px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
+                                            >
+                                                {COUNTRY_CODES.map((code) => (
+                                                    <option key={code} value={code}>{code}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={form.phone_number}
+                                                onChange={(e) => {
+                                                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                                    setForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                }}
+                                                maxLength={12}
+                                                required
+                                                className="flex-1 px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Password</label>
@@ -1235,7 +1371,7 @@ export default function ConsultantBC() {
                                                             {emp.full_name} {emp.empid ? `(${emp.empid})` : ''}
                                                         </span>
                                                     </div>
-                                                    {(emp.active === 'inactive' || emp.active === 'deactive') && (
+                                                    {!isEmployeeActive(emp) && (
                                                         <span className="px-3 py-1 bg-[#FFE3E3] text-[#FF4D4D] text-[12px] font-semibold rounded-full font-Gantari shrink-0">
                                                             Currently In-Active
                                                         </span>
@@ -1309,14 +1445,32 @@ export default function ConsultantBC() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Phone Number"
-                                            value={editForm.phone_number}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                                            Phone Number <span className="text-[#DD4342]">*</span>
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={editCountryCode}
+                                                onChange={(e) => setEditCountryCode(e.target.value)}
+                                                className="px-3 py-3 text-[15px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
+                                            >
+                                                {COUNTRY_CODES.map((code) => (
+                                                    <option key={code} value={code}>{code}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={editForm.phone_number}
+                                                onChange={(e) => {
+                                                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                                    setEditForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                }}
+                                                maxLength={12}
+                                                required
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div>
