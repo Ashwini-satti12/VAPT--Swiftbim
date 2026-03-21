@@ -247,7 +247,6 @@ export default function ConsultantTD() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
   const [itemsPerPage, setItemsPerPage] = useState(50);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
@@ -395,9 +394,6 @@ export default function ConsultantTD() {
     if (statusFilter === 'deactive') return currentStatus !== 'active';
     return true;
   });
-
-  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -697,6 +693,7 @@ export default function ConsultantTD() {
                     styleType="header"
                   />
                 )}
+
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
                   value={
@@ -710,7 +707,6 @@ export default function ConsultantTD() {
                       if (val === 'Deactivate') nextStatus = 'deactive';
                     }
                     setStatusFilter(nextStatus);
-                    setCurrentPage(1);
                   }}
                   placeholder="Status"
                   className="flex-1 sm:min-w-[120px]"
@@ -803,7 +799,7 @@ export default function ConsultantTD() {
                     <div className="flex flex-wrap items-center gap-3">
                       <button 
                         onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                       </button>
@@ -815,7 +811,7 @@ export default function ConsultantTD() {
                       </button>
                       <button 
                         onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
                       >
                         <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                       </button>
@@ -828,7 +824,7 @@ export default function ConsultantTD() {
                       <button
                         type="button"
                         onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
                       >
                         <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                       </button>
@@ -859,7 +855,7 @@ export default function ConsultantTD() {
                               active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
                         >
                           <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                         </button>
@@ -876,7 +872,7 @@ export default function ConsultantTD() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl No</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl.No</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
@@ -885,18 +881,19 @@ export default function ConsultantTD() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedList.length === 0 ? (
+                  {filteredList.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => {
-                      const serialNumber = (currentPage - 1) * itemsPerPage + idx + 1;
+                    filteredList.map((emp, idx) => {
+                      const serialNumber = idx + 1;
                       return (
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                            {String(serialNumber).padStart(2, '0')}
                             {String(serialNumber).padStart(2, '0')}
                           </td>
                           <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
@@ -1437,7 +1434,7 @@ export default function ConsultantTD() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button

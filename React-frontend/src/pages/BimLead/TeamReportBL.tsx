@@ -89,6 +89,17 @@ export default function TeamReportBL() {
         return String(dateStr);
     };
 
+    const shiftYmd = (ymd: string, deltaDays: number): string => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
+        const dt = new Date(Date.UTC(yy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + deltaDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
     // Calculate duration from start_time / end_time and pause / restart
     const calculateDuration = (entry: TimesheetEntry): string => {
         if (!entry.start_time || !entry.end_time) return '-';
@@ -146,8 +157,10 @@ export default function TeamReportBL() {
         if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
             [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
         }
-        if (effectiveStart) payload.startDate = effectiveStart;
-        if (effectiveEnd) payload.endDate = effectiveEnd;
+        // Expand by +/- 1 day to avoid timezone/date-format boundary mismatches.
+        // Then we do exact filtering client-side below.
+        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
 
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);
@@ -202,7 +215,27 @@ export default function TeamReportBL() {
         setPaginationWindowStart(1);
     }, [selectedShowEntries]);
 
-    const filteredList = list; // backend already filtered
+    const getTaskDateYmd = (entry: TimesheetEntry): string => {
+        const src = entry.start_time || entry.Actual_start_time || entry.due_date;
+        return toYmd(src);
+    };
+
+    // Exact filter on YYYY-MM-DD (client-side) to make "today" always match.
+    const filteredList = useMemo(() => {
+        const effectiveStart = startDate || endDate;
+        const effectiveEnd = endDate || startDate;
+        if (!effectiveStart || !effectiveEnd) return list;
+
+        let s = effectiveStart;
+        let e = effectiveEnd;
+        if (s > e) [s, e] = [e, s];
+
+        return list.filter((row) => {
+            const ymd = getTaskDateYmd(row);
+            if (!ymd) return false;
+            return ymd >= s && ymd <= e;
+        });
+    }, [list, startDate, endDate]);
 
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;

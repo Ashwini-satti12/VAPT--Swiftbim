@@ -92,6 +92,7 @@ export default function EditConsultantBL() {
         full_name: '',
         email: '',
         phone_number: '',
+        country_code: '+91',
         user_role: 'Consultant',
         department: '',
         address: '',
@@ -105,6 +106,27 @@ export default function EditConsultantBL() {
         roles: [] as string[],
         active: 'Active',
     });
+    const COUNTRY_CODES = ['+91', '+1', '+44', '+971', '+65', '+81'];
+
+    const dobMaxDate = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 2);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    })();
+
+    const parsePhone = (raw: string): { country_code: string; phone_digits: string } => {
+        const s = String(raw || '').trim();
+        const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.length - a.length);
+        for (const code of sortedCodes) {
+            if (s.startsWith(code)) {
+                return { country_code: code, phone_digits: s.slice(code.length).replace(/\D/g, '') };
+            }
+        }
+        return { country_code: COUNTRY_CODES[0], phone_digits: s.replace(/\D/g, '') };
+    };
 
     useEffect(() => {
         const employeeId = id ? parseInt(id, 10) : NaN;
@@ -117,7 +139,13 @@ export default function EditConsultantBL() {
                 setForm({
                     full_name: data.full_name ?? '',
                     email: data.email ?? '',
-                    phone_number: data.phone_number ?? '',
+                    ...(() => {
+                        const parsed = parsePhone(data.phone_number ?? '');
+                        return {
+                            phone_number: parsed.phone_digits,
+                            country_code: parsed.country_code,
+                        };
+                    })(),
                     user_role: data.user_role ?? 'Consultant',
                     department: data.department ?? '',
                     address: data.address ?? '',
@@ -168,6 +196,23 @@ export default function EditConsultantBL() {
         const employeeId = id ? parseInt(id, 10) : NaN;
         if (!employeeId || !Number.isFinite(employeeId)) return;
         setEditError('');
+
+        if (form.dob) {
+            if (form.dob > dobMaxDate) {
+                setEditError('Date of birth cannot be yesterday or later.');
+                return;
+            }
+        }
+
+        const phoneDigits = String(form.phone_number || '').replace(/\D/g, '');
+        if (!form.country_code) {
+            setEditError('Please select country code.');
+            return;
+        }
+        if (phoneDigits.length !== 12) {
+            setEditError('Phone number must be exactly 12 digits.');
+            return;
+        }
         setEditSubmitting(true);
 
         const hasNewFile = !!form.profile_picture;
@@ -175,7 +220,7 @@ export default function EditConsultantBL() {
             const formData = new FormData();
             formData.append('full_name', form.full_name);
             formData.append('email', form.email);
-            if (form.phone_number) formData.append('phone_number', form.phone_number);
+            formData.append('phone_number', `${form.country_code}${phoneDigits}`.replace(/\s+/g, ''));
             if (form.user_role) formData.append('user_role', form.user_role);
             if (form.department) formData.append('department', form.department);
             if (form.address) formData.append('address', form.address);
@@ -197,7 +242,7 @@ export default function EditConsultantBL() {
             const payload = {
                 full_name: form.full_name,
                 email: form.email,
-                phone_number: form.phone_number || undefined,
+                phone_number: phoneDigits ? `${form.country_code}${phoneDigits}`.replace(/\s+/g, '') : undefined,
                 user_role: form.user_role,
                 department: form.department || undefined,
                 address: form.address || undefined,
@@ -267,13 +312,34 @@ export default function EditConsultantBL() {
                             </div>
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                                <input
-                                    type="text"
-                                    placeholder="Enter Phone Number"
-                                    value={form.phone_number}
-                                    onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                                />
+                                    <div className="flex items-end gap-3">
+                                        <div className="flex-1">
+                                            <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
+                                            <CustomDropdown
+                                                options={COUNTRY_CODES}
+                                                value={form.country_code}
+                                                onChange={(val) => setForm((f) => ({ ...f, country_code: val }))}
+                                                placeholder="Select Code"
+                                            />
+                                        </div>
+                                        <div className="flex-[2]">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={form.phone_number}
+                                                onChange={(e) =>
+                                                    setForm((f) => ({
+                                                        ...f,
+                                                        phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                                                    }))
+                                                }
+                                                className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                            />
+                                        </div>
+                                    </div>
+                                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== 12 && (
+                                        <p className="text-[12px] text-red-600 mt-2">Phone must be exactly 12 digits.</p>
+                                    )}
                             </div>
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
@@ -322,6 +388,7 @@ export default function EditConsultantBL() {
                                     type="date"
                                     value={form.dob}
                                     onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                        max={dobMaxDate}
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
                             </div>

@@ -595,6 +595,59 @@ def submit_bid(opportunity_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+    # Notification to Technical Director(s): new bid submitted
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        # vendor name
+        vendor_name = "Vendor"
+        try:
+            cur.execute(
+                "SELECT full_name FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (vendor_id,),
+            )
+            vrow = cur.fetchone()
+            if vrow and vrow.get("full_name"):
+                vendor_name = vrow["full_name"]
+        except Exception:
+            pass
+
+        title = "New bid received"
+        msg = f"New bid received from {vendor_name} for \"{opp.get('project_name') or 'a project'}\"."
+
+        # TDs in this company
+        if getattr(g, "company_id", None):
+            cur.execute(
+                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                (g.company_id,),
+            )
+            td_ids = [r["id"] for r in (cur.fetchall() or []) if r.get("id")]
+            for td_id in td_ids:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (td_id, None, title, msg, "bidding_submitted", "bidding", opportunity_id, g.company_id),
+                )
+            if td_ids:
+                conn.commit()
+    except Exception:
+        pass
+
     return jsonify({"success": True, "message": "Bid submitted successfully for " + opp["project_name"]})
 
 
@@ -1156,6 +1209,51 @@ def accept_bid(bidding_id, bid_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+    # Notification to Vendor: bid shortlisted
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        vendor_emp_id = bid_info.get("vendor_id")
+        project_name = bid_info.get("project_name") or "a project"
+
+        # TD name
+        td_name = "Technical Director"
+        if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+            r = cur.fetchone() or {}
+            if r.get("full_name"):
+                td_name = r["full_name"]
+
+        if vendor_emp_id and getattr(g, "company_id", None):
+            title = "Bid shortlisted"
+            msg = f"Your bid for \"{project_name}\" has been shortlisted by {td_name}."
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (vendor_emp_id, None, title, msg, "bidding_shortlisted", "bidding", bidding_id, g.company_id),
+            )
+            conn.commit()
+    except Exception:
+        pass
+
     return jsonify({"success": True, "bid": bid_info})
 
 
@@ -1178,6 +1276,60 @@ def reject_bid(bidding_id, bid_id):
         conn.commit()
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+    # Notification to Vendor: bid rejected
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        cur.execute(
+            """
+            SELECT vb.vendor_id, vbi.project_name
+            FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            WHERE vb.id = %s
+            """,
+            (bid_id,),
+        )
+        r = cur.fetchone() or {}
+        vendor_emp_id = r.get("vendor_id")
+        project_name = r.get("project_name") or "a project"
+
+        td_name = "Technical Director"
+        if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+            rr = cur.fetchone() or {}
+            if rr.get("full_name"):
+                td_name = rr["full_name"]
+
+        if vendor_emp_id and getattr(g, "company_id", None):
+            title = "Bid rejected"
+            msg = f"Your bid for \"{project_name}\" has been rejected by {td_name}."
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (vendor_emp_id, None, title, msg, "bidding_rejected", "bidding", bidding_id, g.company_id),
+            )
+            conn.commit()
+    except Exception:
+        pass
 
     return jsonify({"success": True})
 
@@ -1357,9 +1509,54 @@ def td_create_proposal():
         )
         
         cur.execute(sql, params)
+        proposal_id = cur.lastrowid
         conn.commit()
-        
-        return jsonify({"success": True, "message": "Proposal created and sent to vendor."})
+
+        # Notify vendor: proposal created/sent
+        try:
+            # ensure deep-link columns exist
+            try:
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            except Exception:
+                pass
+
+            # TD name
+            td_name = "Technical Director"
+            if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+                cur.execute(
+                    "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                    (g.user_id, g.company_id),
+                )
+                r = cur.fetchone() or {}
+                if r.get("full_name"):
+                    td_name = r["full_name"]
+
+            project_name = data.get("project_name") or "a project"
+            title = "New proposal received"
+            msg = f"A new proposal has been sent for \"{project_name}\" by {td_name}. Please respond within 2 days."
+
+            if getattr(g, "company_id", None):
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (vendor_id, None, title, msg, "proposal_sent", "proposal", proposal_id, g.company_id),
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal created and sent to vendor.", "proposal_id": proposal_id})
         
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

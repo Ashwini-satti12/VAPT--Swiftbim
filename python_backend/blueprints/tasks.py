@@ -221,6 +221,59 @@ def create_task():
         ),
     )
     task_id = cur.lastrowid
+
+    # Notification: assigned task to someone else
+    try:
+        if assigned_to and str(assigned_to).isdigit() and int(assigned_to) != int(g.user_id):
+            # ensure deep-link columns exist
+            try:
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            except Exception:
+                pass
+
+            # Fetch project name and uploader name for message
+            pname = ""
+            if project_id:
+                cur.execute(
+                    "SELECT project_name FROM projects WHERE id = %s AND Company_id = %s",
+                    (project_id, g.company_id),
+                )
+                prow = cur.fetchone()
+                if prow:
+                    pname = prow.get("project_name") or ""
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+            urow = cur.fetchone() or {}
+            uploader_name = urow.get("full_name") or "Someone"
+
+            title = "Task assigned"
+            msg = f"{uploader_name} assigned a task to you"
+            if pname:
+                msg += f" in '{pname}'"
+            if task_name:
+                msg += f": {task_name}"
+
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (int(assigned_to), project_id or None, title, msg, "task_assigned", "task", task_id, g.company_id),
+            )
+    except Exception:
+        pass
+
     return jsonify({"success": True, "task_id": task_id, "ticket": ticket})
 
 

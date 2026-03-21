@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
-
-const ROLE_OPTIONS: string[] = [];
+import { COUNTRY_CODES } from '../../utils/countryCodes';
 
 function CustomDropdown({
   options,
@@ -63,64 +63,73 @@ function CustomDropdown({
   );
 }
 
-export default function AddConsultantTD() {
+export default function AddConsultantBC() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [addError, setAddError] = useState('');
   const [addSubmitting, setAddSubmitting] = useState(false);
-  const [roleOptions, setRoleOptions] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
   const [form, setForm] = useState({
     full_name: '',
-    dob: '',
-    phone_number: '',
     email: '',
     password: '',
-    type: '',
-    user_role: '',
-    joining_date: '',
+    phone_number: '',
+    user_role: 'Consultant',
     department: '',
     address: '',
+    dob: '',
+    type: '',
+    joining_date: '',
     profile_picture: null as File | null,
+    active: 'Active',
   });
   const [countryCode, setCountryCode] = useState('+91');
-  const todayISO = new Date().toISOString().split('T')[0];
 
-  const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971'];
+  const normalizeSpaces = (val: string) => {
+    return val.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+  };
+
+  // Filter roles based on user's permissions (BIM Coordinator restrictions)
+  const getAllowedRoles = (currentRoles: string[]): string[] => {
+    const userRole = user?.user_role || '';
+    const restrictedRoles: string[] = [];
+    
+    if (userRole === 'BIM Coordinator') {
+        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager', 'BIM Lead');
+    } else if (userRole === 'BIM Lead') {
+        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'Project Manager');
+    } else if (userRole === 'Project Manager') {
+        restrictedRoles.push('CEO', 'CTO', 'Technical Director', 'BIM Lead');
+    }
+    
+    return currentRoles.filter(role => !restrictedRoles.includes(role));
+  };
 
   useEffect(() => {
-    api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
-      if (data.roles && Array.isArray(data.roles)) {
-        const map = new Map<string, string>();
-        data.roles.filter(Boolean).forEach((name) => {
-          const trimmed = name.trim();
-          if (!trimmed) return;
-          const key = trimmed.toLowerCase();
-          if (!map.has(key)) map.set(key, trimmed);
+    // Fetch roles
+    api.get<{ roles?: string[] }>('/api/employees/roles')
+        .then(({ data }) => setRoles(data.roles || []))
+        .catch((error) => {
+            console.error('Error fetching roles:', error);
+            setRoles([]);
         });
-        setRoleOptions(Array.from(map.values()));
-      }
-    }).catch(() => setRoleOptions([]));
 
-    api.get<{ departments?: string[] }>('/api/departments').then(({ data }) => {
-      if (data.departments && Array.isArray(data.departments)) {
-        const map = new Map<string, string>();
-        data.departments.filter(Boolean).forEach((name) => {
-          const trimmed = name.trim();
-          if (!trimmed) return;
-          const key = trimmed.toLowerCase();
-          if (!map.has(key)) map.set(key, trimmed);
+    // Fetch departments
+    api.get<{ departments?: string[] }>('/api/departments')
+        .then(({ data }) => setDepartmentOptions(data.departments || []))
+        .catch((error) => {
+            console.error('Error fetching departments:', error);
+            setDepartmentOptions([]);
         });
-        setDepartmentOptions(Array.from(map.values()));
-      }
-    }).catch(() => setDepartmentOptions([]));
   }, []);
 
   function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
     if (!form.full_name.trim() || !form.email.trim() || !form.password) {
-      setAddError('Name, email and password are required.');
-      return;
+        setAddError('Name, email and password are required.');
+        return;
     }
 
     if (form.dob) {
@@ -135,11 +144,19 @@ export default function AddConsultantTD() {
     }
 
     const cleanPhone = form.phone_number.replace(/\D/g, '');
-    if (!cleanPhone || cleanPhone.length !== 12) {
-      setAddError('Phone number must be exactly 12 digits.');
+    
+    // Additional Validations
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email.trim())) {
+      setAddError('Please enter a valid email address.');
       return;
     }
 
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      setAddError('Phone number must be between 10 and 15 digits.');
+      return;
+    }
+    
     setAddSubmitting(true);
 
     const formData = new FormData();
@@ -153,25 +170,29 @@ export default function AddConsultantTD() {
     if (form.type) formData.append('user_type', form.type);
     if (form.joining_date) formData.append('doj', form.joining_date);
     if (form.department) formData.append('department', form.department);
-    formData.append('active', 'active');
-    if (form.profile_picture) formData.append('profile_picture', form.profile_picture);
+    formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
+    if (form.profile_picture) {
+        formData.append('profile_picture', form.profile_picture);
+    }
 
     api
-      .post<{ success: boolean; id?: number; message?: string }>(
-        '/api/employees',
-        formData,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      )
-      .then(({ data }) => {
-        if (data.success) {
-          navigate('/td/consultants');
-        } else {
-          setAddError(data.message || 'Failed to add consultant.');
-        }
-      })
-      .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
-      .finally(() => setAddSubmitting(false));
+        .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
+            '/api/employees',
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } }
+        )
+        .then(({ data }) => {
+            if (data.success) {
+                navigate('/bc/consultants');
+            } else {
+                setAddError(data.message || 'Failed to add consultant.');
+            }
+        })
+        .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
+        .finally(() => setAddSubmitting(false));
   }
+
+  const allowedRoles = getAllowedRoles(roles);
 
   return (
     <div className="flex-1 overflow-y-auto p-2 bg-white">
@@ -179,7 +200,7 @@ export default function AddConsultantTD() {
         <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
           <button
             type="button"
-            onClick={() => navigate('/td/consultants')}
+            onClick={() => navigate('/bc/consultants')}
             className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
             title="Back"
           >
@@ -210,7 +231,7 @@ export default function AddConsultantTD() {
                   type="text"
                   placeholder="Enter Employee Name"
                   value={form.full_name}
-                  onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, full_name: normalizeSpaces(e.target.value) }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
                 />
@@ -220,24 +241,20 @@ export default function AddConsultantTD() {
                   Phone Number <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="flex gap-2">
-                  <select
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="px-3 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari focus:border-[#AEACAC52] outline-none"
-                  >
-                    {COUNTRY_CODES.map((code) => (
-                      <option key={code} value={code}>
-                        {code}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-[100px] shrink-0">
+                    <CustomDropdown
+                      options={COUNTRY_CODES}
+                      value={countryCode}
+                      onChange={(val) => setCountryCode(val)}
+                      placeholder="+91"
+                    />
+                  </div>
                   <input
                     type="text"
                     placeholder="Enter Phone Number"
                     value={form.phone_number}
-                    maxLength={12}
                     onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      const digitsOnly = e.target.value.replace(/\D/g, '');
                       setForm((f) => ({ ...f, phone_number: digitsOnly }));
                     }}
                     className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
@@ -258,7 +275,7 @@ export default function AddConsultantTD() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
-                  options={roleOptions.length > 0 ? roleOptions : ROLE_OPTIONS}
+                  options={allowedRoles}
                   value={form.user_role}
                   onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
                   placeholder="Select Role"
@@ -282,7 +299,6 @@ export default function AddConsultantTD() {
                   type="date"
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                  max={todayISO}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
@@ -292,7 +308,7 @@ export default function AddConsultantTD() {
                   type="email"
                   placeholder="Enter Email"
                   value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value.trim() }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
                 />
@@ -341,7 +357,7 @@ export default function AddConsultantTD() {
               rows={4}
               placeholder="Type your Address..."
               value={form.address}
-              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, address: normalizeSpaces(e.target.value) }))}
               className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
             />
           </div>
@@ -349,7 +365,7 @@ export default function AddConsultantTD() {
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 ">
             <button
               type="button"
-              onClick={() => navigate('/td/consultants')}
+              onClick={() => navigate('/bc/consultants')}
               className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
             >
               Discard

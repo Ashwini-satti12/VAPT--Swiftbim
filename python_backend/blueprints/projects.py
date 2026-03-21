@@ -854,6 +854,63 @@ def create_project():
          resources, required_resources, tasks, document_attachment),
     )
     project_id = cur.lastrowid
+
+    # Notifications: inform everyone involved in this project
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        # Parse members CSV -> ids
+        member_ids = _parse_csv_int_ids(members) if members else []
+        involved = set(member_ids)
+        for rid in (project_manager_id, lead_id, bim_coordinator_id):
+            if rid:
+                try:
+                    involved.add(int(rid))
+                except Exception:
+                    pass
+        # Don't notify creator about their own action
+        try:
+            involved.discard(int(g.user_id))
+        except Exception:
+            pass
+
+        # uploader name
+        cur.execute(
+            "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+            (g.user_id, g.company_id),
+        )
+        urow = cur.fetchone() or {}
+        uploader_name = urow.get("full_name") or "Someone"
+
+        title = "New project assignment"
+        msg = f"You are involved in project '{project_name}' (assigned by {uploader_name})."
+
+        for uid in involved:
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (uid, project_id, title, msg, "project_assignment", "project", project_id, g.company_id),
+            )
+        if involved:
+            conn.commit()
+    except Exception:
+        pass
+
     return jsonify({"success": True, "project_id": project_id})
 
 

@@ -171,7 +171,9 @@ export default function TrackerPM() {
   useEffect(() => {
     setLoading(true);
     api
-      .get<{ records?: AttendanceEntry[] }>("/api/attendance/tracker")
+      .get<{ records?: AttendanceEntry[] }>("/api/attendance/tracker", {
+        params: { roles: "BIM Coordinator,BIM Modeler,BIM Moduler" },
+      })
       .then(({ data }) => {
         const records = data.records || [];
         setList(records);

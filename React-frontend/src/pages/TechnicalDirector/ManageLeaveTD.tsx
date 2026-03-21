@@ -90,7 +90,9 @@ export default function ManageLeave() {
     useEffect(() => {
         const fetchLeaves = async () => {
             try {
-                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications', {
+                    params: { role: 'BIM Lead' },
+                });
                 const apps = data.applications || [];
                 const mapped: LeaveEntry[] = apps.map((app, index) => ({
                     id: app.lid,
