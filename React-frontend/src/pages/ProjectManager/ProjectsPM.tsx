@@ -359,7 +359,12 @@ export default function ProjectsPM() {
     project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
     project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
-    end_date: r.due_date != null ? String(r.due_date) : undefined,
+    end_date:
+      r.end_date != null
+        ? String(r.end_date)
+        : r.due_date != null
+          ? String(r.due_date)
+          : undefined,
     total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
     per_day: r.perday != null ? String(r.perday) : undefined,
     department: r.department_name != null ? String(r.department_name) : undefined,
@@ -983,7 +988,7 @@ export default function ProjectsPM() {
                           client_name: r.client_name,
                           project_manager: r.project_manager_name,
                           start_date: r.start_date,
-                          end_date: r.due_date,
+                          end_date: r.end_date ?? r.due_date,
                           total_hours: r.totalhours,
                           per_day: r.perday,
                           department: r.department_name,
@@ -1549,7 +1554,7 @@ export default function ProjectsPM() {
                             client_name: r.client_name,
                             project_manager: r.project_manager_name,
                             start_date: r.start_date,
-                            end_date: r.due_date,
+                            end_date: r.end_date ?? r.due_date,
                             total_hours: r.totalhours,
                             per_day: r.perday,
                             department: r.department_name,

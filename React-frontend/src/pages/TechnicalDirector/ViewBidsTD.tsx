@@ -63,6 +63,12 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
     const [bids, setBids] = useState<VendorBid[]>([]);
     const [opportunity, setOpportunity] = useState<Partial<BiddingEntry>>(project);
 
+    // Scope of work (fetched from phase-one proposal/enquiry in new_swiftbim)
+    const [scopeLoading, setScopeLoading] = useState(false);
+    const [projectSector, setProjectSector] = useState("");
+    const [bimServices, setBimServices] = useState("");
+    const [scopeOfWorkHtml, setScopeOfWorkHtml] = useState<string>("");
+
     // Per-bid action states
     const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
     const [viewLoading, setViewLoading] = useState<Record<number, boolean>>({});
@@ -81,6 +87,58 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
             .catch(() => setBids([]))
             .finally(() => setLoading(false));
     }, [project.id]);
+
+    useEffect(() => {
+        if (!project?.id) return;
+
+        setScopeLoading(true);
+        setProjectSector("");
+        setBimServices("");
+        setScopeOfWorkHtml("");
+
+        api.get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
+            params: { opportunity_id: project.id },
+        })
+            .then(({ data }) => {
+                const base = data?.proposal;
+                if (!base) return;
+
+                if (base.project_type_sector) {
+                    try {
+                        const parsed = JSON.parse(base.project_type_sector);
+                        const sectors = Object.entries(parsed)
+                            .map(([key, val]) => {
+                                if (Array.isArray(val) && val.length > 0) return `${key}: ${val.join(" / ")}`;
+                                return key;
+                            })
+                            .join(", ");
+                        setProjectSector(sectors);
+                    } catch {
+                        setProjectSector(base.project_type_sector);
+                    }
+                }
+
+                if (base.bim_services_required) {
+                    try {
+                        const parsed = JSON.parse(base.bim_services_required);
+                        const services = Object.values(parsed)
+                            .flat()
+                            .join(" & ");
+                        setBimServices(services);
+                    } catch {
+                        setBimServices(base.bim_services_required);
+                    }
+                }
+
+                if (base.scope_of_work) {
+                    setScopeOfWorkHtml(base.scope_of_work);
+                }
+            })
+            .catch(() => {
+                // If scope cannot be fetched, keep empty (UI hides the section)
+            })
+            .finally(() => setScopeLoading(false));
+    }, [project?.id]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -288,12 +346,47 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                         </div>
                     </div>
 
-                    {opportunity.description && (
+                    {(opportunity.description || scopeLoading || projectSector || bimServices || scopeOfWorkHtml) && (
                         <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-8 py-4">
-                            <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">Description</p>
-                            <p className="font-semibold text-[#616161] text-base font-gantari">{opportunity.description}</p>
+                            <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">Project Description</p>
+                            {!scopeOfWorkHtml && (
+                                <p className="font-semibold text-[#616161] text-base font-gantari">{opportunity.description}</p>
+                            )}
+
+                            {(scopeLoading || projectSector || bimServices || scopeOfWorkHtml) && (
+                                <div className="mt-4 space-y-3">
+                                    {(projectSector || bimServices) && (
+                                        <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+                                            {projectSector && (
+                                                <div className="flex items-start gap-4">
+                                                    <span className="font-bold text-[#353535] min-w-[220px]">Project Sector:</span>
+                                                    <span className="text-[#616161] font-medium">{projectSector}</span>
+                                                </div>
+                                            )}
+                                            {bimServices && (
+                                                <div className="flex items-start gap-4">
+                                                    <span className="font-bold text-[#353535] min-w-[220px]">BIM Services Required:</span>
+                                                    <span className="text-[#616161] font-medium">{bimServices}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {scopeOfWorkHtml && (
+                                        <div
+                                            className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                            dangerouslySetInnerHTML={{ __html: scopeOfWorkHtml }}
+                                        />
+                                    )}
+
+                                    {scopeLoading && !scopeOfWorkHtml && !(projectSector || bimServices) && (
+                                        <div className="py-6 text-sm text-[#616161] font-gantari">Loading scope...</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
+
                 </div>
 
                 {/* ── Vendor Bids Table ── */}

@@ -2928,6 +2928,234 @@ def list_vendor_projects():
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
         projects.append(d)
+
+    # Enrich from new_swiftbim phase-1 (enquiry/proposal/contract) when fields are missing
+    try:
+        import re, calendar
+        from datetime import date, datetime
+
+        def _parse_iso_date(val):
+            if not val:
+                return None
+            if isinstance(val, (datetime, date)):
+                return val.date() if isinstance(val, datetime) else val
+            s = str(val).strip()
+            if not s:
+                return None
+            try:
+                return datetime.fromisoformat(s.replace("Z", "")).date()
+            except Exception:
+                return None
+
+        def _add_months(d: date, months: int) -> date:
+            y = d.year + (d.month - 1 + months) // 12
+            m = (d.month - 1 + months) % 12 + 1
+            last = calendar.monthrange(y, m)[1]
+            return date(y, m, min(d.day, last))
+
+        def _duration_to_months(text: str):
+            s = (text or "").strip().lower()
+            if not s:
+                return None
+            m = re.search(r"(\\d+)\\s*(month|months|mon|mons|year|years|yr|yrs)\\b", s)
+            if not m:
+                return None
+            n = int(m.group(1))
+            unit = m.group(2)
+            return n * 12 if unit.startswith("year") or unit in {"yr", "yrs"} else n
+
+        vcur = vendor_cursor()
+        # Probe columns once (avoid hard-failing on schema differences)
+        try:
+            vcur.execute(
+                """
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = 'new_swiftbim' AND TABLE_NAME = 'bim_enquiry'
+                """
+            )
+            enq_cols = {r["COLUMN_NAME"] for r in (vcur.fetchall() or [])}
+        except Exception:
+            enq_cols = set()
+        try:
+            vcur.execute(
+                """
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = 'new_swiftbim' AND TABLE_NAME = 'proposals'
+                """
+            )
+            prop_cols = {r["COLUMN_NAME"] for r in (vcur.fetchall() or [])}
+        except Exception:
+            prop_cols = set()
+        try:
+            vcur.execute(
+                """
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = 'new_swiftbim' AND TABLE_NAME = 'contracts'
+                """
+            )
+            con_cols = {r["COLUMN_NAME"] for r in (vcur.fetchall() or [])}
+        except Exception:
+            con_cols = set()
+
+        name_cols = ["project_name", "project", "title", "name"]
+        enq_loc_parts = ["address", "city", "state", "country"]
+        enq_loc_fallback = ["project_location", "location"]
+        proposal_res_cols = ["resources"]
+        start_cols = ["project_start_date", "start_date"]
+        duration_cols = ["completion_timeline", "project_completion_time", "completion_time", "project_duration", "duration"]
+
+        def _first(row, keys):
+            for k in keys:
+                if k in row and row.get(k) not in (None, "", "NULL"):
+                    return str(row.get(k)).strip()
+            return ""
+
+        def _fetch(table, cols, project_name):
+            key = next((c for c in name_cols if c in cols), None)
+            if not key or not project_name:
+                return None
+            vcur.execute(
+                f"SELECT * FROM {table} WHERE {key} = %s ORDER BY id DESC LIMIT 1",
+                (project_name,),
+            )
+            return vcur.fetchone()
+
+        def _fetch_chain_for_vendor_project(p: dict):
+            # Prefer contract->proposal->enquiry via client_id (projects table uses new_swiftbim.users.id)
+            enq, prop, con = {}, {}, {}
+            client_id = p.get("client_id") or None
+            try:
+                client_id = int(client_id) if str(client_id).isdigit() else None
+            except Exception:
+                client_id = None
+
+            if client_id is not None:
+                try:
+                    vcur.execute(
+                        "SELECT * FROM contracts WHERE client_id = %s ORDER BY id DESC LIMIT 1",
+                        (client_id,),
+                    )
+                    con = vcur.fetchone() or {}
+                    pid = con.get("proposal_id")
+                    pid = int(pid) if pid is not None and str(pid).isdigit() else pid
+                    if pid:
+                        vcur.execute("SELECT * FROM proposals WHERE id = %s LIMIT 1", (pid,))
+                        prop = vcur.fetchone() or {}
+                except Exception:
+                    con, prop = {}, {}
+
+            if not prop and client_id is not None:
+                try:
+                    vcur.execute("SELECT email FROM users WHERE id = %s LIMIT 1", (client_id,))
+                    u = vcur.fetchone() or {}
+                    email = (u.get("email") or "").strip()
+                    if email:
+                        vcur.execute(
+                            "SELECT * FROM proposals WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (email,),
+                        )
+                        prop = vcur.fetchone() or {}
+                except Exception:
+                    prop = {}
+
+            sid = prop.get("service_id") if prop else None
+            try:
+                sid = int(sid) if sid is not None and str(sid).isdigit() else None
+            except Exception:
+                sid = None
+            if sid is not None:
+                try:
+                    vcur.execute("SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1", (sid,))
+                    enq = vcur.fetchone() or {}
+                except Exception:
+                    enq = {}
+
+            if not enq and not prop and not con:
+                pname = (p.get("project_name") or "").strip()
+                enq = _fetch("bim_enquiry", enq_cols, pname) or {}
+                prop = _fetch("proposals", prop_cols, pname) or {}
+                con = _fetch("contracts", con_cols, pname) or {}
+            return enq, prop, con
+
+        for p in projects:
+            pname = (p.get("project_name") or "").strip()
+            enq_row, prop_row, con_row = _fetch_chain_for_vendor_project(p)
+
+            prop_resources = _first(prop_row, [c for c in proposal_res_cols if c in prop_row])
+            if prop_resources:
+                p["resources"] = prop_resources
+                p["required_resources"] = prop_resources
+            else:
+                # Fallback: derive total resources from proposals.commercial_offer (sum of milestones' `resources`)
+                derived = 0
+                try:
+                    import json
+                    raw_offer = prop_row.get("commercial_offer")
+                    offer = raw_offer
+                    if isinstance(raw_offer, str):
+                        offer = json.loads(raw_offer) if raw_offer.strip() else []
+                    if isinstance(offer, list):
+                        for item in offer:
+                            if not isinstance(item, dict):
+                                continue
+                            rv = item.get("resources")
+                            if rv is None:
+                                continue
+                            s = str(rv).strip()
+                            if s.isdigit():
+                                derived += int(s)
+                except Exception:
+                    derived = 0
+
+                if not derived:
+                    # Last resort: derive from enquiry list-ish fields
+                    def _count_listish(val):
+                        if val is None:
+                            return 0
+                        s = str(val).strip()
+                        if not s:
+                            return 0
+                        parts = [x.strip() for x in re.split(r"[,\n;]+", s) if x.strip()]
+                        return len(parts)
+
+                    derived = _count_listish(enq_row.get("disciplines_required")) or _count_listish(
+                        enq_row.get("bim_services_required")
+                    )
+
+                if derived:
+                    p["resources"] = str(derived)
+                    p["required_resources"] = str(derived)
+
+            loc_parts = []
+            for k in enq_loc_parts:
+                v = enq_row.get(k)
+                v = str(v).strip() if v not in (None, "", "NULL") else ""
+                if v:
+                    loc_parts.append(v)
+            combined_loc = ", ".join(loc_parts).strip(", ").strip()
+            if not combined_loc:
+                combined_loc = _first(enq_row, [c for c in enq_loc_fallback if c in enq_row])
+            if combined_loc and (not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na"}):
+                p["location"] = combined_loc
+
+            start_dt = _parse_iso_date(p.get("start_date"))
+            if not start_dt:
+                start_dt = (
+                    _parse_iso_date(_first(enq_row, ["projectstart_date"]))
+                    or _parse_iso_date(_first(enq_row, [c for c in start_cols if c in enq_row]))
+                    or _parse_iso_date(_first(prop_row, [c for c in start_cols if c in prop_row]))
+                    or _parse_iso_date(_first(con_row, [c for c in start_cols if c in con_row]))
+                )
+            end_dt = _parse_iso_date(p.get("end_date"))
+            duration_text = _first(enq_row, [c for c in duration_cols if c in enq_row]) or _first(prop_row, [c for c in duration_cols if c in prop_row]) or _first(con_row, [c for c in duration_cols if c in con_row]) or str(p.get("due_date") or "").strip()
+            months = _duration_to_months(duration_text)
+            if months is not None and start_dt and not end_dt:
+                p["end_date"] = _add_months(start_dt, months).isoformat()
+    except Exception:
+        pass
     return jsonify({"projects": projects})
 
 

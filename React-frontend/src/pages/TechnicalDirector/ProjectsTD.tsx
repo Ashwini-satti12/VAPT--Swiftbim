@@ -247,6 +247,12 @@ export default function ProjectsTD() {
   const canDelete = isManagement;
   const title = isManagement ? "Projects" : "Projects Involved";
 
+  // Parses currency-like inputs such as "$800,000", "₹ 8,00,000", etc.
+  const parseBudgetValue = (value: unknown) => {
+    const cleaned = String(value ?? "").replace(/[^0-9.]/g, "");
+    return cleaned ? Number(cleaned) : 0;
+  };
+
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => {
     const num = (v: unknown) =>
       v === null || v === undefined ? undefined : Number(v);
@@ -264,7 +270,7 @@ export default function ProjectsTD() {
       client_name: str(r.client_name),
       project_manager: str(r.project_manager_name),
       start_date: d(r.start_date),
-      end_date: d(r.due_date),
+      end_date: d(r.end_date) ?? d(r.due_date),
       total_hours: str(r.totalhours),
       per_day: str(r.perday),
       resources: str(r.resources),
@@ -2002,8 +2008,8 @@ export default function ProjectsTD() {
                   e.preventDefault();
                   if (!selectedProjectForEdit) return;
                   if (isEditSourceOutsource && createBudgetCeiling.trim()) {
-                    const clientNum = parseFloat(String(createBudget).replace(/,/g, '')) || 0;
-                    const outsourceNum = parseFloat(String(createBudgetCeiling).replace(/,/g, '')) || 0;
+                    const clientNum = parseBudgetValue(createBudget);
+                    const outsourceNum = parseBudgetValue(createBudgetCeiling);
                     if (outsourceNum > clientNum) return;
                   }
                   const id = selectedProjectForEdit.id;
@@ -2354,8 +2360,8 @@ export default function ProjectsTD() {
                         <input
                           type="text"
                           className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-lg focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
-                            const clientNum = parseFloat(String(createBudget).replace(/,/g, '')) || 0;
-                            const outsourceNum = parseFloat(String(createBudgetCeiling).replace(/,/g, '')) || 0;
+                            const clientNum = parseBudgetValue(createBudget);
+                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
                             return outsourceNum > clientNum ? 'border-[#DD4342] focus:border-[#DD4342]' : 'border-transparent focus:border-[#AEACAC52]';
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
@@ -2363,12 +2369,12 @@ export default function ProjectsTD() {
                           onChange={(e) => setCreateBudgetCeiling(e.target.value)}
                         />
                         {(() => {
-                          const clientNum = parseFloat(String(createBudget).replace(/,/g, '')) || 0;
-                          const outsourceNum = parseFloat(String(createBudgetCeiling).replace(/,/g, '')) || 0;
+                          const clientNum = parseBudgetValue(createBudget);
+                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
                           if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
                             return (
                               <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
-                                Outsourcing budget cannot exceed the client budget.
+                                Outsourcing budget is exceeding. It should be less than or equal to client budget.
                               </p>
                             );
                           }
@@ -2425,7 +2431,7 @@ export default function ProjectsTD() {
                   </button>
                   <button
                     type="submit"
-                    disabled={!!(isEditSubmitting || (isEditSourceOutsource && createBudgetCeiling.trim() && (parseFloat(String(createBudgetCeiling).replace(/,/g, '')) || 0) > (parseFloat(String(createBudget).replace(/,/g, '')) || 0)))}
+                    disabled={!!(isEditSubmitting || (isEditSourceOutsource && createBudgetCeiling.trim() && parseBudgetValue(createBudgetCeiling) > parseBudgetValue(createBudget)))}
                     className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}

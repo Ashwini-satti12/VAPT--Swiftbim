@@ -249,7 +249,7 @@ export default function ConsultantTD() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
@@ -686,7 +686,7 @@ export default function ConsultantTD() {
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {viewMode === 'table' && (
                   <CustomDropdown
-                    options={['10', '20', '30', '40']}
+                    options={['50', '100']}
                     value={`Show: ${itemsPerPage}`}
                     onChange={(val) => {
                       setItemsPerPage(parseInt(val, 10));
@@ -897,7 +897,7 @@ export default function ConsultantTD() {
                       return (
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {serialNumber}
+                            {String(serialNumber).padStart(2, '0')}
                           </td>
                           <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                             {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
@@ -1018,7 +1018,7 @@ export default function ConsultantTD() {
                       onClick={() => setCurrentPage(page)}
                       className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
                     >
-                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
+                      {(page - 1) * itemsPerPage}-{Math.min(page * itemsPerPage, filteredList.length)}
                     </button>
                   ));
                 })()}

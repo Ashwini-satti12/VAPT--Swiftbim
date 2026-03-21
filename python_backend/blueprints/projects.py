@@ -4,6 +4,10 @@ from auth_middleware import project_app_required
 import mysql.connector as mysql_connector
 import os
 from werkzeug.utils import secure_filename
+import re
+import calendar
+import json
+from datetime import date, datetime
 
 
 def _get_vendor_db():
@@ -136,6 +140,7 @@ def list_projects():
         d["completed_tasks"] = counts["completed_tasks"]
         projects.append(d)
     _hydrate_project_display_fields(cur, company_id, projects)
+    _hydrate_project_phase1_fields(projects)
     return jsonify({"projects": projects})
 
 
@@ -334,6 +339,283 @@ def _hydrate_project_display_fields(cur, company_id, project_dicts):
         d["members_names"] = [employees_by_id.get(mid, "") for mid in mids if employees_by_id.get(mid, "")]
 
 
+def _parse_iso_date(val):
+    if not val:
+        return None
+    if isinstance(val, (datetime, date)):
+        return val.date() if isinstance(val, datetime) else val
+    s = str(val).strip()
+    if not s:
+        return None
+    # Accept "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM:SS"
+    try:
+        return datetime.fromisoformat(s.replace("Z", "")).date()
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(s[:10], fmt).date()
+        except Exception:
+            continue
+    return None
+
+
+def _add_months(d: date, months: int) -> date:
+    y = d.year + (d.month - 1 + months) // 12
+    m = (d.month - 1 + months) % 12 + 1
+    last = calendar.monthrange(y, m)[1]
+    return date(y, m, min(d.day, last))
+
+
+def _duration_to_months(text: str) -> int | None:
+    s = (text or "").strip().lower()
+    if not s:
+        return None
+    # examples: "2 month", "3 months", "1 year", "2 years"
+    m = re.search(r"(\d+)\s*(month|months|mon|mons|year|years|yr|yrs)\b", s)
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2)
+    if unit.startswith("year") or unit in {"yr", "yrs"}:
+        return n * 12
+    return n
+
+
+def _get_table_columns(vendor_cur, table_name: str) -> set[str]:
+    vendor_cur.execute(
+        """
+        SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'new_swiftbim' AND TABLE_NAME = %s
+        """,
+        (table_name,),
+    )
+    return {r["COLUMN_NAME"] for r in (vendor_cur.fetchall() or [])}
+
+
+def _first_nonempty(row: dict, keys: list[str]) -> str:
+    for k in keys:
+        if k in row and row.get(k) not in (None, "", "NULL"):
+            v = row.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                return str(int(v) if v == int(v) else v)
+            return str(v).strip()
+    return ""
+
+
+def _hydrate_project_phase1_fields(project_dicts: list[dict]):
+    """
+    Enrich projects with values sourced from new_swiftbim phase-1 tables:
+    - bim_enquiry
+    - proposals
+    - contracts
+
+    Adds / overrides:
+    - resources (Total Resources Available)
+    - location
+    - end_date (computed from start_date + completion_time when needed)
+    """
+    if not project_dicts:
+        return
+
+    try:
+        vendor_conn = _get_vendor_db()
+        vendor_cur = vendor_conn.cursor(dictionary=True)
+
+        cols_enq = _get_table_columns(vendor_cur, "bim_enquiry")
+        cols_prop = _get_table_columns(vendor_cur, "proposals")
+        cols_con = _get_table_columns(vendor_cur, "contracts")
+
+        # Candidate columns (we'll probe whichever exist)
+        name_cols = ["project_name", "project", "title", "name"]
+        # bim_enquiry location pieces (preferred)
+        enq_loc_parts = ["address", "city", "state", "country"]
+        # Some schemas store a prebuilt location field
+        enq_loc_fallback = ["project_location", "location", "projectLocation"]
+        # proposals resources column is the source of truth (but many rows are empty in current DB)
+        proposal_res_cols = ["resources"]
+        start_cols = ["project_start_date", "start_date", "startDate"]
+        # completion timeline is in bim_enquiry; some schemas use other names
+        duration_cols = ["completion_timeline", "project_completion_time", "completion_time", "completionTime", "project_duration", "duration", "project_completion"]
+
+        def fetch_by_name(table: str, cols: set[str], project_name: str) -> dict | None:
+            # Legacy fallback only: most phase-1 tables don't have project_name
+            if not project_name:
+                return None
+            key = next((c for c in name_cols if c in cols), None)
+            if not key:
+                return None
+            vendor_cur.execute(
+                f"SELECT * FROM {table} WHERE {key} = %s ORDER BY id DESC LIMIT 1",
+                (project_name,),
+            )
+            return vendor_cur.fetchone()
+
+        def fetch_phase1_chain_for_project(p: dict) -> tuple[dict, dict, dict]:
+            """
+            Resolve (enquiry, proposal, contract) for a project using the most reliable links available:
+            1) contracts.client_id == projects.client_id  -> contracts.proposal_id -> proposals.service_id -> bim_enquiry.id
+            2) fallback: proposals.email_address == users.email (users.id == projects.client_id) -> proposals.service_id -> enquiry
+            3) legacy fallback: by project_name (if present in schema)
+            """
+            enq, prop, con = {}, {}, {}
+            client_id = _as_int_id(p.get("client_id"))
+
+            # 1) contract -> proposal -> enquiry (best)
+            if client_id is not None:
+                try:
+                    vendor_cur.execute(
+                        "SELECT * FROM contracts WHERE client_id = %s ORDER BY id DESC LIMIT 1",
+                        (client_id,),
+                    )
+                    con = vendor_cur.fetchone() or {}
+                    pid = _as_int_id(con.get("proposal_id"))
+                    if pid is not None:
+                        vendor_cur.execute(
+                            "SELECT * FROM proposals WHERE id = %s LIMIT 1",
+                            (pid,),
+                        )
+                        prop = vendor_cur.fetchone() or {}
+                except Exception:
+                    con, prop = {}, {}
+
+            # 2) proposal by client email (fallback)
+            if not prop and client_id is not None:
+                try:
+                    vendor_cur.execute(
+                        "SELECT email FROM users WHERE id = %s LIMIT 1",
+                        (client_id,),
+                    )
+                    u = vendor_cur.fetchone() or {}
+                    email = (u.get("email") or "").strip()
+                    if email:
+                        vendor_cur.execute(
+                            "SELECT * FROM proposals WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (email,),
+                        )
+                        prop = vendor_cur.fetchone() or {}
+                except Exception:
+                    prop = {}
+
+            # 3) enquiry from proposal.service_id (or legacy by name)
+            sid = _as_int_id(prop.get("service_id")) if prop else None
+            if sid is not None:
+                try:
+                    vendor_cur.execute(
+                        "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
+                        (sid,),
+                    )
+                    enq = vendor_cur.fetchone() or {}
+                except Exception:
+                    enq = {}
+            else:
+                # very last resort
+                project_name = (p.get("project_name") or "").strip()
+                enq = fetch_by_name("bim_enquiry", cols_enq, project_name) or {}
+                prop = prop or fetch_by_name("proposals", cols_prop, project_name) or {}
+                con = con or fetch_by_name("contracts", cols_con, project_name) or {}
+
+            return enq, prop, con
+
+        for p in project_dicts:
+            project_name = (p.get("project_name") or "").strip()
+
+            enq_row, prop_row, con_row = fetch_phase1_chain_for_project(p)
+
+            # Resources + Required Resources: from proposals.resources when available
+            prop_resources = _first_nonempty(prop_row, [c for c in proposal_res_cols if c in prop_row])
+            if prop_resources:
+                p["resources"] = prop_resources
+                p["required_resources"] = prop_resources
+            else:
+                # Fallback: if proposals.resources is empty in DB, derive total resources from proposals.commercial_offer
+                # (sum of each milestone's `resources`), else fall back to enquiry list counts.
+                derived = 0
+                try:
+                    raw_offer = prop_row.get("commercial_offer")
+                    offer = raw_offer
+                    if isinstance(raw_offer, str):
+                        offer = json.loads(raw_offer) if raw_offer.strip() else []
+                    if isinstance(offer, list):
+                        for item in offer:
+                            if not isinstance(item, dict):
+                                continue
+                            rv = item.get("resources")
+                            if rv is None:
+                                continue
+                            s = str(rv).strip()
+                            if s.isdigit():
+                                derived += int(s)
+                except Exception:
+                    derived = 0
+
+                if not derived:
+                    def _count_listish(val):
+                        if val is None:
+                            return 0
+                        s = str(val).strip()
+                        if not s:
+                            return 0
+                        parts = [p.strip() for p in re.split(r"[,\n;]+", s) if p.strip()]
+                        return len(parts)
+
+                    derived = _count_listish(enq_row.get("disciplines_required")) or _count_listish(
+                        enq_row.get("bim_services_required")
+                    )
+
+                if derived:
+                    p["resources"] = str(derived)
+                    p["required_resources"] = str(derived)
+
+            # Location: build from enquiry as "address, city, state, country"
+            loc_parts = []
+            for k in enq_loc_parts:
+                v = (enq_row.get(k) or "").strip() if isinstance(enq_row.get(k), str) else enq_row.get(k)
+                v = str(v).strip() if v not in (None, "", "NULL") else ""
+                if v:
+                    loc_parts.append(v)
+            combined_loc = ", ".join(loc_parts).strip(", ").strip()
+            if not combined_loc:
+                combined_loc = _first_nonempty(enq_row, [c for c in enq_loc_fallback if c in enq_row])
+            if combined_loc and (not p.get("location") or str(p.get("location")).strip().lower() in {"empty", "n/a", "na"}):
+                p["location"] = combined_loc
+
+            # End date calculation
+            start_dt = _parse_iso_date(p.get("start_date") or p.get("startDate"))
+            if not start_dt:
+                # bim_enquiry uses projectstart_date (not start_date)
+                start_dt = (
+                    _parse_iso_date(_first_nonempty(enq_row, ["projectstart_date"]))
+                    or _parse_iso_date(_first_nonempty(enq_row, [c for c in start_cols if c in enq_row]))
+                    or _parse_iso_date(_first_nonempty(prop_row, [c for c in start_cols if c in prop_row]))
+                    or _parse_iso_date(_first_nonempty(con_row, [c for c in start_cols if c in con_row]))
+                )
+
+            # We only trust end_date if it's a real date; due_date may be a duration string ("6 months")
+            end_dt_existing = _parse_iso_date(p.get("end_date"))
+            duration_text = (
+                _first_nonempty(enq_row, [c for c in duration_cols if c in enq_row])
+                or _first_nonempty(prop_row, [c for c in duration_cols if c in prop_row])
+                or _first_nonempty(con_row, [c for c in duration_cols if c in con_row])
+                or (str(p.get("due_date") or "").strip())
+            )
+            months = _duration_to_months(duration_text)
+
+            # If frontend is getting "Invalid Date", it's usually because end_date is empty/garbled.
+            # Only compute if we have a start date + duration.
+            if months is not None and start_dt and not end_dt_existing:
+                p["end_date"] = _add_months(start_dt, months).isoformat()
+    except Exception:
+        return
+    finally:
+        try:
+            if "vendor_conn" in locals() and vendor_conn.is_connected():
+                vendor_conn.close()
+        except Exception:
+            pass
+
+
 @bp.route("/<int:project_id>", methods=["GET"])
 @project_app_required
 def get_project(project_id):
@@ -368,6 +650,7 @@ def get_project(project_id):
     if "no_resources_requried" in d and "required_resources" not in d:
         d["required_resources"] = d.get("no_resources_requried")
     _hydrate_project_display_fields(cur, g.company_id, [d])
+    _hydrate_project_phase1_fields([d])
     return jsonify(d)
 
 
