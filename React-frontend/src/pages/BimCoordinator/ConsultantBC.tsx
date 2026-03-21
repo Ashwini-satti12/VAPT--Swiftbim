@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -20,6 +20,8 @@ import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
+
+
     id: number;
     full_name: string;
     email: string;
@@ -112,6 +114,29 @@ const SCROLLBAR_STYLE = `
   }
 `;
 
+const PANEL_ROLES = [
+    'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee'
+];
+
+const getAllowedRoles = () => [
+    'Consultant', 'BIM Coordinator', 'BIM Lead', 'Project Manager', 'BIM Modeler', 'BIM Architect', 'BIM Architect Lead', 'Tekla Modeler', 'BIM Project Manager', 'Business Development Manager', 'Vice President Projects', 'Junior BIM Modeler', 'Architect Intern', 'BIM Modeler- MEP', 'HR Executive', 'Graphic Designer', 'Management'
+];
+
+const isRestrictedTargetRole = (role?: string) => {
+    return role === 'Admin' || role === 'Technical Director';
+};
+
+const isEmployeeActive = (emp: Employee) => {
+    return emp.active === 'active' || emp.active === 'Active';
+};
+
+const getInferredPhone = (phone?: string) => {
+    if (!phone) return { code: '+91', digits: '' };
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length > 10) return { code: `+${clean.slice(0, clean.length - 10)}`, digits: clean.slice(-10) };
+    return { code: '+91', digits: clean };
+};
+
 function CustomDropdown({
     options,
     value,
@@ -182,9 +207,61 @@ function CustomDropdown({
 export default function ConsultantBC() {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+    const [currentPage, setCurrentPage] = useState(1);
+    const effectivePerPage = 10;
+    
+    // Missing States
+    const [editId, setEditId] = useState<number | null>(null);
+    const [editError, setEditError] = useState('');
+    const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editForm, setEditForm] = useState<any>({
+        full_name: '',
+        email: '',
+        phone_number: '',
+        user_role: 'Consultant',
+        department: '',
+        address: '',
+        dob: '',
+        password: '',
+        user_type: '',
+        doj: '',
+        salary: '',
+        accountnumber: '',
+        profile_picture: null,
+        roles: [],
+        active: 'Active',
+    });
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [form, setForm] = useState<any>({
+        full_name: '',
+        email: '',
+        password: '',
+        phone_number: '',
+        user_role: 'Consultant',
+        department: '',
+        address: '',
+        dob: '',
+        type: '',
+        joining_date: '',
+        profile_picture: null,
+        active: 'Active',
+    });
+    const [addSubmitting, setAddSubmitting] = useState(false);
+    const [addError, setAddError] = useState('');
+    const [selectedShow, setSelectedShow] = useState<string>("Show");
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const showTriggerRef = useRef<HTMLButtonElement>(null);
+    const showMenuRef = useRef<HTMLDivElement>(null);
+    const [departments, setDepartments] = useState<string[]>([]);
+
+
+
+
+
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteEmails, setInviteEmails] = useState('');
     const [inviteMessage, setInviteMessage] = useState('');
@@ -218,23 +295,25 @@ export default function ConsultantBC() {
 
     useEffect(() => {
         if (!openDropdown) return;
-        function handleClickOutside(event: MouseEvent) {
-            const isClickInsideShow = showMenuRef.current?.contains(event.target as Node) || showTriggerRef.current?.contains(event.target as Node);
-            const isClickInsideStatus = statusMenuRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node);
-            
-            if (!isClickInsideShow && !isClickInsideStatus) {
+        const handleClickOutside = (e: MouseEvent) => {
+            const isClickInsideShow = showMenuRef.current?.contains(e.target as Node) || showTriggerRef.current?.contains(e.target as Node);
+            if (!isClickInsideShow) {
                 setOpenDropdown(null);
             }
-        }
+        };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [openDropdown]);
+
+
+
 
     useEffect(() => {
         api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
     }, []);
 
 
+    useEffect(() => {
         // Fetch departments
         api.get<{ departments?: string[] }>('/api/departments')
             .then(({ data }) => setDepartments(data.departments || []))
@@ -252,12 +331,12 @@ export default function ConsultantBC() {
             if (emp) {
                 setEditId(id);
                 setEditError('');
-                const inferred = inferPhoneParts(emp.phone_number);
+                const inferred = getInferredPhone(emp.phone_number);
                 setEditCountryCode(inferred.code);
                 setEditForm({
                     full_name: emp.full_name,
                     email: emp.email,
-                    phone_number: inferred.digits.slice(0, 12),
+                    phone_number: inferred.digits.slice(0, 10),
                     user_role: emp.user_role || 'Consultant',
                     department: emp.department || '',
                     address: emp.address || '',
@@ -274,26 +353,6 @@ export default function ConsultantBC() {
             }
         }
     }, [editParam, list]);
-
-    const isEmployeeActive = (emp: Employee): boolean => {
-        return (emp.active || '').toString().trim().toLowerCase() === 'active';
-    };
-
-    const inferPhoneParts = (phone: string | undefined): { code: string; digits: string } => {
-        const raw = (phone || '').toString().trim();
-        const digitsOnly = raw.startsWith('+') ? raw.slice(1).replace(/\D/g, '') : raw.replace(/\D/g, '');
-        for (const code of COUNTRY_CODES) {
-            const codeDigits = code.replace('+', '');
-            if (digitsOnly.startsWith(codeDigits)) {
-                return {
-                    code,
-                    digits: digitsOnly.slice(codeDigits.length),
-                };
-            }
-        }
-        return { code: COUNTRY_CODES[0], digits: digitsOnly };
-    };
-
     // Close status dropdown on outside click
     useEffect(() => {
         if (!statusDropdownOpen) return;
@@ -320,16 +379,14 @@ export default function ConsultantBC() {
             limitStart = parseInt(parts[0], 10) - 1;
             limitEnd = parseInt(parts[1], 10);
         }
-    } else if (selectedShow === "All") {
-        limitStart = 0;
-        limitEnd = Infinity;
-    } else {
-        // Default "Show" or any other value might mean "All" or a default range
-        limitStart = 0;
-        limitEnd = Infinity;
+    } else if (selectedShow === "All" || selectedShow === "Show") {
+        limitStart = (currentPage - 1) * 10;
+        limitEnd = currentPage * 10;
     }
+    const paginatedList = filteredList.slice(limitStart, limitEnd);
 
-    const displayedList = filteredList.slice(limitStart, limitEnd);
+    const totalPages = Math.ceil(filteredList.length / 10);
+
 
     function exportCsv() {
         const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -701,14 +758,14 @@ export default function ConsultantBC() {
                                 onClick={() => setOpenDropdown(openDropdown === "show" ? null : "show")}
                                 className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
                             >
-                                <span className="truncate font-Gantari">
+                                <span className="truncate font-Gantari text-[#353535]">
                                     {selectedShow !== "Show" && selectedShow !== "All" ? (
                                         <>
-                                            <span className="text-sm text-[#353535]">Show:</span>{" "}
-                                            <span className="text-[#353535] font-semibold">{selectedShow}</span>
+                                            <span className="text-sm font-normal">Show:</span>{" "}
+                                            <span className="font-semibold">{selectedShow}</span>
                                         </>
                                     ) : (
-                                        <span className="text-[#616161]">{selectedShow}</span>
+                                        <span className="text-[14px] font-semibold">{selectedShow}</span>
                                     )}
                                 </span>
                                 <img
@@ -742,30 +799,32 @@ export default function ConsultantBC() {
                         </div>
                     )}
 
-                    {/* Status filter dropdown */}
-                    <div className="relative" ref={statusDropdownRef}>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-[5px]">
-                            <span className="text-[14px] font-Gantari text-[#353535]">Status</span>
 
-                            <button
-                                type="button"
-                                onClick={() => setStatusDropdownOpen((v) => !v)}
-                                className={`flex items-center justify-between gap-3 px-4 py-2 rounded-[5px] border transition-colors ${
-                                    statusFilter === 'Active'
-                                        ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]'
-                                        : statusFilter === 'Deactive'
-                                            ? 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'
-                                            : 'bg-white border-slate-200 text-[#353535]'
-                                }`}
-                            >
-                                <span className="text-[14px] font-semibold font-Gantari">
-                                    {statusFilter === 'All' ? 'All' : statusFilter === 'Active' ? 'Active' : 'Deactivate'}
-                                </span>
-                                <FiChevronDown
-                                    className={`w-4 h-4 text-slate-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}
-                                />
-                            </button>
-                        </div>
+
+
+                    <div className="relative" ref={statusDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={() => setStatusDropdownOpen((v) => !v)}
+                            className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
+                        >
+                            <span className="truncate font-Gantari">
+                                {statusFilter !== 'All' ? (
+                                    <>
+                                        <span className="text-sm text-[#353535]">Status:</span>{" "}
+                                        <span className="text-[#353535] font-semibold">{statusFilter === 'Deactive' ? 'Deactivate' : statusFilter}</span>
+                                    </>
+                                ) : (
+                                    <span className="text-[#616161] font-semibold">Status</span>
+                                )}
+                            </span>
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+
 
                         {statusDropdownOpen && (
                             <div className="absolute right-0 top-full mt-2 w-[180px] bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden z-[100]">
@@ -827,12 +886,14 @@ export default function ConsultantBC() {
                 {viewMode === 'card' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {filteredList.length === 0 ? (
-                            <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
+                            <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
                                 No consultants found.
                             </div>
+
                         ) : (
                             filteredList.map((emp) => (
-                                <div key={emp.id} className="bg-white rounded-2xl overflow-hidden border-2 border-slate-200 transition-all ">
+                                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border border-slate-200 transition-all ">
+
                                     {/* Image Section */}
                                     <div className="relative h-40 overflow-hidden group">
                                         <div className="absolute inset-0 z-0">
@@ -897,7 +958,7 @@ export default function ConsultantBC() {
                                             <button 
                                                 type="button"
                                                 onClick={() => navigate('/chat')}
-                                                className="flex-[1.4] min-w-[130px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all"
+                                                className="flex-[1.4] min-w-[130px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all"
                                             >
                                                 <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                                             </button>
@@ -908,6 +969,7 @@ export default function ConsultantBC() {
                                             >
                                                 <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                                             </button>
+
                                         </div>
 
                                         <hr className="border-slate-200" />
@@ -917,22 +979,23 @@ export default function ConsultantBC() {
                                             <button
                                                 type="button"
                                                 onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                                                className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                                                className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[12px] sm:text-[14px] font-Gantari"
                                             >
                                                 <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                                             </button>
+
                                             {canAdd && (
                                                 <button
                                                     type="button"
                                                     onClick={() => {
                                                         setEditId(emp.id);
                                                         setEditError('');
-                                                        const inferred = inferPhoneParts(emp.phone_number);
+                                                        const inferred = getInferredPhone(emp.phone_number);
                                                         setEditCountryCode(inferred.code);
                                                         setEditForm({
                                                             full_name: emp.full_name,
                                                             email: emp.email,
-                                                            phone_number: inferred.digits.slice(0, 12),
+                                                            phone_number: inferred.digits.slice(0, 10),
                                                             user_role: emp.user_role || 'Consultant',
                                                             department: emp.department || '',
                                                             address: emp.address || '',
@@ -973,7 +1036,8 @@ export default function ConsultantBC() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-200">
-                                    {displayedList.length === 0 ? (
+                                    {paginatedList.length === 0 ? (
+
                                         <tr>
                                             <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                                                 No consultants found.
@@ -986,7 +1050,8 @@ export default function ConsultantBC() {
                                             return (
                                             <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}>
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{slNoPadded}</td>
-                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.empid || `EMP0${emp.id + 10}`}</td>
+                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">{emp.empid || `EMP0${emp.id + 10}`}</td>
+
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="relative">
@@ -1057,29 +1122,9 @@ export default function ConsultantBC() {
 
 
 
-                                return pages.map((page) => (
-                                    <button
-                                        key={page}
-                                        onClick={() => setCurrentPage(page)}
-                                        className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors ${currentPage === page ? 'text-white bg-[#DD4342]' : 'text-[#6B6B6B] hover:bg-slate-100'}`}
-                                    >
-                                        {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
-                                    </button>
-                                ));
-                            })()}
 
-                            <button
-                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages || totalPages === 0}
-                                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50"
-                            >
-                                Next
-                                <FiChevronDown className="w-4 h-4 -rotate-90" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+
+
 
             {showAddModal && createPortal(
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
@@ -1108,7 +1153,11 @@ export default function ConsultantBC() {
                                             type="text"
                                             placeholder="Enter Employee Name"
                                             value={form.full_name}
-                                            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/  +/g, ' ');
+                                                setForm((f: any) => ({ ...f, full_name: val }));
+                                            }}
+
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                             required
                                         />
@@ -1133,7 +1182,7 @@ export default function ConsultantBC() {
                                                 value={form.phone_number}
                                                 onChange={(e) => {
                                                     const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
-                                                    setForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                    setForm((f: any) => ({ ...f, phone_number: digitsOnly }));
                                                 }}
                                                 maxLength={12}
                                                 required
@@ -1147,7 +1196,7 @@ export default function ConsultantBC() {
                                             type="password"
                                             placeholder="Enter Password"
                                             value={form.password}
-                                            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                                            onChange={(e) => setForm((f: any) => ({ ...f, password: e.target.value }))}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                             required
                                         />
@@ -1157,7 +1206,7 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={form.user_role}
-                                                onChange={(e) => setForm((f) => ({ ...f, user_role: e.target.value }))}
+                                                onChange={(e) => setForm((f: any) => ({ ...f, user_role: e.target.value }))}
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
@@ -1173,7 +1222,7 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={form.department}
-                                                onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+                                                onChange={(e) => setForm((f: any) => ({ ...f, department: e.target.value }))}
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
@@ -1193,7 +1242,7 @@ export default function ConsultantBC() {
                                         <input
                                             type="date"
                                             value={form.dob}
-                                            onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                            onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
                                             max={todayISO}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
                                         />
@@ -1204,7 +1253,7 @@ export default function ConsultantBC() {
                                             type="email"
                                             placeholder="Enter Email"
                                             value={form.email}
-                                            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                                            onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                             required
                                         />
@@ -1214,7 +1263,7 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={form.type}
-                                                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                                                onChange={(e) => setForm((f: any) => ({ ...f, type: e.target.value }))}
                                                 className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Type</option>
@@ -1229,7 +1278,7 @@ export default function ConsultantBC() {
                                         <input
                                             type="date"
                                             value={form.joining_date}
-                                            onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
+                                            onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
                                         />
                                     </div>
@@ -1245,7 +1294,7 @@ export default function ConsultantBC() {
                                                     type="file"
                                                     className="hidden"
                                                     accept=".jpg,.jpeg"
-                                                    onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                                                    onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                                                 />
                                             </label>
                                         </div>
@@ -1259,7 +1308,11 @@ export default function ConsultantBC() {
                                     rows={3}
                                     placeholder="Type your Address..."
                                     value={form.address}
-                                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/  +/g, ' ');
+                                        setForm((f: any) => ({ ...f, address: val }));
+                                    }}
+
                                     className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] placeholder:text-[#979797] font-Gantari transition-all resize-none outline-none leading-relaxed"
                                 />
                             </div>
@@ -1440,8 +1493,23 @@ export default function ConsultantBC() {
                 document.body
             )}
 
+            {editId && createPortal(
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-[15px] max-w-[1174px] w-full px-[20px] py-[20px] max-h-[795px] overflow-y-auto relative">
+                        {/* Header Section */}
+                        <div className="flex items-center justify-center mb-4 relative">
+                            <button
+                                type="button"
+                                onClick={() => { setEditId(null); setEditError(''); }}
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                            >
+                                <FiX className="w-5 h-5 font-bold" />
+                            </button>
+                            <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Edit Consultant Details</h3>
+                        </div>
 
                         <form onSubmit={handleEditSubmit} className="space-y-6">
+
                             {editError && (
                                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                     <p className="text-sm text-red-600 font-Gantari">{editError}</p>
@@ -1483,7 +1551,7 @@ export default function ConsultantBC() {
                                                 value={editForm.phone_number}
                                                 onChange={(e) => {
                                                     const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
-                                                    setEditForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                    setEditForm((f: any) => ({ ...f, phone_number: digitsOnly }));
                                                 }}
                                                 maxLength={12}
                                                 required
@@ -1508,11 +1576,11 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={editForm.user_role}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, user_role: e.target.value }))}
+                                                onChange={(e) => setEditForm((f: any) => ({ ...f, user_role: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Role</option>
-                                                {getAllowedRoles(editForm.user_role).map((r) => (
+                                                {getAllowedRoles().map((r) => (
                                                     <option key={r} value={r}>{r}</option>
                                                 ))}
                                             </select>
@@ -1525,7 +1593,7 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={editForm.department}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
+                                                onChange={(e) => setEditForm((f: any) => ({ ...f, department: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Department</option>
@@ -1543,7 +1611,7 @@ export default function ConsultantBC() {
                                             type="text"
                                             placeholder="Enter Account Number"
                                             value={editForm.accountnumber}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                                            onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                         />
                                     </div>
@@ -1556,7 +1624,7 @@ export default function ConsultantBC() {
                                         <input
                                             type="date"
                                             value={editForm.dob}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                                            onChange={(e) => setEditForm((f: any) => ({ ...f, dob: e.target.value }))}
                                             max={todayISO}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
                                         />
@@ -1579,7 +1647,7 @@ export default function ConsultantBC() {
                                         <div className="relative">
                                             <select
                                                 value={editForm.user_type}
-                                                onChange={(e) => setEditForm((f) => ({ ...f, user_type: e.target.value }))}
+                                                onChange={(e) => setEditForm((f: any) => ({ ...f, user_type: e.target.value }))}
                                                 className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
                                             >
                                                 <option value="" disabled>Select Type</option>
@@ -1596,7 +1664,7 @@ export default function ConsultantBC() {
                                         <input
                                             type="date"
                                             value={editForm.doj}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                                            onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
                                         />
                                     </div>
@@ -1607,7 +1675,7 @@ export default function ConsultantBC() {
                                             type="text"
                                             placeholder="0000$"
                                             value={editForm.salary}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                                            onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
                                         />
                                     </div>
@@ -1624,7 +1692,7 @@ export default function ConsultantBC() {
                                                     type="file"
                                                     className="hidden"
                                                     accept=".jpg,.jpeg"
-                                                    onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                                                    onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                                                 />
                                             </label>
                                         </div>
@@ -1639,7 +1707,7 @@ export default function ConsultantBC() {
                                     rows={4}
                                     placeholder="Enter Address"
                                     value={editForm.address}
-                                    onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                                    onChange={(e) => setEditForm((f: any) => ({ ...f, address: e.target.value }))}
                                     className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
                                 />
                             </div>

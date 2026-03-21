@@ -216,6 +216,9 @@ export default function EmployeesPM() {
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
+  const effectivePerPage = 10;
+
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState('');
   const [form, setForm] = useState({
@@ -405,6 +408,8 @@ export default function EmployeesPM() {
   }
 
   const displayedList = filteredList.slice(limitStart, limitEnd);
+  const totalPages = Math.ceil(filteredList.length / effectivePerPage);
+
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
@@ -955,13 +960,9 @@ export default function EmployeesPM() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
-<<<<<<< HEAD
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl No</th>
-=======
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
                       Sl.No
                     </th>
->>>>>>> ff273e2104807c88b89d449e210937052ed3b839
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
@@ -977,20 +978,20 @@ export default function EmployeesPM() {
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => {
-                      const slNo = (currentPage - 1) * itemsPerPage + idx + 1;
+                    displayedList.map((emp, idx) => {
+                      const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
                       const slNoDisplay = String(slNo).padStart(2, '0');
                       return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                         <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#6B6B6B]">
                           {slNoDisplay}
                         </td>
-                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                          {slNo}
-                        </td>
-                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+
+
+                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">
                           {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                         </td>
+
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
@@ -1059,7 +1060,40 @@ export default function EmployeesPM() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
+                <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
+                  Showing {(currentPage - 1) * effectivePerPage + 1} to {Math.min(currentPage * effectivePerPage, filteredList.length)} of {filteredList.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                  >
+                    <FiChevronDown className="w-5 h-5 rotate-90" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all ${currentPage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
+                    >
+                      {String(page).padStart(2, '0')}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                  >
+                    <FiChevronDown className="w-5 h-5 -rotate-90" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
         )}
       </div>
 
@@ -1095,7 +1129,7 @@ export default function EmployeesPM() {
                       type="text"
                       placeholder="Enter Employee Name"
                       value={form.full_name}
-                      onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                      onChange={(e) => setForm((f: any) => ({ ...f, full_name: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
@@ -1108,7 +1142,7 @@ export default function EmployeesPM() {
                         <CustomDropdown
                           options={COUNTRY_CODES}
                           value={form.country_code}
-                          onChange={(val) => setForm((f) => ({ ...f, country_code: val }))}
+                          onChange={(val) => setForm((f: any) => ({ ...f, country_code: val }))}
                           placeholder="Select Code"
                         />
                       </div>
@@ -1137,7 +1171,7 @@ export default function EmployeesPM() {
                       type="password"
                       placeholder="Enter Password"
                       value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      onChange={(e) => setForm((f: any) => ({ ...f, password: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
@@ -1147,7 +1181,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={ROLE_OPTIONS}
                       value={form.user_role}
-                      onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
                     />
                   </div>
@@ -1156,7 +1190,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={departmentOptions}
                       value={form.department}
-                      onChange={(val) => setForm((f) => ({ ...f, department: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, department: val }))}
                       placeholder="Select Department"
                     />
                   </div>
@@ -1169,7 +1203,7 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={form.dob}
-                      onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                      onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       max={dobMaxDate}
                     />
@@ -1180,7 +1214,7 @@ export default function EmployeesPM() {
                       type="email"
                       placeholder="Enter Email"
                       value={form.email}
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
@@ -1190,7 +1224,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={['Trainee', 'Consultant',]}
                       value={form.type}
-                      onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
                       placeholder="Select Type"
                     />
                   </div>
@@ -1199,7 +1233,7 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={form.joining_date}
-                      onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
+                      onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
@@ -1215,7 +1249,7 @@ export default function EmployeesPM() {
                           type="file"
                           className="hidden"
                           accept=".jpg,.jpeg"
-                          onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                          onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                         />
                       </label>
                     </div>
@@ -1230,7 +1264,7 @@ export default function EmployeesPM() {
                   rows={4}
                   placeholder="Type your Address..."
                   value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                  onChange={(e) => setForm((f: any) => ({ ...f, address: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
@@ -1281,7 +1315,7 @@ export default function EmployeesPM() {
                     type="text"
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
-                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
@@ -1295,7 +1329,7 @@ export default function EmployeesPM() {
                       <CustomDropdown
                         options={COUNTRY_CODES}
                         value={editForm.country_code}
-                        onChange={(val) => setEditForm((f) => ({ ...f, country_code: val }))}
+                        onChange={(val) => setEditForm((f: any) => ({ ...f, country_code: val }))}
                         placeholder="Select Code"
                       />
                     </div>
@@ -1321,7 +1355,7 @@ export default function EmployeesPM() {
                       type="password"
                       placeholder="******** (password hidden)"
                       value={editForm.password}
-                      onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     disabled
                     />
@@ -1331,7 +1365,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={ROLE_OPTIONS}
                       value={editForm.user_role}
-                      onChange={(val) => setEditForm((f) => ({ ...f, user_role: val }))}
+                      onChange={(val) => setEditForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
                     />
                   </div>
@@ -1340,7 +1374,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={departmentOptions}
                       value={editForm.department}
-                      onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
+                      onChange={(val) => setEditForm((f: any) => ({ ...f, department: val }))}
                       placeholder="Select Department"
                     />
                   </div>
@@ -1350,7 +1384,7 @@ export default function EmployeesPM() {
                     type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
-                      onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
@@ -1363,7 +1397,7 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={editForm.dob}
-                      onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, dob: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       max={dobMaxDate}
                     />
@@ -1374,7 +1408,7 @@ export default function EmployeesPM() {
                     type="email"
                     placeholder="Enter Email"
                     value={editForm.email}
-                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
@@ -1385,7 +1419,7 @@ export default function EmployeesPM() {
                   <CustomDropdown
                     options={['Trainee', 'Consultant', ]}
                     value={editForm.user_type}
-                    onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
+                    onChange={(val) => setEditForm((f: any) => ({ ...f, user_type: val }))}
                     placeholder="Select Type"
                   />
                 </div>
@@ -1394,7 +1428,7 @@ export default function EmployeesPM() {
                   <input
                     type="date"
                     value={editForm.doj}
-                    onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
@@ -1404,7 +1438,7 @@ export default function EmployeesPM() {
                     type="text"
                     placeholder="0000$"
                     value={editForm.salary}
-                    onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
@@ -1420,7 +1454,7 @@ export default function EmployeesPM() {
                         type="file"
                         className="hidden"
                         accept=".jpg,.jpeg"
-                        onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                        onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                       />
                     </label>
                     </div>
@@ -1435,7 +1469,7 @@ export default function EmployeesPM() {
                   rows={4}
                   placeholder="Type your Address..."
                   value={editForm.address}
-                  onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, address: e.target.value }))}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
