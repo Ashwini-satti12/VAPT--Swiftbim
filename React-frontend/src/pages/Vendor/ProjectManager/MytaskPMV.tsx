@@ -1,8 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../../lib/api";
+import toast from "react-hot-toast";
 import Group1 from "../../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
@@ -21,6 +22,8 @@ interface Project {
     id: number;
     project_name: string;
     modules?: string;
+    /** Comma-separated resource ids or names involved in this project */
+    members?: string;
 }
 
 interface FormDropdownProps {
@@ -241,9 +244,11 @@ interface Task {
     start_date?: string;
     progress?: number;
     module?: string;
+    modules_name?: string;
     type?: string;
     start_time?: string;
     due_time?: string;
+    end_time?: string;
     assign_to?: string;
     description?: string;
     checklist?: string;
@@ -251,6 +256,49 @@ interface Task {
     uploader_full_name?: string;
     created_at?: string;
     Approval?: string;
+    assigned_to?: number;
+    uploaderid?: number;
+}
+
+/** Normalize various date strings to yyyy-mm-dd for <input type="date" />. */
+function toInputDate(v: unknown): string {
+    if (v == null || v === "") return "";
+    const s = String(v).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) {
+        const dd = m[1].padStart(2, "0");
+        const mm = m[2].padStart(2, "0");
+        const yyyy = m[3];
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    const d = new Date(s);
+    if (!Number.isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, "0");
+        const da = String(d.getDate()).padStart(2, "0");
+        return `${y}-${mo}-${da}`;
+    }
+    return "";
+}
+
+function getTodayInputDate(): string {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function isEndTimeBeforeStartOnSameDay(
+    startDate: string,
+    endDate: string,
+    startTime: string,
+    endTime: string,
+): boolean {
+    if (!startTime || !endTime) return false;
+    if (startDate && endDate && startDate !== endDate) return false;
+    return endTime < startTime;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -269,12 +317,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
 } {
     const t = task as Record<string, unknown>;
     const str = (v: unknown) => (v != null ? String(v) : "");
-    const dateOnly = (v: unknown) => {
-        if (v == null) return "";
-        const s = str(v);
-        if (s.length >= 10) return s.slice(0, 10);
-        return s;
-    };
     const timeOnly = (v: unknown) => {
         if (v == null) return "";
         const s = str(v);
@@ -283,18 +325,17 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     };
     return {
         projectName: str(t.project_name ?? t.projectName ?? ""),
-        module: str(t.module ?? t.modules_name ?? ""),
+        module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
         taskName: str(t.task_name ?? t.taskName ?? ""),
         type: str(t.type ?? t.category ?? ""),
-        actualStartDate: dateOnly(
+        actualStartDate: toInputDate(
             t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
         ),
-        actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
+        actualEndDate: toInputDate(t.due_date ?? t.dueDate ?? ""),
         startTime: timeOnly(
             t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
         ),
         dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-        // Prefer human-readable name when present, otherwise fall back to id
         assignTo: str(
             t.assign_to ??
                 t.assignTo ??
@@ -305,6 +346,27 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
     };
+}
+
+function buildFormFromTask(task: Task, employeeList: Employee[]) {
+    const base = taskToFormValues(task);
+    let assignTo = base.assignTo;
+
+    if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
+        assignTo = task.assigned_full_name;
+    } else {
+        const rawId =
+            (task.assign_to as string | undefined) ??
+            (task.assigned_to as number | undefined) ??
+            base.assignTo;
+        const idNum = typeof rawId === "number" ? rawId : Number(rawId || NaN);
+        if (!Number.isNaN(idNum) && employeeList.length > 0) {
+            const emp = employeeList.find((e) => e.id === idNum);
+            if (emp?.full_name) assignTo = emp.full_name;
+        }
+    }
+
+    return { ...base, assignTo };
 }
 
 function formatDateRange(start?: string, end?: string): string {
@@ -532,14 +594,16 @@ const PERIOD_OPTIONS = [
     "This Week",
     "This Month",
     "This Quarter",
-    "Custom",
+    // "Custom",
 ];
 
 export default function MytaskPMV() {
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const isTeam =
-        searchParams.get("condition") === "1" || pathname.endsWith("/team");
+        searchParams.get("condition") === "1" ||
+        pathname.endsWith("/team") ||
+        pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
     const STORAGE_KEY = "v_myTask_localTasks";
@@ -704,7 +768,8 @@ export default function MytaskPMV() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
+        setAddTaskForm(buildFormFromTask(task, employees));
+        setAttachmentFiles([]);
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -788,7 +853,14 @@ export default function MytaskPMV() {
         const files = input.files;
         if (!files?.length) return;
         const newFiles = Array.from(files);
-        setAttachmentFiles((prev) => [...prev, ...newFiles]);
+        setAttachmentFiles((prev) => {
+            const merged = [...prev];
+            for (const f of newFiles) {
+                const dup = merged.some((x) => x.name === f.name && x.size === f.size);
+                if (!dup) merged.push(f);
+            }
+            return merged;
+        });
         input.value = "";
     };
 
@@ -863,6 +935,36 @@ export default function MytaskPMV() {
             .split(",")
             .map((m) => m.trim())
             .filter((m) => m.length > 0);
+
+    const employeesForAssignDropdown = useMemo(() => {
+        const all = Array.isArray(employees) ? employees : [];
+        const meta = projects.find((p) => p?.project_name === addTaskForm.projectName);
+        const raw = (meta?.members || "").trim();
+        if (!raw) return all;
+        const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
+        if (tokens.length === 0) return all;
+        return all.filter((emp) => {
+            const name = (emp.full_name || "").trim();
+            const idStr = String(emp.id);
+            return tokens.some((t) => {
+                const tl = t.toLowerCase();
+                return t === idStr || tl === name.toLowerCase() || name === t;
+            });
+        });
+    }, [employees, projects, addTaskForm.projectName]);
+
+    const todayInputDate = getTodayInputDate();
+    const sameCalendarDay =
+        Boolean(addTaskForm.actualStartDate) &&
+        Boolean(addTaskForm.actualEndDate) &&
+        addTaskForm.actualStartDate === addTaskForm.actualEndDate;
+
+    const listReloadParams = useMemo(() => {
+        const p: Record<string, string> = {};
+        if (statusFilter) p.status = statusFilter;
+        if (isTeam) p.condition = "1";
+        return p;
+    }, [statusFilter, isTeam]);
 
     const counts = {
         todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
@@ -974,6 +1076,7 @@ export default function MytaskPMV() {
                         type="button"
                         onClick={() => {
                             setEditingTaskId(null);
+                            setAttachmentFiles([]);
                             setAddTaskForm({
                                 projectName: "",
                                 module: "",
@@ -1221,56 +1324,113 @@ export default function MytaskPMV() {
                             className="flex-1 overflow-y-auto p-6"
                             onSubmit={(e) => {
                                 e.preventDefault();
+                                if (
+                                    addTaskForm.actualStartDate &&
+                                    addTaskForm.actualStartDate < todayInputDate
+                                ) {
+                                    toast.error("Start date cannot be before today.");
+                                    return;
+                                }
+                                if (
+                                    addTaskForm.actualEndDate &&
+                                    addTaskForm.actualEndDate < todayInputDate
+                                ) {
+                                    toast.error("End date cannot be before today.");
+                                    return;
+                                }
+                                if (
+                                    isEndTimeBeforeStartOnSameDay(
+                                        addTaskForm.actualStartDate,
+                                        addTaskForm.actualEndDate,
+                                        addTaskForm.startTime,
+                                        addTaskForm.dueTime,
+                                    )
+                                ) {
+                                    toast.error(
+                                        "End time must be the same as or after start time when both dates are the same.",
+                                    );
+                                    return;
+                                }
                                 const isEditing = editingTaskId !== null;
                                 const existing = isEditing
                                     ? list.find((t) => t.id === editingTaskId)
                                     : null;
 
+                                const projectId =
+                                    projects.find(
+                                        (p) => p.project_name === addTaskForm.projectName,
+                                    )?.id ?? null;
+                                const assigneeId = employees.find(
+                                    (emp) => emp.full_name === addTaskForm.assignTo,
+                                )?.id;
+                                const assignedToVal =
+                                    assigneeId != null && !Number.isNaN(Number(assigneeId))
+                                        ? assigneeId
+                                        : addTaskForm.assignTo;
+
                                 const payload = {
-                                    projectid: projects.find(p => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
+                                    projectid: projectId ?? addTaskForm.projectName,
                                     taskName: addTaskForm.taskName,
                                     category: addTaskForm.type,
                                     startdate: addTaskForm.actualStartDate,
                                     dueDate: addTaskForm.actualEndDate,
                                     startTime: addTaskForm.startTime,
                                     dueTime: addTaskForm.dueTime,
-                                    assignedTo: employees.find(e => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
+                                    assignedTo: assignedToVal,
                                     description: addTaskForm.description,
                                     checklist: addTaskForm.checklist,
-                                    modules: addTaskForm.module
+                                    modules: addTaskForm.module,
                                 };
 
                                 const handleFiles = (taskId: number | string) => {
                                     if (attachmentFiles.length > 0) {
                                         const formData = new FormData();
-                                        attachmentFiles.forEach(f => formData.append("image", f));
+                                        attachmentFiles.forEach((f) =>
+                                            formData.append("image", f),
+                                        );
                                         api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: { 'Content-Type': 'multipart/form-data' }
+                                            headers: {
+                                                "Content-Type": "multipart/form-data",
+                                            },
                                         });
                                     }
                                 };
 
                                 if (isEditing && existing) {
-                                    api.patch(`/api/tasks/${existing.id}`, {
-                                        task_name: payload.taskName,
-                                        assigned_to: payload.assignedTo,
-                                        due_date: payload.dueDate,
-                                        category: payload.category,
-                                        description: payload.description,
-                                        checklist: payload.checklist,
-                                        modules_name: payload.modules,
-                                        Actual_start_time: payload.startdate,
-                                        start_time: payload.startTime,
-                                        due_time: payload.dueTime
-                                    }).then(() => {
-                                        handleFiles(existing.id);
-                                        api.get<{ tasks?: Task[] }>("/api/tasks").then(res => setList(res.data.tasks ?? []));
-                                    });
+                                    api
+                                        .patch(`/api/tasks/${existing.id}`, {
+                                            task_name: addTaskForm.taskName,
+                                            assigned_to: assignedToVal,
+                                            due_date: addTaskForm.actualEndDate || undefined,
+                                            category: addTaskForm.type,
+                                            description: addTaskForm.description,
+                                            checklist: addTaskForm.checklist,
+                                            modules_name: addTaskForm.module,
+                                            Actual_start_time:
+                                                addTaskForm.actualStartDate || undefined,
+                                            perferstart_time:
+                                                addTaskForm.startTime || undefined,
+                                            perferend_time: addTaskForm.dueTime || undefined,
+                                        })
+                                        .then(() => {
+                                            handleFiles(existing.id);
+                                            api
+                                                .get<{ tasks?: Task[] }>("/api/tasks", {
+                                                    params: listReloadParams,
+                                                })
+                                                .then((res) =>
+                                                    setList(res.data.tasks ?? []),
+                                                );
+                                        });
                                 } else {
-                                    api.post('/api/tasks', payload).then(res => {
+                                    api.post("/api/tasks", payload).then((res) => {
                                         if (res.data.success && res.data.task_id) {
                                             handleFiles(res.data.task_id);
-                                            api.get<{ tasks?: Task[] }>("/api/tasks").then(r => setList(r.data.tasks ?? []));
+                                            api
+                                                .get<{ tasks?: Task[] }>("/api/tasks", {
+                                                    params: listReloadParams,
+                                                })
+                                                .then((r) => setList(r.data.tasks ?? []));
                                         }
                                     });
                                 }
@@ -1290,7 +1450,12 @@ export default function MytaskPMV() {
                                         ]}
                                         value={addTaskForm.projectName}
                                         onChange={(v) =>
-                                            setAddTaskForm((f) => ({ ...f, projectName: v }))
+                                            setAddTaskForm((f) => ({
+                                                ...f,
+                                                projectName: v,
+                                                module: "",
+                                                assignTo: "",
+                                            }))
                                         }
                                         isOpen={openFormDropdown === "project"}
                                         onToggle={() =>
@@ -1395,13 +1560,22 @@ export default function MytaskPMV() {
                                         </label>
                                         <input
                                             type="date"
+                                            min={todayInputDate}
                                             value={addTaskForm.actualStartDate}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    actualStartDate: e.target.value,
-                                                }))
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                setAddTaskForm((f) => {
+                                                    const next = { ...f, actualStartDate: v };
+                                                    if (
+                                                        f.actualEndDate &&
+                                                        v &&
+                                                        f.actualEndDate < v
+                                                    ) {
+                                                        next.actualEndDate = v;
+                                                    }
+                                                    return next;
+                                                });
+                                            }}
                                             placeholder="dd/mm/yyyy"
                                             className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
                                         />
@@ -1412,6 +1586,9 @@ export default function MytaskPMV() {
                                         </label>
                                         <input
                                             type="date"
+                                            min={
+                                                addTaskForm.actualStartDate || todayInputDate
+                                            }
                                             value={addTaskForm.actualEndDate}
                                             onChange={(e) =>
                                                 setAddTaskForm((f) => ({
@@ -1432,12 +1609,20 @@ export default function MytaskPMV() {
                                         <input
                                             type="time"
                                             value={addTaskForm.startTime}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    startTime: e.target.value,
-                                                }))
-                                            }
+                                            onChange={(e) => {
+                                                const v = e.target.value;
+                                                setAddTaskForm((f) => {
+                                                    const next = { ...f, startTime: v };
+                                                    const same =
+                                                        f.actualStartDate &&
+                                                        f.actualEndDate &&
+                                                        f.actualStartDate === f.actualEndDate;
+                                                    if (same && f.dueTime && v && f.dueTime < v) {
+                                                        next.dueTime = v;
+                                                    }
+                                                    return next;
+                                                });
+                                            }}
                                             placeholder="hh:mm"
                                             className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
                                         />
@@ -1448,6 +1633,11 @@ export default function MytaskPMV() {
                                         </label>
                                         <input
                                             type="time"
+                                            min={
+                                                sameCalendarDay && addTaskForm.startTime
+                                                    ? addTaskForm.startTime
+                                                    : undefined
+                                            }
                                             value={addTaskForm.dueTime}
                                             onChange={(e) =>
                                                 setAddTaskForm((f) => ({
@@ -1467,7 +1657,12 @@ export default function MytaskPMV() {
                                             label="Select Assign To"
                                             options={[
                                                 { value: "", label: "Select Assign To" },
-                                                ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
+                                                ...employeesForAssignDropdown
+                                                    .filter((e) => (e.full_name || "").trim() !== "")
+                                                    .map((e) => ({
+                                                        value: e.full_name,
+                                                        label: e.full_name,
+                                                    })),
                                             ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>
@@ -1539,7 +1734,7 @@ export default function MytaskPMV() {
                                                 readOnly
                                                 value={
                                                     attachmentFiles.length > 0
-                                                        ? attachmentFiles.map((f) => f.name).join(", ")
+                                                        ? `${attachmentFiles.length} file(s) selected`
                                                         : ""
                                                 }
                                                 placeholder="Upload Files"

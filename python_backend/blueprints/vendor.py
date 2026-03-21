@@ -2748,6 +2748,7 @@ CREATE TABLE IF NOT EXISTS vendor_task (
     modules VARCHAR(255) DEFAULT '',
     description TEXT,
     checklist TEXT,
+    outputfilepath TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 )
@@ -2771,6 +2772,7 @@ def _ensure_vendor_task_table():
         "end_time": "TIME NULL",
         "assigned_to": "INT NULL",
         "modules": "VARCHAR(255) DEFAULT ''",
+        "outputfilepath": "TEXT NULL",
     }
     for col, col_type in expected.items():
         if col.lower() not in existing_cols:
@@ -2779,6 +2781,45 @@ def _ensure_vendor_task_table():
                 conn.commit()
             except Exception:
                 pass
+
+
+def _vendor_can_access_vendor_task(cur, task_id, user_id):
+    """
+    Allow access if user created the task, or shares the same vendor company
+    (vendor_employee.vendor_id) as the task creator — matches team task visibility.
+    """
+    if not user_id:
+        return None
+    cur.execute(
+        "SELECT id, vendor_id, outputfilepath FROM vendor_task WHERE id = %s",
+        (task_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None
+    if int(row.get("vendor_id") or 0) == int(user_id):
+        return row
+    try:
+        cur.execute(
+            "SELECT vendor_id AS company_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (user_id,),
+        )
+        u = cur.fetchone()
+        cur.execute(
+            "SELECT vendor_id AS company_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (row.get("vendor_id"),),
+        )
+        t = cur.fetchone()
+        if (
+            u
+            and t
+            and u.get("company_id") is not None
+            and u.get("company_id") == t.get("company_id")
+        ):
+            return row
+    except Exception:
+        pass
+    return None
 
 
 @bp.route("/vendor-tasks", methods=["GET"])
@@ -2822,9 +2863,11 @@ def list_vendor_tasks():
         f"""
         SELECT
             vt.*,
-            vp.project_name
+            vp.project_name,
+            ve.full_name AS uploader_full_name
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
+        LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
         WHERE {(' AND '.join(where)) if where else '1=1'}
         ORDER BY vt.created_at DESC
         """,
@@ -2901,7 +2944,7 @@ def create_vendor_task():
     modules = data.get("modules") or data.get("module") or ""
 
     assigned_to = data.get("assigned_to") or data.get("assignedTo")
-    # If assigned_to is a name, try to resolve to employee id
+    # If assigned_to is a name, try main employee table, then vendor_resource_profiles
     if assigned_to and not str(assigned_to).isdigit():
         cur.execute(
             "SELECT id FROM employee WHERE full_name = %s",
@@ -2910,6 +2953,20 @@ def create_vendor_task():
         row = cur.fetchone()
         if row:
             assigned_to = row.get("id")
+        else:
+            try:
+                vendor_onboard_id = _current_vendor_onboarding_id()
+                if vendor_onboard_id:
+                    vcur = vendor_cursor()
+                    vcur.execute(
+                        "SELECT id FROM vendor_resource_profiles WHERE vendor_id = %s AND name = %s LIMIT 1",
+                        (vendor_onboard_id, str(assigned_to).strip()),
+                    )
+                    vr = vcur.fetchone()
+                    if vr and vr.get("id") is not None:
+                        assigned_to = vr.get("id")
+            except Exception:
+                pass
 
     description = data.get("description") or ""
     checklist = data.get("checklist") or ""
@@ -2976,6 +3033,7 @@ def update_vendor_task(task_id):
         "assigned_to",
         "description",
         "checklist",
+        "project_id",
     )
     sets = []
     params = []
@@ -3027,6 +3085,58 @@ def update_vendor_task_status(task_id):
     )
     conn.commit()
     return jsonify({"success": True})
+
+
+@bp.route("/vendor-tasks/<int:task_id>/output-files", methods=["POST"])
+@login_required
+def upload_vendor_task_output_files(task_id):
+    """
+    POST /api/vendors/vendor-tasks/<id>/output-files
+    Multipart field: image (same as /api/tasks/.../output-files).
+    Stores comma-separated filenames on vendor_task.outputfilepath under uploads/task/.
+    """
+    import os
+    import uuid
+
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify({"success": False, "message": "Not authenticated"}), 401
+
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    row = _vendor_can_access_vendor_task(cur, task_id, user_id)
+    if not row:
+        return jsonify({"success": False, "message": "Task not found"}), 404
+
+    files = request.files.getlist("image") or request.files.getlist("image[]")
+    if not files:
+        return jsonify({"success": False, "message": "No files uploaded"}), 400
+
+    upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "task")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    existing = (row.get("outputfilepath") or "").strip()
+    names = []
+    for f in files:
+        if f and f.filename:
+            name = str(uuid.uuid4()) + "_" + "".join(
+                c for c in f.filename if c.isalnum() or c in "._-"
+            )
+            path = os.path.join(upload_dir, name)
+            f.save(path)
+            names.append(name)
+
+    if not names:
+        return jsonify({"success": False, "message": "No valid files"}), 400
+
+    new_path = (existing + "," + ",".join(names)) if existing else ",".join(names)
+    cur.execute(
+        "UPDATE vendor_task SET outputfilepath = %s WHERE id = %s",
+        (new_path, task_id),
+    )
+    conn.commit()
+    return jsonify({"success": True, "files": names})
 
 
 @bp.route("/vendor-projects", methods=["GET"])
@@ -3506,6 +3616,8 @@ CREATE TABLE IF NOT EXISTS vendor_team (
     leader INT NOT NULL,
     employee TEXT NOT NULL,
     project_lead INT DEFAULT NULL,
+    project_id INT NULL,
+    project_name VARCHAR(255) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )
 """
@@ -3516,6 +3628,25 @@ def _ensure_vendor_team_table():
     cur = conn.cursor(dictionary=True)
     cur.execute(_VT_TEAM_SQL)
     conn.commit()
+    # Add columns on existing DBs (may already have company_name etc. from manual ALTERs)
+    try:
+        cur.execute("SHOW COLUMNS FROM vendor_team")
+        existing_cols = {row["Field"].lower() for row in cur.fetchall()}
+        expected = {
+            "project_id": "INT NULL",
+            "project_name": "VARCHAR(255) NULL",
+        }
+        for col, col_type in expected.items():
+            if col.lower() not in existing_cols:
+                try:
+                    cur.execute(
+                        f"ALTER TABLE vendor_team ADD COLUMN `{col}` {col_type}"
+                    )
+                    conn.commit()
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 
 @bp.route("/vendor-teams", methods=["GET"])
@@ -3541,6 +3672,8 @@ def list_vendor_teams():
             vt.leader,
             vt.employee,
             vt.project_lead,
+            vt.project_id,
+            vt.project_name,
             vt.created_at,
             e_leader.full_name AS leader_name,
             e_pl.full_name AS project_lead_name
@@ -3562,7 +3695,7 @@ def list_vendor_teams():
 def create_vendor_team():
     """
     POST /api/vendors/vendor-teams
-    Body JSON: { team_name, leader, employee (comma CSV), project_lead? }
+    Body JSON: { team_name, leader, employee (comma CSV), project_lead?, project_id?, project_name? }
     """
     _ensure_vendor_team_table()
     data = request.get_json(silent=True) or request.form
@@ -3574,6 +3707,15 @@ def create_vendor_team():
     leader = data.get("leader")
     employee = (data.get("employee") or "").strip()
     project_lead = data.get("project_lead")
+    project_id = data.get("project_id")
+    project_name = (data.get("project_name") or "").strip() or None
+    if project_id is not None and project_id != "":
+        try:
+            project_id = int(project_id)
+        except (TypeError, ValueError):
+            project_id = None
+    else:
+        project_id = None
 
     if not team_name or not leader or not employee:
         return jsonify({"success": False, "message": "team_name, leader, employee are required"}), 400
@@ -3583,10 +3725,18 @@ def create_vendor_team():
     try:
         cur.execute(
             """
-            INSERT INTO vendor_team (vendor_id, team_name, leader, employee, project_lead)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO vendor_team (vendor_id, team_name, leader, employee, project_lead, project_id, project_name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-            (user_id, team_name, leader, employee, project_lead or None),
+            (
+                user_id,
+                team_name,
+                leader,
+                employee,
+                project_lead or None,
+                project_id,
+                project_name,
+            ),
         )
         conn.commit()
         return jsonify({"success": True, "team_id": cur.lastrowid})
@@ -3600,14 +3750,21 @@ def create_vendor_team():
 def update_vendor_team(team_id):
     """
     PATCH /api/vendors/vendor-teams/<id>
-    Body JSON: any of { team_name, leader, employee, project_lead }
+    Body JSON: any of { team_name, leader, employee, project_lead, project_id, project_name }
     """
     _ensure_vendor_team_table()
     data = request.get_json(silent=True) or request.form
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    allowed = ("team_name", "leader", "employee", "project_lead")
+    allowed = (
+        "team_name",
+        "leader",
+        "employee",
+        "project_lead",
+        "project_id",
+        "project_name",
+    )
     sets = []
     params = []
     for key in allowed:
