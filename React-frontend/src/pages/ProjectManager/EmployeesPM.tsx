@@ -18,6 +18,9 @@ import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg'
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
   id: number;
   full_name: string;
@@ -259,12 +262,31 @@ export default function EmployeesPM() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [selectedShow, setSelectedShow] = useState<string>("Show");
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
 
+  const showTriggerRef = useRef<HTMLButtonElement>(null);
+  const showMenuRef = useRef<HTMLDivElement>(null);
+  const statusTriggerRef = useRef<HTMLButtonElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
+
   const canAdd = user?.panel_type === 1;
+
+  useEffect(() => {
+    if (!openDropdown) return;
+    function handleClickOutside(event: MouseEvent) {
+      const isClickInsideShow = showMenuRef.current?.contains(event.target as Node) || showTriggerRef.current?.contains(event.target as Node);
+      const isClickInsideStatus = statusMenuRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node);
+      
+      if (!isClickInsideShow && !isClickInsideStatus) {
+        setOpenDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [openDropdown]);
 
   useEffect(() => {
     api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
@@ -336,8 +358,20 @@ export default function EmployeesPM() {
     return true;
   });
 
-  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+  let limitStart = 0;
+  let limitEnd = Infinity;
+  if (selectedShow && selectedShow.includes("-")) {
+      const parts = selectedShow.split("-");
+      if (parts.length === 2) {
+          limitStart = parseInt(parts[0], 10) - 1;
+          limitEnd = parseInt(parts[1], 10);
+      }
+  } else if (selectedShow === "All") {
+      limitStart = 0;
+      limitEnd = Infinity;
+  }
+
+  const displayedList = filteredList.slice(limitStart, limitEnd);
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
@@ -602,40 +636,106 @@ export default function EmployeesPM() {
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+
+                {/* Show Dropdown */}
                 {viewMode === 'table' && (
-                  <CustomDropdown
-                    options={['10', '20', '30', '40']}
-                    value={`Show: ${itemsPerPage}`}
-                    onChange={(val) => {
-                      setItemsPerPage(parseInt(val, 10));
-                      setCurrentPage(1);
-                    }}
-                    placeholder="Show"
-                    className="flex-1 sm:min-w-[120px]"
-                    styleType="header"
-                  />
+                  <div className="relative">
+                    <button
+                      ref={showTriggerRef}
+                      type="button"
+                      onClick={() => setOpenDropdown(openDropdown === "show" ? null : "show")}
+                      className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
+                    >
+                      <span className="truncate font-Gantari">
+                        {selectedShow !== "Show" && selectedShow !== "All" ? (
+                          <>
+                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span className="text-[#353535] font-semibold">{selectedShow}</span>
+                          </>
+                        ) : (
+                          <span className="text-[#616161] text-[14px] font-semibold">{selectedShow}</span>
+                        )}
+                      </span>
+                      <img
+                        src={ArrowDown}
+                        alt="arrow"
+                        className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "show" ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {openDropdown === "show" && (
+                      <div
+                        ref={showMenuRef}
+                        className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
+                      >
+                        <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
+                          {SHOW_OPTIONS.map((opt: string, idx: number) => (
+                            <button
+                              key={`${opt}-${idx}`}
+                              type="button"
+                              onClick={() => {
+                                setSelectedShow(opt);
+                                setOpenDropdown(null);
+                              }}
+                              className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${selectedShow === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
-                <CustomDropdown
-                  options={viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']}
-                  value={
-                    statusFilter === 'All' 
-                      ? 'Status' 
-                      : (viewMode === 'card' 
-                          ? (statusFilter === 'Active' ? 'Active' : statusFilter === 'Inactive' ? 'Deactive' : statusFilter)
-                          : statusFilter)
-                  }
-                  onChange={(val) => {
-                    let nextStatus = val;
-                    if (viewMode === 'card') {
-                      if (val === 'Deactive') nextStatus = 'Inactive';
-                    }
-                    setStatusFilter(nextStatus);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Status"
-                  className="flex-1 sm:min-w-[120px]"
-                  styleType="header"
-                />
+
+                {/* Status Dropdown */}
+                <div className="relative">
+                  <button
+                    ref={statusTriggerRef}
+                    type="button"
+                    onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
+                    className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
+                  >
+                    <span className="truncate font-Gantari">
+                      {statusFilter !== "All" ? (
+                        <>
+                          <span className="text-sm text-[#353535]">Status:</span>{" "}
+                          <span className="text-[#353535] font-semibold">{statusFilter}</span>
+                        </>
+                      ) : (
+                        <span className="text-[#616161] text-[14px] font-semibold">Status</span>
+                      )}
+                    </span>
+                    <img
+                      src={ArrowDown}
+                      alt="arrow"
+                      className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "status" ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {openDropdown === "status" && (
+                    <div
+                      ref={statusMenuRef}
+                      className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
+                    >
+                      <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
+                        {(viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']).map((opt: string, idx: number) => (
+                          <button
+                            key={`${opt}-${idx}`}
+                            type="button"
+                            onClick={() => {
+                              let nextStatus = opt;
+                              if (viewMode === 'card' && opt === 'Deactive') nextStatus = 'Inactive';
+                              setStatusFilter(nextStatus);
+                              setOpenDropdown(null);
+                            }}
+                            className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${statusFilter === opt || (opt === 'Deactive' && statusFilter === 'Inactive') ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -644,7 +744,7 @@ export default function EmployeesPM() {
           <div className="flex-1 overflow-y-auto custom-scrollbar">
         {viewMode === 'card' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
-            {filteredList.length === 0 ? (
+            {displayedList.length === 0 ? (
               <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                 No consultants found.
               </div>
@@ -779,6 +879,7 @@ export default function EmployeesPM() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl No</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
@@ -787,15 +888,20 @@ export default function EmployeesPM() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedList.length === 0 ? (
+                  {displayedList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => (
+                    displayedList.map((emp, idx) => {
+                      const slNo = limitStart + idx + 1;
+                      return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                          {slNo}
+                        </td>
                         <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                           {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                         </td>
@@ -861,8 +967,9 @@ export default function EmployeesPM() {
                           </div>
                         </td>
                       </tr>
-                    ))
-                  )}
+                    );
+                  })
+                )}
                 </tbody>
               </table>
             </div>
@@ -870,57 +977,7 @@ export default function EmployeesPM() {
         )}
       </div>
 
-      {/* Pagination Bottom Bar */}
-      {viewMode === 'table' && (
-        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
-          <div className="flex justify-center sm:justify-end sm:pr-8">
-            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
-              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
-              >
-                <FiChevronDown className="w-5 h-5 rotate-90" />
-                Prev
-              </button>
 
-              <div className="flex items-center gap-1.5 px-2">
-                {(() => {
-                  const maxVisible = 4;
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + maxVisible - 1);
-                  if (end - start + 1 < maxVisible) {
-                    start = Math.max(1, end - maxVisible + 1);
-                  }
-                  const pages = [];
-                  for (let i = start; i <= end; i++) pages.push(i);
-
-                  return pages.map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
-                    >
-                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
-                    </button>
-                  ));
-                })()}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
-              >
-                Next
-                <FiChevronDown className="w-5 h-5 -rotate-90" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
         </>
       )}
 

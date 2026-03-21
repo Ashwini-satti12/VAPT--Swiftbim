@@ -91,6 +91,8 @@ import TeamReportBC from './pages/BimCoordinator/TeamReportBC';
 import ChatBC from './pages/BimCoordinator/ChatBC';
 import MytaskViewBC from './pages/BimCoordinator/MytaskViewBC';
 import ManageLeaveBC from './pages/BimCoordinator/ManageLeaveBC';
+import AddConsultantBC from './pages/BimCoordinator/AddConsultantBC';
+import EditConsultantBC from './pages/BimCoordinator/EditConsultantBC';
 
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
@@ -237,6 +239,8 @@ function App() {
             {/* Bim Coordinator Routes */}
             <Route path="bc/dashboard" element={<DashboardBC />} />
             <Route path="bc/consultants" element={<ConsultantBC />} />
+            <Route path="bc/consultants/add" element={<AddConsultantBC />} />
+            <Route path="bc/consultants/edit/:id" element={<EditConsultantBC />} />
             <Route path="bc/consultants/:id" element={<ConsultantdetailsBC />} />
             <Route path="bc/projects" element={<ProjectsBC />} />
             <Route path="bc/mytasks" element={<MytaskBC />} />

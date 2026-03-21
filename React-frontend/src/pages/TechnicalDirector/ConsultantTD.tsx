@@ -247,9 +247,7 @@ export default function ConsultantTD() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
@@ -395,9 +393,6 @@ export default function ConsultantTD() {
     if (statusFilter === 'deactive') return currentStatus !== 'active';
     return true;
   });
-
-  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -684,19 +679,7 @@ export default function ConsultantTD() {
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
-                {viewMode === 'table' && (
-                  <CustomDropdown
-                    options={['10', '20', '30', '40']}
-                    value={`Show: ${itemsPerPage}`}
-                    onChange={(val) => {
-                      setItemsPerPage(parseInt(val, 10));
-                      setCurrentPage(1);
-                    }}
-                    placeholder="Show"
-                    className="flex-1 sm:min-w-[120px]"
-                    styleType="header"
-                  />
-                )}
+
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
                   value={
@@ -710,7 +693,6 @@ export default function ConsultantTD() {
                       if (val === 'Deactivate') nextStatus = 'deactive';
                     }
                     setStatusFilter(nextStatus);
-                    setCurrentPage(1);
                   }}
                   placeholder="Status"
                   className="flex-1 sm:min-w-[120px]"
@@ -803,7 +785,7 @@ export default function ConsultantTD() {
                     <div className="flex flex-wrap items-center gap-3">
                       <button 
                         onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                       </button>
@@ -815,7 +797,7 @@ export default function ConsultantTD() {
                       </button>
                       <button 
                         onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
                       >
                         <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                       </button>
@@ -828,7 +810,7 @@ export default function ConsultantTD() {
                       <button
                         type="button"
                         onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
                       >
                         <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                       </button>
@@ -859,7 +841,7 @@ export default function ConsultantTD() {
                               active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
                         >
                           <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                         </button>
@@ -885,15 +867,15 @@ export default function ConsultantTD() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedList.length === 0 ? (
+                  {filteredList.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => {
-                      const serialNumber = (currentPage - 1) * itemsPerPage + idx + 1;
+                    filteredList.map((emp, idx) => {
+                      const serialNumber = idx + 1;
                       return (
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
@@ -985,57 +967,7 @@ export default function ConsultantTD() {
         )}
       </div>
 
-      {/* Pagination Bottom Bar */}
-      {viewMode === 'table' && (
-        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
-          <div className="flex justify-center sm:justify-end sm:pr-8">
-            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
-              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
-              >
-                <FiChevronDown className="w-5 h-5 rotate-90" />
-                Prev
-              </button>
 
-              <div className="flex items-center gap-1.5 px-2">
-                {(() => {
-                  const maxVisible = 4;
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + maxVisible - 1);
-                  if (end - start + 1 < maxVisible) {
-                    start = Math.max(1, end - maxVisible + 1);
-                  }
-                  const pages = [];
-                  for (let i = start; i <= end; i++) pages.push(i);
-
-                  return pages.map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
-                    >
-                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
-                    </button>
-                  ));
-                })()}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
-              >
-                Next
-                <FiChevronDown className="w-5 h-5 -rotate-90" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
         </>
       )}
 
@@ -1437,7 +1369,7 @@ export default function ConsultantTD() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-lg max-w-[520px] w-full overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
