@@ -59,6 +59,18 @@ export default function TeamReportBM() {
         return '';
     };
 
+    const shiftYmd = (ymd: string, deltaDays: number): string => {
+        // Parse YYYY-MM-DD safely without timezone surprises.
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
+        const dt = new Date(Date.UTC(yy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + deltaDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
     // Format date (avoid timezone shifts by not using `new Date(...)` for ISO strings)
     const formatDate = (dateStr: string | undefined): string => {
         if (!dateStr) return '-';
@@ -136,8 +148,10 @@ export default function TeamReportBM() {
         if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
             [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
         }
-        if (effectiveStart) payload.startDate = effectiveStart;
-        if (effectiveEnd) payload.endDate = effectiveEnd;
+        // Expand the range slightly so "today" doesn't fail due to timezone/date-format mismatch.
+        // We still apply the exact filter on the frontend after receiving results.
+        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
         
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);
@@ -165,6 +179,15 @@ export default function TeamReportBM() {
             .finally(() => setLoading(false));
     }, [startDate, endDate, employee, team, employees, teams]);
 
+    const getTaskDateYmd = (entry: TimesheetEntry): string => {
+        // Match the backend intent:
+        // 1) use start_time
+        // 2) else Actual_start_time
+        // 3) else due_date
+        const src = entry.start_time || entry.Actual_start_time || entry.due_date;
+        return toYmd(src);
+    };
+
     // Handle click outside for dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -182,7 +205,24 @@ export default function TeamReportBM() {
         };
     }, []);
 
-    const filteredList = list; // API already filters, so we use list directly
+    // Client-side fallback filter:
+    // The backend filtering is date-range based, but "today" can fail due to timezone/format differences.
+    // We filter by comparing the extracted YYYY-MM-DD dates (same extraction used for display).
+    const filteredList = useMemo(() => {
+        const effectiveStart = startDate || endDate;
+        const effectiveEnd = endDate || startDate;
+        if (!effectiveStart || !effectiveEnd) return list;
+
+        let s = effectiveStart;
+        let e = effectiveEnd;
+        if (s > e) [s, e] = [e, s];
+
+        return list.filter((row) => {
+            const ymd = getTaskDateYmd(row);
+            if (!ymd) return false;
+            return ymd >= s && ymd <= e;
+        });
+    }, [list, startDate, endDate]);
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -221,7 +261,7 @@ export default function TeamReportBM() {
         <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
-                <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+                <h2 className="text-2xl font-bold text-gray-900"></h2>
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
@@ -236,7 +276,7 @@ export default function TeamReportBM() {
 
             {/* Filter Row */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
+                <h3 className="text-xl font-bold text-gray-800">Monthly Report</h3>
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
@@ -377,7 +417,7 @@ export default function TeamReportBM() {
                                 <tr className="border-b border-gray-100 bg-white">
                                     <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Sl.No</th>
                                     <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Project Name</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task</th>
+                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task Name</th>
                                     <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Start Date</th>
                                     <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">End Date</th>
                                     <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task Duration</th>

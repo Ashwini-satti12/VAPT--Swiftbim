@@ -33,20 +33,45 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
-// Convert DD/MM/YYYY to YYYY-MM-DD for date input.
+const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+
 function toInputDate(d: string | undefined): string {
     if (!d) return '';
-    const parts = d.split('/');
-    if (parts.length !== 3) return '';
-    const [dd, mm, yy] = parts;
-    return `${yy}-${mm}-${dd}`;
+    const s = String(d).trim();
+
+    // Already in input-friendly format: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+    // DD/MM/YYYY -> YYYY-MM-DD
+    const slashParts = s.split('/');
+    if (slashParts.length === 3) {
+        const [dd, mm, yy] = slashParts;
+        if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+    }
+
+    // DD-MM-YYYY -> YYYY-MM-DD
+    const dashParts = s.split('-');
+    if (dashParts.length === 3) {
+        const [dd, mm, yy] = dashParts;
+        if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+    }
+
+    return '';
 }
 
-// Format ISO or YYYY-MM-DD date to DD/MM/YYYY for display.
 function formatApiDate(value: string | undefined | null): string {
     if (!value) return '';
     const s = String(value);
+
+    // Avoid timezone shifting for plain YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        const [yy, mm, dd] = s.split('-');
+        return `${dd}/${mm}/${yy}`;
+    }
+
+    // Already display format
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+
     try {
         const d = new Date(s);
         if (Number.isNaN(d.getTime())) return s;
@@ -122,8 +147,14 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user.full_name || 'Unknown'),
                     role: app.role || user.user_role || undefined,
                     email: app.email || user.email || undefined,
-                    leaveType: app.title || othersValue,
-                    leaveTypeId: typeof app.leave_type === 'number' ? app.leave_type : null,
+                    leaveType: app.leave_type || app.title || othersValue,
+                    leaveTypeId:
+                        app.leave_type !== undefined && app.leave_type !== null
+                            ? (() => {
+                                  const parsed = Number(app.leave_type);
+                                  return Number.isFinite(parsed) ? parsed : null;
+                              })()
+                            : null,
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -207,11 +238,14 @@ export default function ManageLeave() {
 
     const handleSubmitApply = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!leaveTypeId || !leaveFrom || !leaveTo || !reason.trim()) return;
+        // allow "Others" (leaveTypeId can be 0)
+        if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
         try {
             const payload: any = {
-                leavetype: leaveTypeId ?? 0,
+                // Store the selected leave type text (frontend value) in DB.
+                // Backend will show it back via `tblleaves.leave_type` when holiday join doesn't match.
+                leavetype: leaveType,
                 description: reason.trim(),
                 from_date: leaveFrom,
                 to_date: leaveTo,
@@ -249,8 +283,14 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user?.full_name || 'Unknown'),
                     role: app.role || user?.user_role || undefined,
                     email: app.email || user?.email || undefined,
-                    leaveType: app.title || othersValue,
-                    leaveTypeId: typeof app.leave_type === 'number' ? app.leave_type : null,
+                    leaveType: app.leave_type || app.title || othersValue,
+                    leaveTypeId:
+                        app.leave_type !== undefined && app.leave_type !== null
+                            ? (() => {
+                                  const parsed = Number(app.leave_type);
+                                  return Number.isFinite(parsed) ? parsed : null;
+                              })()
+                            : null,
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -268,6 +308,7 @@ export default function ManageLeave() {
             }
 
             setLeaveType('');
+            setLeaveTypeId(null);
             setLeaveFrom('');
             setLeaveTo('');
             setReason('');
@@ -281,6 +322,7 @@ export default function ManageLeave() {
     const handleCloseModal = () => {
         setApplyModalOpen(false);
         setLeaveType('');
+        setLeaveTypeId(null);
         setLeaveFrom('');
         setLeaveTo('');
         setReason('');
@@ -308,11 +350,11 @@ export default function ManageLeave() {
 
     const handleSubmitEdit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingLeave || !leaveTypeId || !leaveFrom || !leaveTo || !reason.trim()) return;
+        if (!editingLeave || !leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
         try {
             const payload: any = {
-                leavetype: leaveTypeId ?? 0,
+                leavetype: leaveType,
                 description: reason.trim(),
                 from_date: leaveFrom,
                 to_date: leaveTo,
@@ -350,7 +392,7 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user?.full_name || 'Unknown'),
                     role: app.role || user?.user_role || undefined,
                     email: app.email || user?.email || undefined,
-                    leaveType: app.title || 'Others',
+                    leaveType: app.leave_type || app.title || 'Others',
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -374,10 +416,42 @@ export default function ManageLeave() {
         }
     };
 
-    const handleDelete = (row: LeaveEntry) => {
+    const handleDelete = async (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
-        // No delete endpoint yet; perform local delete so user no longer sees it
-        setLeaves((prev) => prev.filter((l) => l.id !== row.id));
+        try {
+            await api.delete(`/api/leave/applications/${row.id}`);
+
+            // Reload only this user's leaves so SL.No and list stay correct after refresh
+            if (!user?.id) return;
+            const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+            const apps = (resp.data.applications || []).filter((app) => app.employee_id === user.id);
+            const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                id: app.lid,
+                slNo: index + 1,
+                employeeId: app.employee_id,
+                employeeName: app.full_name || (user.full_name || 'Unknown'),
+                role: app.role || user.user_role || undefined,
+                email: app.email || user.email || undefined,
+                    leaveType: app.leave_type || app.title || othersValue,
+                leaveTypeId:
+                    app.leave_type !== undefined && app.leave_type !== null
+                        ? (() => {
+                              const parsed = Number(app.leave_type);
+                              return Number.isFinite(parsed) ? parsed : null;
+                          })()
+                        : null,
+                appliedOn: formatApiDate(app.posting_date),
+                fromDate: formatApiDate(app.from_date),
+                toDate: formatApiDate(app.to_date),
+                description: app.description || '',
+                currentStatus:
+                    app.status === 1 ? 'Approved' : app.status === 2 ? 'Rejected' : 'Pending',
+            }));
+            setLeaves(mapped);
+        } catch (err) {
+            console.error('Failed to delete leave (BIM Modeler):', err);
+            alert('Delete failed. Please try again.');
+        }
     };
 
     return (
@@ -463,13 +537,14 @@ export default function ManageLeave() {
                                 displayedList.map((row, index) => {
                                 const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
                                 const slNo = baseIndex + 1;
+                                const slNoDisplay = String(slNo).padStart(2, '0');
                                 const isPending = row.currentStatus === 'Pending';
                                     return (
                                         <tr
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium">{slNo}</td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium">{slNoDisplay}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold">{row.employeeName}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600">{row.role ?? '-'}</td>
                                             <td className="px-4 py-3 text-center text-sm text-gray-600">{row.leaveType}</td>
@@ -639,24 +714,66 @@ export default function ManageLeave() {
                                         >
                                             Nothing selected
                                         </button>
-                                        {leaveTypes.map((type) => {
-                                            const isSelected = leaveTypeId === type.id;
+                                        {LEAVE_TYPES.map((t) => {
+                                            const isSelected = leaveType === t;
                                             return (
                                                 <button
-                                                    key={type.id ?? 'others'}
+                                                    key={t}
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setLeaveType(type.title);
-                                                        setLeaveTypeId(type.id);
+                                                        setLeaveType(t);
+                                                        setLeaveTypeId(null);
                                                         setLeaveTypeOpen(false);
                                                     }}
-                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                        isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                                    }`}
                                                 >
-                                                    {type.title}
+                                                    {t}
                                                 </button>
                                             );
                                         })}
+                                        {leaveTypes
+                                            .filter((x) => x.title && !LEAVE_TYPES.includes(x.title))
+                                            .map((type) => {
+                                                const isSelected = leaveType === type.title;
+                                                return (
+                                                    <button
+                                                        key={type.id ?? type.title}
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setLeaveType(type.title);
+                                                            setLeaveTypeId(type.id);
+                                                            setLeaveTypeOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                            isSelected
+                                                                ? 'text-black bg-[#F0F2F7]'
+                                                                : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                                        }`}
+                                                    >
+                                                        {type.title}
+                                                    </button>
+                                                );
+                                            })}
+                                        {/* "Others" option (not necessarily present in holiday table) */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLeaveType(othersValue);
+                                                // Use 0 as a safe "unknown" leave_type id; backend will not join holiday -> title becomes "Others".
+                                                setLeaveTypeId(0);
+                                                setLeaveTypeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                leaveTypeId === 0 ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                            }`}
+                                        >
+                                            {othersValue}
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -817,24 +934,64 @@ export default function ManageLeave() {
                                         >
                                             Nothing selected
                                         </button>
-                                        {leaveTypes.map((type) => {
-                                            const isSelected = leaveTypeId === type.id;
+                                        {LEAVE_TYPES.map((t) => {
+                                            const isSelected = leaveType === t;
                                             return (
                                                 <button
-                                                    key={type.id ?? 'others'}
+                                                    key={t}
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setLeaveType(type.title);
-                                                        setLeaveTypeId(type.id);
+                                                        setLeaveType(t);
+                                                        setLeaveTypeId(null);
                                                         setLeaveTypeOpen(false);
                                                     }}
-                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                        isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                                    }`}
                                                 >
-                                                    {type.title}
+                                                    {t}
                                                 </button>
                                             );
                                         })}
+                                        {leaveTypes
+                                            .filter((x) => x.title && !LEAVE_TYPES.includes(x.title))
+                                            .map((type) => {
+                                                const isSelected = leaveType === type.title;
+                                                return (
+                                                    <button
+                                                        key={type.id ?? type.title}
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setLeaveType(type.title);
+                                                            setLeaveTypeId(type.id);
+                                                            setLeaveTypeOpen(false);
+                                                        }}
+                                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                            isSelected
+                                                                ? 'text-black bg-[#F0F2F7]'
+                                                                : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                                        }`}
+                                                    >
+                                                        {type.title}
+                                                    </button>
+                                                );
+                                            })}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLeaveType(othersValue);
+                                                setLeaveTypeId(0);
+                                                setLeaveTypeOpen(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                leaveTypeId === 0 ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
+                                            }`}
+                                        >
+                                            {othersValue}
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -971,6 +1128,11 @@ export default function ManageLeave() {
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Leave To</span>
                                     <span className="shrink-0 text-black">:</span>
                                     <span className="text-[#8B8B8B]">{selectedLeave.toDate ?? '-'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <span className="w-[140px] shrink-0 font-semibold text-black">Reason</span>
+                                    <span className="shrink-0 text-black">:</span>
+                                    <span className="text-[#8B8B8B]">{selectedLeave.description ?? '-'}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>

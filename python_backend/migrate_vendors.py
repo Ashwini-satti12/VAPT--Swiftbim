@@ -32,19 +32,25 @@ try:
     migrated = 0
     for v in vendors:
         # Check if already in vendor_employee
-        cur_vendor.execute("SELECT id FROM vendor_employee WHERE email = %s", (v['email'],))
+        cur_vendor.execute("SELECT id FROM vendor_employee WHERE email = %s", (v["email"],))
         if cur_vendor.fetchone():
             # If already migrated, just delete from main
-            cur_main.execute("DELETE FROM employee WHERE id = %s", (v['id'],))
+            cur_main.execute("DELETE FROM employee WHERE id = %s", (v["id"],))
             conn_main.commit()
             migrated += 1
             print(f"Skipped duplicate insert but cleaned up main DB for {v['email']}")
             continue
             
-        cur_vendor.execute("SELECT id FROM vendor_onboarding WHERE contact_email = %s OR email = %s LIMIT 1", (v['email'], v['email']))
-        vo = cur_vendor.fetchone()
+        cur_vendor.execute(
+            "SELECT id, contact_mobile FROM vendor_onboarding WHERE contact_email = %s OR email = %s LIMIT 1",
+            (v["email"], v["email"]),
+        )
+        vo = cur_vendor.fetchone() or {}
         
-        vendor_id = vo['id'] if vo else v['Company_id']
+        vendor_id = vo.get("id") or v["Company_id"]
+        onboarding_phone = (vo.get("contact_mobile") or "").strip()
+        employee_phone = (v.get("phone_number") or "").strip()
+        phone_to_use = onboarding_phone or employee_phone
 
         cur_vendor.execute(
             """
@@ -54,18 +60,18 @@ try:
             """,
             (
                 vendor_id,
-                v['empid'],
-                v['full_name'],
-                v['email'],
-                v['password'],
-                v['phone_number'],
-                v['user_role'] or 'Vendor Admin',
-                v['active'] or 'active'
+                v["empid"],
+                v["full_name"],
+                v["email"],
+                v["password"],
+                phone_to_use,
+                v.get("user_role") or "Vendor Admin",
+                v.get("active") or "active",
             )
         )
         
         # delete from main
-        cur_main.execute("DELETE FROM employee WHERE id = %s", (v['id'],))
+        cur_main.execute("DELETE FROM employee WHERE id = %s", (v["id"],))
         
         migrated += 1
         

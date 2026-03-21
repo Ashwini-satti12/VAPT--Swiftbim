@@ -11,6 +11,7 @@ interface LeaveEntry {
     employeeName: string;
     role?: string;
     leaveType: string;
+    leaveTypeId?: number | null;
     appliedOn: string;
     appliedTo?: string;
     currentStatus: string;
@@ -42,10 +43,19 @@ function normalizeNameAndReason(value: string): string {
 
 function toInputDate(d: string | undefined): string {
     if (!d) return '';
-    const parts = d.split('/');
-    if (parts.length !== 3) return '';
-    const [dd, mm, yy] = parts;
-    return `${yy}-${mm}-${dd}`;
+    const s = String(d).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const parts = s.split('/');
+    if (parts.length === 3) {
+        const [dd, mm, yy] = parts;
+        return `${yy}-${mm}-${dd}`;
+    }
+    const dash = s.split('-');
+    if (dash.length === 3 && dash[0].length === 2) {
+        const [dd, mm, yy] = dash;
+        return `${yy}-${mm}-${dd}`;
+    }
+    return '';
 }
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
@@ -59,6 +69,14 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
 const PER_PAGE = 10;
 const PAGINATION_VISIBLE = 4;
 
+const getTodayInputDate = (): string => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+};
+
 export default function ManageLeavePM() {
     const { user } = useAuth();
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -69,6 +87,7 @@ export default function ManageLeavePM() {
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
     const [leaveType, setLeaveType] = useState('');
+    const [leaveTypeId, setLeaveTypeId] = useState<number | null>(null);
     const [leaveFrom, setLeaveFrom] = useState('');
     const [leaveTo, setLeaveTo] = useState('');
     const [reason, setReason] = useState('');
@@ -86,6 +105,17 @@ export default function ManageLeavePM() {
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+    const todayInputDate = getTodayInputDate();
+    const [leaveTypeOptions, setLeaveTypeOptions] = useState<Array<{ id: number; title: string }>>([]);
+    const leaveTypeDropdownItems: Array<{ id: number | null; title: string }> = [
+        ...LEAVE_TYPES.map((title) => {
+            const match = leaveTypeOptions.find((opt) => opt.title === title);
+            return { title, id: match ? match.id : null };
+        }),
+        ...leaveTypeOptions
+            .filter((opt) => !LEAVE_TYPES.includes(opt.title))
+            .map((opt) => ({ title: opt.title, id: opt.id })),
+    ];
 
     const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
 
@@ -122,7 +152,11 @@ export default function ManageLeavePM() {
                   slNo: index + 1,
                   employeeName: app.full_name || 'Unknown',
                   role: app.role || undefined,
-                  leaveType: app.title || 'Others',
+                  leaveType: app.title || app.leave_type || 'Others',
+                  leaveTypeId:
+                      app.leave_type !== undefined && app.leave_type !== null
+                          ? Number(app.leave_type)
+                          : null,
                   appliedOn: formatApiDate(app.posting_date),
                   fromDate: formatApiDate(app.from_date),
                   toDate: formatApiDate(app.to_date),
@@ -143,6 +177,22 @@ export default function ManageLeavePM() {
 
       fetchLeaves();
   }, [user?.id]);
+
+  // Load leave types to map selected title <-> holiday id (leave_type).
+  useEffect(() => {
+      api
+          .get<{ leave_types?: Array<{ id?: number; title?: string }> }>('/api/leave/types')
+          .then(({ data }) => {
+              const options =
+                  (data.leave_types || [])
+                      .map((t) => ({ id: Number(t.id), title: String(t.title || '') }))
+                      .filter((t) => Number.isFinite(t.id) && !!t.title);
+              setLeaveTypeOptions(options);
+          })
+          .catch(() => {
+              setLeaveTypeOptions([]);
+          });
+  }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -196,6 +246,8 @@ export default function ManageLeavePM() {
         if (!leaveFrom) err.leaveFrom = 'Leave from date is required';
         if (!leaveTo) err.leaveTo = 'Leave to date is required';
         if (!reason.trim()) err.reason = 'Reason is required';
+        if (leaveFrom && leaveFrom < todayInputDate) err.leaveFrom = 'Leave from date cannot be in the past';
+        if (leaveTo && leaveTo < todayInputDate) err.leaveTo = 'Leave to date cannot be in the past';
         if (leaveFrom && leaveTo && leaveFrom > leaveTo) err.leaveTo = 'Leave to must be on or after leave from';
         setApplyFormErrors(err);
         return Object.keys(err).length === 0;
@@ -208,7 +260,7 @@ export default function ManageLeavePM() {
 
         try {
             const payload: any = {
-                leavetype: leaveType,
+                leavetype: leaveTypeId && leaveTypeId > 0 ? leaveTypeId : leaveType,
                 description: reason.trim(),
                 from_date: leaveFrom,
                 to_date: leaveTo,
@@ -240,7 +292,11 @@ export default function ManageLeavePM() {
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
                     role: app.role || undefined,
-                    leaveType: app.title || 'Others',
+                    leaveType: app.title || app.leave_type || 'Others',
+                    leaveTypeId:
+                        app.leave_type !== undefined && app.leave_type !== null
+                            ? Number(app.leave_type)
+                            : null,
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -258,6 +314,7 @@ export default function ManageLeavePM() {
             }
 
             setLeaveType('');
+            setLeaveTypeId(null);
             setLeaveFrom('');
             setLeaveTo('');
             setReason('');
@@ -271,12 +328,14 @@ export default function ManageLeavePM() {
 
     const handleCloseModal = () => {
         setApplyModalOpen(false);
-        setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setLeaveType(''); setLeaveTypeId(null); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
     const handleEdit = (row: LeaveEntry) => {
         setEditingLeave(row);
         setLeaveType(row.leaveType);
+        const matchingType = leaveTypeOptions.find((t) => t.title === row.leaveType);
+        setLeaveTypeId(matchingType ? matchingType.id : row.leaveTypeId ?? null);
         setLeaveFrom(toInputDate(row.fromDate));
         setLeaveTo(toInputDate(row.toDate));
         setReason(row.description ?? '');
@@ -287,7 +346,7 @@ export default function ManageLeavePM() {
     const handleCloseEditModal = () => {
         setEditModalOpen(false);
         setEditingLeave(null);
-        setLeaveType(''); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
+        setLeaveType(''); setLeaveTypeId(null); setLeaveFrom(''); setLeaveTo(''); setReason(''); setApplyFormErrors({});
     };
 
     // Edit leave: persist changes to tblleaves (only own pending leaves allowed by backend)
@@ -297,7 +356,7 @@ export default function ManageLeavePM() {
 
         try {
             const payload: any = {
-                leavetype: leaveType,
+                leavetype: leaveTypeId && leaveTypeId > 0 ? leaveTypeId : leaveType,
                 description: reason.trim(),
                 from_date: leaveFrom,
                 to_date: leaveTo,
@@ -333,7 +392,11 @@ export default function ManageLeavePM() {
                     slNo: index + 1,
                     employeeName: app.full_name || 'Unknown',
                     role: app.role || undefined,
-                    leaveType: app.title || 'Others',
+                    leaveType: app.title || app.leave_type || 'Others',
+                    leaveTypeId:
+                        app.leave_type !== undefined && app.leave_type !== null
+                            ? Number(app.leave_type)
+                            : null,
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -357,10 +420,39 @@ export default function ManageLeavePM() {
         }
     };
 
-    const handleDelete = (row: LeaveEntry) => {
+    const handleDelete = async (row: LeaveEntry) => {
         if (!window.confirm(`Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
-        // Currently this removes only from the local list; backend delete is not implemented.
-        setLeaves((prev) => prev.filter((l) => l.id !== row.id));
+        try {
+            await api.delete(`/api/leave/applications/${row.id}`);
+            const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
+            const apps = (resp.data.applications || []).filter((app) => app.employee_id === user?.id);
+            const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                id: app.lid,
+                employeeId: app.employee_id,
+                slNo: index + 1,
+                employeeName: app.full_name || 'Unknown',
+                role: app.role || undefined,
+                leaveType: app.title || app.leave_type || 'Others',
+                leaveTypeId:
+                    app.leave_type !== undefined && app.leave_type !== null
+                        ? Number(app.leave_type)
+                        : null,
+                appliedOn: formatApiDate(app.posting_date),
+                fromDate: formatApiDate(app.from_date),
+                toDate: formatApiDate(app.to_date),
+                description: app.description || '',
+                currentStatus:
+                    app.status === 1
+                        ? 'Approved'
+                        : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+            }));
+            setLeaves(mapped);
+        } catch (err: any) {
+            console.error('Delete leave failed', err);
+            alert(err?.response?.data?.message || 'Delete failed. Please try again.');
+        }
     };
 
     // For Project Manager view we no longer approve/reject here, so no status mutations from this screen.
@@ -537,7 +629,7 @@ export default function ManageLeavePM() {
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
                                             <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
@@ -653,12 +745,7 @@ export default function ManageLeavePM() {
                         </div>
                         <div className="px-6 py-6">
                             <div className="space-y-4">
-                                <div className="flex items-start gap-2">
-                                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Sl.No</span>
-                                    <span className="shrink-0 text-[#616161]">:</span>
-                                    <span className="text-sm text-[#616161]">{selectedLeave.slNo}</span>
-                                </div>
-                                <div className="flex items-start gap-2">
+                               <div className="flex items-start gap-2">
                                     <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">Employee Name</span>
                                     <span className="shrink-0 text-[#616161]">:</span>
                                     <span className="text-sm text-[#616161]">{selectedLeave.employeeName}</span>
@@ -738,9 +825,9 @@ export default function ManageLeavePM() {
                                 </button>
                                 {leaveTypeOpen && (
                                     <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
-                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
-                                        {LEAVE_TYPES.map((t) => (
-                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpen(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeId(null); setLeaveTypeOpen(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        {leaveTypeDropdownItems.map((opt) => (
+                                            <button key={`${opt.title}-${opt.id ?? 'none'}`} type="button" onClick={() => { setLeaveType(opt.title); setLeaveTypeId(opt.id); setLeaveTypeOpen(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === opt.title ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{opt.title}</button>
                                         ))}
                                     </div>
                                 )}
@@ -750,7 +837,7 @@ export default function ManageLeavePM() {
                                 <div>
                                     <label className="block text-base font-semibold text-[#000000] mb-2">Leave From <span className="text-[#DD4342]">*</span></label>
                                     <div className="relative">
-                                        <input type="date" value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <input type="date" min={todayInputDate} value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (leaveTo && e.target.value > leaveTo) setLeaveTo(''); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
                                         <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
                                     </div>
                                     {applyFormErrors.leaveFrom && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveFrom}</p>}
@@ -758,7 +845,7 @@ export default function ManageLeavePM() {
                                 <div>
                                     <label className="block text-base font-semibold text-[#000000] mb-2">Leave To <span className="text-[#DD4342]">*</span></label>
                                     <div className="relative">
-                                        <input type="date" value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <input type="date" min={todayInputDate} value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
                                         <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
                                     </div>
                                     {applyFormErrors.leaveTo && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveTo}</p>}
@@ -810,9 +897,9 @@ export default function ManageLeavePM() {
                                 </button>
                                 {leaveTypeOpenEdit && (
                                     <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
-                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeOpenEdit(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
-                                        {LEAVE_TYPES.map((t) => (
-                                            <button key={t} type="button" onClick={() => { setLeaveType(t); setLeaveTypeOpenEdit(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{t}</button>
+                                        <button type="button" onClick={() => { setLeaveType(''); setLeaveTypeId(null); setLeaveTypeOpenEdit(false); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>Nothing selected</button>
+                                        {leaveTypeDropdownItems.map((opt) => (
+                                            <button key={`${opt.title}-${opt.id ?? 'none'}-edit`} type="button" onClick={() => { setLeaveType(opt.title); setLeaveTypeId(opt.id); setLeaveTypeOpenEdit(false); if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' })); }} className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === opt.title ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}>{opt.title}</button>
                                         ))}
                                     </div>
                                 )}
@@ -822,7 +909,7 @@ export default function ManageLeavePM() {
                                 <div>
                                     <label className="block text-base font-semibold text-[#000000] mb-2">Leave From <span className="text-[#DD4342]">*</span></label>
                                     <div className="relative">
-                                        <input type="date" value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <input type="date" min={todayInputDate} value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (leaveTo && e.target.value > leaveTo) setLeaveTo(''); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
                                         <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
                                     </div>
                                     {applyFormErrors.leaveFrom && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveFrom}</p>}
@@ -830,7 +917,7 @@ export default function ManageLeavePM() {
                                 <div>
                                     <label className="block text-base font-semibold text-[#000000] mb-2">Leave To <span className="text-[#DD4342]">*</span></label>
                                     <div className="relative">
-                                        <input type="date" value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <input type="date" min={todayInputDate} value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
                                         <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
                                     </div>
                                     {applyFormErrors.leaveTo && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveTo}</p>}

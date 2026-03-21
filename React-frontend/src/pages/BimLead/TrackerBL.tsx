@@ -118,10 +118,11 @@ export default function TrackerBL() {
     // Fetch attendance data for today's date (selectedDate is fixed to today)
     useEffect(() => {
         setLoading(true);
-        const params: { date?: string } = {};
+        const params: { date?: string; roles?: string } = {};
         if (selectedDate) {
             params.date = selectedDate; // YYYY-MM-DD expected by API
         }
+        params.roles = 'BIM Coordinator,BIM Modeler,BIM Moduler';
 
         api
             .get<{ records?: AttendanceEntry[] }>('/api/attendance/tracker', { params })

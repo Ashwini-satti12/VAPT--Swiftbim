@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import api from "../../lib/api";
@@ -29,10 +29,18 @@ interface NotificationItem {
   message: string;
   createdAt?: string;
   type: "general" | "task";
+  raw?: {
+    id?: number;
+    type?: string;
+    entity_type?: string | null;
+    entity_id?: number | null;
+    project_id?: number | null;
+  };
 }
 
 export default function ProductNavbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [, setSearchParams] = useSearchParams();
   const [localSearch, setLocalSearch] = useState("");
@@ -115,14 +123,25 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
               title?: string;
               message?: string;
               created_at?: string;
+              type?: string;
+              entity_type?: string | null;
+              entity_id?: number | null;
+              project_id?: number | null;
             }[];
           };
           (data.notifications || []).forEach((n) => {
             items.push({
               id: `g-${n.id}`,
-              message: n.title || n.message || "Notification",
+              message: n.message || n.title || "Notification",
               createdAt: n.created_at,
               type: "general",
+              raw: {
+                id: n.id,
+                type: n.type,
+                entity_type: n.entity_type ?? null,
+                entity_id: n.entity_id ?? null,
+                project_id: n.project_id ?? null,
+              },
             });
           });
         }
@@ -145,6 +164,10 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
               message: extra ? `${base} - ${extra}` : base,
               createdAt: t.date,
               type: "task",
+              raw: {
+                entity_type: "task",
+                entity_id: t.taskId,
+              },
             });
           });
         }
@@ -172,6 +195,77 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
     fetchNotifications();
   }, []);
+
+  const getPrefix = () => {
+    const seg = (location.pathname || "").split("/").filter(Boolean)[0] || "";
+    // PM routes have no prefix
+    if (["td", "bl", "bc", "bm", "v"].includes(seg)) return `/${seg}`;
+    return "";
+  };
+
+  const openNotification = async (n: NotificationItem) => {
+    const prefix = getPrefix();
+    const et = n.raw?.entity_type;
+    const eid = n.raw?.entity_id;
+    const projectId = n.raw?.project_id;
+
+    // Mark as read (general notifications only)
+    try {
+      if (n.id.startsWith("g-") && n.raw?.id) {
+        await api.post(`/api/notifications/${n.raw.id}/read`);
+      } else if (et === "task" && eid) {
+        // task notification read endpoint exists
+        await api.post(`/api/notifications/tasks/${eid}/read`);
+      }
+    } catch {
+      // ignore
+    }
+
+    setShowNotifications(false);
+    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    setUnreadCount((c) => Math.max(0, c - 1));
+
+    if (et === "project") {
+      // open projects module with deep-link query param (supported in multiple roles)
+      navigate(`${prefix || ""}/projects${prefix ? "" : ""}?projectId=${eid ?? projectId ?? ""}`);
+      return;
+    }
+
+    if (et === "task" && eid) {
+      if (!prefix) {
+        navigate(`/tasks/${eid}`);
+      } else {
+        // role-specific tasks list
+        navigate(`${prefix}/mytasks`);
+      }
+      return;
+    }
+
+    if (et === "leave") {
+      // management roles have manage-leave routes; otherwise go to leave
+      if (!prefix) navigate(`/pm/manage-leave`);
+      else if (prefix === "/td") navigate(`/td/manage-leave`);
+      else if (prefix === "/bl") navigate(`/bl/manage-leave`);
+      else if (prefix === "/bc") navigate(`/bc/manage-leave`);
+      else if (prefix === "/bm") navigate(`/bm/manage-leave`);
+      else navigate(`/leave`);
+      return;
+    }
+
+    if (et === "bidding") {
+      if (prefix === "/td") navigate(`/td/bidding`);
+      else if (prefix === "/v") navigate(`/v/opportunities`);
+      else navigate(`/td/bidding`);
+      return;
+    }
+
+    if (et === "proposal") {
+      if (prefix === "/td") navigate(`/td/proposals`);
+      else if (prefix === "/v") navigate(`/v/proposals`);
+      else navigate(`/td/proposals`);
+      return;
+    }
+  };
 
   // Close notification dropdown on outside click
   useEffect(() => {
@@ -358,7 +452,8 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                   notifications.map((n: any, i: number) => (
                     <div
                       key={i}
-                      className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 text-sm text-slate-700"
+                      onClick={() => openNotification(n)}
+                      className="px-4 py-3 hover:bg-slate-50 border-b border-slate-50 text-sm text-slate-700 cursor-pointer"
                     >
                       {n.message}
                     </div>

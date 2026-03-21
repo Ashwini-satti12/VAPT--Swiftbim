@@ -4,12 +4,35 @@ from auth_middleware import project_app_required
 
 bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 
+def _ensure_notification_link_columns(cur, conn):
+    """Ensure notifications table supports deep-linking to modules."""
+    try:
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+        )
+        has_entity_type = cur.fetchone() is not None
+        if not has_entity_type:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            conn.commit()
+
+        cur.execute(
+            "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+        )
+        has_entity_id = cur.fetchone() is not None
+        if not has_entity_id:
+            cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            conn.commit()
+    except Exception:
+        # Ignore if permissions are limited; API will still work without link fields
+        pass
+
 
 @bp.route("", methods=["GET"])
 @project_app_required
 def list_notifications():
     conn = get_db()
     cur = conn.cursor()
+    _ensure_notification_link_columns(cur, conn)
     cur.execute(
         """SELECT n.*, p.project_name
            FROM notifications n
@@ -27,7 +50,10 @@ def list_notifications():
             "title": r.get("title"),
             "message": r.get("message"),
             "type": r.get("type"),
+            "project_id": r.get("project_id"),
             "project_name": r.get("project_name") or "Project",
+            "entity_type": r.get("entity_type"),
+            "entity_id": r.get("entity_id"),
             "created_at": r.get("created_at").isoformat() if r.get("created_at") else None,
         })
     return jsonify({"count": len(notifications), "notifications": notifications})

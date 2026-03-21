@@ -547,6 +547,9 @@ export default function ConsultantBL() {
                 <thead className="sticky top-0 z-30 bg-slate-50">
                   <tr>
                     <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">
+                      Sl.No
+                    </th>
+                    <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">
                       Emp ID
                     </th>
                     <th className="px-6 py-6 text-left text-[17px] font-bold font-Gantari text-[#1A1A1A]">
@@ -567,7 +570,7 @@ export default function ConsultantBL() {
                   {paginatedList.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="px-6 py-12 text-center text-slate-500 font-Gantari"
                       >
                         No consultants found.
@@ -579,6 +582,9 @@ export default function ConsultantBL() {
                         key={emp.id}
                         className={idx % 2 === 1 ? "bg-[#F9F9F9]" : "bg-white"}
                       >
+                        <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                          {String((currentPage - 1) * effectivePerPage + idx + 1).padStart(2, "0")}
+                        </td>
                         <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                           {emp.empid || `EMP0${emp.id + 10}`}
                         </td>

@@ -858,7 +858,7 @@ export default function ConsultantTD() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl No</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl.No</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
                     <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
@@ -879,7 +879,7 @@ export default function ConsultantTD() {
                       return (
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {serialNumber}
+                            {String(serialNumber).padStart(2, '0')}
                           </td>
                           <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                             {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}

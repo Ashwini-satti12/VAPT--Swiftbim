@@ -52,12 +52,10 @@ export default function ProposalsV() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selected, setSelected] = useState<Proposal | null>(null);
     const navigate = useNavigate();
-    const [rejectReason, setRejectReason] = useState('');
     const [clarNote, setClarNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     /** Reject / Request panels: textarea shown only after clicking the action button */
-    const [showRejectInput, setShowRejectInput] = useState(false);
     const [showRequestInput, setShowRequestInput] = useState(false);
 
     const fetchProposals = () => {
@@ -80,6 +78,7 @@ export default function ProposalsV() {
         if (s === 'accepted') return 'bg-[#E6F4EA] text-[#1E7E34]';
         if (s === 'rejected') return 'bg-[#FFF1F2] text-[#BE123C]';
         if (s === 'clarification_requested') return 'bg-[#EAF0FB] text-[#1967D2]';
+        if (s === 'expired') return 'bg-[#F2F2F2] text-[#616161]';
         return 'bg-[#F2F2F2] text-[#616161]';
     };
 
@@ -90,25 +89,22 @@ export default function ProposalsV() {
         if (s === 'accepted') return 'Accepted';
         if (s === 'rejected') return 'Rejected';
         if (s === 'clarification_requested') return 'Clarification';
+        if (s === 'expired') return 'Expired';
         return status || 'Unknown';
     };
 
-    const handleAction = async (proposalId: number, action: 'accept' | 'reject' | 'clarification') => {
+    const handleAction = async (proposalId: number, action: 'accept' | 'clarification') => {
         setSubmitting(true);
         try {
-            const reason = action === 'reject' ? rejectReason : action === 'clarification' ? clarNote : '';
+            const reason = action === 'clarification' ? clarNote : '';
             await api.post(`/api/vendors/proposals/${proposalId}/respond`, { action, reason });
             if (action === 'accept') {
                 setSuccessMsg('Successfully accepted');
-            } else if (action === 'reject') {
-                setSuccessMsg('Proposal rejected successfully.');
             } else {
                 setSuccessMsg('Clarification request sent successfully.');
             }
             setSelected(null);
-            setRejectReason('');
             setClarNote('');
-            setShowRejectInput(false);
             setShowRequestInput(false);
             fetchProposals();
             if (action === 'accept') {
@@ -129,7 +125,9 @@ export default function ProposalsV() {
         const techs = safeParse(selected.technologies_used);
         const commercials = safeParse(selected.commercial_offer);
         const payments = safeParse(selected.payment_terms);
-        const isPending = (selected.status || '').toLowerCase() === 'sent' || (selected.status || '').toLowerCase() === 'pending';
+        const statusLower = (selected.status || '').toLowerCase();
+        const isPending = statusLower === 'sent' || statusLower === 'pending';
+        const isExpired = statusLower === 'expired';
         const currencyLabel = selected.selected_currency || selected.currency || 'AED';
 
         return (
@@ -146,7 +144,7 @@ export default function ProposalsV() {
                 <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 w-full flex-shrink-0">
                     <button
                         type="button"
-                        onClick={() => { setSelected(null); setRejectReason(''); setClarNote(''); setShowRejectInput(false); setShowRequestInput(false); }}
+                        onClick={() => { setSelected(null); setClarNote(''); setShowRequestInput(false); }}
                         className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:opacity-90"
                         title="Back to proposals"
                     >
@@ -363,8 +361,8 @@ export default function ProposalsV() {
                             </div>
                         )}
 
-                        {/* Action Buttons for pending proposals */}
-                        {isPending && (
+                        {/* Action Buttons for pending proposals (disabled after expiry) */}
+                        {isPending && !isExpired && (
                             <div className="pt-8 space-y-4">
                                 <div className="flex flex-row flex-wrap gap-3 items-center justify-center">
                                     <button
@@ -378,46 +376,12 @@ export default function ProposalsV() {
                                     <button
                                         type="button"
                                         disabled={submitting}
-                                        onClick={() => { setShowRejectInput(true); setShowRequestInput(false); }}
-                                        className={`shrink-0 w-[100px] sm:w-[112px] py-2.5 px-3 rounded-md font-semibold text-sm transition-colors disabled:opacity-60 ${showRejectInput ? 'border-2 border-[#DD4342] bg-[#FFF2F2] text-[#DD4342]' : 'border border-[#AEACAC52] bg-[#FFF2F2] text-[#DD4342] hover:opacity-90'}`}
-                                    >
-                                        Reject
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={submitting}
-                                        onClick={() => { setShowRequestInput(true); setShowRejectInput(false); }}
+                                        onClick={() => { setShowRequestInput(true); }}
                                         className={`shrink-0 w-[100px] sm:w-[112px] py-2.5 px-3 rounded-md font-semibold text-sm transition-colors disabled:opacity-60 ${showRequestInput ? 'border-2 border-[#1967D2] bg-[#DBEAFE] text-[#1D4ED8]' : 'border border-[#AEACAC52] bg-[#DBEAFE] text-[#1967D2] hover:opacity-90'}`}
                                     >
                                         Request
                                     </button>
                                 </div>
-
-                                {showRejectInput && (
-                                    <div className="w-full border border-[#AEACAC52] rounded-md p-5 bg-white">
-                                        <p className="text-sm font-bold text-[#020202] mb-3">Reject Proposal</p>
-                                        <textarea
-                                            value={rejectReason}
-                                            onChange={(e) => setRejectReason(e.target.value)}
-                                            placeholder="Reason for rejection (optional)..."
-                                            rows={3}
-                                            className="w-full px-4 py-3 rounded-md bg-[#F2F2F2] font-gantari text-[#353535] text-base placeholder:text-[#8B8B8B] resize-none focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] mb-3"
-                                        />
-                                        <div className="flex justify-center w-full">
-                                            <button
-                                                type="button"
-                                                disabled={submitting}
-                                                onClick={() => handleAction(selected.id, 'reject')}
-                                                className="inline-flex items-center justify-center gap-2 bg-[#DD4342] text-white hover:opacity-90 font-semibold px-8 py-2.5 rounded-lg transition-all text-sm disabled:opacity-60 min-w-[140px]"
-                                            >
-                                                {submitting ? (
-                                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                ) : null}
-                                                Reject
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {showRequestInput && (
                                     <div className="w-full border border-[#AEACAC52] rounded-md p-5 bg-white">
@@ -444,6 +408,11 @@ export default function ProposalsV() {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                        )}
+                        {isExpired && (
+                            <div className="pt-8 text-center text-sm font-semibold text-[#616161]">
+                                This proposal has expired (no response within 2 days).
                             </div>
                         )}
                 </div>
@@ -540,7 +509,7 @@ export default function ProposalsV() {
                                                 </span>
                                             </td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <button onClick={() => { setSelected(proposal); setRejectReason(''); setClarNote(''); setShowRejectInput(false); setShowRequestInput(false); }}
+                                                <button onClick={() => { setSelected(proposal); setClarNote(''); setShowRequestInput(false); }}
                                                     className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100 transition-all">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

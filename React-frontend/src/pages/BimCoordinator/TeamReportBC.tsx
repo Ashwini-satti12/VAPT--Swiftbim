@@ -322,7 +322,7 @@ export default function TeamReportBC() {
         <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
-                <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+                <h2 className="text-2xl font-bold text-gray-900"></h2>
                 {/* Download Button - moved above filters */}
                 <button
                     onClick={handleDownload}
@@ -338,7 +338,7 @@ export default function TeamReportBC() {
 
             {/* Filter Row */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
+                <h3 className="text-xl font-bold text-gray-800">Monthly Report</h3>
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
@@ -467,7 +467,7 @@ export default function TeamReportBC() {
                             <tr className="border-b border-gray-200 bg-white">
                                 <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Sl.No</th>
                                 <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task</th>
+                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Name</th>
                                 <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Start Date</th>
                                 <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">End Date</th>
                                 <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Duration</th>

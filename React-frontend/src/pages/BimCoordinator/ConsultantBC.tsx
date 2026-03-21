@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
@@ -195,13 +195,13 @@ export default function ConsultantBC() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Deactive'>('All');
-    const [selectedShow, setSelectedShow] = useState<string>("Show");
-    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const statusDropdownRef = useRef<HTMLDivElement | null>(null);
+    const todayISO = new Date().toISOString().split('T')[0];
 
-    const showTriggerRef = useRef<HTMLButtonElement>(null);
-    const showMenuRef = useRef<HTMLDivElement>(null);
-    const statusTriggerRef = useRef<HTMLButtonElement>(null);
-    const statusMenuRef = useRef<HTMLDivElement>(null);
+    const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971', '+33', '+49', '+82', '+86'];
+    const [countryCode, setCountryCode] = useState('+91');
+    const [editCountryCode, setEditCountryCode] = useState('+91');
 
     const canAdd = user?.panel_type === 1;
 
@@ -235,10 +235,80 @@ export default function ConsultantBC() {
     }, []);
 
 
+        // Fetch departments
+        api.get<{ departments?: string[] }>('/api/departments')
+            .then(({ data }) => setDepartments(data.departments || []))
+            .catch((error) => {
+                console.error('Error fetching departments:', error);
+                setDepartments([]);
+            });
+    }, []);
+
+    const editParam = searchParams.get('edit');
+    useEffect(() => {
+        if (editParam && list.length) {
+            const id = parseInt(editParam, 10);
+            const emp = list.find((e) => e.id === id);
+            if (emp) {
+                setEditId(id);
+                setEditError('');
+                const inferred = inferPhoneParts(emp.phone_number);
+                setEditCountryCode(inferred.code);
+                setEditForm({
+                    full_name: emp.full_name,
+                    email: emp.email,
+                    phone_number: inferred.digits.slice(0, 12),
+                    user_role: emp.user_role || 'Consultant',
+                    department: emp.department || '',
+                    address: emp.address || '',
+                    dob: emp.dob || '',
+                    password: '',
+                    user_type: emp.user_type || '',
+                    doj: emp.doj || '',
+                    salary: emp.salary || '',
+                    accountnumber: emp.accountnumber || '',
+                    profile_picture: null,
+                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+                    active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
+                });
+            }
+        }
+    }, [editParam, list]);
+
+    const isEmployeeActive = (emp: Employee): boolean => {
+        return (emp.active || '').toString().trim().toLowerCase() === 'active';
+    };
+
+    const inferPhoneParts = (phone: string | undefined): { code: string; digits: string } => {
+        const raw = (phone || '').toString().trim();
+        const digitsOnly = raw.startsWith('+') ? raw.slice(1).replace(/\D/g, '') : raw.replace(/\D/g, '');
+        for (const code of COUNTRY_CODES) {
+            const codeDigits = code.replace('+', '');
+            if (digitsOnly.startsWith(codeDigits)) {
+                return {
+                    code,
+                    digits: digitsOnly.slice(codeDigits.length),
+                };
+            }
+        }
+        return { code: COUNTRY_CODES[0], digits: digitsOnly };
+    };
+
+    // Close status dropdown on outside click
+    useEffect(() => {
+        if (!statusDropdownOpen) return;
+        const onMouseDown = (event: MouseEvent) => {
+            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
+                setStatusDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onMouseDown);
+        return () => document.removeEventListener('mousedown', onMouseDown);
+    }, [statusDropdownOpen]);
 
     const filteredList = list.filter((emp) => {
         if (statusFilter === 'All') return true;
-        const isActive = (emp.active || '').toLowerCase() === 'active';
+        const isActive = isEmployeeActive(emp);
         return statusFilter === 'Active' ? isActive : !isActive;
     });
 
@@ -295,13 +365,252 @@ export default function ConsultantBC() {
         }).catch(() => { }).finally(() => setInactiveSubmitting(false));
     }
 
-    function handleStatusToggle(id: number, newStatus: string) {
-        const backendStatus = newStatus.toLowerCase() === 'active' ? 'active' : 'inactive';
-        
-        api.post('/api/employees/bulk-status', { ids: [id], action: backendStatus })
-            .then((response) => {
-                if (response.data?.success) {
-                    setList(prev => prev.map(e => e.id === id ? { ...e, active: backendStatus } : e));
+    function handleEditSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        if (!editId) return;
+        setEditSubmitting(true);
+        setEditError('');
+
+        if (editForm.dob) {
+            const today = new Date();
+            const dobDate = new Date(editForm.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setEditSubmitting(false);
+                setEditError('Date of birth cannot be in the future.');
+                return;
+            }
+        }
+
+        const editCleanPhone = (editForm.phone_number || '').replace(/\D/g, '');
+        if (!editCleanPhone || editCleanPhone.length !== 12) {
+            setEditSubmitting(false);
+            setEditError('Phone number must be exactly 12 digits.');
+            return;
+        }
+        const fullEditPhone = `${editCountryCode}${editCleanPhone}`;
+
+        const hasNewFile = !!editForm.profile_picture;
+
+        // If user selected a new profile picture, send multipart/form-data
+        if (hasNewFile) {
+            const formData = new FormData();
+            formData.append('full_name', editForm.full_name);
+            formData.append('email', editForm.email);
+            formData.append('phone_number', fullEditPhone);
+
+            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+            if (!shouldOmitUserRole && editForm.user_role) formData.append('user_role', editForm.user_role);
+
+            if (editForm.department) formData.append('department', editForm.department);
+            if (editForm.address) formData.append('address', editForm.address);
+            if (editForm.dob) formData.append('dob', editForm.dob);
+            if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
+            if (editForm.doj) formData.append('doj', editForm.doj);
+            if (editForm.salary) formData.append('salary', editForm.salary);
+            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
+            if (editForm.user_type) formData.append('user_type', editForm.user_type);
+            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
+            if (editForm.password) formData.append('password', editForm.password);
+            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
+
+            api
+                .patch<{ success: boolean; profile_picture?: string | null; message?: string }>(
+                    `/api/employees/${editId}`,
+                    formData,
+                    { headers: { 'Content-Type': 'multipart/form-data' } }
+                )
+                .then(({ data }) => {
+                    if (data.success === false) {
+                        setEditError(data.message || 'Failed to update consultant.');
+                        return;
+                    }
+                    const newPic = data.profile_picture || undefined;
+                    setList((prev) =>
+                        prev.map((e) =>
+                            e.id === editId
+                                ? {
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: fullEditPhone,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: editForm.roles.join(','),
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
+                                      profile_picture: newPic ?? e.profile_picture,
+                                  }
+                                : e
+                        )
+                    );
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
+                    setEditError(errorMessage);
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        } else {
+            // No new file: send JSON payload
+            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
+            const payload = {
+                full_name: editForm.full_name,
+                email: editForm.email,
+                phone_number: fullEditPhone,
+                ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
+                department: editForm.department || undefined,
+                address: editForm.address || undefined,
+                dob: editForm.dob || undefined,
+                doj: editForm.doj || undefined,
+                active: editForm.active === 'Active' ? 'active' : 'inactive',
+                salary: editForm.salary || undefined,
+                accountnumber: editForm.accountnumber || undefined,
+                user_type: editForm.user_type || undefined,
+                Allpannel: editForm.roles.join(','),
+                ...(editForm.password ? { password: editForm.password } : {})
+            };
+
+            api
+                .patch(`/api/employees/${editId}`, payload)
+                .then((response) => {
+                    if (response.data.success === false) {
+                        setEditError(response.data.message || 'Failed to update consultant.');
+                        return;
+                    }
+                    setList((prev) =>
+                        prev.map((e) =>
+                            e.id === editId
+                                ? {
+                                      ...e,
+                                      full_name: editForm.full_name,
+                                      email: editForm.email,
+                                      phone_number: fullEditPhone,
+                                      user_role: editForm.user_role,
+                                      department: editForm.department,
+                                      address: editForm.address,
+                                      dob: editForm.dob,
+                                      doj: editForm.doj,
+                                      salary: editForm.salary,
+                                      accountnumber: editForm.accountnumber,
+                                      user_type: editForm.user_type,
+                                      Allpannel: payload.Allpannel,
+                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
+                                  }
+                                : e
+                        )
+                    );
+                    setEditId(null);
+                    setSearchParams({});
+                })
+                .catch((err) => {
+                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
+                    setEditError(errorMessage);
+                    console.error('Update failed:', err);
+                })
+                .finally(() => setEditSubmitting(false));
+        }
+    }
+
+    function handleAddSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        setAddError('');
+        if (!form.full_name.trim() || !form.email.trim() || !form.password) {
+            setAddError('Name, email and password are required.');
+            return;
+        }
+
+        const cleanPhone = (form.phone_number || '').replace(/\D/g, '');
+        if (!cleanPhone || cleanPhone.length !== 12) {
+            setAddError('Phone number must be exactly 12 digits.');
+            return;
+        }
+
+        if (form.dob) {
+            const today = new Date();
+            const dobDate = new Date(form.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setAddError('Date of birth cannot be in the future.');
+                return;
+            }
+        }
+        setAddSubmitting(true);
+
+        // Use multipart/form-data so backend receives profile_picture file
+        const formData = new FormData();
+        const addedEmail = form.email.trim();
+        const fullPhone = `${countryCode}${cleanPhone}`;
+        formData.append('full_name', form.full_name.trim());
+        formData.append('email', addedEmail);
+        formData.append('password', form.password);
+        formData.append('phone_number', fullPhone);
+        if (form.user_role) formData.append('user_role', form.user_role);
+        if (form.address.trim()) formData.append('address', form.address.trim());
+        if (form.dob) formData.append('dob', form.dob);
+        if (form.type) formData.append('user_type', form.type);
+        if (form.joining_date) formData.append('doj', form.joining_date);
+        if (form.department) formData.append('department', form.department);
+        if (form.active) formData.append('active', form.active === 'Active' ? 'active' : 'inactive');
+        if (form.profile_picture) {
+            formData.append('profile_picture', form.profile_picture);
+        }
+
+        api
+            .post<{ success: boolean; id?: number; message?: string; profile_picture?: string | null }>(
+                '/api/employees',
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
+            )
+            .then(({ data }) => {
+                if (data.success) {
+                    // Send welcome mail to the newly created consultant.
+                    // Backend: POST /api/employees/invite
+                    api.post('/api/employees/invite', { emails: [addedEmail], message: '' }).catch(() => { });
+                    setShowAddModal(false);
+                    setCountryCode('+91');
+                    setForm({
+                        full_name: '',
+                        email: '',
+                        password: '',
+                        phone_number: '',
+                        user_role: 'Consultant',
+                        department: '',
+                        address: '',
+                        dob: '',
+                        type: '',
+                        joining_date: '',
+                        profile_picture: null,
+                        active: 'Active',
+                    });
+                    setList((prev) => [
+                        ...prev,
+                        {
+                            id: data.id!,
+                            full_name: form.full_name,
+                            email: addedEmail,
+                            user_role: form.user_role,
+                            department: form.department,
+                            phone_number: fullPhone,
+                            address: form.address,
+                            dob: form.dob,
+                            user_type: form.type,
+                            doj: form.joining_date,
+                            active: form.active === 'Active' ? 'active' : 'inactive',
+                            profile_picture: data.profile_picture || undefined,
+                        },
+                    ]);
+                } else {
+                    setAddError(data.message || 'Failed to add consultant.');
                 }
             })
             .catch((err) => {
@@ -434,49 +743,79 @@ export default function ConsultantBC() {
                     )}
 
                     {/* Status filter dropdown */}
-                    <div className="relative">
-                        <button
-                            ref={statusTriggerRef}
-                            type="button"
-                            onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
-                            className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
-                        >
-                            <span className="truncate font-Gantari">
-                                {statusFilter !== "All" ? (
-                                    <>
-                                        <span className="text-sm text-[#353535]">Status:</span>{" "}
-                                        <span className="text-[#353535] font-semibold">{statusFilter}</span>
-                                    </>
-                                ) : (
-                                    <span className="text-[#616161]">Status</span>
-                                )}
-                            </span>
-                            <img
-                                src={ArrowDown}
-                                alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "status" ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                        {openDropdown === "status" && (
-                            <div
-                                ref={statusMenuRef}
-                                className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
+                    <div className="relative" ref={statusDropdownRef}>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-[#F2F2F2] rounded-[5px]">
+                            <span className="text-[14px] font-Gantari text-[#353535]">Status</span>
+
+                            <button
+                                type="button"
+                                onClick={() => setStatusDropdownOpen((v) => !v)}
+                                className={`flex items-center justify-between gap-3 px-4 py-2 rounded-[5px] border transition-colors ${
+                                    statusFilter === 'Active'
+                                        ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]'
+                                        : statusFilter === 'Deactive'
+                                            ? 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'
+                                            : 'bg-white border-slate-200 text-[#353535]'
+                                }`}
                             >
-                                <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
-                                    {['All', 'Active', 'Deactive'].map((opt, idx) => (
-                                        <button
-                                            key={`${opt}-${idx}`}
-                                            type="button"
-                                            onClick={() => {
-                                                setStatusFilter(opt as 'All' | 'Active' | 'Deactive');
-                                                setOpenDropdown(null);
-                                            }}
-                                            className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${statusFilter === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
-                                        >
-                                            {opt}
-                                        </button>
-                                    ))}
-                                </div>
+                                <span className="text-[14px] font-semibold font-Gantari">
+                                    {statusFilter === 'All' ? 'All' : statusFilter === 'Active' ? 'Active' : 'Deactivate'}
+                                </span>
+                                <FiChevronDown
+                                    className={`w-4 h-4 text-slate-500 transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`}
+                                />
+                            </button>
+                        </div>
+
+                        {statusDropdownOpen && (
+                            <div className="absolute right-0 top-full mt-2 w-[180px] bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden z-[100]">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('All');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'All' ? 'text-[#DD4342]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    All
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('Active');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'Active' ? 'text-[#008F22]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
+                                        Active
+                                    </span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusFilter('Deactive');
+                                        setCurrentPage(1);
+                                        setStatusDropdownOpen(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
+                                        statusFilter === 'Deactive' ? 'text-[#E00100]' : 'text-[#353535]'
+                                    }`}
+                                >
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
+                                        Deactivate
+                                    </span>
+                                </button>
                             </div>
                         )}
                     </div>
@@ -486,14 +825,14 @@ export default function ConsultantBC() {
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 sm:px-4 custom-scrollbar relative">
                 {viewMode === 'card' ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 pb-10">
-                        {displayedList.length === 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {filteredList.length === 0 ? (
                             <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
                                 No consultants found.
                             </div>
                         ) : (
-                            displayedList.map((emp) => (
-                                <div key={emp.id} className="bg-white rounded-[15px] overflow-hidden border border-[#AEACAC52] transition-all ">
+                            filteredList.map((emp) => (
+                                <div key={emp.id} className="bg-white rounded-2xl overflow-hidden border-2 border-slate-200 transition-all ">
                                     {/* Image Section */}
                                     <div className="relative h-40 overflow-hidden group">
                                         <div className="absolute inset-0 z-0">
@@ -507,10 +846,10 @@ export default function ConsultantBC() {
 
                                         {/* Top Status - Pill Shape */}
                                         <div className="absolute top-4 right-4 z-10">
-                                            <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                                                <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                                                <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                                                    {emp.active === 'active' ? 'Active' : 'Deactive'}
+                                            <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                                                <span className={`w-2 h-2 rounded-full ${isEmployeeActive(emp) ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                                                <span className={`text-[11px] font-semibold ${isEmployeeActive(emp) ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                                                    {isEmployeeActive(emp) ? 'Active' : 'Deactive'}
                                                 </span>
                                             </div>
                                         </div>
@@ -585,8 +924,30 @@ export default function ConsultantBC() {
                                             {canAdd && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => navigate(`/bc/consultants/edit/${emp.id}`)}
-                                                    className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                                                    onClick={() => {
+                                                        setEditId(emp.id);
+                                                        setEditError('');
+                                                        const inferred = inferPhoneParts(emp.phone_number);
+                                                        setEditCountryCode(inferred.code);
+                                                        setEditForm({
+                                                            full_name: emp.full_name,
+                                                            email: emp.email,
+                                                            phone_number: inferred.digits.slice(0, 12),
+                                                            user_role: emp.user_role || 'Consultant',
+                                                            department: emp.department || '',
+                                                            address: emp.address || '',
+                                                            dob: emp.dob || '',
+                                                            password: '',
+                                                            user_type: emp.user_type || '',
+                                                            doj: emp.doj || '',
+                                                            salary: emp.salary || '',
+                                                            accountnumber: emp.accountnumber || '',
+                                                            profile_picture: null,
+                                                            roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
+                                                            active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
+                                                        });
+                                                    }}
+                                                    className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
                                                 >
                                                     <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                                                 </button>
@@ -619,12 +980,13 @@ export default function ConsultantBC() {
                                             </td>
                                         </tr>
                                     ) : (
-                                        displayedList.map((emp, idx) => {
-                                            const slNo = limitStart + idx + 1;
+                                        paginatedList.map((emp, idx) => {
+                                            const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
+                                            const slNoPadded = String(slNo).padStart(2, '0');
                                             return (
-                                            <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                                                <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">{slNo}</td>
-                                                <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">{emp.empid || `EMP0${emp.id + 10}`}</td>
+                                            <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F9F9F9]' : 'bg-white'}>
+                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{slNoPadded}</td>
+                                                <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.empid || `EMP0${emp.id + 10}`}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-4">
                                                         <div className="relative">
@@ -644,7 +1006,7 @@ export default function ConsultantBC() {
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                                                            <span className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${isEmployeeActive(emp) ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                                         </div>
                                                         <span className="text-[16px] text-center font-semibold font-Gantari text-[#353535]">{emp.full_name}</span>
                                                     </div>
@@ -677,13 +1039,10 @@ export default function ConsultantBC() {
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center">
-                                                        <CustomDropdown
-                                                            options={['Active', 'Deactivate']}
-                                                            value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                                            onChange={(val) => handleStatusToggle(emp.id, val)}
-                                                            placeholder="Status"
-                                                            styleType="table"
-                                                        />
+                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
+                                                            {isEmployeeActive(emp) ? 'Active' : 'Deactivate'}
+                                                            <FiChevronDown className="w-5 h-5 opacity-70" />
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -698,6 +1057,234 @@ export default function ConsultantBC() {
 
 
 
+                                return pages.map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors ${currentPage === page ? 'text-white bg-[#DD4342]' : 'text-[#6B6B6B] hover:bg-slate-100'}`}
+                                    >
+                                        {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
+                                    </button>
+                                ));
+                            })()}
+
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50"
+                            >
+                                Next
+                                <FiChevronDown className="w-4 h-4 -rotate-90" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showAddModal && createPortal(
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-[15px] max-w-[1174px] w-full px-[20px] py-[20px] max-h-[795px] overflow-y-auto relative">
+                        {/* Header Section */}
+                        <div className="flex items-center justify-center mb-4 relative">
+                            <button
+                                type="button"
+                                onClick={() => { setShowAddModal(false); setAddError(''); }}
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                            >
+                                <FiX className="w-5 h-5 font-bold" />
+                            </button>
+                            <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Add New Consultant</h3>
+                        </div>
+
+                        <form onSubmit={handleAddSubmit} className="space-y-5">
+                            {addError && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg border border-red-100">{addError}</p>}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                                {/* Left Column */}
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Full Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Employee Name"
+                                            value={form.full_name}
+                                            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">
+                                            Phone Number <span className="text-[#DD4342]">*</span>
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={countryCode}
+                                                onChange={(e) => setCountryCode(e.target.value)}
+                                                className="px-3 py-2.5 text-[14px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
+                                            >
+                                                {COUNTRY_CODES.map((code) => (
+                                                    <option key={code} value={code}>{code}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={form.phone_number}
+                                                onChange={(e) => {
+                                                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                                    setForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                }}
+                                                maxLength={12}
+                                                required
+                                                className="flex-1 px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Password</label>
+                                        <input
+                                            type="password"
+                                            placeholder="Enter Password"
+                                            value={form.password}
+                                            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Role</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.user_role}
+                                                onChange={(e) => setForm((f) => ({ ...f, user_role: e.target.value }))}
+                                                className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Role</option>
+                                                {getAllowedRoles().map((r) => (
+                                                    <option key={r} value={r}>{r}</option>
+                                                ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Department</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.department}
+                                                onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+                                                className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Department</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column */}
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            value={form.dob}
+                                            onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
+                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="Enter Email"
+                                            value={form.email}
+                                            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Type</label>
+                                        <div className="relative">
+                                            <select
+                                                value={form.type}
+                                                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
+                                                className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Type</option>
+                                                <option value="Trainee">Trainee</option>
+                                                <option value="Consultant">Consultant</option>
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Date of Joining</label>
+                                        <input
+                                            type="date"
+                                            value={form.joining_date}
+                                            onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
+                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Update Profile Picture</label>
+                                        <div className="flex bg-[#F4F4F4] rounded-[5px] overflow-hidden transition-all focus-within:ring-1 focus-within:ring-[#D1E6FF]">
+                                            <div className="flex-1 px-4 py-2.5 text-[14px] text-[#979797] font-Gantari truncate">
+                                                {form.profile_picture ? form.profile_picture.name : "Choose file (JPEG or JPG only)"}
+                                            </div>
+                                            <label className="bg-[#E0E0E0] px-5 py-2.5 cursor-pointer text-[13px] font-semibold text-[#353535] hover:bg-slate-300 transition-colors font-Gantari shrink-0 flex items-center justify-center">
+                                                Browse File
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept=".jpg,.jpeg"
+                                                    onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[14px] font-semibold text-[#1A1A1A] mb-1.5 font-Gantari">Address</label>
+                                <textarea
+                                    rows={3}
+                                    placeholder="Type your Address..."
+                                    value={form.address}
+                                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                                    className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] placeholder:text-[#979797] font-Gantari transition-all resize-none outline-none leading-relaxed"
+                                />
+                            </div>
+
+                            <div className="flex gap-4 justify-center pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAddModal(false)}
+                                    className="px-8 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[15px] hover:bg-slate-200 transition-all font-Gantari min-w-[120px]"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={addSubmitting}
+                                    className="px-8 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[15px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[120px]"
+                                >
+                                    {addSubmitting ? 'Adding...' : 'Submit'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
 
 
 
@@ -817,7 +1404,7 @@ export default function ConsultantBC() {
                                                             {emp.full_name} {emp.empid ? `(${emp.empid})` : ''}
                                                         </span>
                                                     </div>
-                                                    {(emp.active === 'inactive' || emp.active === 'deactive') && (
+                                                    {!isEmployeeActive(emp) && (
                                                         <span className="px-3 py-1 bg-[#FFE3E3] text-[#FF4D4D] text-[12px] font-semibold rounded-full font-Gantari shrink-0">
                                                             Currently In-Active
                                                         </span>
@@ -854,6 +1441,261 @@ export default function ConsultantBC() {
             )}
 
 
+                        <form onSubmit={handleEditSubmit} className="space-y-6">
+                            {editError && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <p className="text-sm text-red-600 font-Gantari">{editError}</p>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+
+                                {/* Column 1 */}
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter employee name"
+                                            value={editForm.full_name}
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                                            Phone Number <span className="text-[#DD4342]">*</span>
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={editCountryCode}
+                                                onChange={(e) => setEditCountryCode(e.target.value)}
+                                                className="px-3 py-3 text-[15px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
+                                            >
+                                                {COUNTRY_CODES.map((code) => (
+                                                    <option key={code} value={code}>{code}</option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={editForm.phone_number}
+                                                onChange={(e) => {
+                                                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                                                    setEditForm((f) => ({ ...f, phone_number: digitsOnly }));
+                                                }}
+                                                maxLength={12}
+                                                required
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
+                                        <input
+                                            type="password"
+                                            placeholder="******** (password hidden)"
+                                            value=""
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                                        />
+                                    </div>
+
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
+                                        <div className="relative">
+                                            <select
+                                                value={editForm.user_role}
+                                                onChange={(e) => setEditForm((f) => ({ ...f, user_role: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Role</option>
+                                                {getAllowedRoles(editForm.user_role).map((r) => (
+                                                    <option key={r} value={r}>{r}</option>
+                                                ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
+                                        </div>
+                                    </div>
+
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
+                                        <div className="relative">
+                                            <select
+                                                value={editForm.department}
+                                                onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Department</option>
+                                                {departments.map((dept) => (
+                                                    <option key={dept} value={dept}>{dept}</option>
+                                                ))}
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Enter Account Number"
+                                            value={editForm.accountnumber}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Column 2 */}
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.dob}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email</label>
+                                        <input
+                                            type="email"
+                                            placeholder="Enter Email"
+                                            value={editForm.email}
+                                            disabled
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="relative">
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                                        <div className="relative">
+                                            <select
+                                                value={editForm.user_type}
+                                                onChange={(e) => setEditForm((f) => ({ ...f, user_type: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                <option value="" disabled>Select Type</option>
+                                                <option value="Employee">Employee</option>
+                                                <option value="Consultant">Consultant</option>
+                                                <option value="Contractor">Contractor</option>
+                                            </select>
+                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.doj}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
+                                        <input
+                                            type="text"
+                                            placeholder="0000$"
+                                            value={editForm.salary}
+                                            onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
+                                        <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                                            <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
+                                                {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
+                                            </div>
+                                            <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer hover:bg-slate-300 transition-colors shrink-0 font-Gantari">
+                                                Browse File
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept=".jpg,.jpeg"
+                                                    onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Full Width Field */}
+                            <div className="mt-2">
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
+                                <textarea
+                                    rows={4}
+                                    placeholder="Enter Address"
+                                    value={editForm.address}
+                                    onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                                />
+                            </div>
+
+                            {/* Panel Access Section */}
+                            <div className="mt-4 bg-[#F9F9F9] p-8 rounded-[10px] border border-[#E0E0E0]">
+                                <h4 className="text-[18px] font-bold text-[#000000] mb-8 font-Gantari">Select Panel Access Control</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-6">
+                                    {PANEL_ROLES.map((role, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="flex items-center gap-4 cursor-pointer group"
+                                            onClick={() => {
+                                                const currentRoles = [...editForm.roles];
+                                                if (currentRoles.includes(role)) {
+                                                    setEditForm({ ...editForm, roles: currentRoles.filter(r => r !== role) });
+                                                } else {
+                                                    setEditForm({ ...editForm, roles: [...currentRoles, role] });
+                                                }
+                                            }}
+                                        >
+                                            <div className={`w-[24px] h-[24px] rounded-[5px] border-2 flex items-center justify-center transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#D1D1D1] group-hover:border-[#3d3399]'}`}>
+                                                {editForm.roles.includes(role) && (
+                                                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <span className="text-[16px] font-medium text-[#353535] group-hover:text-[#000000] font-Gantari">{role}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Form Actions */}
+                            <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+                                <button
+                                    type="button"
+                                    onClick={() => { setEditId(null); setSearchParams({}); setEditError(''); }}
+                                    className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
+                                >
+                                    Discard
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editSubmitting}
+                                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                                >
+                                    {editSubmitting ? 'Submitting...' : 'Submit'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
             {showDetailsModal && selectedEmployee && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
                     <div className="bg-white rounded-lg max-w-[520px] w-full px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">

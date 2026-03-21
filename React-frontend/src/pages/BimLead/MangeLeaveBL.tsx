@@ -10,6 +10,7 @@ interface LeaveEntry {
   employeeName: string;
   role?: string;
   leaveType: string;
+  leaveTypeId?: number | null;
   appliedOn: string;
   appliedTo?: string;
   currentStatus: string;
@@ -185,10 +186,26 @@ function normalizeNameAndReason(value: string): string {
 /** Convert DD/MM/YYYY to YYYY-MM-DD for date input. */
 function toInputDate(d: string | undefined): string {
   if (!d) return "";
-  const parts = d.split("/");
-  if (parts.length !== 3) return "";
-  const [dd, mm, yy] = parts;
-  return `${yy}-${mm}-${dd}`;
+  const s = String(d).trim();
+
+  // Already in YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // DD/MM/YYYY -> YYYY-MM-DD
+  const slashParts = s.split('/');
+  if (slashParts.length === 3) {
+    const [dd, mm, yy] = slashParts;
+    if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+  }
+
+  // DD-MM-YYYY -> YYYY-MM-DD
+  const dashParts = s.split('-');
+  if (dashParts.length === 3) {
+    const [dd, mm, yy] = dashParts;
+    if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+  }
+
+  return '';
 }
 /** Convert YYYY-MM-DD to DD/MM/YYYY for storage. */
 // function toStoredDate(d: string): string {
@@ -201,6 +218,11 @@ function toInputDate(d: string | undefined): string {
 function formatApiDate(value: string | undefined | null): string {
   if (!value) return "";
   const s = String(value);
+  // Avoid timezone shift for plain YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [yy, mm, dd] = s.split('-');
+    return `${dd}/${mm}/${yy}`;
+  }
   // Already DD/MM/YYYY
   if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
   try {
@@ -215,14 +237,24 @@ function formatApiDate(value: string | undefined | null): string {
   }
 }
 
+function getTodayInputDate(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function ManageLeave() {
   const { user } = useAuth();
+  const todayInputDate = getTodayInputDate();
 
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
   const [employeeName, setEmployeeName] = useState("");
   const [leaveType, setLeaveType] = useState("");
+  const [leaveTypeId, setLeaveTypeId] = useState<number | null>(null);
   const [leaveFrom, setLeaveFrom] = useState("");
   const [leaveTo, setLeaveTo] = useState("");
   const [reason, setReason] = useState("");
@@ -230,6 +262,20 @@ export default function ManageLeave() {
     Record<string, string>
   >({});
   const [leaves, setLeaves] = useState<LeaveEntry[]>(DUMMY_LEAVES);
+
+  const [leaveTypeOptions, setLeaveTypeOptions] = useState<
+    Array<{ id: number; title: string }>
+  >([]);
+  // Always show frontend leave options; attach backend id when title matches.
+  const leaveTypeDropdownItems: Array<{ id: number | null; title: string }> = [
+    ...LEAVE_TYPES.map((title) => {
+      const match = leaveTypeOptions.find((opt) => opt.title === title);
+      return { title, id: match ? match.id : null };
+    }),
+    ...leaveTypeOptions
+      .filter((opt) => !LEAVE_TYPES.includes(opt.title))
+      .map((opt) => ({ title: opt.title, id: opt.id })),
+  ];
 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLeave, setEditingLeave] = useState<LeaveEntry | null>(null);
@@ -277,7 +323,11 @@ export default function ManageLeave() {
           slNo: index + 1,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
-          leaveType: app.title || "Others",
+          leaveType: app.title || app.leave_type || "Others",
+          leaveTypeId:
+            app.leave_type !== undefined && app.leave_type !== null
+              ? Number(app.leave_type)
+              : null,
           appliedOn: formatApiDate(app.posting_date),
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
@@ -289,9 +339,7 @@ export default function ManageLeave() {
                 ? "Rejected"
                 : "Pending",
         }));
-        if (mapped.length) {
-          setLeaves(mapped);
-        }
+        setLeaves(mapped);
       } catch (err) {
         console.error(
           "Failed to load leaves from backend, using fallback data.",
@@ -303,6 +351,25 @@ export default function ManageLeave() {
 
     fetchLeaves();
   }, [user?.id]);
+
+  // Load leave types (holiday table) so we can store the correct leave_type id in tblleaves.
+  useEffect(() => {
+    api
+      .get<{ leave_types?: Array<{ id?: number; title?: string }>; others_value?: string }>("/api/leave/types")
+      .then(({ data }) => {
+        const types =
+          (data.leave_types || [])
+            .map((t) => ({
+              id: typeof t.id === "number" ? t.id : Number(t.id),
+              title: String(t.title || ""),
+            }))
+            .filter((t) => Number.isFinite(t.id) && t.title);
+        setLeaveTypeOptions(types);
+      })
+      .catch(() => {
+        setLeaveTypeOptions([]);
+      });
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -423,11 +490,14 @@ export default function ManageLeave() {
     const err: Record<string, string> = {};
     const trimmedName = employeeName.trim();
     const trimmedReason = reason.trim();
+    const today = getTodayInputDate();
     if (!trimmedName) err.employeeName = "Employee name is required";
     if (!leaveType) err.leaveType = "Leave type is required";
     if (!leaveFrom) err.leaveFrom = "Leave from date is required";
     if (!leaveTo) err.leaveTo = "Leave to date is required";
     if (!trimmedReason) err.reason = "Reason is required";
+    if (leaveFrom && leaveFrom < today) err.leaveFrom = "Leave from date cannot be in the past";
+    if (leaveTo && leaveTo < today) err.leaveTo = "Leave to date cannot be in the past";
     if (leaveFrom && leaveTo && leaveFrom > leaveTo)
       err.leaveTo = "Leave to must be on or after leave from";
     setApplyFormErrors(err);
@@ -440,7 +510,8 @@ export default function ManageLeave() {
 
     try {
       const payload: any = {
-        leavetype: leaveType,
+        // Send backend id when available; otherwise send selected text.
+        leavetype: leaveTypeId && leaveTypeId > 0 ? leaveTypeId : leaveType,
         description: reason.trim(),
         from_date: leaveFrom,
         to_date: leaveTo,
@@ -485,7 +556,11 @@ export default function ManageLeave() {
           slNo: index + 1,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
-          leaveType: app.title || "Others",
+          leaveType: app.title || app.leave_type || "Others",
+          leaveTypeId:
+            app.leave_type !== undefined && app.leave_type !== null
+              ? Number(app.leave_type)
+              : null,
           appliedOn: formatApiDate(app.posting_date),
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
@@ -497,14 +572,13 @@ export default function ManageLeave() {
                 ? "Rejected"
                 : "Pending",
         }));
-        if (mapped.length) {
-          setLeaves(mapped);
-        }
+        setLeaves(mapped);
       } catch (err) {
         console.error("Failed to refresh leaves after apply.", err);
       }
 
       setLeaveType("");
+      setLeaveTypeId(null);
       setLeaveFrom("");
       setLeaveTo("");
       setReason("");
@@ -523,6 +597,7 @@ export default function ManageLeave() {
     setApplyModalOpen(false);
     setEmployeeName("");
     setLeaveType("");
+    setLeaveTypeId(null);
     setLeaveFrom("");
     setLeaveTo("");
     setReason("");
@@ -536,6 +611,8 @@ export default function ManageLeave() {
       row.role ? `${row.employeeName} - ${row.role}` : row.employeeName,
     );
     setLeaveType(row.leaveType);
+    const matchingType = leaveTypeOptions.find((t) => t.title === row.leaveType);
+    setLeaveTypeId(matchingType ? matchingType.id : row.leaveTypeId ?? null);
     setLeaveFrom(toInputDate(row.fromDate));
     setLeaveTo(toInputDate(row.toDate));
     setReason(row.description ?? "");
@@ -548,6 +625,7 @@ export default function ManageLeave() {
     setEditingLeave(null);
     setEmployeeName("");
     setLeaveType("");
+    setLeaveTypeId(null);
     setLeaveFrom("");
     setLeaveTo("");
     setReason("");
@@ -560,7 +638,7 @@ export default function ManageLeave() {
 
     try {
       const payload: any = {
-        leavetype: leaveType,
+        leavetype: leaveTypeId && leaveTypeId > 0 ? leaveTypeId : leaveType,
         description: reason.trim(),
         from_date: leaveFrom,
         to_date: leaveTo,
@@ -604,7 +682,11 @@ export default function ManageLeave() {
           slNo: index + 1,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
-          leaveType: app.title || "Others",
+          leaveType: app.title || app.leave_type || "Others",
+          leaveTypeId:
+            app.leave_type !== undefined && app.leave_type !== null
+              ? Number(app.leave_type)
+              : null,
           appliedOn: formatApiDate(app.posting_date),
           fromDate: formatApiDate(app.from_date),
           toDate: formatApiDate(app.to_date),
@@ -616,9 +698,7 @@ export default function ManageLeave() {
                 ? "Rejected"
                 : "Pending",
         }));
-        if (mapped.length) {
-          setLeaves(mapped);
-        }
+        setLeaves(mapped);
       } catch (err) {
         console.error("Failed to refresh leaves after edit.", err);
       }
@@ -633,15 +713,53 @@ export default function ManageLeave() {
     }
   };
 
-  const handleDelete = (row: LeaveEntry) => {
+  const handleDelete = async (row: LeaveEntry) => {
     if (
       !window.confirm(
         `Delete leave for ${row.employeeName} (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`,
       )
-    )
+    ) {
       return;
-    // Currently only local delete; no backend endpoint to delete leaves safely.
-    setLeaves((prev) => prev.filter((l) => l.id !== row.id));
+    }
+
+    try {
+      await api.delete(`/api/leave/applications/${row.id}`);
+
+      // Reload latest leaves from backend
+      const resp = await api.get<{ applications?: any[] }>(
+        "/api/leave/applications",
+      );
+      const apps = resp.data.applications || [];
+      const allowedRoles = new Set(["bim modeler", "bim coordinator"]);
+      const filteredApps = apps.filter((app) => {
+        const role = String(app.role || "").toLowerCase();
+        const isAllowedRole = allowedRoles.has(role);
+        const isOwn = user && app.employee_id === user.id;
+        return isAllowedRole || isOwn;
+      });
+
+      const mapped: LeaveEntry[] = filteredApps.map((app, index) => ({
+        id: app.lid,
+        slNo: index + 1,
+        employeeName: app.full_name || "Unknown",
+        role: app.role || undefined,
+        leaveType: app.title || app.leave_type || "Others",
+        leaveTypeId:
+          app.leave_type !== undefined && app.leave_type !== null
+            ? Number(app.leave_type)
+            : null,
+        appliedOn: formatApiDate(app.posting_date),
+        fromDate: formatApiDate(app.from_date),
+        toDate: formatApiDate(app.to_date),
+        description: app.description || "",
+        currentStatus:
+          app.status === 1 ? "Approved" : app.status === 2 ? "Rejected" : "Pending",
+      }));
+      setLeaves(mapped);
+    } catch (err) {
+      console.error("Failed to delete leave", err);
+      alert("Delete failed. Please try again.");
+    }
   };
 
   const updateLeaveStatus = (
@@ -902,7 +1020,7 @@ export default function ManageLeave() {
                       className={index % 2 === 1 ? "bg-[#FAFAFA]" : "bg-white"}
                     >
                       <td className="pl-6 pr-8 py-3.5 text-center text-sm text-[#353535] font-medium align-middle">
-                        {slNo}
+                        {String(slNo).padStart(2, "0")}
                       </td>
                       <td className="pl-8 pr-8 py-3.5 text-center text-sm text-[#353535] font-semibold align-middle">
                         {row.employeeName}
@@ -1260,21 +1378,24 @@ export default function ManageLeave() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setLeaveType("");
+                          setLeaveTypeId(null);
                           setLeaveTypeOpen(false);
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                       >
                         Nothing selected
                       </button>
-                      {LEAVE_TYPES.map((type: string) => {
-                        const isSelected = leaveType === type;
+                      {leaveTypeDropdownItems.map((opt) => {
+                        const { id, title } = opt;
+                        const isSelected = leaveType === title;
                         return (
                           <button
-                            key={type}
+                            key={id ?? title}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setLeaveType(type);
+                              setLeaveType(title);
+                              setLeaveTypeId(id);
                               setLeaveTypeOpen(false);
                               if (applyFormErrors.leaveType)
                                 setApplyFormErrors((prev) => ({
@@ -1284,7 +1405,7 @@ export default function ManageLeave() {
                             }}
                             className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                           >
-                            {type}
+                            {title}
                           </button>
                         );
                       })}
@@ -1304,6 +1425,7 @@ export default function ManageLeave() {
                   <div className="relative">
                     <input
                       type="date"
+                      min={todayInputDate}
                       value={leaveFrom}
                       onChange={(e) => {
                         setLeaveFrom(e.target.value);
@@ -1359,6 +1481,7 @@ export default function ManageLeave() {
                   <div className="relative">
                     <input
                       type="date"
+                      min={todayInputDate}
                       value={leaveTo}
                       onChange={(e) => {
                         setLeaveTo(e.target.value);
@@ -1557,21 +1680,24 @@ export default function ManageLeave() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setLeaveType("");
+                          setLeaveTypeId(null);
                           setLeaveTypeOpenEdit(false);
                         }}
                         className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${!leaveType ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                       >
                         Nothing selected
                       </button>
-                      {LEAVE_TYPES.map((type: string) => {
-                        const isSelected = leaveType === type;
+                      {leaveTypeDropdownItems.map((opt) => {
+                        const { id, title } = opt;
+                        const isSelected = leaveType === title;
                         return (
                           <button
-                            key={type}
+                            key={id ?? title}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setLeaveType(type);
+                              setLeaveType(title);
+                              setLeaveTypeId(id);
                               setLeaveTypeOpenEdit(false);
                               if (applyFormErrors.leaveType)
                                 setApplyFormErrors((prev) => ({
@@ -1581,7 +1707,7 @@ export default function ManageLeave() {
                             }}
                             className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
                           >
-                            {type}
+                            {title}
                           </button>
                         );
                       })}
@@ -1601,6 +1727,7 @@ export default function ManageLeave() {
                   <div className="relative">
                     <input
                       type="date"
+                      min={todayInputDate}
                       value={leaveFrom}
                       onChange={(e) => {
                         setLeaveFrom(e.target.value);
@@ -1656,6 +1783,7 @@ export default function ManageLeave() {
                   <div className="relative">
                     <input
                       type="date"
+                      min={todayInputDate}
                       value={leaveTo}
                       onChange={(e) => {
                         setLeaveTo(e.target.value);

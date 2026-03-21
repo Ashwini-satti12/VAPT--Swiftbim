@@ -595,6 +595,59 @@ def submit_bid(opportunity_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+    # Notification to Technical Director(s): new bid submitted
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        # vendor name
+        vendor_name = "Vendor"
+        try:
+            cur.execute(
+                "SELECT full_name FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (vendor_id,),
+            )
+            vrow = cur.fetchone()
+            if vrow and vrow.get("full_name"):
+                vendor_name = vrow["full_name"]
+        except Exception:
+            pass
+
+        title = "New bid received"
+        msg = f"New bid received from {vendor_name} for \"{opp.get('project_name') or 'a project'}\"."
+
+        # TDs in this company
+        if getattr(g, "company_id", None):
+            cur.execute(
+                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                (g.company_id,),
+            )
+            td_ids = [r["id"] for r in (cur.fetchall() or []) if r.get("id")]
+            for td_id in td_ids:
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (td_id, None, title, msg, "bidding_submitted", "bidding", opportunity_id, g.company_id),
+                )
+            if td_ids:
+                conn.commit()
+    except Exception:
+        pass
+
     return jsonify({"success": True, "message": "Bid submitted successfully for " + opp["project_name"]})
 
 
@@ -685,6 +738,76 @@ def vendor_proposals():
         try:
             main_conn = get_db()
             main_cur = main_conn.cursor(dictionary=True)
+            # Auto-expire TD proposals after 2 days (Sent/Pending only) and notify TD once
+            try:
+                main_cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'td_proposals' AND COLUMN_NAME = 'expired_notified' LIMIT 1"
+                )
+                has_flag = main_cur.fetchone() is not None
+                if not has_flag:
+                    main_cur.execute("ALTER TABLE td_proposals ADD COLUMN expired_notified TINYINT(1) NOT NULL DEFAULT 0")
+                    main_conn.commit()
+
+                main_cur.execute(
+                    """
+                    SELECT id, project_name, vendor_name
+                    FROM td_proposals
+                    WHERE vendor_id = %s
+                      AND (status = 'sent' OR status = 'pending')
+                      AND created_at < (NOW() - INTERVAL 2 DAY)
+                      AND expired_notified = 0
+                    """,
+                    (user_id,),
+                )
+                to_expire = main_cur.fetchall() or []
+                if to_expire:
+                    main_cur.execute(
+                        """
+                        UPDATE td_proposals
+                        SET status = 'expired'
+                        WHERE vendor_id = %s
+                          AND (status = 'sent' OR status = 'pending')
+                          AND created_at < (NOW() - INTERVAL 2 DAY)
+                        """,
+                        (user_id,),
+                    )
+                    # Mark notified for these rows
+                    ids = [r["id"] for r in to_expire if r.get("id")]
+                    if ids:
+                        placeholders = ",".join(["%s"] * len(ids))
+                        main_cur.execute(
+                            f"UPDATE td_proposals SET expired_notified = 1 WHERE id IN ({placeholders})",
+                            ids,
+                        )
+                    main_conn.commit()
+
+                    # Send notification(s) to TD
+                    try:
+                        if getattr(g, "company_id", None):
+                            ncur = main_conn.cursor(dictionary=True)
+                            ncur.execute(
+                                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                                (g.company_id,),
+                            )
+                            td_ids = [r["id"] for r in (ncur.fetchall() or []) if r.get("id")]
+                            for r in to_expire:
+                                project_name = r.get("project_name") or "Proposal"
+                                vendor_name = r.get("vendor_name") or "Vendor"
+                                title = "Proposal expired"
+                                msg = f"Proposal for '{project_name}' from {vendor_name} expired (no response within 2 days)."
+                                for td_id in td_ids:
+                                    ncur.execute(
+                                        """
+                                        INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                                        VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                                        """,
+                                        (td_id, None, title, msg, "proposal_expired", g.company_id),
+                                    )
+                            main_conn.commit()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
             main_cur.execute(
                 """SELECT * FROM td_proposals WHERE vendor_id = %s ORDER BY created_at DESC""",
                 (user_id,),
@@ -838,9 +961,38 @@ def respond_to_proposal(proposal_id):
     try:
         main_conn = get_db()
         main_cur = main_conn.cursor(dictionary=True)
+        # Block responses after 2 days: if expired, update status and return error
+        main_cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        proposal_row = main_cur.fetchone()
+        if proposal_row:
+            try:
+                from datetime import datetime, timedelta
+                created_at = proposal_row.get("created_at")
+                if created_at and datetime.now() > (created_at + timedelta(days=2)):
+                    if (proposal_row.get("status") or "").lower() not in ("accepted", "rejected", "expired"):
+                        main_cur.execute(
+                            "UPDATE td_proposals SET status = 'expired' WHERE id = %s",
+                            (proposal_id,),
+                        )
+                        main_conn.commit()
+                    return jsonify({"success": False, "message": "Proposal expired"}), 400
+            except Exception:
+                pass
+        # Ensure td_proposals has 'reason' column (older DBs may not)
+        try:
+            main_cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'td_proposals' AND COLUMN_NAME = 'reason' LIMIT 1"
+            )
+            has_reason = main_cur.fetchone() is not None
+            if not has_reason:
+                main_cur.execute("ALTER TABLE td_proposals ADD COLUMN reason TEXT NULL")
+                main_conn.commit()
+        except Exception:
+            pass
+
         main_cur.execute(
-            "UPDATE td_proposals SET status = %s WHERE id = %s",
-            (new_status, proposal_id),
+            "UPDATE td_proposals SET status = %s, reason = %s WHERE id = %s",
+            (new_status, reason, proposal_id),
         )
         if main_cur.rowcount > 0:
             updated = True
@@ -852,6 +1004,36 @@ def respond_to_proposal(proposal_id):
 
     if not updated:
         return jsonify({"success": False, "message": "Proposal not found"}), 404
+
+    # Notify Technical Director(s) about vendor response / expiry
+    try:
+        if proposal_data and getattr(g, "company_id", None):
+            main_conn = get_db()
+            ncur = main_conn.cursor(dictionary=True)
+            # Find all TDs in this company
+            ncur.execute(
+                "SELECT id FROM employee WHERE Company_id = %s AND user_role = 'Technical Director' AND active = 1",
+                (g.company_id,),
+            )
+            td_ids = [r["id"] for r in (ncur.fetchall() or []) if r.get("id")]
+            if td_ids:
+                project_name = proposal_data.get("project_name") or "Proposal"
+                vendor_name = proposal_data.get("vendor_name") or "Vendor"
+                title = "Proposal update"
+                msg = f"{vendor_name} {new_status.replace('_', ' ')} for '{project_name}'."
+                if action in ("reject", "clarification") and reason:
+                    msg += f" Note: {reason}"
+                for td_id in td_ids:
+                    ncur.execute(
+                        """
+                        INSERT INTO notifications (user_id, project_id, title, message, type, is_read, created_at, Company_id)
+                        VALUES (%s, %s, %s, %s, %s, 0, NOW(), %s)
+                        """,
+                        (td_id, None, title, msg, "proposal_status", g.company_id),
+                    )
+                main_conn.commit()
+    except Exception:
+        pass
 
     # On accept → auto-create vendor project
     project_id = None
@@ -1027,6 +1209,51 @@ def accept_bid(bidding_id, bid_id):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+    # Notification to Vendor: bid shortlisted
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        vendor_emp_id = bid_info.get("vendor_id")
+        project_name = bid_info.get("project_name") or "a project"
+
+        # TD name
+        td_name = "Technical Director"
+        if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+            r = cur.fetchone() or {}
+            if r.get("full_name"):
+                td_name = r["full_name"]
+
+        if vendor_emp_id and getattr(g, "company_id", None):
+            title = "Bid shortlisted"
+            msg = f"Your bid for \"{project_name}\" has been shortlisted by {td_name}."
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (vendor_emp_id, None, title, msg, "bidding_shortlisted", "bidding", bidding_id, g.company_id),
+            )
+            conn.commit()
+    except Exception:
+        pass
+
     return jsonify({"success": True, "bid": bid_info})
 
 
@@ -1049,6 +1276,60 @@ def reject_bid(bidding_id, bid_id):
         conn.commit()
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+
+    # Notification to Vendor: bid rejected
+    try:
+        # ensure deep-link columns exist
+        try:
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+            cur.execute(
+                "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+            )
+            if cur.fetchone() is None:
+                cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+        except Exception:
+            pass
+
+        cur.execute(
+            """
+            SELECT vb.vendor_id, vbi.project_name
+            FROM snh6_swiftproject.vendor_bids vb
+            LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
+            WHERE vb.id = %s
+            """,
+            (bid_id,),
+        )
+        r = cur.fetchone() or {}
+        vendor_emp_id = r.get("vendor_id")
+        project_name = r.get("project_name") or "a project"
+
+        td_name = "Technical Director"
+        if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+            cur.execute(
+                "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                (g.user_id, g.company_id),
+            )
+            rr = cur.fetchone() or {}
+            if rr.get("full_name"):
+                td_name = rr["full_name"]
+
+        if vendor_emp_id and getattr(g, "company_id", None):
+            title = "Bid rejected"
+            msg = f"Your bid for \"{project_name}\" has been rejected by {td_name}."
+            cur.execute(
+                """
+                INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                """,
+                (vendor_emp_id, None, title, msg, "bidding_rejected", "bidding", bidding_id, g.company_id),
+            )
+            conn.commit()
+    except Exception:
+        pass
 
     return jsonify({"success": True})
 
@@ -1100,10 +1381,20 @@ def accepted_bids():
             """
             SELECT vb.*, vbi.project_name, vbi.outsource_budget, vbi.budget_ceiling,
                    e.full_name AS vendor_name, e.email AS vendor_email,
-                   (SELECT COUNT(*) FROM td_proposals tp WHERE tp.bid_id = vb.id) > 0 AS proposal_exists
+                   tp.id AS proposal_id, tp.status AS proposal_status,
+                   (tp.id IS NOT NULL) AS proposal_exists
             FROM snh6_swiftproject.vendor_bids vb
             LEFT JOIN vendor_bidding vbi ON vbi.id = vb.opportunity_id
             LEFT JOIN snh6_swiftproject.vendor_employee e ON e.id = vb.vendor_id
+            LEFT JOIN (
+                SELECT t1.*
+                FROM td_proposals t1
+                INNER JOIN (
+                    SELECT bid_id, MAX(id) AS max_id
+                    FROM td_proposals
+                    GROUP BY bid_id
+                ) t2 ON t1.id = t2.max_id
+            ) tp ON tp.bid_id = vb.id
             WHERE vb.status = 'shortlisted'
             ORDER BY vb.created_at DESC
             """
@@ -1113,6 +1404,26 @@ def accepted_bids():
     except Exception as e:
         bids = []
     return jsonify({"bids": bids})
+
+
+@bp.route("/proposals/td/<int:proposal_id>", methods=["GET"])
+@login_required
+def td_get_proposal(proposal_id: int):
+    """
+    GET /api/vendors/proposals/td/<proposal_id>
+    Fetch a single TD-created proposal from td_proposals (main DB).
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    try:
+        cur.execute("SELECT * FROM td_proposals WHERE id = %s", (proposal_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"proposal": None}), 404
+        proposal = {k: _serialize(v) for k, v in row.items()}
+        return jsonify({"proposal": proposal})
+    except Exception:
+        return jsonify({"proposal": None}), 500
 
 
 @bp.route("/proposals/td-create", methods=["POST"])
@@ -1160,6 +1471,7 @@ def td_create_proposal():
                 exclusions TEXT,
                 commercial_offer JSON,
                 payment_terms JSON,
+                reason TEXT,
                 status VARCHAR(50) DEFAULT 'Sent',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -1197,9 +1509,54 @@ def td_create_proposal():
         )
         
         cur.execute(sql, params)
+        proposal_id = cur.lastrowid
         conn.commit()
-        
-        return jsonify({"success": True, "message": "Proposal created and sent to vendor."})
+
+        # Notify vendor: proposal created/sent
+        try:
+            # ensure deep-link columns exist
+            try:
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_type' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_type VARCHAR(50) NULL")
+                cur.execute(
+                    "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'notifications' AND COLUMN_NAME = 'entity_id' LIMIT 1"
+                )
+                if cur.fetchone() is None:
+                    cur.execute("ALTER TABLE notifications ADD COLUMN entity_id INT NULL")
+            except Exception:
+                pass
+
+            # TD name
+            td_name = "Technical Director"
+            if getattr(g, "company_id", None) and getattr(g, "user_id", None):
+                cur.execute(
+                    "SELECT full_name FROM employee WHERE id = %s AND Company_id = %s",
+                    (g.user_id, g.company_id),
+                )
+                r = cur.fetchone() or {}
+                if r.get("full_name"):
+                    td_name = r["full_name"]
+
+            project_name = data.get("project_name") or "a project"
+            title = "New proposal received"
+            msg = f"A new proposal has been sent for \"{project_name}\" by {td_name}. Please respond within 2 days."
+
+            if getattr(g, "company_id", None):
+                cur.execute(
+                    """
+                    INSERT INTO notifications (user_id, project_id, title, message, type, entity_type, entity_id, is_read, created_at, Company_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    """,
+                    (vendor_id, None, title, msg, "proposal_sent", "proposal", proposal_id, g.company_id),
+                )
+                conn.commit()
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "message": "Proposal created and sent to vendor.", "proposal_id": proposal_id})
         
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -1511,6 +1868,65 @@ def get_vendor_profile():
     cur.execute("SELECT * FROM vendor_onboarding WHERE id=%s", (vendor_id,))
     profile = {k: _serialize(v) for k, v in (cur.fetchone() or {}).items()}
 
+    # Phone number should come from vendor_employee (snh6_swiftproject DB)
+    try:
+        conn = get_db()
+        ecur = conn.cursor(dictionary=True)
+        ecur.execute(
+            "SELECT phone_number FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (getattr(g, "user_id", None),),
+        )
+        erow = ecur.fetchone() or {}
+        phone = (erow.get("phone_number") or "").strip()
+        if phone:
+            profile["phone"] = phone
+            # Keep contact_mobile in sync for UIs that read it
+            profile["contact_mobile"] = profile.get("contact_mobile") or phone
+    except Exception:
+        pass
+
+    # Address should be combined from vendor_onboarding (new_swiftbim DB), supporting multiple locations
+    try:
+        company_name = (profile.get("company_name") or "").strip()
+        loc_rows = []
+        if company_name:
+            cur.execute(
+                """
+                SELECT *
+                FROM vendor_onboarding
+                WHERE company_name = %s
+                ORDER BY id
+                """,
+                (company_name,),
+            )
+            loc_rows = cur.fetchall() or []
+
+        def _fmt_location(r: dict) -> str:
+            parts = []
+            for key in ("address", "city", "state", "country"):
+                v = (r.get(key) or "").strip()
+                if v:
+                    parts.append(v)
+            return ", ".join(parts).strip(", ").strip()
+
+        locations = []
+        for r in (loc_rows or [profile]):
+            s = _fmt_location(r)
+            if s:
+                locations.append(s)
+
+        combined = ""
+        if len(locations) == 1:
+            combined = locations[0]
+        elif len(locations) > 1:
+            combined = "\n".join([f"{i + 1}. {loc}" for i, loc in enumerate(locations)])
+
+        if combined:
+            profile["address"] = combined
+            profile["address_locations"] = locations
+    except Exception:
+        pass
+
     # Portfolio projects (same as _fetch_vendor_full)
     cur.execute("SELECT * FROM vendor_portfolio WHERE vendor_id=%s ORDER BY id", (vendor_id,))
     profile["portfolio_projects"] = [{k: _serialize(v) for k, v in r.items()} for r in cur.fetchall()]
@@ -1598,6 +2014,27 @@ def update_vendor_profile():
     params.append(vendor_id)
     cur.execute(f"UPDATE vendor_onboarding SET {', '.join(sets)} WHERE id = %s", params)
     get_vendor_db().commit()
+
+    # If vendor updated contact_mobile (or phone), keep vendor_employee.phone_number in sync.
+    try:
+        new_phone = (data.get("contact_mobile") or data.get("phone") or "").strip()
+        if new_phone:
+            conn = get_db()
+            mcur = conn.cursor(dictionary=True)
+            mcur.execute(
+                "SELECT phone_number FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (getattr(g, "user_id", None),),
+            )
+            row = mcur.fetchone() or {}
+            current_phone = (row.get("phone_number") or "").strip()
+            if current_phone != new_phone:
+                mcur.execute(
+                    "UPDATE snh6_swiftproject.vendor_employee SET phone_number = %s WHERE id = %s",
+                    (new_phone, getattr(g, "user_id", None)),
+                )
+                conn.commit()
+    except Exception:
+        pass
     return jsonify({"success": True})
 
 
@@ -1807,12 +2244,14 @@ def upload_vendor_document():
     if not file:
         return jsonify({"success": False, "message": "No file provided"}), 400
 
-    upload_dir = current_app.config.get("UPLOAD_FOLDER", "static/uploads/vendor_docs")
+    upload_root = current_app.config.get("UPLOAD_FOLDER", "uploads")
+    upload_dir = os.path.join(upload_root, "vendor_docs")
     os.makedirs(upload_dir, exist_ok=True)
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = os.path.join(upload_dir, filename)
     file.save(filepath)
+    # Keep stored URLs compatible with existing frontend expectations
     file_url = f"/static/uploads/vendor_docs/{filename}"
 
     cur.execute(

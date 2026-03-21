@@ -10,7 +10,7 @@ bp = Blueprint("profile", __name__, url_prefix="/api/profile")
 @project_app_required
 def get_profile():
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
@@ -30,6 +30,53 @@ def get_profile():
     for k in ("dob", "doj"):
         if d.get(k) and hasattr(d[k], "isoformat"):
             d[k] = d[k].isoformat()
+
+    # For vendor users, fetch and combine address(es) from new_swiftbim.vendor_onboarding
+    if user_type == "vendor":
+        try:
+            vendor_company_id = d.get("Company_id")
+            onboarding_cur = conn.cursor(dictionary=True)
+            onboarding_cur.execute(
+                "SELECT company_name FROM new_swiftbim.vendor_onboarding WHERE id = %s LIMIT 1",
+                (vendor_company_id,),
+            )
+            base = onboarding_cur.fetchone() or {}
+            company_name = (base.get("company_name") or "").strip()
+
+            rows = []
+            if company_name:
+                onboarding_cur.execute(
+                    """
+                    SELECT *
+                    FROM new_swiftbim.vendor_onboarding
+                    WHERE company_name = %s
+                    ORDER BY id
+                    """,
+                    (company_name,),
+                )
+                rows = onboarding_cur.fetchall() or []
+
+            def _fmt_location(r: dict) -> str:
+                parts = []
+                for key in ("address", "city", "state", "country"):
+                    v = (r.get(key) or "").strip()
+                    if v:
+                        parts.append(v)
+                return ", ".join(parts).strip(", ").strip()
+
+            locations = []
+            for r in rows:
+                s = _fmt_location(r)
+                if s:
+                    locations.append(s)
+
+            if len(locations) == 1:
+                d["address"] = locations[0]
+            elif len(locations) > 1:
+                d["address"] = "\n".join([f"{i + 1}. {loc}" for i, loc in enumerate(locations)])
+        except Exception:
+            # Keep response compatible even if onboarding DB isn't reachable
+            pass
     return jsonify(d)
 
 
@@ -76,7 +123,7 @@ def change_password():
     if not current or not new_password:
         return jsonify({"success": False, "message": "current_password and new_password required"}), 400
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     user_type = getattr(g, "user_type", "employee")
     table = "vendor_employee" if user_type == "vendor" else "employee"
     

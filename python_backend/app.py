@@ -90,6 +90,25 @@ def create_app(config_class=Config):
     def uploaded_file(filename):
         return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
+    # Backward-compatible routes used by older frontend links / stored URLs
+    @app.route("/static/uploads/vendor_docs/<path:filename>")
+    def vendor_docs_static(filename):
+        upload_root = app.config["UPLOAD_FOLDER"]
+        # Prefer uploads/vendor_docs/<file>, fallback to uploads/<file>
+        docs_dir = os.path.join(upload_root, "vendor_docs")
+        if os.path.isfile(os.path.join(docs_dir, filename)):
+            return send_from_directory(docs_dir, filename)
+        return send_from_directory(upload_root, filename)
+
+    @app.route("/static/uploads/vendors/<path:filename>")
+    def vendors_static(filename):
+        upload_root = app.config["UPLOAD_FOLDER"]
+        # Prefer uploads/vendors/<file>, fallback to uploads/<file>
+        vendors_dir = os.path.join(upload_root, "vendors")
+        if os.path.isfile(os.path.join(vendors_dir, filename)):
+            return send_from_directory(vendors_dir, filename)
+        return send_from_directory(upload_root, filename)
+
     @app.route("/api/view_profile_picture/<int:emp_id>")
     def view_profile_picture(emp_id):
         from flask import current_app, jsonify, send_file

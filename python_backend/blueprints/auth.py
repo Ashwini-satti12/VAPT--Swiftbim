@@ -83,6 +83,28 @@ def login():
     if active_status not in ["active", "1"]:
         return jsonify({"success": False, "message": "Account is inactive."}), 403
 
+    # Keep vendor phone_number synced from vendor_onboarding.contact_mobile (new_swiftbim)
+    if user_type == "vendor":
+        try:
+            with conn.cursor(dictionary=True) as cur:
+                cur.execute(
+                    "SELECT contact_mobile FROM new_swiftbim.vendor_onboarding WHERE id = %s LIMIT 1",
+                    (company_id,),
+                )
+                vo = cur.fetchone() or {}
+                onboarding_phone = (vo.get("contact_mobile") or "").strip()
+                current_phone = (row.get("phone_number") or "").strip()
+                if onboarding_phone and onboarding_phone != current_phone:
+                    cur.execute(
+                        "UPDATE snh6_swiftproject.vendor_employee SET phone_number = %s WHERE id = %s",
+                        (onboarding_phone, user_id),
+                    )
+                    conn.commit()
+                    # Keep response consistent for any downstream use
+                    row["phone_number"] = onboarding_phone
+        except Exception:
+            pass
+
     # Update status to Online
     with conn.cursor() as cur:
         cur.execute("UPDATE employee SET status = 'Online' WHERE email = %s", (email,))
@@ -190,7 +212,7 @@ def logout():
     conn = get_db()
     user_type = getattr(g, "user_type", "employee")
     table = "vendor_employee" if user_type == "vendor" else "employee"
-    with conn.cursor() as cur:
+    with conn.cursor(dictionary=True) as cur:
         # Vendor employee uses 'status' (active/inactive), but maybe offline is not stored similarly. 
         # But we will update the relevant table if we track 'Offline' there.
         # Actually, vendor_employee status tracks 'active' vs 'inactive', so changing it to 'Offline' 
@@ -198,6 +220,82 @@ def logout():
         # employee uses 'active' for active/inactive, and 'status' for Online/Offline.
         if user_type == "employee":
             cur.execute(f"UPDATE {table} SET status = 'Offline' WHERE id = %s", (g.user_id,))
+            try:
+                conn.commit()
+            except Exception:
+                pass
+
+        # Attendance: when employee logs out, set time_out and compute total hours for today.
+        # (Vendor employees are in vendor_employee table and their 'status' column is used for active/inactive,
+        # so we avoid touching attendance for them here unless explicitly required later.)
+        if user_type == "employee":
+            try:
+                # attendance.employee_id stores email in this schema; use JWT email directly
+                email = (getattr(g, "user_email", "") or "").strip()
+                if email:
+                    today = datetime.now().strftime("%d-%m-%Y")
+                    now_time = datetime.now().strftime("%H:%M:%S")
+
+                    def _pick_time(raw):
+                        s = str(raw or "").strip()
+                        if not s:
+                            return ""
+                        # "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS" -> HH:MM:SS
+                        if " " in s:
+                            s = s.split(" ")[-1]
+                        if "T" in s:
+                            s = s.split("T")[-1]
+                        return s
+
+                    # Find the latest attendance row for today (prefer matching Company_id, but fall back if needed)
+                    cur.execute(
+                        "SELECT id, time_in FROM attendance WHERE employee_id = %s AND date = %s AND Company_id = %s ORDER BY id DESC LIMIT 1",
+                        (email, today, g.company_id),
+                    )
+                    arow = cur.fetchone() or {}
+                    att_id = arow.get("id")
+                    time_in = _pick_time(arow.get("time_in"))
+                    if not att_id:
+                        cur.execute(
+                            "SELECT id, time_in FROM attendance WHERE employee_id = %s AND date = %s ORDER BY id DESC LIMIT 1",
+                            (email, today),
+                        )
+                        arow = cur.fetchone() or {}
+                        att_id = arow.get("id")
+                        time_in = _pick_time(arow.get("time_in"))
+
+                    total_hms = None
+                    total_decimal = None
+                    if time_in:
+                        try:
+                            t_in = datetime.strptime(time_in, "%H:%M:%S")
+                            t_out = datetime.strptime(now_time, "%H:%M:%S")
+                            sec = int((t_out - t_in).total_seconds())
+                            if sec < 0:
+                                sec = 0
+                            h = sec // 3600
+                            m = (sec % 3600) // 60
+                            s = sec % 60
+                            total_hms = f"{h:02d}:{m:02d}:{s:02d}"
+                            total_decimal = round(sec / 3600.0, 2)
+                        except Exception:
+                            total_hms = None
+                            total_decimal = None
+
+                    if att_id:
+                        # Update row even if Company_id mismatch (some legacy rows may not match token company_id)
+                        # Uses existing field names only (no schema changes).
+                        cur.execute(
+                            "UPDATE attendance SET time_out = %s, num_hr = %s, total_hours = %s WHERE id = %s",
+                            (now_time, total_decimal, total_hms, att_id),
+                        )
+                        try:
+                            conn.commit()
+                        except Exception:
+                            pass
+            except Exception:
+                # Don't block logout on attendance update problems
+                pass
     return jsonify({"success": True, "message": "Logged out"})
 
 

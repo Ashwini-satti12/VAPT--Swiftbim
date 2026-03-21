@@ -73,6 +73,7 @@ export default function AddConsultantBL() {
     full_name: '',
     dob: '',
     phone_number: '',
+    country_code: '+91',
     email: '',
     password: '',
     type: '',
@@ -82,6 +83,25 @@ export default function AddConsultantBL() {
     address: '',
     profile_picture: null as File | null,
   });
+  const COUNTRY_CODES = ['+91', '+1', '+44', '+971', '+65', '+81'];
+
+  const getTodayInputDate = (): string => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // As requested: cannot select "from yesterday" => allow up to (today - 2 days)
+  const dobMaxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 2);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  })();
 
   useEffect(() => {
     api.get<{ roles?: string[] }>('/api/employees/roles').then(({ data }) => {
@@ -118,13 +138,34 @@ export default function AddConsultantBL() {
       setAddError('Name, email and password are required.');
       return;
     }
+
+    if (form.dob) {
+      if (form.dob > dobMaxDate) {
+        setAddError('Date of birth cannot be yesterday or later.');
+        return;
+      }
+    }
+
+    const phoneDigits = String(form.phone_number || '').replace(/\D/g, '');
+    if (!form.country_code) {
+      setAddError('Please select country code.');
+      return;
+    }
+    if (phoneDigits.length !== 12) {
+      setAddError('Phone number must be exactly 12 digits.');
+      return;
+    }
     setAddSubmitting(true);
 
     const formData = new FormData();
     formData.append('full_name', form.full_name.trim());
     formData.append('email', form.email.trim());
     formData.append('password', form.password);
-    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+    // Store phone as: <country_code><12 digits>
+    formData.append(
+      'phone_number',
+      `${form.country_code}${phoneDigits}`.replace(/\s+/g, ''),
+    );
     if (form.user_role) formData.append('user_role', form.user_role);
     if (form.address.trim()) formData.append('address', form.address.trim());
     if (form.dob) formData.append('dob', form.dob);
@@ -194,14 +235,37 @@ export default function AddConsultantBL() {
                 />
               </div>
               <div>
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
-                <input
-                  type="text"
-                  placeholder="Enter Phone Number"
-                  value={form.phone_number}
-                  onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                />
+                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                  Phone Number <span className="text-[#DD4342]">*</span>
+                </label>
+                <div className="flex items-end gap-3">
+                  <div className="flex-1">
+                    <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
+                    <CustomDropdown
+                      options={COUNTRY_CODES}
+                      value={form.country_code}
+                      onChange={(val) => setForm((f) => ({ ...f, country_code: val }))}
+                      placeholder="Select Code"
+                    />
+                  </div>
+                  <div className="flex-[2]">
+                    <input
+                      type="text"
+                      placeholder="Enter Phone Number"
+                      value={form.phone_number}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                        }))
+                      }
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                </div>
+                {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== 12 && (
+                  <p className="text-[12px] text-red-600 mt-2">Phone must be exactly 12 digits.</p>
+                )}
               </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
@@ -241,6 +305,7 @@ export default function AddConsultantBL() {
                   type="date"
                   value={form.dob}
                   onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                  max={dobMaxDate}
                   className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                 />
               </div>
