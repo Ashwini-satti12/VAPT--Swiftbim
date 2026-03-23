@@ -579,7 +579,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     <div className="w-66 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
       {/* Navigation Items Container */}
       <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-8 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path);
             const isNavigating = navigatingTo === item.path;

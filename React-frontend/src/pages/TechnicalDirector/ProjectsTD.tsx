@@ -14,10 +14,18 @@ import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
-  if (!name || name === "Nothing Selected") return undefined;
+  if (!name || name === "Nothing Selected" || name === "Other") return undefined;
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
   return emp ? emp.id : undefined;
+};
+
+const namesToIds = (names: string[], employeesList: Employee[]) => {
+  if (!Array.isArray(names)) return undefined;
+  return names
+    .map(name => nameToId(name, employeesList))
+    .filter(id => id !== undefined)
+    .join(',');
 };
 
 function FormSelect({
@@ -25,12 +33,16 @@ function FormSelect({
   options,
   value,
   onChange,
+  isMulti = false,
+  showTick = true,
 }: {
   label: string;
   placeholder: string;
   options: string[];
-  value: string;
-  onChange: (v: string) => void;
+  value: string | string[];
+  onChange: (v: any) => void;
+  isMulti?: boolean;
+  showTick?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -44,6 +56,37 @@ function FormSelect({
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
+  const handleSelect = (opt: string) => {
+    if (isMulti) {
+      const currentValues = Array.isArray(value) ? value : [];
+      if (currentValues.includes(opt)) {
+        onChange(currentValues.filter((v) => v !== opt));
+      } else {
+        onChange([...currentValues, opt]);
+      }
+    } else {
+      onChange(opt);
+      setOpen(false);
+    }
+  };
+
+  const getDisplayValue = () => {
+    if (isMulti) {
+      const vals = Array.isArray(value) ? value : [];
+      return vals.length > 0 ? vals.join(", ") : placeholder;
+    }
+    return (value as string) || placeholder;
+  };
+
+  const isSelected = (opt: string) => {
+    if (isMulti) {
+      return Array.isArray(value) && value.includes(opt);
+    }
+    return value === opt;
+  };
+
+  const dropdownOptions = options.includes("Other") ? options : [...options, "Other"];
+
   return (
     <div className="relative w-full" ref={ref}>
       <button
@@ -51,10 +94,8 @@ function FormSelect({
         onClick={() => setOpen((o) => !o)}
         className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none text-[14px] font-normal border-1 border-transparent focus:border-[#AEACAC52] ${open ? "!border-[#AEACAC52]" : ""}`}
       >
-        <span
-          className={value ? "text-[#353535]" : "text-[#8B8B8B]"}
-        >
-          {value || placeholder}
+        <span className={getDisplayValue() !== placeholder ? "text-[#353535]" : "text-[#8B8B8B] font-Gantari"}>
+          {getDisplayValue()}
         </span>
         <svg
           className={`w-4 h-4 text-[#8B8B8B] transition-transform ${open ? "rotate-180" : ""}`}
@@ -62,28 +103,25 @@ function FormSelect({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
-          {options.map((opt) => (
+          {dropdownOptions.map((opt) => (
             <button
               key={opt}
               type="button"
-              onClick={() => {
-                onChange(opt);
-                setOpen(false);
-              }}
-              className={`w-full text-left px-4 py-2 text-[14px] transition-colors  
-                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+              onClick={() => handleSelect(opt)}
+              className={`w-full text-left px-4 py-2 text-[14px] transition-colors flex items-center justify-between
+                ${isSelected(opt) ? "text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
             >
-              {opt}
+              <span className="truncate">{opt}</span>
+              {isSelected(opt) && showTick && (
+                <svg className="w-4 h-4 text-[#00A300]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
             </button>
           ))}
         </div>
@@ -155,14 +193,26 @@ export default function ProjectsTD() {
   const [createBudget, setCreateBudget] = useState("");
   const [createModuleName, setCreateModuleName] = useState("");
   const [createClientName, setCreateClientName] = useState("");
-  const [createProjectManager, setCreateProjectManager] = useState("");
+  const [showOtherClient, setShowOtherClient] = useState(false);
+  const [otherClientValue, setOtherClientValue] = useState("");
+
+  const [createProjectManager, setCreateProjectManager] = useState<string[]>([]);
+  const [showOtherPM, setShowOtherPM] = useState(false);
+  const [otherPMValue, setOtherPMValue] = useState("");
+
   const [createStartDate, setCreateStartDate] = useState("");
   const [createEndDate, setCreateEndDate] = useState("");
   const [createTotalHours, setCreateTotalHours] = useState("");
   const [createPerDay, setCreatePerDay] = useState("");
   const [createDepartment, setCreateDepartment] = useState("");
-  const [createBIMLead, setCreateBIMLead] = useState("");
-  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
+
+  const [createBIMLead, setCreateBIMLead] = useState<string[]>([]);
+  const [showOtherBIMLead, setShowOtherBIMLead] = useState(false);
+  const [otherBIMLeadValue, setOtherBIMLeadValue] = useState("");
+
+  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>([]);
+  const [showOtherBIMCoord, setShowOtherBIMCoord] = useState(false);
+  const [otherBIMCoordValue, setOtherBIMCoordValue] = useState("");
   const [createMember, setCreateMember] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [createResources, setCreateResources] = useState("");
@@ -1352,7 +1402,7 @@ export default function ProjectsTD() {
                                         clientsList.find((c) => String(c.id) === String(p.client_name))?.full_name ??
                                         p.client_name ?? ""
                                       );
-                                      setCreateProjectManager(p.project_manager ?? "");
+                                      setCreateProjectManager(p.project_manager ? p.project_manager.split(',').map(s => s.trim()) : []);
                                       setCreateStartDate(p.start_date ?? "");
                                       setCreateEndDate(p.end_date ?? "");
                                       setCreateTotalHours(p.total_hours ?? "");
@@ -1369,8 +1419,8 @@ export default function ProjectsTD() {
                                           : p.bidding_end_date
                                         : "";
                                       setCreateBiddingEndDate(biddingDate);
-                                      setCreateBIMLead(p.bim_lead ?? "");
-                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ?? "");
+                                      setCreateBIMLead(p.bim_lead ? p.bim_lead.split(',').map(s => s.trim()) : []);
+                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ? p.bim_co_ordinator.split(',').map(s => s.trim()) : []);
                                       setCreateMember(p.member ?? "");
                                       setCreateResources(p.resources ?? "");
                                       setCreateRequiredResources(p.required_resources ?? "");
@@ -1555,15 +1605,16 @@ export default function ProjectsTD() {
                         budget: createBudget || undefined,
                         modules: createModuleName || undefined,
                         client_id: (() => {
+                          if (showOtherClient && otherClientValue) return otherClientValue;
                           if (!createClientName) return undefined;
                           const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
                           if (byName) return byName.id;
                           if (/^\d+$/.test(createClientName)) return Number(createClientName);
                           return undefined;
                         })(),
-                        project_manager_id: nameToId(createProjectManager, projectManagers),
-                        lead_id: nameToId(createBIMLead, bimLeads),
-                        bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
+                        project_manager_id: namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers),
+                        lead_id: namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads),
+                        bim_coordinator_id: namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators),
                         members: selectedMemberIds.join(',') || createMember || undefined,
                         department: createDepartment || undefined,
                         due_date: createEndDate || undefined,
@@ -1584,7 +1635,11 @@ export default function ProjectsTD() {
                         setCreateBudget("");
                         setCreateModuleName("");
                         setCreateClientName("");
-                        setCreateProjectManager("");
+                        setShowOtherClient(false);
+                        setOtherClientValue("");
+                        setCreateProjectManager([]);
+                        setShowOtherPM(false);
+                        setOtherPMValue("");
                         setCreateStartDate("");
                         setCreateEndDate("");
                         setCreateTotalHours("");
@@ -1592,8 +1647,12 @@ export default function ProjectsTD() {
                         setCreateDepartment("");
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
-                        setCreateBIMLead("");
-                        setCreateBIMCoOrdinator("");
+                        setCreateBIMLead([]);
+                        setShowOtherBIMLead(false);
+                        setOtherBIMLeadValue("");
+                        setCreateBIMCoOrdinator([]);
+                        setShowOtherBIMCoord(false);
+                        setOtherBIMCoordValue("");
                         setCreateMember("");
                         setSelectedMemberIds([]);
                         setCreatePriority("");
@@ -1667,8 +1726,21 @@ export default function ProjectsTD() {
                       placeholder="Nothing selected"
                       options={clientsList.map((c) => (c.fullName ?? c.full_name ?? "")).filter(Boolean) as string[]}
                       value={createClientName}
-                      onChange={setCreateClientName}
+                      showTick={false}
+                      onChange={(v) => {
+                        setCreateClientName(v);
+                        setShowOtherClient(v === "Other");
+                      }}
                     />
+                    {showOtherClient && (
+                      <input
+                        type="text"
+                        value={otherClientValue}
+                        onChange={(e) => setOtherClientValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Client Name"
+                      />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
@@ -1679,8 +1751,21 @@ export default function ProjectsTD() {
                       placeholder="Nothing Selected"
                       options={projectManagers.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createProjectManager}
-                      onChange={setCreateProjectManager}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateProjectManager(v);
+                        setShowOtherPM(v.includes("Other"));
+                      }}
                     />
+                    {showOtherPM && (
+                      <input
+                        type="text"
+                        value={otherPMValue}
+                        onChange={(e) => setOtherPMValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Manager Name"
+                      />
+                    )}
                   </div>
 
                   {/* BIM Lead & BIM Coordinator */}
@@ -1693,8 +1778,21 @@ export default function ProjectsTD() {
                       placeholder="Nothing Selected"
                       options={bimLeads.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createBIMLead}
-                      onChange={setCreateBIMLead}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMLead(v);
+                        setShowOtherBIMLead(v.includes("Other"));
+                      }}
                     />
+                    {showOtherBIMLead && (
+                      <input
+                        type="text"
+                        value={otherBIMLeadValue}
+                        onChange={(e) => setOtherBIMLeadValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Lead Name"
+                      />
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
@@ -1705,8 +1803,21 @@ export default function ProjectsTD() {
                       placeholder="Nothing Selected"
                       options={bimCoordinators.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
                       value={createBIMCoOrdinator}
-                      onChange={setCreateBIMCoOrdinator}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMCoOrdinator(v);
+                        setShowOtherBIMCoord(v.includes("Other"));
+                      }}
                     />
+                    {showOtherBIMCoord && (
+                      <input
+                        type="text"
+                        value={otherBIMCoordValue}
+                        onChange={(e) => setOtherBIMCoordValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Coordinator Name"
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="flex justify-center gap-4 pt-4 ">
@@ -2018,23 +2129,24 @@ export default function ProjectsTD() {
                     if (outsourceNum > clientNum) return;
                   }
                   const id = selectedProjectForEdit.id;
-                  setIsEditSubmitting(true);
-                  api
+                  setIsEditSubmitting(true);                   api
                     .patch(`/api/projects/${id}`, {
                       project_name: createName.trim(),
                       budget: createBudget || undefined,
                       modules: createModuleName || undefined,
                       client_id: (() => {
+                        if (showOtherClient && otherClientValue) return otherClientValue;
                         if (!createClientName) return undefined;
                         const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
                         if (byName) return byName.id;
                         if (/^\d+$/.test(createClientName)) return Number(createClientName);
                         return undefined;
                       })(),
-                      project_manager_id: nameToId(createProjectManager, projectManagers),
-                      lead_id: nameToId(createBIMLead, bimLeads),
-                      bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
+                      project_manager_id: namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers),
+                      lead_id: namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads),
+                      bim_coordinator_id: namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators),
                       members: createMember || undefined,
+
                       department: createDepartment || undefined,
                       ...(isEditSourceOutsource
                         ? {
@@ -2188,169 +2300,76 @@ export default function ProjectsTD() {
                         <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
                           Select Project Manager
                         </label>
-                        <div className="relative dropdown-container">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditDropdownOpen((o) => (o === "pm" ? null : "pm"))
-                            }
-                            className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "pm" ? "!border-[#AEACAC52]" : ""}`}
-                          >
-                            <span className={getEmployeeName(createProjectManager) ? "text-gray-700" : "text-gray-400"}>
-                              {getEmployeeName(createProjectManager) || "Select Project Manager"}
-                            </span>
-                            <svg
-                              className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {editDropdownOpen === "pm" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCreateProjectManager("");
-                                  setEditDropdownOpen(null);
-                                }}
-                                className="block w-full text-left px-5 py-2.5 text-[14px] font-Gantari text-[#353535] hover:bg-[#F4F5F7]"
-                              >
-                                Select Project Manager
-                              </button>
-                              {projectManagers.map((pm) => (
-                                <button
-                                  key={pm.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCreateProjectManager(String(pm.id));
-                                    setEditDropdownOpen(null);
-                                  }}
-                                  className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createProjectManager === String(pm.id)
-                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                    : "text-gray-700"
-                                    }`}
-                                >
-                                  {pm.full_name || `Employee ${pm.id}`}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <FormSelect
+                          label="Select Project Manager"
+                          placeholder="Select Project Manager"
+                          options={projectManagers.map((pm) => pm.full_name ?? "").filter(Boolean)}
+                          value={createProjectManager}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateProjectManager(v);
+                            setShowOtherPM(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherPM && (
+                          <input
+                            type="text"
+                            value={otherPMValue}
+                            onChange={(e) => setOtherPMValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter Project Manager Name"
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                           Select BIM Lead
                         </label>
-                        <div className="relative dropdown-container">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditDropdownOpen((o) => (o === "bimLead" ? null : "bimLead"))
-                            }
-                            className={`w-full flex items-center justify-between px-5 py-3.5 text-[14px] bg-[#F4F5F7] border-2 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "bimLead" ? "!border-[#AEACAC52]" : ""}`}
-                          >
-                            <span className={getEmployeeName(createBIMLead) ? "text-gray-700" : "text-gray-400"}>
-                              {getEmployeeName(createBIMLead) || "Select BIM Lead"}
-                            </span>
-                            <svg
-                              className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {editDropdownOpen === "bimLead" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCreateBIMLead("");
-                                  setEditDropdownOpen(null);
-                                }}
-                                className="block w-full text-left px-5 py-2.5 text-[14px] font-Gantari text-gray-700 hover:bg-[#F4F5F7]"
-                              >
-                                Select BIM Lead
-                              </button>
-                              {bimLeads.map((lead) => (
-                                <button
-                                  key={lead.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCreateBIMLead(String(lead.id));
-                                    setEditDropdownOpen(null);
-                                  }}
-                                  className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createBIMLead === String(lead.id)
-                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                    : "text-gray-700"
-                                    }`}
-                                >
-                                  {lead.full_name || `Employee ${lead.id}`}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <FormSelect
+                          label="Select BIM Lead"
+                          placeholder="Select BIM Lead"
+                          options={bimLeads.map((lead) => lead.full_name ?? "").filter(Boolean)}
+                          value={createBIMLead}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateBIMLead(v);
+                            setShowOtherBIMLead(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherBIMLead && (
+                          <input
+                            type="text"
+                            value={otherBIMLeadValue}
+                            onChange={(e) => setOtherBIMLeadValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter BIM Lead Name"
+                          />
+                        )}
                       </div>
                       <div className="space-y-2">
                         <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
                           Select BIM Coordinator
                         </label>
-                        <div className="relative dropdown-container">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditDropdownOpen((o) => (o === "bimCoord" ? null : "bimCoord"))
-                            }
-                            className={`w-full flex items-center justify-between px-5 py-3.5 text-[14px] bg-[#F4F5F7] border-2 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "bimCoord" ? "!border-[#AEACAC52]" : ""}`}
-                          >
-                            <span className={getEmployeeName(createBIMCoOrdinator) ? "text-gray-700" : "text-gray-400"}>
-                              {getEmployeeName(createBIMCoOrdinator) || "Select BIM Coordinator"}
-                            </span>
-                            <svg
-                              className={`w-5 h-5 text-gray-400 shrink-0 transition-transform ${editDropdownOpen === "bimCoord" ? "rotate-180" : ""}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </button>
-                          {editDropdownOpen === "bimCoord" && (
-                            <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCreateBIMCoOrdinator("");
-                                  setEditDropdownOpen(null);
-                                }}
-                                className="block w-full text-left px-5 py-2.5 text-[14px] font-Gantari text-gray-700 hover:bg-[#F4F5F7]"
-                              >
-                                Select BIM Coordinator
-                              </button>
-                              {bimCoordinators.map((coord) => (
-                                <button
-                                  key={coord.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setCreateBIMCoOrdinator(String(coord.id));
-                                    setEditDropdownOpen(null);
-                                  }}
-                                  className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createBIMCoOrdinator === String(coord.id)
-                                    ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                    : "text-gray-700"
-                                    }`}
-                                >
-                                  {coord.full_name || `Employee ${coord.id}`}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        <FormSelect
+                          label="Select BIM Coordinator"
+                          placeholder="Select BIM Coordinator"
+                          options={bimCoordinators.map((coord) => coord.full_name ?? "").filter(Boolean)}
+                          value={createBIMCoOrdinator}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateBIMCoOrdinator(v);
+                            setShowOtherBIMCoord(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherBIMCoord && (
+                          <input
+                            type="text"
+                            value={otherBIMCoordValue}
+                            onChange={(e) => setOtherBIMCoordValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter BIM Coordinator Name"
+                          />
+                        )}
                       </div>
                     </>
                   )}
