@@ -317,7 +317,7 @@ export default function ProjectsBC() {
     bim_co_ordinator: r.bim_coordinator_id,
     bim_coordinator_name: r.bim_coordinator_name,
     start_date: r.start_date,
-    end_date: r.due_date,
+    end_date: r.end_date ?? r.due_date,
     total_hours: r.totalhours,
     per_day: r.perday,
     department: r.department,

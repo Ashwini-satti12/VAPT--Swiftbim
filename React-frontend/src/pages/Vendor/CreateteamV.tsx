@@ -37,12 +37,14 @@ function TeamCard({
     onEdit,
     onDelete,
     onViewDetails,
+    projects,
 }: {
     team: Team;
     getEmp: (id: number | string) => Employee | undefined;
     onEdit: (team: Team) => void;
     onDelete: (id: number) => void;
     onViewDetails: (team: Team) => void;
+    projects: Project[];
 }) {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -113,6 +115,20 @@ function TeamCard({
                     )}
                 </div>
             </div>
+
+            {/* Project */}
+            {(team.project_name || team.project_id != null) && (
+                <div className="flex flex-col mb-4">
+                    <span className="text-[13px] text-[#64748B] mb-1 font-medium">Project</span>
+                    <span className="text-[14px] font-semibold text-[#334155] truncate">
+                        {team.project_name ||
+                            (team.project_id != null
+                                ? projects.find((p) => p.id === Number(team.project_id))
+                                      ?.project_name ?? `Project #${team.project_id}`
+                                : "—")}
+                    </span>
+                </div>
+            )}
 
             {/* Team Leader */}
             <div className="flex flex-col mb-5">
@@ -224,12 +240,16 @@ export default function CreateteamV() {
         if (!form.leader) return;
         setSubmitting(true);
 
+        const selectedProject = projects.find(
+            (p) => String(p.id) === String(form.project_id),
+        );
         api.post('/api/vendors/vendor-teams', {
             team_name: form.team_name,
             leader: form.leader,
             employee: form.employee.join(','),
             project_lead: form.project_lead || undefined,
             project_id: form.project_id ? Number(form.project_id) : undefined,
+            project_name: selectedProject?.project_name ?? '',
         })
             .then(({ data }) => {
                 if (data.success) {
@@ -265,11 +285,15 @@ export default function CreateteamV() {
     };
 
     const handleEditClick = (team: Team) => {
+        const pid = team.project_id as number | string | undefined;
         const inferredProjectId =
-            team.project_id != null
-                ? String(team.project_id)
+            pid != null && pid !== ''
+                ? String(pid)
                 : team.project_name
-                    ? String(projects.find(p => p.project_name === team.project_name)?.id ?? '')
+                    ? String(
+                          projects.find((p) => p.project_name === team.project_name)
+                              ?.id ?? '',
+                      )
                     : '';
         setSelectedTeam(team);
         setEditForm({
@@ -287,12 +311,18 @@ export default function CreateteamV() {
         if (!selectedTeam || !editForm.leader) return;
         setSubmitting(true);
 
+        const selectedProject = projects.find(
+            (p) => String(p.id) === String(editForm.project_id),
+        );
         api.patch(`/api/vendors/vendor-teams/${selectedTeam.team_id}`, {
             team_name: editForm.team_name,
             leader: editForm.leader,
             employee: editForm.employee.join(','),
-            project_lead: editForm.project_lead || 0,
+            project_lead: editForm.project_lead
+                ? Number(editForm.project_lead)
+                : undefined,
             project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
+            project_name: selectedProject?.project_name ?? '',
         })
             .then(({ data }) => {
                 if (data.success) {
@@ -355,6 +385,7 @@ export default function CreateteamV() {
                         <TeamCard
                             key={team.team_id}
                             team={team}
+                            projects={projects}
                             getEmp={getEmp}
                             onEdit={handleEditClick}
                             onDelete={handleDelete}

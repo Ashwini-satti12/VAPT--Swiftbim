@@ -349,7 +349,12 @@ export default function ProjectsBL() {
         ? String(r.project_manager_name)
         : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
-    end_date: r.due_date != null ? String(r.due_date) : undefined,
+    end_date:
+      r.end_date != null
+        ? String(r.end_date)
+        : r.due_date != null
+          ? String(r.due_date)
+          : undefined,
     total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
     per_day: r.perday != null ? String(r.perday) : undefined,
     department:

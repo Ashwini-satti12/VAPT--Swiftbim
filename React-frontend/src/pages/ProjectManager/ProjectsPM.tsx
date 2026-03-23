@@ -194,8 +194,37 @@ export default function ProjectsPM() {
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
   const [clientsList, setClientsList] = useState<{ id: number; full_name: string }[]>([]);
-  const priorityOptions = ['High', 'Normal'];
+  const priorityOptions = ['High', 'Normal', 'Low'];
+  const getPriorityOptions = (selectedPriority: string): string[] => {
+    if (!selectedPriority) return priorityOptions;
+    return priorityOptions.filter((priority) => priority !== selectedPriority);
+  };
 
+  const getProjectDurationDays = (start: string, end: string): number | null => {
+    if (!start || !end) return null;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return null;
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const diffDays = (diffMs / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays > 0 ? diffDays : null;
+  };
+
+  const calculateTotalHours = (perDay: string, start: string, end: string): string => {
+    const perDayNum = Number(perDay);
+    if (Number.isNaN(perDayNum) || perDayNum <= 0) return '';
+    const durationDays = getProjectDurationDays(start, end);
+    if (!durationDays) return '';
+    return (perDayNum * durationDays).toFixed(2);
+  };
+
+  useEffect(() => {
+    const computedTotal = calculateTotalHours(createPerDay, createStartDate, createEndDate);
+    if (computedTotal) {
+      setCreateTotalHours(computedTotal);
+    }
+  }, [createPerDay, createStartDate, createEndDate]);
+  const projectDocumentUrl = "document.pdf";
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
@@ -359,7 +388,12 @@ export default function ProjectsPM() {
     project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
     project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
-    end_date: r.due_date != null ? String(r.due_date) : undefined,
+    end_date:
+      r.end_date != null
+        ? String(r.end_date)
+        : r.due_date != null
+          ? String(r.due_date)
+          : undefined,
     total_hours: r.totalhours != null ? String(r.totalhours) : undefined,
     per_day: r.perday != null ? String(r.perday) : undefined,
     department: r.department_name != null ? String(r.department_name) : undefined,
@@ -713,6 +747,38 @@ export default function ProjectsPM() {
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
                   </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
+                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <div className="flex items-center gap-3">
+                      {projectDocumentUrl ? (
+                        <>
+                          <span
+                            onClick={() => window.open(projectDocumentUrl, "_blank")}
+                            className="cursor-pointer text-md font-Gantari font-medium text-blue-600 hover:underline"
+                          >
+                            Document.pdf
+                          </span>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement("a");
+                              link.href = projectDocumentUrl;
+                              link.download = "Document.pdf";
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                          >
+                            ⬇️
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          No Document Available
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
@@ -733,22 +799,15 @@ export default function ProjectsPM() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-md font-Gantari font-medium text-[#666666]">No Document Available</span>
-                    </div>
-                  </div>
-                  {/* <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resourcesg</span>
+                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
-                  </div> */}
+                  </div>
                 </div>
               </div>
             </div>
@@ -983,7 +1042,7 @@ export default function ProjectsPM() {
                           client_name: r.client_name,
                           project_manager: r.project_manager_name,
                           start_date: r.start_date,
-                          end_date: r.due_date,
+                          end_date: r.end_date ?? r.due_date,
                           total_hours: r.totalhours,
                           per_day: r.perday,
                           department: r.department_name,
@@ -1188,7 +1247,10 @@ export default function ProjectsPM() {
                   <input
                     type="text" required
                     value={createTotalHours}
-                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
@@ -1202,7 +1264,10 @@ export default function ProjectsPM() {
                   <input
                     type="text" required
                     value={createPerDay}
-                    onChange={(e) => setCreatePerDay(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreatePerDay(value);
+                    }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
@@ -1332,7 +1397,7 @@ export default function ProjectsPM() {
                   </label>
                   <FormSelect
                     label="Priority" placeholder="Select Priority"
-                    options={priorityOptions} value={createPriority}
+                    options={getPriorityOptions(createPriority)} value={createPriority}
                     onChange={setCreatePriority}
                   />
                 </div>
@@ -1549,7 +1614,7 @@ export default function ProjectsPM() {
                             client_name: r.client_name,
                             project_manager: r.project_manager_name,
                             start_date: r.start_date,
-                            end_date: r.due_date,
+                            end_date: r.end_date ?? r.due_date,
                             total_hours: r.totalhours,
                             per_day: r.perday,
                             department: r.department_name,
@@ -1736,7 +1801,10 @@ export default function ProjectsPM() {
                   <input
                     type="text" required
                     value={createTotalHours}
-                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
@@ -1750,7 +1818,10 @@ export default function ProjectsPM() {
                   <input
                     type="text" required
                     value={createPerDay}
-                    onChange={(e) => setCreatePerDay(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreatePerDay(value);
+                    }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
@@ -1883,7 +1954,7 @@ export default function ProjectsPM() {
                   </label>
                   <FormSelect
                     label="Priority" placeholder="Select Priority"
-                    options={priorityOptions} value={createPriority}
+                    options={getPriorityOptions(createPriority)} value={createPriority}
                     onChange={(v) => { setCreatePriority(v); setEditPriority(v); }}
                   />
                 </div>

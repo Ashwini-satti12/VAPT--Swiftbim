@@ -248,6 +248,7 @@ export default function ConsultantTD() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState('All');
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
@@ -679,6 +680,19 @@ export default function ConsultantTD() {
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                {viewMode === 'table' && (
+                  <CustomDropdown
+                    options={['50', '100']}
+                    value={`Show: ${itemsPerPage}`}
+                    onChange={(val) => {
+                      setItemsPerPage(parseInt(val, 10));
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Show"
+                    className="flex-1 sm:min-w-[120px]"
+                    styleType="header"
+                  />
+                )}
 
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
@@ -880,6 +894,7 @@ export default function ConsultantTD() {
                         <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                           <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                             {String(serialNumber).padStart(2, '0')}
+                            {String(serialNumber).padStart(2, '0')}
                           </td>
                           <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
                             {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
@@ -967,7 +982,57 @@ export default function ConsultantTD() {
         )}
       </div>
 
+      {/* Pagination Bottom Bar */}
+      {viewMode === 'table' && (
+        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
+          <div className="flex justify-center sm:justify-end sm:pr-8">
+            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
+              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
+              >
+                <FiChevronDown className="w-5 h-5 rotate-90" />
+                Prev
+              </button>
 
+              <div className="flex items-center gap-1.5 px-2">
+                {(() => {
+                  const maxVisible = 4;
+                  let start = Math.max(1, currentPage - 1);
+                  let end = Math.min(totalPages, start + maxVisible - 1);
+                  if (end - start + 1 < maxVisible) {
+                    start = Math.max(1, end - maxVisible + 1);
+                  }
+                  const pages = [];
+                  for (let i = start; i <= end; i++) pages.push(i);
+
+                  return pages.map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
+                    >
+                      {(page - 1) * itemsPerPage}-{Math.min(page * itemsPerPage, filteredList.length)}
+                    </button>
+                  ));
+                })()}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
+              >
+                Next
+                <FiChevronDown className="w-5 h-5 -rotate-90" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
         </>
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
@@ -13,18 +13,26 @@ interface Task {
   due_date?: string;
   project_name?: string;
   projectid?: number;
+  project_id?: number;
   start_date?: string;
   progress?: number;
   module?: string;
+  modules?: string;
+  modules_name?: string;
+  category?: string;
   type?: string;
   start_time?: string;
   due_time?: string;
+  end_time?: string;
   assign_to?: string;
+  assigned_to?: number;
   description?: string;
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
   Approval?: string;
+  /** Comma-separated filenames under uploads/task/ */
+  outputfilepath?: string;
 }
 
 interface Employee {
@@ -33,12 +41,46 @@ interface Employee {
 }
 
 function formatDateDDMMYYYY(d?: string): string {
-  if (!d) return "dd/mm/yyyy";
-  const date = new Date(d);
+  if (!d) return "—";
+  const s = String(d).trim();
+  let date: Date;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y, mo, day] = s.slice(0, 10).split("-").map(Number);
+    date = new Date(y, mo - 1, day);
+  } else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(s)) {
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) date = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    else date = new Date(s);
+  } else {
+    date = new Date(s);
+  }
+  if (Number.isNaN(date.getTime())) return "—";
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
+}
+
+function formatTimeDisplay(t?: string): string {
+  if (!t) return "—";
+  const s = String(t).trim();
+  const m = s.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+  return `${m[1].padStart(2, "0")}:${m[2]}`;
+}
+
+function getApiBase(): string {
+  return (import.meta.env.VITE_API_URL || "http://localhost:5000/").replace(
+    /\/$/,
+    "",
+  );
+}
+
+function taskOutputFileUrl(storedName: string): string {
+  const name = storedName.trim();
+  if (!name) return "";
+  if (name.startsWith("http")) return name;
+  return `${getApiBase()}/uploads/task/${encodeURIComponent(name)}`;
 }
 
 // function formatTimeAMPM(t?: string): string {
@@ -105,12 +147,14 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 export default function MytaskViewV() {
   const location = useLocation();
   const state = location.state as { task?: Task; from?: string } | null;
-  const task = state?.task;
+  const initialTask = state?.task;
   const fromTeamTask = state?.from === "teamtask";
   const backToUrl = fromTeamTask ? "/v/team" : "/v/mytasks";
 
+  const [task, setTask] = useState<Task | undefined>(initialTask);
+
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-    task ? normalizeStatus(task.status, task.Approval) : "todo",
+    initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
   );
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
@@ -124,6 +168,13 @@ export default function MytaskViewV() {
   const [vendorResourceProfiles, setVendorResourceProfiles] = useState<
     Employee[]
   >([]);
+
+  const submittedOutputFiles = useMemo(() => {
+    return (task?.outputfilepath || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [task?.outputfilepath]);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -181,6 +232,18 @@ export default function MytaskViewV() {
       });
   }, []);
 
+  const refreshTaskFromApi = () => {
+    if (!task?.id) return;
+    const params = fromTeamTask ? { condition: "1" } : {};
+    api
+      .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
+      .then((res) => {
+        const found = (res.data.tasks ?? []).find((t) => t.id === task.id);
+        if (found) setTask(found);
+      })
+      .catch(() => {});
+  };
+
   const handleImageSubmit = async () => {
     if (!task || !selectedImage || submittingWork) return;
     setSubmittingWork(true);
@@ -188,11 +251,15 @@ export default function MytaskViewV() {
     formData.append("image", selectedImage);
 
     try {
-      await api.post(`/api/tasks/${task.id}/output-files`, formData);
+      await api.post(
+        `/api/vendors/vendor-tasks/${task.id}/output-files`,
+        formData,
+      );
       toast.success("Work submitted successfully");
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
+      refreshTaskFromApi();
     } catch (error) {
       console.error("Error submitting work:", error);
       toast.error("Failed to submit work");
@@ -212,6 +279,11 @@ export default function MytaskViewV() {
     const next = normalizeStatus(task.status, task.Approval);
     setStatusDisplay(next);
   }, [task]);
+
+  // Refresh task from API so dates, category, times, uploader, and output files match the server
+  useEffect(() => {
+    refreshTaskFromApi();
+  }, [refreshTaskFromApi]);
 
   useEffect(() => {
     if (!statusDropdownOpen) return;
@@ -349,6 +421,7 @@ export default function MytaskViewV() {
                 {String(
                   taskRecord.modules_name ??
                     task.module ??
+                    task.modules ??
                     taskRecord.modules ??
                     "—",
                 )}
@@ -358,7 +431,13 @@ export default function MytaskViewV() {
               <span className="text-black shrink-0 w-28">Category</span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
-                {String(task.type ?? taskRecord.category ?? "—")}
+                {String(
+                  task.type ??
+                    task.category ??
+                    taskRecord.category ??
+                    taskRecord.type ??
+                    "—",
+                )}
               </span>
             </div>
             <div className="flex gap-2">
@@ -381,7 +460,14 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {task.start_date
                   ? formatDateDDMMYYYY(task.start_date)
-                  : "dd/mm/yyyy"}
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-black shrink-0 w-28">Start Time</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">
+                {formatTimeDisplay(task.start_time)}
               </span>
             </div>
             {/* <div className="flex gap-2">
@@ -399,7 +485,14 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {task.due_date
                   ? formatDateDDMMYYYY(task.due_date)
-                  : "dd/mm/yyyy"}
+                  : "—"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-black shrink-0 w-28">End Time</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">
+                {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
             {/* <div className="flex gap-2">
@@ -481,13 +574,49 @@ export default function MytaskViewV() {
                 {submittingWork ? "Submitting..." : "Submit Image"}
               </button>
             </div>
+            {submittedOutputFiles.length > 0 && (
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <p className="text-xs font-semibold text-black mb-2">
+                  Submitted images (saved)
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {submittedOutputFiles.map((fname) => {
+                    const src = taskOutputFileUrl(fname);
+                    return (
+                      <a
+                        key={fname}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block rounded border border-slate-200 overflow-hidden bg-white max-w-[140px]"
+                      >
+                        <img
+                          src={src}
+                          alt={fname}
+                          className="max-h-28 w-full object-contain"
+                          loading="lazy"
+                        />
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
-          <h4 className=" text-black text-md mb-2">Task Description</h4>
-          <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-            {task.description || "Event (Consultant Partnership)..."}
+        <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6 space-y-4">
+          <div>
+            <h4 className="text-black text-md mb-2">Task Description</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+              {task.description?.trim() ? task.description : "—"}
+            </div>
+          </div>
+          <div>
+            <h4 className="text-black text-md mb-2">Checklist / Reference</h4>
+            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+              {task.checklist?.trim() ? task.checklist : "—"}
+            </div>
           </div>
         </div>
       </div>
