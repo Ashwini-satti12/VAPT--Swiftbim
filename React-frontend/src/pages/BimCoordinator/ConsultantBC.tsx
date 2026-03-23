@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -114,100 +114,18 @@ const SCROLLBAR_STYLE = `
   }
 `;
 
-const PANEL_ROLES = [
-    'Management', 'Accounts', 'Technical Director', 'Admin', 'Project Manager', 'Client', 'Sales', 'BIM Lead', 'Employee'
-];
+const isEmployeeActive = (emp: Employee) => {
+    return emp.active === 'active' || emp.active === 'Active';
+};
 
 const getAllowedRoles = () => [
     'Consultant', 'BIM Coordinator', 'BIM Lead', 'Project Manager', 'BIM Modeler', 'BIM Architect', 'BIM Architect Lead', 'Tekla Modeler', 'BIM Project Manager', 'Business Development Manager', 'Vice President Projects', 'Junior BIM Modeler', 'Architect Intern', 'BIM Modeler- MEP', 'HR Executive', 'Graphic Designer', 'Management'
 ];
 
-const isRestrictedTargetRole = (role?: string) => {
-    return role === 'Admin' || role === 'Technical Director';
-};
-
-const isEmployeeActive = (emp: Employee) => {
-    return emp.active === 'active' || emp.active === 'Active';
-};
-
-const getInferredPhone = (phone?: string) => {
-    if (!phone) return { code: '+91', digits: '' };
-    const clean = phone.replace(/\D/g, '');
-    if (clean.length > 10) return { code: `+${clean.slice(0, clean.length - 10)}`, digits: clean.slice(-10) };
-    return { code: '+91', digits: clean };
-};
-
-function CustomDropdown({
-    options,
-    value,
-    onChange,
-    placeholder,
-    className = "",
-    styleType = "form"
-}: {
-    options: string[];
-    value: string;
-    onChange: (val: string) => void;
-    placeholder: string;
-    className?: string;
-    styleType?: "form" | "header" | "table";
-}) {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    return (
-        <div className={`relative ${className}`} ref={dropdownRef}>
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
-                    styleType === "header"
-                        ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold"
-                        : styleType === "table"
-                            ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-                            : `px-4 py-2 bg-[#F4F4F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
-                }`}
-            >
-                <span className={styleType === "form" ? (value ? "text-[#353535]" : "text-[#8B8B8B]") : ""}>{value || placeholder}</span>
-                <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
-            </button>
-            {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
-                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-                        {options.map((option) => (
-                            <button
-                                key={option}
-                                type="button"
-                                onClick={() => {
-                                    onChange(option);
-                                    setIsOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4] transition-colors"
-                            >
-                                {option}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
 
 export default function ConsultantBC() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
     const [list, setList] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
@@ -215,26 +133,6 @@ export default function ConsultantBC() {
     const effectivePerPage = 10;
     
     // Missing States
-    const [editId, setEditId] = useState<number | null>(null);
-    const [editError, setEditError] = useState('');
-    const [editSubmitting, setEditSubmitting] = useState(false);
-    const [editForm, setEditForm] = useState<any>({
-        full_name: '',
-        email: '',
-        phone_number: '',
-        user_role: 'Consultant',
-        department: '',
-        address: '',
-        dob: '',
-        password: '',
-        user_type: '',
-        doj: '',
-        salary: '',
-        accountnumber: '',
-        profile_picture: null,
-        roles: [],
-        active: 'Active',
-    });
     const [showAddModal, setShowAddModal] = useState(false);
     const [form, setForm] = useState<any>({
         full_name: '',
@@ -278,7 +176,6 @@ export default function ConsultantBC() {
 
     const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971', '+33', '+49', '+82', '+86'];
     const [countryCode, setCountryCode] = useState('+91');
-    const [editCountryCode, setEditCountryCode] = useState('+91');
 
     const canAdd = user?.panel_type === 1;
 
@@ -323,36 +220,6 @@ export default function ConsultantBC() {
             });
     }, []);
 
-    const editParam = searchParams.get('edit');
-    useEffect(() => {
-        if (editParam && list.length) {
-            const id = parseInt(editParam, 10);
-            const emp = list.find((e) => e.id === id);
-            if (emp) {
-                setEditId(id);
-                setEditError('');
-                const inferred = getInferredPhone(emp.phone_number);
-                setEditCountryCode(inferred.code);
-                setEditForm({
-                    full_name: emp.full_name,
-                    email: emp.email,
-                    phone_number: inferred.digits.slice(0, 10),
-                    user_role: emp.user_role || 'Consultant',
-                    department: emp.department || '',
-                    address: emp.address || '',
-                    dob: emp.dob || '',
-                    password: '',
-                    user_type: emp.user_type || '',
-                    doj: emp.doj || '',
-                    salary: emp.salary || '',
-                    accountnumber: emp.accountnumber || '',
-                    profile_picture: null,
-                    roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                    active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
-                });
-            }
-        }
-    }, [editParam, list]);
     // Close status dropdown on outside click
     useEffect(() => {
         if (!statusDropdownOpen) return;
@@ -384,8 +251,6 @@ export default function ConsultantBC() {
         limitEnd = currentPage * 10;
     }
     const paginatedList = filteredList.slice(limitStart, limitEnd);
-
-    const totalPages = Math.ceil(filteredList.length / 10);
 
 
     function exportCsv() {
@@ -422,160 +287,6 @@ export default function ConsultantBC() {
         }).catch(() => { }).finally(() => setInactiveSubmitting(false));
     }
 
-    function handleEditSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        if (!editId) return;
-        setEditSubmitting(true);
-        setEditError('');
-
-        if (editForm.dob) {
-            const today = new Date();
-            const dobDate = new Date(editForm.dob);
-            today.setHours(0, 0, 0, 0);
-            dobDate.setHours(0, 0, 0, 0);
-            if (dobDate > today) {
-                setEditSubmitting(false);
-                setEditError('Date of birth cannot be in the future.');
-                return;
-            }
-        }
-
-        const editCleanPhone = (editForm.phone_number || '').replace(/\D/g, '');
-        if (!editCleanPhone || editCleanPhone.length !== 12) {
-            setEditSubmitting(false);
-            setEditError('Phone number must be exactly 12 digits.');
-            return;
-        }
-        const fullEditPhone = `${editCountryCode}${editCleanPhone}`;
-
-        const hasNewFile = !!editForm.profile_picture;
-
-        // If user selected a new profile picture, send multipart/form-data
-        if (hasNewFile) {
-            const formData = new FormData();
-            formData.append('full_name', editForm.full_name);
-            formData.append('email', editForm.email);
-            formData.append('phone_number', fullEditPhone);
-
-            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
-            if (!shouldOmitUserRole && editForm.user_role) formData.append('user_role', editForm.user_role);
-
-            if (editForm.department) formData.append('department', editForm.department);
-            if (editForm.address) formData.append('address', editForm.address);
-            if (editForm.dob) formData.append('dob', editForm.dob);
-            if (editForm.active) formData.append('active', editForm.active === 'Active' ? 'active' : 'inactive');
-            if (editForm.doj) formData.append('doj', editForm.doj);
-            if (editForm.salary) formData.append('salary', editForm.salary);
-            if (editForm.accountnumber) formData.append('accountnumber', editForm.accountnumber);
-            if (editForm.user_type) formData.append('user_type', editForm.user_type);
-            if (editForm.roles.length) formData.append('roles', editForm.roles.join(','));
-            if (editForm.password) formData.append('password', editForm.password);
-            if (editForm.profile_picture) formData.append('profile_picture', editForm.profile_picture);
-
-            api
-                .patch<{ success: boolean; profile_picture?: string | null; message?: string }>(
-                    `/api/employees/${editId}`,
-                    formData,
-                    { headers: { 'Content-Type': 'multipart/form-data' } }
-                )
-                .then(({ data }) => {
-                    if (data.success === false) {
-                        setEditError(data.message || 'Failed to update consultant.');
-                        return;
-                    }
-                    const newPic = data.profile_picture || undefined;
-                    setList((prev) =>
-                        prev.map((e) =>
-                            e.id === editId
-                                ? {
-                                      ...e,
-                                      full_name: editForm.full_name,
-                                      email: editForm.email,
-                                      phone_number: fullEditPhone,
-                                      user_role: editForm.user_role,
-                                      department: editForm.department,
-                                      address: editForm.address,
-                                      dob: editForm.dob,
-                                      doj: editForm.doj,
-                                      salary: editForm.salary,
-                                      accountnumber: editForm.accountnumber,
-                                      user_type: editForm.user_type,
-                                      Allpannel: editForm.roles.join(','),
-                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
-                                      profile_picture: newPic ?? e.profile_picture,
-                                  }
-                                : e
-                        )
-                    );
-                    setEditId(null);
-                    setSearchParams({});
-                })
-                .catch((err) => {
-                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
-                    setEditError(errorMessage);
-                    console.error('Update failed:', err);
-                })
-                .finally(() => setEditSubmitting(false));
-        } else {
-            // No new file: send JSON payload
-            const shouldOmitUserRole = isRestrictedTargetRole(editForm.user_role);
-            const payload = {
-                full_name: editForm.full_name,
-                email: editForm.email,
-                phone_number: fullEditPhone,
-                ...(shouldOmitUserRole ? {} : { user_role: editForm.user_role }),
-                department: editForm.department || undefined,
-                address: editForm.address || undefined,
-                dob: editForm.dob || undefined,
-                doj: editForm.doj || undefined,
-                active: editForm.active === 'Active' ? 'active' : 'inactive',
-                salary: editForm.salary || undefined,
-                accountnumber: editForm.accountnumber || undefined,
-                user_type: editForm.user_type || undefined,
-                Allpannel: editForm.roles.join(','),
-                ...(editForm.password ? { password: editForm.password } : {})
-            };
-
-            api
-                .patch(`/api/employees/${editId}`, payload)
-                .then((response) => {
-                    if (response.data.success === false) {
-                        setEditError(response.data.message || 'Failed to update consultant.');
-                        return;
-                    }
-                    setList((prev) =>
-                        prev.map((e) =>
-                            e.id === editId
-                                ? {
-                                      ...e,
-                                      full_name: editForm.full_name,
-                                      email: editForm.email,
-                                      phone_number: fullEditPhone,
-                                      user_role: editForm.user_role,
-                                      department: editForm.department,
-                                      address: editForm.address,
-                                      dob: editForm.dob,
-                                      doj: editForm.doj,
-                                      salary: editForm.salary,
-                                      accountnumber: editForm.accountnumber,
-                                      user_type: editForm.user_type,
-                                      Allpannel: payload.Allpannel,
-                                      active: editForm.active === 'Active' ? 'active' : 'inactive',
-                                  }
-                                : e
-                        )
-                    );
-                    setEditId(null);
-                    setSearchParams({});
-                })
-                .catch((err) => {
-                    const errorMessage = err.response?.data?.message || err.message || 'Failed to update consultant.';
-                    setEditError(errorMessage);
-                    console.error('Update failed:', err);
-                })
-                .finally(() => setEditSubmitting(false));
-        }
-    }
 
     function handleAddSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -987,29 +698,7 @@ export default function ConsultantBC() {
                                             {canAdd && (
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        setEditId(emp.id);
-                                                        setEditError('');
-                                                        const inferred = getInferredPhone(emp.phone_number);
-                                                        setEditCountryCode(inferred.code);
-                                                        setEditForm({
-                                                            full_name: emp.full_name,
-                                                            email: emp.email,
-                                                            phone_number: inferred.digits.slice(0, 10),
-                                                            user_role: emp.user_role || 'Consultant',
-                                                            department: emp.department || '',
-                                                            address: emp.address || '',
-                                                            dob: emp.dob || '',
-                                                            password: '',
-                                                            user_type: emp.user_type || '',
-                                                            doj: emp.doj || '',
-                                                            salary: emp.salary || '',
-                                                            accountnumber: emp.accountnumber || '',
-                                                            profile_picture: null,
-                                                            roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-                                                            active: isEmployeeActive(emp) ? 'Active' : 'Deactivate',
-                                                        });
-                                                    }}
+                                                    onClick={() => navigate(`/bc/consultants/edit/${emp.id}`)}
                                                     className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
                                                 >
                                                     <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
@@ -1493,277 +1182,6 @@ export default function ConsultantBC() {
                 document.body
             )}
 
-            {editId && createPortal(
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-[15px] max-w-[1174px] w-full px-[20px] py-[20px] max-h-[795px] overflow-y-auto relative">
-                        {/* Header Section */}
-                        <div className="flex items-center justify-center mb-4 relative">
-                            <button
-                                type="button"
-                                onClick={() => { setEditId(null); setEditError(''); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-                            >
-                                <FiX className="w-5 h-5 font-bold" />
-                            </button>
-                            <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari">Edit Consultant Details</h3>
-                        </div>
-
-                        <form onSubmit={handleEditSubmit} className="space-y-6">
-
-                            {editError && (
-                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                    <p className="text-sm text-red-600 font-Gantari">{editError}</p>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-
-                                {/* Column 1 */}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter employee name"
-                                            value={editForm.full_name}
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                                            Phone Number <span className="text-[#DD4342]">*</span>
-                                        </label>
-                                        <div className="flex gap-2">
-                                            <select
-                                                value={editCountryCode}
-                                                onChange={(e) => setEditCountryCode(e.target.value)}
-                                                className="px-3 py-3 text-[15px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
-                                            >
-                                                {COUNTRY_CODES.map((code) => (
-                                                    <option key={code} value={code}>{code}</option>
-                                                ))}
-                                            </select>
-                                            <input
-                                                type="text"
-                                                placeholder="Enter Phone Number"
-                                                value={editForm.phone_number}
-                                                onChange={(e) => {
-                                                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
-                                                    setEditForm((f: any) => ({ ...f, phone_number: digitsOnly }));
-                                                }}
-                                                maxLength={12}
-                                                required
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
-                                        <input
-                                            type="password"
-                                            placeholder="******** (password hidden)"
-                                            value=""
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                        />
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.user_role}
-                                                onChange={(e) => setEditForm((f: any) => ({ ...f, user_role: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Role</option>
-                                                {getAllowedRoles().map((r) => (
-                                                    <option key={r} value={r}>{r}</option>
-                                                ))}
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.department}
-                                                onChange={(e) => setEditForm((f: any) => ({ ...f, department: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Department</option>
-                                                {departments.map((dept) => (
-                                                    <option key={dept} value={dept}>{dept}</option>
-                                                ))}
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Account Number"
-                                            value={editForm.accountnumber}
-                                            onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Column 2 */}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.dob}
-                                            onChange={(e) => setEditForm((f: any) => ({ ...f, dob: e.target.value }))}
-                                            max={todayISO}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email</label>
-                                        <input
-                                            type="email"
-                                            placeholder="Enter Email"
-                                            value={editForm.email}
-                                            disabled
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none disabled:opacity-70 disabled:cursor-not-allowed"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="relative">
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                                        <div className="relative">
-                                            <select
-                                                value={editForm.user_type}
-                                                onChange={(e) => setEditForm((f: any) => ({ ...f, user_type: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                                            >
-                                                <option value="" disabled>Select Type</option>
-                                                <option value="Employee">Employee</option>
-                                                <option value="Consultant">Consultant</option>
-                                                <option value="Contractor">Contractor</option>
-                                            </select>
-                                            <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#353535] pointer-events-none opacity-70" />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining</label>
-                                        <input
-                                            type="date"
-                                            value={editForm.doj}
-                                            onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary</label>
-                                        <input
-                                            type="text"
-                                            placeholder="0000$"
-                                            value={editForm.salary}
-                                            onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                                        <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
-                                            <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
-                                                {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
-                                            </div>
-                                            <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer hover:bg-slate-300 transition-colors shrink-0 font-Gantari">
-                                                Browse File
-                                                <input
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept=".jpg,.jpeg"
-                                                    onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
-                                                />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Full Width Field */}
-                            <div className="mt-2">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Address</label>
-                                <textarea
-                                    rows={4}
-                                    placeholder="Enter Address"
-                                    value={editForm.address}
-                                    onChange={(e) => setEditForm((f: any) => ({ ...f, address: e.target.value }))}
-                                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
-                                />
-                            </div>
-
-                            {/* Panel Access Section */}
-                            <div className="mt-4 bg-[#F9F9F9] p-8 rounded-[10px] border border-[#E0E0E0]">
-                                <h4 className="text-[18px] font-bold text-[#000000] mb-8 font-Gantari">Select Panel Access Control</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-y-6 gap-x-6">
-                                    {PANEL_ROLES.map((role, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="flex items-center gap-4 cursor-pointer group"
-                                            onClick={() => {
-                                                const currentRoles = [...editForm.roles];
-                                                if (currentRoles.includes(role)) {
-                                                    setEditForm({ ...editForm, roles: currentRoles.filter(r => r !== role) });
-                                                } else {
-                                                    setEditForm({ ...editForm, roles: [...currentRoles, role] });
-                                                }
-                                            }}
-                                        >
-                                            <div className={`w-[24px] h-[24px] rounded-[5px] border-2 flex items-center justify-center transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#D1D1D1] group-hover:border-[#3d3399]'}`}>
-                                                {editForm.roles.includes(role) && (
-                                                    <svg width="14" height="11" viewBox="0 0 14 11" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M1 5L5 9L13 1" stroke="#1A1A1A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <span className="text-[16px] font-medium text-[#353535] group-hover:text-[#000000] font-Gantari">{role}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Form Actions */}
-                            <div className="flex gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
-                                <button
-                                    type="button"
-                                    onClick={() => { setEditId(null); setSearchParams({}); setEditError(''); }}
-                                    className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
-                                >
-                                    Discard
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={editSubmitting}
-                                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
-                                >
-                                    {editSubmitting ? 'Submitting...' : 'Submit'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>,
-                document.body
-            )}
             {showDetailsModal && selectedEmployee && createPortal(
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
                     <div className="bg-white rounded-lg max-w-[520px] w-full px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">

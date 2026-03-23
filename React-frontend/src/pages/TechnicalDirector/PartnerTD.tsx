@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from './PartnerView/types';
+import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
 
 
 
@@ -115,12 +116,10 @@ export default function PartnerTD() {
                                         </span>
                                         <Link
                                             to={`/td/partner/${partner.id}`}
-                                            className="inline-flex items-center gap-1.5 text-[14px] font-Gantari font-medium text-[#757575] hover:text-[#353535] transition-colors shrink-0"
+                                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors shrink-0 pr-2"
                                         >
                                             Details
-                                            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                            </svg>
+                                            <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
                                         </Link>
                                     </div>
                                 </div>
