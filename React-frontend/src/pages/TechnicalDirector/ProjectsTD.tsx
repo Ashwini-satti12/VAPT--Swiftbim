@@ -12,6 +12,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg"
 import backIcon from "../../assets/TechnicalDirector/back icon.svg"
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
 
+
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected") return undefined;
   if (/^\d+$/.test(name)) return Number(name);
@@ -1475,16 +1476,20 @@ export default function ProjectsTD() {
                               );
                             })()}
                           </div>
-                          {p.priority && (
-                            <div
-                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                ? "bg-[#DD4342]"
-                                : "bg-[#94D6F2]"
-                                }`}
-                            >
-                              {p.priority}
-                            </div>
-                          )}
+                          
+                          <div className="flex items-center gap-3">
+
+                            {p.priority && (
+                                <div
+                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                    ? "bg-[#DD4342]"
+                                    : "bg-[#94D6F2]"
+                                    }`}
+                                >
+                                {p.priority}
+                                </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

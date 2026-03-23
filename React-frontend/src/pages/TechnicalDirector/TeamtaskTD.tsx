@@ -13,6 +13,8 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 
@@ -207,7 +209,7 @@ function TaskDropdown({
   narrow = false,
   searchable = false,
   searchPlaceholder = "Search...",
-  maxVisibleItems = 5,
+  maxVisibleItems = 4,
 }: TaskDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const q = (searchQuery || "").trim().toLowerCase();
@@ -216,18 +218,16 @@ function TaskDropdown({
         if (!q) return options;
         const first = options[0];
         const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
+          o === first && (first === "Select Employee" || first === "Select Projects");
         return options.filter((opt) => {
           if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
+          const name = String(opt ?? "").trim().toLowerCase();
           return name.includes(q);
         });
       })()
     : options;
-  const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+
+  const listMaxHeight = `${maxVisibleItems * 40}px`;
 
   return (
     <div className="relative">
@@ -238,31 +238,32 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className="truncate">{selected ?? label}</span>
-        <svg
-          className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
+        <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+          {label.toLowerCase() === 'show' && selected && selected !== label ? (
+            <>
+              <span className="text-sm text-[#353535]">Show:</span>{" "}
+              <span>{selected}</span>
+            </>
+          ) : (
+            selected ?? label
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
       {isOpen && (
         <div
           ref={dropdownRef}
           role="listbox"
-          className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
         >
           {searchable && (
             <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -280,8 +281,8 @@ function TaskDropdown({
             </div>
           )}
           <div
-            className="overflow-y-auto py-1"
-            style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+            className="overflow-y-auto py-1 custom-scrollbar"
+            style={{ maxHeight: listMaxHeight }}
           >
             {filteredOptions.map((opt, idx) => (
               <button
@@ -293,7 +294,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
               >
                 {opt}
               </button>
@@ -412,6 +413,7 @@ interface Task {
   Approval?: string;
   projectid?: number;
   created_at?: string;
+  Actual_start_time?: string;
 }
 
 interface Employee {
@@ -472,21 +474,6 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
   };
 }
 
-function formatDateRange(start?: string, end?: string): string {
-  if (!start && !end) return "—";
-  const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-  const fmtShort = (s: string) => {
-    const d = new Date(s);
-    return `${d.getDate()} ${months[d.getMonth()]}`;
-  };
-  const fmtFull = (s: string) => {
-    const d = new Date(s);
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-  };
-  if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-  if (start) return fmtFull(start);
-  return end ? fmtFull(end) : "—";
-}
 
 function normalizeStatus(
   s: string | undefined,
@@ -502,173 +489,163 @@ function normalizeStatus(
   return "todo";
 }
 
-const STATUS_STYLE: Record<
-  "todo" | "in_progress" | "completed",
-  { label: string; dot: string; bg: string }
-> = {
-  todo: {
-    label: "To Do",
-    dot: "bg-orange-500",
-    bg: "bg-orange-100 text-orange-800 rounded-full",
-  },
-  in_progress: {
-    label: "In Progress",
-    dot: "bg-sky-500",
-    bg: "bg-sky-100 text-sky-800",
-  },
-  completed: {
-    label: "Completed",
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-100 text-emerald-800",
-  },
-};
 
 function TaskCard({
-  task,
-  status,
-  onViewTask,
-  onEditTask,
-  onDeleteTask,
+    task,
+    status,
+    onViewTask,
+    onEditTask,
+    onDeleteTask,
 }: {
-  task: Task;
-  status: "todo" | "in_progress" | "completed";
-  onViewTask?: (task: Task) => void;
-  onEditTask?: (task: Task) => void;
-  onDeleteTask?: (task: Task) => void;
+    task: Task;
+    status: "todo" | "in_progress" | "completed";
+    onViewTask?: (task: Task) => void;
+    onEditTask?: (task: Task) => void;
+    onDeleteTask?: (task: Task) => void;
 }) {
-  const style = STATUS_STYLE[status];
-  const progress = task.progress ?? 0;
-  const dateRange = formatDateRange(task.start_date, task.due_date);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+    const progress = task.progress ?? 0;
+    const [menuOpen, setMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+    useEffect(() => {
+        if (!menuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [menuOpen]);
+
+    const handleDragStart = (e: React.DragEvent) => {
+        if (status === "completed") {
+            e.preventDefault();
+            return;
+        }
+        e.dataTransfer.setData("taskId", String(task.id));
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", task.task_name || "Task");
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen]);
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("taskId", String(task.id));
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", task.task_name || "Task");
-  };
+    const isCompleted = status === "completed";
 
-  return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
-    >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-          {style.label}
-        </span>
-        <div className="relative" ref={menuRef}>
-          <button
-            type="button"
-            draggable={false}
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen((prev) => !prev);
-            }}
-            className="p-0.5 rounded hover:bg-slate-100"
-            aria-label="More options"
-            aria-expanded={menuOpen}
-          >
-            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
-          </button>
-          {menuOpen && (
-            <div
-              className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980]"
-              role="menu"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onViewTask?.(task);
-                }}
-              >
-                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                <span>View</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onEditTask?.(task);
-                }}
-              >
-                <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                <span>Edit</span>
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-                onClick={() => {
-                  setMenuOpen(false);
-                  onDeleteTask?.(task);
-                }}
-              >
-                <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                <span>Delete</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <h4 className="font-semibold text-slate-900 text-sm mb-1">
-        {task.task_name || "Task Name"}
-      </h4>
-      <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-slate-600">Progress</span>
-        <span className="text-xs font-medium text-slate-700">{progress}%</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+    return (
         <div
-          className="h-full rounded-full bg-slate-500"
-          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-        />
-      </div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
-          <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                title="Assignee"
-              />
-            ))}
-          </div>
-          <span className="text-xs text-slate-500">+4</span>
-        </div>
-        <Link
-          to={`/tasks/${task.id}`}
-          draggable={false}
-          className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+            draggable={!isCompleted}
+            onDragStart={handleDragStart}
+            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-          Details
-          <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-        </Link>
-      </div>
-    </div>
-  );
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <h4 className="font-semibold text-slate-900 text-xl truncate">
+                    {task.task_name || "Task Name"}
+                </h4>
+                <div className="relative" ref={menuRef}>
+                    <button
+                        type="button"
+                        draggable={false}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpen((prev) => !prev);
+                        }}
+                        className="p-0.5 rounded hover:bg-slate-100"
+                        aria-label="More options"
+                        aria-expanded={menuOpen}
+                    >
+                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                    </button>
+                    {menuOpen && (
+                        <div
+                            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                 ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+                            role="menu"
+                        >
+                            <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onViewTask?.(task);
+                                }}
+                            >
+                                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
+                                <span>View</span>
+                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <HiOutlinePencil className="w-4 h-4 shrink-0" />
+                                        <span>Edit</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4 shrink-0" />
+                                        <span>Delete</span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
+                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+
+                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+            </div>
+            <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs text-slate-600">Progress</span>
+                <span className="text-xs font-medium text-slate-700">
+                    {progress}%
+                </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+                <div
+                    className="h-full rounded-full bg-slate-500"
+                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                            <div
+                                key={i}
+                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
+                                title="Assignee"
+                            />
+                        ))}
+                    </div>
+                    <span className="text-xs text-slate-500">+4</span>
+                </div>
+                <Link
+                    to="/td/mytasks/view"
+                    state={{ task, from: "teamtask" }}
+                    draggable={false}
+                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                >
+                    Details
+                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+                </Link>
+            </div>
+        </div>
+    );
 }
 
 const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
@@ -1062,149 +1039,141 @@ export default function TeamtaskPM() {
   }
 
   return (
-    <div className="space-y-6 overflow-auto min-h-screen">
-      {/* Top row: title + dropdowns + Add task */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-          {isTeam ? "Team Task" : "My Task"}
-        </h2>
-        <div
-          ref={dropdownsContainerRef}
-          className="flex flex-wrap items-center gap-2 w-fit"
-        >
-          <TaskDropdown
-            label="Select Employee"
-            options={employeeOptions}
-            selected={selectedEmployee}
-            onSelect={setSelectedEmployee}
-            isOpen={openDropdown === "employee"}
-            onToggle={() =>
-              setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-            }
-            onClose={() => setOpenDropdown(null)}
-            triggerRef={employeeTriggerRef}
-            dropdownRef={employeeMenuRef}
-            searchable={true}
-          />
-          <TaskDropdown
-            label="Select Projects"
-            options={projectOptions}
-            selected={selectedProject}
-            onSelect={setSelectedProject}
-            isOpen={openDropdown === "projects"}
-            onToggle={() =>
-              setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-            }
-            onClose={() => setOpenDropdown(null)}
-            triggerRef={projectsTriggerRef}
-            dropdownRef={projectsMenuRef}
-            searchable={true}
-          />
-          <TaskDropdown
-            label="Show"
-            options={SHOW_OPTIONS}
-            selected={selectedShow}
-            onSelect={setSelectedShow}
-            isOpen={openDropdown === "show"}
-            onToggle={() =>
-              setOpenDropdown((d) => (d === "show" ? null : "show"))
-            }
-            onClose={() => setOpenDropdown(null)}
-            triggerRef={showTriggerRef}
-            dropdownRef={showMenuRef}
-            narrow
-          />
-          <TaskDropdown
-            label="Period"
-            options={PERIOD_OPTIONS}
-            selected={selectedPeriod}
-            onSelect={setSelectedPeriod}
-            isOpen={openDropdown === "period"}
-            onToggle={() =>
-              setOpenDropdown((d) => (d === "period" ? null : "period"))
-            }
-            onClose={() => setOpenDropdown(null)}
-            triggerRef={periodTriggerRef}
-            dropdownRef={periodMenuRef}
-            narrow
-          />
-          <button
-            type="button"
-            onClick={() =>
-              navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })
-            }
-            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+    <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <div className="bg-white pb-3 flex-shrink-0">
+        {/* Top row: title + dropdowns + Add task */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+          <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+            Team Task
+          </h2>
+          <div
+            ref={dropdownsContainerRef}
+            className="flex flex-wrap items-center gap-2 w-fit"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <TaskDropdown
+              label="Select Employee"
+              options={employeeOptions}
+              selected={selectedEmployee}
+              onSelect={setSelectedEmployee}
+              isOpen={openDropdown === "employee"}
+              onToggle={() =>
+                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+              }
+              onClose={() => setOpenDropdown(null)}
+              triggerRef={employeeTriggerRef}
+              dropdownRef={employeeMenuRef}
+              searchable
+              searchPlaceholder="Search employee..."
+            />
+            <TaskDropdown
+              label="Select Projects"
+              options={projectOptions}
+              selected={selectedProject}
+              onSelect={setSelectedProject}
+              isOpen={openDropdown === "projects"}
+              onToggle={() =>
+                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+              }
+              onClose={() => setOpenDropdown(null)}
+              triggerRef={projectsTriggerRef}
+              dropdownRef={projectsMenuRef}
+              searchable
+              searchPlaceholder="Search project..."
+            />
+            <TaskDropdown
+              label="Show"
+              options={SHOW_OPTIONS}
+              selected={selectedShow}
+              onSelect={setSelectedShow}
+              isOpen={openDropdown === "show"}
+              onToggle={() =>
+                setOpenDropdown((d) => (d === "show" ? null : "show"))
+              }
+              onClose={() => setOpenDropdown(null)}
+              triggerRef={showTriggerRef}
+              dropdownRef={showMenuRef}
+              narrow
+            />
+            <TaskDropdown
+              label="Period"
+              options={PERIOD_OPTIONS}
+              selected={selectedPeriod}
+              onSelect={setSelectedPeriod}
+              isOpen={openDropdown === "period"}
+              onToggle={() =>
+                setOpenDropdown((d) => (d === "period" ? null : "period"))
+              }
+              onClose={() => setOpenDropdown(null)}
+              triggerRef={periodTriggerRef}
+              dropdownRef={periodMenuRef}
+              narrow
+            />
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/td/teamtasks/add", { state: { from: "teamtasks" } })
+              }
+              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Add task
-          </button>
+              <img src={AddBtn} alt="Add" className="h-5 w-5" />
+              Add task
+            </button>
+          </div>
+        </div>
+
+        {/* Status summary cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+          <Link
+            to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+          >
+            <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+
+            <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group1} alt="Group1" className="w-8 h-8" />
+            </div>
+          </Link>
+
+          <Link
+            to={
+              statusFilter === "in_progress"
+                ? pathname
+                : `${pathname}?status=in_progress`
+            }
+            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+          >
+            <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+
+            <span className="text-xl font-bold text-[#0D1829]">
+              ({counts.in_progress})
+            </span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group2} alt="Group2" className="w-8 h-8" />
+            </div>
+          </Link>
+
+          <Link
+            to={
+              statusFilter === "completed"
+                ? pathname
+                : `${pathname}?status=completed`
+            }
+            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+          >
+            <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+
+            <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+            <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+              <img src={Group3} alt="Group3" className="w-8 h-8" />
+            </div>
+          </Link>
         </div>
       </div>
 
-      {/* Status summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link
-          to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
-        >
-          <div className="absolute top-4 right-4 flex items-center justify-center">
-            <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">To Do Task</p>
-          <p className="mt-1 text-xl font-bold text-slate-900">
-            {counts.todo} Tasks
-          </p>
-        </Link>
-
-        <Link
-          to={
-            statusFilter === "in_progress"
-              ? pathname
-              : `${pathname}?status=in_progress`
-          }
-          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
-        >
-          <div className="absolute top-4 right-4 flex items-center justify-center">
-            <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-          <p className="mt-1 text-xl font-bold text-slate-900">
-            {counts.in_progress} Tasks
-          </p>
-        </Link>
-
-        <Link
-          to={
-            statusFilter === "completed"
-              ? pathname
-              : `${pathname}?status=completed`
-          }
-          className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
-        >
-          <div className="absolute top-4 right-4 flex items-center justify-center">
-            <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
-          </div>
-          <p className="text-sm font-medium text-slate-500">Completed Task</p>
-          <p className="mt-1 text-xl font-bold text-slate-900">
-            {counts.completed} Tasks
-          </p>
-        </Link>
-      </div>
-
-      {/* Task cards under each status - drag and drop columns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Task columns scrollable area */}
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
         <div
           className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
           onDragOver={(e) => {
@@ -1275,8 +1244,9 @@ export default function TeamtaskPM() {
           ))}
         </div>
       </div>
+    </div>
 
-      {/* Delete Task confirmation modal */}
+    {/* Delete Task confirmation modal */}
       {deleteTaskId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">

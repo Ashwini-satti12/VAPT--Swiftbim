@@ -1,17 +1,19 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import { VscEye } from "react-icons/vsc";
-import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
-import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
-import { TimePickerWheel } from "../../components/TimePickerWheel";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 
-function formatTimeForDisplay(value: string): string {
+export function formatTimeForDisplay(value: string): string {
     if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
     const [hStr, mStr] = value.split(":");
     const h24 = parseInt(hStr, 10);
@@ -22,19 +24,21 @@ function formatTimeForDisplay(value: string): string {
 }
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId = "project" | "module" | "type" | "assignTo" | "type_start_time" | "type_end_time" | null;
+export type FormDropdownId = "project" | "module" | "type" | "assignTo" | "type_start_time" | "type_end_time" | null;
 
-interface Employee {
+export interface Employee {
     id: number;
     full_name: string;
 }
 
-interface Project {
+export interface Project {
     id: number;
     project_name: string;
+    modules?: string;
+    tasks?: string;
 }
 
-interface FormDropdownProps {
+export interface FormDropdownProps {
     label: string;
     options: { value: string; label: string }[];
     value: string;
@@ -47,7 +51,7 @@ interface FormDropdownProps {
     searchable?: boolean;
 }
 
-function FormDropdown({
+export function FormDropdown({
     label,
     options,
     value,
@@ -88,19 +92,11 @@ function FormDropdown({
                 <span className={value ? "text-[#353535]" : "text-[#616161]"}>
                     {displayLabel}
                 </span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
@@ -159,7 +155,7 @@ interface TaskDropdownProps {
     maxVisibleItems?: number;
 }
 
-function TaskDropdown({
+export function TaskDropdown({
     label,
     options,
     selected,
@@ -189,7 +185,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -200,31 +196,32 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className="truncate">{selected ?? label}</span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                        <>
+                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span>{selected}</span>
+                        </>
+                    ) : (
+                        selected ?? label
+                    )}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -242,8 +239,8 @@ function TaskDropdown({
                         </div>
                     )}
                     <div
-                        className="overflow-y-auto py-1"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        className="overflow-y-auto py-1 custom-scrollbar"
+                        style={{ maxHeight: listMaxHeight }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -255,7 +252,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -273,7 +270,7 @@ function formatFileSize(bytes: number): string {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function AttachmentPreviewItem({
+export function AttachmentPreviewItem({
     file,
     onRemove,
     onPreviewClick,
@@ -330,7 +327,7 @@ function AttachmentPreviewItem({
     );
 }
 
-interface Task {
+export interface Task {
     id: number;
     task_name?: string;
     status?: string;
@@ -353,7 +350,7 @@ interface Task {
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
-function taskToFormValues(task: Task | Record<string, unknown>): {
+export function taskToFormValues(task: Task | Record<string, unknown>): {
     projectName: string;
     module: string;
     taskName: string;
@@ -456,7 +453,7 @@ const STATUS_STYLE: Record<
     },
 };
 
-function TaskCard({
+export function TaskCard({
     task,
     status,
     onViewTask,
@@ -517,48 +514,66 @@ function TaskCard({
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        <img src={threedot} alt="Dot" className="w-5 h-5 text-[#8B8B8B]" />
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980]"
+                            className="absolute right-0 top-full mt-2 z-[100] min-w-[150px] bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right py-1"
                             role="menu"
                         >
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
                                 }}
                             >
-                                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                                <span>View</span>
+                                <img
+                                    src={viewIcon}
+                                    alt="view"
+                                    className="w-5 h-5 grayscale group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                    View
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
                                 }}
                             >
-                                <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                                <span>Edit</span>
+                                <img
+                                    src={editIcon}
+                                    alt="edit"
+                                    className="w-5 h-5 grayscale transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    Edit
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
                                 }}
                             >
-                                <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                                <span>Delete</span>
+                                <img
+                                    src={deleteIcon}
+                                    alt="delete"
+                                    className="w-5 h-5 grayscale transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    Delete
+                                </span>
                             </button>
                         </div>
                     )}
@@ -604,13 +619,20 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const getEffectiveStatus = (task: Task): "todo" | "in_progress" | "completed" => {
+    const s = normalizeStatus(task.status, task.Approval);
+    if (s === "todo") return "todo";
+    if (s === "in_progress") return "in_progress";
+    return "completed";
+};
+
+const SHOW_OPTIONS = ["Show", "1-10", "1-50", "1-100", "All"];
 const PERIOD_OPTIONS = [
     "Period",
+    "Show All",
     "This Week",
     "This Month",
-    "This Quarter",
-    "Custom",
+    "This Quarter"
 ];
 
 export default function MytaskBC() {
@@ -623,7 +645,6 @@ export default function MytaskBC() {
     const [list, setList] = useState<Task[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
-    const [modules, setModules] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
     const employeeOptions = ["Select Employee", ...employees.map(e => e.full_name)];
@@ -654,29 +675,12 @@ export default function MytaskBC() {
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
     const navigate = useNavigate();
-    const [addTaskForm, setAddTaskForm] = useState({
-        projectName: "",
-        module: "",
-        taskName: "",
-        type: "",
-        actualStartDate: "",
-        actualEndDate: "",
-        startTime: "",
-        dueTime: "",
-        assignTo: "",
-        description: "",
-        checklist: "",
-    });
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(taskToFormValues(task));
-        setEditingTaskId(task.id);
-        setAddTaskModalOpen(true);
+        navigate("/bc/mytasks/add", { state: { task, from: isTeam ? "teamtasks" : "mytasks" } });
     };
 
     const openDeleteTask = (task: Task) => {
@@ -686,52 +690,6 @@ export default function MytaskBC() {
     const openViewTask = (task: Task) => {
         navigate("/bc/mytasks/view", { state: { task } });
     };
-
-    const confirmDeleteTask = async () => {
-        if (deleteTaskId === null) return;
-        try {
-            await api.delete(`/api/tasks/${deleteTaskId}`);
-            setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeleteTaskId(null);
-        } catch (error) {
-            console.error("Error deleting task:", error);
-        }
-    };
-
-    const resetTaskFormAndClose = () => {
-        setAddTaskModalOpen(false);
-        setEditingTaskId(null);
-        setAttachmentFiles([]);
-        setAddTaskForm({
-            projectName: "",
-            module: "",
-            taskName: "",
-            type: "",
-            actualStartDate: "",
-            actualEndDate: "",
-            startTime: "",
-            dueTime: "",
-            assignTo: "",
-            description: "",
-            checklist: "",
-        });
-    };
-    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-    const [openFormDropdown, setOpenFormDropdown] =
-        useState<FormDropdownId>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
-    const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
-    const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
-    const formAssignMenuRef = useRef<HTMLDivElement>(null);
-    const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
-    const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
-    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
 
     const dropdownsContainerRef = useRef<HTMLDivElement>(null);
     const employeeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -753,42 +711,6 @@ export default function MytaskBC() {
         return () => document.removeEventListener("click", handleClickOutside);
     }, [openDropdown]);
 
-    const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const input = e.currentTarget;
-        const files = input.files;
-        if (!files?.length) return;
-        const newFiles = Array.from(files);
-        setAttachmentFiles((prev) => [...prev, ...newFiles]);
-        input.value = "";
-    };
-
-    const removeAttachment = (index: number) => {
-        setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    useEffect(() => {
-        if (openFormDropdown === null) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as Node;
-            const refs: React.RefObject<HTMLElement | null>[] =
-                openFormDropdown === "project"
-                    ? [formProjectTriggerRef, formProjectMenuRef]
-                    : openFormDropdown === "module"
-                        ? [formModuleTriggerRef, formModuleMenuRef]
-                        : openFormDropdown === "type"
-                            ? [formTypeTriggerRef, formTypeMenuRef]
-                            : openFormDropdown === "type_start_time"
-                                ? [formStartTimeTriggerRef, formStartTimeMenuRef]
-                                : openFormDropdown === "type_end_time"
-                                    ? [formEndTimeTriggerRef, formEndTimeMenuRef]
-                                    : [formAssignTriggerRef, formAssignMenuRef];
-            const inside = refs.some((r) => r.current && r.current.contains(target));
-            if (!inside) setOpenFormDropdown(null);
-        };
-        document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
-    }, [openFormDropdown]);
-
     useEffect(() => {
         api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
         api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
@@ -805,23 +727,16 @@ export default function MytaskBC() {
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    useEffect(() => {
-        if (addTaskForm.projectName) {
-            const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
-            if (!selectedProj) {
-                setModules([]);
-                return;
-            }
-            api.post<{ success: boolean; modules: { label: string }[] }>("/api/projects/filters/modules", { projectId: selectedProj.id })
-                .then((res) => {
-                    const list = Array.isArray(res.data.modules) ? res.data.modules : [];
-                    setModules(list.map((m: any) => m?.label).filter(Boolean));
-                })
-                .catch(() => setModules([]));
-        } else {
-            setModules([]);
+    const confirmDeleteTask = async () => {
+        if (deleteTaskId === null) return;
+        try {
+            await api.delete(`/api/tasks/${deleteTaskId}`);
+            setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+            setDeleteTaskId(null);
+        } catch (error) {
+            console.error("Error deleting task:", error);
         }
-    }, [addTaskForm.projectName, projects]);
+    };
 
     const allTasks = list.filter((t) => {
         // Employee filter
@@ -853,37 +768,39 @@ export default function MytaskBC() {
         return true;
     });
 
-    const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
-        in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
-        ).length,
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }).length,
-    };
-
     const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
+        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo"),
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
+            (t) => getEffectiveStatus(t) === "in_progress",
         ),
-        completed: allTasks.filter((t) => {
-            const s = normalizeStatus(t.status, t.Approval);
-            return s === "completed" || s === "approved" || s === "rejected";
-        }),
+        completed: allTasks.filter(
+            (t) => getEffectiveStatus(t) === "completed",
+        ),
     };
 
-    const showLimit =
-        selectedShow === "All" || !selectedShow || selectedShow === "Show"
-            ? Number.POSITIVE_INFINITY
-            : Math.max(1, Number(selectedShow) || 10);
+    let limitStart = 0;
+    let limitEnd = 50;
+    if (selectedShow === "All") {
+        limitStart = 0;
+        limitEnd = Infinity;
+    } else if (selectedShow && selectedShow !== "Show") {
+        const parts = selectedShow.split('-');
+        if (parts.length === 2) {
+            limitStart = parseInt(parts[0], 10) - 1;
+            limitEnd = parseInt(parts[1], 10);
+        }
+    }
 
     const displayedTasksByStatus = {
-        todo: tasksByStatus.todo.slice(0, showLimit),
-        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
-        completed: tasksByStatus.completed.slice(0, showLimit),
+        todo: tasksByStatus.todo.slice(limitStart, limitEnd),
+        in_progress: tasksByStatus.in_progress.slice(limitStart, limitEnd),
+        completed: tasksByStatus.completed.slice(limitStart, limitEnd),
+    };
+
+    const counts = {
+        todo: tasksByStatus.todo.length,
+        in_progress: tasksByStatus.in_progress.length,
+        completed: tasksByStatus.completed.length,
     };
 
     if (loading) {
@@ -895,233 +812,210 @@ export default function MytaskBC() {
     }
 
     return (
-        <div className="space-y-6 overflow-auto min-h-screen">
-            {/* Top row: title + dropdowns + Add task */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-slate-800">
-                    {isTeam ? "Team Task" : "My Task"}
-                </h2>
-                <div
-                    ref={dropdownsContainerRef}
-                    className="flex flex-wrap items-center gap-2 w-fit"
-                >
-                    <TaskDropdown
-                        label="Select Employee"
-                        options={employeeOptions}
-                        selected={selectedEmployee}
-                        onSelect={setSelectedEmployee}
-                        isOpen={openDropdown === "employee"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={employeeTriggerRef}
-                        dropdownRef={employeeMenuRef}
-                        searchable
-                        searchPlaceholder="Search Employee..."
-                    />
-                    <TaskDropdown
-                        label="Select Projects"
-                        options={projectOptions}
-                        selected={selectedProject}
-                        onSelect={setSelectedProject}
-                        isOpen={openDropdown === "projects"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={projectsTriggerRef}
-                        dropdownRef={projectsMenuRef}
-                        searchable
-                        searchPlaceholder="Search Projects..."
-                    />
-                    <TaskDropdown
-                        label="Show"
-                        options={SHOW_OPTIONS}
-                        selected={selectedShow}
-                        onSelect={setSelectedShow}
-                        isOpen={openDropdown === "show"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "show" ? null : "show"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={showTriggerRef}
-                        dropdownRef={showMenuRef}
-                        narrow
-                    />
-                    <TaskDropdown
-                        label="Period"
-                        options={PERIOD_OPTIONS}
-                        selected={selectedPeriod}
-                        onSelect={setSelectedPeriod}
-                        isOpen={openDropdown === "period"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "period" ? null : "period"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={periodTriggerRef}
-                        dropdownRef={periodMenuRef}
-                        narrow
-                    />
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEditingTaskId(null);
-                            setAddTaskForm({
-                                projectName: "",
-                                module: "",
-                                taskName: "",
-                                type: "",
-                                actualStartDate: "",
-                                actualEndDate: "",
-                                startTime: "",
-                                dueTime: "",
-                                assignTo: "",
-                                description: "",
-                                checklist: "",
-                            });
-                            setAddTaskModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+        <div className="h-full min-h-0 flex flex-col overflow-hidden">
+            <div className="bg-white pb-3 flex-shrink-0">
+                {/* Top row: title + dropdowns + Add task */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="flex flex-wrap items-center gap-2 w-fit"
                     >
-                        <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <TaskDropdown
+                            label="Select Employee"
+                            options={employeeOptions}
+                            selected={selectedEmployee}
+                            onSelect={setSelectedEmployee}
+                            isOpen={openDropdown === "employee"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={employeeTriggerRef}
+                            dropdownRef={employeeMenuRef}
+                            searchable
+                            searchPlaceholder="Search employee..."
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Select Projects"
+                            options={projectOptions}
+                            selected={selectedProject}
+                            onSelect={setSelectedProject}
+                            isOpen={openDropdown === "projects"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={projectsTriggerRef}
+                            dropdownRef={projectsMenuRef}
+                            searchable
+                            searchPlaceholder="Search project..."
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Show"
+                            options={SHOW_OPTIONS}
+                            selected={selectedShow}
+                            onSelect={setSelectedShow}
+                            isOpen={openDropdown === "show"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "show" ? null : "show"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={showTriggerRef}
+                            dropdownRef={showMenuRef}
+                            narrow
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Period"
+                            options={PERIOD_OPTIONS}
+                            selected={selectedPeriod}
+                            onSelect={setSelectedPeriod}
+                            isOpen={openDropdown === "period"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "period" ? null : "period"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={periodTriggerRef}
+                            dropdownRef={periodMenuRef}
+                            narrow
+                            maxVisibleItems={4}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => navigate("/bc/mytasks/add")}
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
+                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                            Add task
+                        </button>
+                    </div>
+                </div>
+
+                {/* Status summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                    <Link
+                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "in_progress"
+                                ? pathname
+                                : `${pathname}?status=in_progress`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "completed"
+                                ? pathname
+                                : `${pathname}?status=completed`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-8 h-8" />
+                        </div>
+                    </Link>
+                </div>
+            </div>
+
+            {/* Task columns scrollable area */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+                        }}
+                    >
+                        {displayedTasksByStatus.todo.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="todo"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
                             />
-                        </svg>
-                        Add task
-                    </button>
-                </div>
-            </div>
-
-            {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Link
-                    to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
+                        ))}
                     </div>
-                    <p className="text-sm font-medium text-slate-500">To Do Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.todo} Tasks
-                    </p>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "in_progress"
-                            ? pathname
-                            : `${pathname}?status=in_progress`
-                    }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+                        }}
+                    >
+                        {displayedTasksByStatus.in_progress.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="in_progress"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
                     </div>
-                    <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.in_progress} Tasks
-                    </p>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "completed"
-                            ? pathname
-                            : `${pathname}?status=completed`
-                    }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="completed"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Completed Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.completed} Tasks
-                    </p>
-                </Link>
-            </div>
-
-            {/* Task cards under each status - drag and drop columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-                    }}
-                >
-                    {displayedTasksByStatus.todo.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-                    }}
-                >
-                    {displayedTasksByStatus.in_progress.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
-                </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status={normalizeStatus(task.status, task.Approval)}
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
                 </div>
             </div>
 
@@ -1180,431 +1074,6 @@ export default function MytaskBC() {
                 </div>
             )}
 
-            {/* Add New Task modal */}
-            {addTaskModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="bg-[#FFFFFF] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                            <button
-                                type="button"
-                                onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="text-lg font-semibold text-black">
-                                {editingTaskId !== null ? "Edit Task" : "Add New Task"}
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <form
-                            className="flex-1 overflow-y-auto p-6"
-                            onSubmit={async (e) => {
-                                e.preventDefault();
-                                try {
-                                    const isEditing = editingTaskId !== null;
-                                    const payload = {
-                                        project_id: projects.find(p => p.project_name === addTaskForm.projectName)?.id,
-                                        project_name: addTaskForm.projectName,
-                                        modules_name: addTaskForm.module,
-                                        module: addTaskForm.module,
-                                        task_name: addTaskForm.taskName,
-                                        taskName: addTaskForm.taskName,
-                                        type: addTaskForm.type,
-                                        category: addTaskForm.type,
-                                        start_date: addTaskForm.actualStartDate,
-                                        startdate: addTaskForm.actualStartDate,
-                                        due_date: addTaskForm.actualEndDate,
-                                        dueDate: addTaskForm.actualEndDate,
-                                        startTime: addTaskForm.startTime,
-                                        dueTime: addTaskForm.dueTime,
-                                        assigned_to: employees.find(e => e.full_name === addTaskForm.assignTo)?.id,
-                                        assign_to: addTaskForm.assignTo,
-                                        description: addTaskForm.description,
-                                        checklist: addTaskForm.checklist,
-                                        status: isEditing ? list.find(t => t.id === editingTaskId)?.status : "To Do",
-                                        progress: isEditing ? list.find(t => t.id === editingTaskId)?.progress : 0
-                                    };
-
-                                    let taskId = editingTaskId;
-                                    if (isEditing) {
-                                        await api.patch(`/api/tasks/${editingTaskId}`, payload);
-                                    } else {
-                                        const res = await api.post<{ task_id: number }>("/api/tasks", payload);
-                                        taskId = res.data.task_id;
-                                    }
-
-                                    if (taskId && attachmentFiles.length > 0) {
-                                        const formData = new FormData();
-                                        attachmentFiles.forEach((file) => formData.append("image", file));
-                                        await api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: { "Content-Type": "multipart/form-data" },
-                                        });
-                                    }
-
-                                    const params: Record<string, string> = {};
-                                    if (statusFilter) params.status = statusFilter;
-                                    if (isTeam) params.condition = "1";
-                                    const updatedTasks = await api.get<{ tasks?: Task[] }>("/api/tasks", { params });
-                                    setList(updatedTasks.data.tasks ?? []);
-                                    resetTaskFormAndClose();
-                                } catch (error) {
-                                    console.error("Error submitting task:", error);
-                                }
-                            }}
-                        >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Project Name
-                                    </label>
-                                    <FormDropdown
-                                        label="Select Project name"
-                                        options={[
-                                            { value: "", label: "Select Project name" },
-                                            ...projects.map(p => ({ value: p.project_name, label: p.project_name }))
-                                        ]}
-                                        value={addTaskForm.projectName}
-                                        onChange={(v) =>
-                                            setAddTaskForm((f) => ({ ...f, projectName: v }))
-                                        }
-                                        isOpen={openFormDropdown === "project"}
-                                        onToggle={() =>
-                                            setOpenFormDropdown((d) =>
-                                                d === "project" ? null : "project",
-                                            )
-                                        }
-                                        onClose={() => setOpenFormDropdown(null)}
-                                        triggerRef={formProjectTriggerRef}
-                                        dropdownRef={formProjectMenuRef}
-                                        searchable
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Select Module
-                                    </label>
-                                    <FormDropdown
-                                        label="Select Module"
-                                        options={[
-                                            { value: "", label: "Select Module" },
-                                            ...modules.map(m => ({ value: m, label: m }))
-                                        ]}
-                                        value={addTaskForm.module}
-                                        onChange={(v) =>
-                                            setAddTaskForm((f) => ({ ...f, module: v }))
-                                        }
-                                        isOpen={openFormDropdown === "module"}
-                                        onToggle={() =>
-                                            setOpenFormDropdown((d) =>
-                                                d === "module" ? null : "module",
-                                            )
-                                        }
-                                        onClose={() => setOpenFormDropdown(null)}
-                                        triggerRef={formModuleTriggerRef}
-                                        dropdownRef={formModuleMenuRef}
-                                        searchable
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name
-                                    </label>
-                                    <div className="flex">
-                                        <input
-                                            type="text"
-                                            value={addTaskForm.taskName}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    taskName: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="Enter Task / Select Task"
-                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                                                }`}
-                                        />
-                                        {editingTaskId === null && (
-                                            <button
-                                                type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                                            >
-                                                Tasklist
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Type
-                                        </label>
-                                        <FormDropdown
-                                            label="Select Type"
-                                            options={[
-                                                { value: "", label: "Select Type" },
-                                                { value: "task", label: "Task" },
-                                                { value: "bug", label: "Bug" },
-                                                { value: "feature", label: "Feature" },
-                                            ]}
-                                            value={addTaskForm.type}
-                                            onChange={(v) =>
-                                                setAddTaskForm((f) => ({ ...f, type: v }))
-                                            }
-                                            isOpen={openFormDropdown === "type"}
-                                            onToggle={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "type" ? null : "type",
-                                                )
-                                            }
-                                            onClose={() => setOpenFormDropdown(null)}
-                                            triggerRef={formTypeTriggerRef}
-                                            dropdownRef={formTypeMenuRef}
-                                            searchable
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Actual Start Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={addTaskForm.actualStartDate}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    actualStartDate: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Actual End Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            value={addTaskForm.actualEndDate}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    actualEndDate: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div className="relative">
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Select Start Time
-                                        </label>
-                                        <button
-                                            ref={formStartTimeTriggerRef}
-                                            type="button"
-                                            onClick={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "type_start_time" ? null : "type_start_time",
-                                                )
-                                            }
-                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
-                                        >
-                                            <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#616161]"}>
-                                                {formatTimeForDisplay(addTaskForm.startTime)}
-                                            </span>
-                                            <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                        </button>
-                                        {openFormDropdown === "type_start_time" && (
-                                            <div ref={formStartTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
-                                                <TimePickerWheel
-                                                    value={addTaskForm.startTime}
-                                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, startTime: v }))}
-                                                    onClose={() => setOpenFormDropdown(null)}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="relative">
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Select End Time
-                                        </label>
-                                        <button
-                                            ref={formEndTimeTriggerRef}
-                                            type="button"
-                                            onClick={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "type_end_time" ? null : "type_end_time",
-                                                )
-                                            }
-                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
-                                        >
-                                            <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#616161]"}>
-                                                {formatTimeForDisplay(addTaskForm.dueTime)}
-                                            </span>
-                                            <svg className="ml-2 h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                                        </button>
-                                        {openFormDropdown === "type_end_time" && (
-                                            <div ref={formEndTimeMenuRef} className="absolute top-full left-0 z-20 mt-1">
-                                                <TimePickerWheel
-                                                    value={addTaskForm.dueTime}
-                                                    onChange={(v) => setAddTaskForm((f) => ({ ...f, dueTime: v }))}
-                                                    onClose={() => setOpenFormDropdown(null)}
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
-                                            Assign To
-                                        </label>
-                                        <FormDropdown
-                                            label="Select Assign To"
-                                            options={[
-                                                { value: "", label: "Select Assign To" },
-                                                ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
-                                            ]}
-                                            value={addTaskForm.assignTo}
-                                            onChange={(v) =>
-                                                setAddTaskForm((f) => ({ ...f, assignTo: v }))
-                                            }
-                                            isOpen={openFormDropdown === "assignTo"}
-                                            onToggle={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "assignTo" ? null : "assignTo",
-                                                )
-                                            }
-                                            onClose={() => setOpenFormDropdown(null)}
-                                            triggerRef={formAssignTriggerRef}
-                                            dropdownRef={formAssignMenuRef}
-                                            searchable
-                                        />
-                                    </div>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        value={addTaskForm.description}
-                                        onChange={(e) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                description: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="Enter Description..."
-                                        rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Checklist
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={addTaskForm.checklist}
-                                        onChange={(e) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                checklist: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="Enter Reference Link"
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
-                                        Attachments
-                                    </label>
-                                    <input
-                                        ref={fileInputRef}
-                                        id="add-task-file-input"
-                                        type="file"
-                                        multiple
-                                        className="sr-only"
-                                        onChange={handleAttachmentChange}
-                                        accept="*/*"
-                                    />
-                                    <div className="flex flex-wrap gap-2">
-                                        <div className="flex flex-1 min-w-0">
-                                            <input
-                                                type="text"
-                                                readOnly
-                                                value={
-                                                    attachmentFiles.length > 0
-                                                        ? attachmentFiles.map((f) => f.name).join(", ")
-                                                        : ""
-                                                }
-                                                placeholder="Upload Files"
-                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
-                                                title={
-                                                    attachmentFiles.length > 0
-                                                        ? attachmentFiles.map((f) => f.name).join(", ")
-                                                        : undefined
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="add-task-file-input"
-                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
-                                            >
-                                                Browse File
-                                            </label>
-                                        </div>
-                                    </div>
-                                    {attachmentFiles.length > 0 && (
-                                        <ul className="mt-2 space-y-1">
-                                            {attachmentFiles.map((file, index) => (
-                                                <AttachmentPreviewItem
-                                                    key={`${file.name}-${index}-${file.size}`}
-                                                    file={file}
-                                                    onRemove={() => removeAttachment(index)}
-                                                    onPreviewClick={setAttachmentPreviewFile}
-                                                />
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex justify-center gap-3 mt-6 pt-4 ">
-                                <button
-                                    type="button"
-                                    onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
-                                >
-                                    Discard
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
-                                >
-                                    Submit
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
             <AttachmentPreviewModal
                 file={attachmentPreviewFile}
                 onClose={() => setAttachmentPreviewFile(null)}

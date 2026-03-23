@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+ import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
@@ -8,6 +8,8 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 
@@ -88,19 +90,11 @@ function FormDropdown({
                 <span className={value ? "text-[#353535]" : "text-[#616161]"}>
                     {displayLabel}
                 </span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
@@ -200,25 +194,26 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className="truncate">{selected ?? label}</span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                        <>
+                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span>{selected}</span>
+                        </>
+                    ) : (
+                        selected ?? label
+                    )}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
@@ -242,8 +237,8 @@ function TaskDropdown({
                         </div>
                     )}
                     <div
-                        className="overflow-y-auto py-1"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        className="overflow-y-auto py-1 custom-scrollbar"
+                        style={{ maxHeight: listMaxHeight }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -255,7 +250,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -349,6 +344,7 @@ interface Task {
     uploader_full_name?: string;
     Approval?: string;
     created_at?: string;
+    Actual_start_time?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -393,29 +389,12 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         checklist: str(t.checklist ?? ""),
     };
 }
-
-function formatDateRange(start?: string, end?: string): string {
-    if (!start && !end) return "—";
-    const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-    const fmtShort = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]}`;
-    };
-    const fmtFull = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    };
-    if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-    if (start) return fmtFull(start);
-    return end ? fmtFull(end) : "—";
-}
-
 function normalizeStatus(
     s: string | undefined,
     approval?: string
-): "todo" | "in_progress" | "completed" | "approved" | "rejected" {
-    if (approval?.toLowerCase() === "approved") return "approved";
-    if (approval?.toLowerCase() === "rejected") return "rejected";
+): "todo" | "in_progress" | "completed" {
+    if (approval?.toLowerCase() === "approved") return "completed";
+    if (approval?.toLowerCase() === "rejected") return "todo";
     if (!s) return "todo";
     const lower = s.toLowerCase().replace(/\s+/g, "_");
     if (lower.includes("progress") || lower === "in_progress")
@@ -423,37 +402,6 @@ function normalizeStatus(
     if (lower.includes("complete") || lower === "done") return "completed";
     return "todo";
 }
-
-const STATUS_STYLE: Record<
-    "todo" | "in_progress" | "completed" | "approved" | "rejected",
-    { label: string; dot: string; bg: string }
-> = {
-    todo: {
-        label: "To Do",
-        dot: "bg-orange-500",
-        bg: "bg-orange-100 text-orange-800 rounded-full",
-    },
-    in_progress: {
-        label: "In Progress",
-        dot: "bg-sky-500",
-        bg: "bg-sky-100 text-sky-800",
-    },
-    completed: {
-        label: "Completed",
-        dot: "bg-emerald-500",
-        bg: "bg-emerald-100 text-emerald-800",
-    },
-    approved: {
-        label: "Approved",
-        dot: "bg-emerald-500",
-        bg: "bg-emerald-100 text-emerald-800 rounded-full",
-    },
-    rejected: {
-        label: "Rejected",
-        dot: "bg-red-500",
-        bg: "bg-red-100 text-red-800 rounded-full",
-    },
-};
 
 function TaskCard({
     task,
@@ -463,14 +411,12 @@ function TaskCard({
     onDeleteTask,
 }: {
     task: Task;
-    status: "todo" | "in_progress" | "completed" | "approved" | "rejected";
+    status: "todo" | "in_progress" | "completed";
     onViewTask?: (task: Task) => void;
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const style = STATUS_STYLE[status];
     const progress = task.progress ?? 0;
-    const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -486,24 +432,27 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
+        if (status === "completed") {
+            e.preventDefault();
+            return;
+        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
     };
 
+    const isCompleted = status === "completed";
+
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-                >
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-                    {style.label}
-                </span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <h4 className="font-semibold text-slate-900 text-xl truncate">
+                    {task.task_name || "Task Name"}
+                </h4>
                 <div className="relative" ref={menuRef}>
                     <button
                         type="button"
@@ -520,13 +469,14 @@ function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-[-10] top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-[#FFFFFF]/20 backdrop-blur-2xl opacity-70 py-1 px-3 shadow-lg border border-[#59595980]"
+                            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                 ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
                             role="menu"
                         >
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-red-50/50 transition-colors group text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
@@ -538,7 +488,7 @@ function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
@@ -550,7 +500,7 @@ function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] hover:bg-slate-50 transition-colors text-left"
+                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
@@ -563,10 +513,11 @@ function TaskCard({
                     )}
                 </div>
             </div>
-            <h4 className="font-semibold text-slate-900 text-sm mb-1">
-                {task.task_name || "Task Name"}
-            </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
+                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+
+                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+            </div>
             <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-slate-600">Progress</span>
                 <span className="text-xs font-medium text-slate-700">{progress}%</span>
@@ -855,20 +806,20 @@ export default function MytaskBL() {
     });
 
     const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
         ).length,
-        completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
+        completed: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "completed")
             .length,
     };
     const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+        todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo"),
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => normalizeStatus(t.status, t.Approval) === "in_progress",
         ),
         completed: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "completed",
+            (t) => normalizeStatus(t.status, t.Approval) === "completed",
         ),
     };
 
@@ -892,163 +843,157 @@ export default function MytaskBL() {
     }
 
     return (
-        <div className="space-y-6 overflow-auto min-h-screen">
-            {/* Top row: title + dropdowns + Add task */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-slate-800">
-                    {isTeam ? "Team Task" : "My Task"}
-                </h2>
-                <div
-                    ref={dropdownsContainerRef}
-                    className="flex flex-wrap items-center gap-2 w-fit"
-                >
-                    <TaskDropdown
-                        label="Select Employee"
-                        options={employeeOptions}
-                        selected={selectedEmployee}
-                        onSelect={setSelectedEmployee}
-                        isOpen={openDropdown === "employee"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "employee" ? null : "employee"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={employeeTriggerRef}
-                        dropdownRef={employeeMenuRef}
-                        searchable={true}
-                    />
-                    <TaskDropdown
-                        label="Select Projects"
-                        options={projectOptions}
-                        selected={selectedProject}
-                        onSelect={setSelectedProject}
-                        isOpen={openDropdown === "projects"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "projects" ? null : "projects"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={projectsTriggerRef}
-                        dropdownRef={projectsMenuRef}
-                        searchable={true}
-                    />
-                    <TaskDropdown
-                        label="Show"
-                        options={SHOW_OPTIONS}
-                        selected={selectedShow}
-                        onSelect={setSelectedShow}
-                        isOpen={openDropdown === "show"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "show" ? null : "show"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={showTriggerRef}
-                        dropdownRef={showMenuRef}
-                        narrow
-                    />
-                    <TaskDropdown
-                        label="Period"
-                        options={PERIOD_OPTIONS}
-                        selected={selectedPeriod}
-                        onSelect={setSelectedPeriod}
-                        isOpen={openDropdown === "period"}
-                        onToggle={() =>
-                            setOpenDropdown((d) => (d === "period" ? null : "period"))
-                        }
-                        onClose={() => setOpenDropdown(null)}
-                        triggerRef={periodTriggerRef}
-                        dropdownRef={periodMenuRef}
-                        narrow
-                    />
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setEditingTaskId(null);
-                            setAddTaskForm({
-                                projectName: "",
-                                module: "",
-                                taskName: "",
-                                type: "",
-                                actualStartDate: "",
-                                actualEndDate: "",
-                                startTime: "",
-                                dueTime: "",
-                                assignTo: "",
-                                description: "",
-                                checklist: "",
-                            });
-                            setAddTaskModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+        <div className="h-full min-h-0 flex flex-col overflow-hidden">
+            <div className="bg-white pb-3 flex-shrink-0">
+                {/* Top row: title + dropdowns + Add task */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+                        {isTeam ? "Team Task" : "My Task"}
+                    </h2>
+                    <div
+                        ref={dropdownsContainerRef}
+                        className="flex flex-wrap items-center gap-2 w-fit"
                     >
-                        <svg
-                            className="h-5 w-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        <TaskDropdown
+                            label="Select Employee"
+                            options={employeeOptions}
+                            selected={selectedEmployee}
+                            onSelect={setSelectedEmployee}
+                            isOpen={openDropdown === "employee"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "employee" ? null : "employee"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={employeeTriggerRef}
+                            dropdownRef={employeeMenuRef}
+                            searchable
+                            searchPlaceholder="Search employee..."
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Select Projects"
+                            options={projectOptions}
+                            selected={selectedProject}
+                            onSelect={setSelectedProject}
+                            isOpen={openDropdown === "projects"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "projects" ? null : "projects"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={projectsTriggerRef}
+                            dropdownRef={projectsMenuRef}
+                            searchable
+                            searchPlaceholder="Search project..."
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Show"
+                            options={SHOW_OPTIONS}
+                            selected={selectedShow}
+                            onSelect={setSelectedShow}
+                            isOpen={openDropdown === "show"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "show" ? null : "show"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={showTriggerRef}
+                            dropdownRef={showMenuRef}
+                            narrow
+                            maxVisibleItems={4}
+                        />
+                        <TaskDropdown
+                            label="Period"
+                            options={PERIOD_OPTIONS}
+                            selected={selectedPeriod}
+                            onSelect={setSelectedPeriod}
+                            isOpen={openDropdown === "period"}
+                            onToggle={() =>
+                                setOpenDropdown((d) => (d === "period" ? null : "period"))
+                            }
+                            onClose={() => setOpenDropdown(null)}
+                            triggerRef={periodTriggerRef}
+                            dropdownRef={periodMenuRef}
+                            narrow
+                            maxVisibleItems={4}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEditingTaskId(null);
+                                setAddTaskForm({
+                                    projectName: "",
+                                    module: "",
+                                    taskName: "",
+                                    type: "",
+                                    actualStartDate: "",
+                                    actualEndDate: "",
+                                    startTime: "",
+                                    dueTime: "",
+                                    assignTo: "",
+                                    description: "",
+                                    checklist: "",
+                                });
+                                setAddTaskModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                            />
-                        </svg>
-                        Add task
-                    </button>
+                            <img src={AddBtn} alt="Add" className="h-5 w-5" />
+                            Add task
+                        </button>
+                    </div>
+                </div>
+
+                {/* Status summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                    <Link
+                        to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group1} alt="Group1" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "in_progress"
+                                ? pathname
+                                : `${pathname}?status=in_progress`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group2} alt="Group2" className="w-8 h-8" />
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={
+                            statusFilter === "completed"
+                                ? pathname
+                                : `${pathname}?status=completed`
+                        }
+                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                    >
+                        <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+
+                        <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                        <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                            <img src={Group3} alt="Group3" className="w-8 h-8" />
+                        </div>
+                    </Link>
                 </div>
             </div>
 
-            {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Link
-                    to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-500">To Do Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.todo} Tasks
-                    </p>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "in_progress"
-                            ? pathname
-                            : `${pathname}?status=in_progress`
-                    }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.in_progress} Tasks
-                    </p>
-                </Link>
-
-                <Link
-                    to={
-                        statusFilter === "completed"
-                            ? pathname
-                            : `${pathname}?status=completed`
-                    }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-500">Completed Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
-                        {counts.completed} Tasks
-                    </p>
-                </Link>
-            </div>
-
-            {/* Task cards under each status - drag and drop columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Task columns scrollable area */}
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
                 <div
                     className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
@@ -1605,5 +1550,6 @@ export default function MytaskBL() {
                 onClose={() => setAttachmentPreviewFile(null)}
             />
         </div>
-    );
+    </div>
+);
 }
