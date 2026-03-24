@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import {
   PlusIcon,
   XMarkIcon,
-  PencilSquareIcon,
-  TrashIcon,
 } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../assets/ProjectManager/CreateTeam/three dots.svg";
-import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
@@ -129,20 +130,20 @@ function TeamCard({
         </button>
 
         {showMenu && (
-          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
+          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
             <button
               onClick={() => {
                 onViewDetails(team);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
               <img
-                src={eyeIcon}
+                src={viewIcon}
                 alt="View"
                 className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
               />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 View
               </span>
             </button>
@@ -151,10 +152,14 @@ function TeamCard({
                 onEdit(team);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
-              <PencilSquareIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <img
+                src={editIcon}
+                alt="Edit"
+                className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+              />
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 Edit
               </span>
             </button>
@@ -163,10 +168,14 @@ function TeamCard({
                 onDelete(team.team_id);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
-              <TrashIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <img
+                src={deleteIcon}
+                alt="Delete"
+                className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+              />
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 Delete
               </span>
             </button>
@@ -267,6 +276,7 @@ function TeamCard({
 }
 
 export default function CreateteamTD() {
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -489,16 +499,28 @@ export default function CreateteamTD() {
     );
   }
 
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+  
+  const filteredTeams = teams.filter(t => {
+      if (!searchQuery) return true;
+      const tName = (t.team_name || t.teamname || "").toLowerCase();
+      const pName = (t.project_name || "").toLowerCase();
+      const lName = (t.leader_name || getEmpName(t.leader) || "").toLowerCase();
+      return tName.includes(searchQuery) ||
+             pName.includes(searchQuery) ||
+             lName.includes(searchQuery);
+  });
+
   const displayTeams =
     selectedRange.end === null
-      ? teams
-      : teams.slice(selectedRange.start, selectedRange.end);
+      ? filteredTeams
+      : filteredTeams.slice(selectedRange.start, selectedRange.end);
 
   return (
     <div className="h-full flex flex-col p-2">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">
-          Team
+          Team Workspace
         </h2>
         <div className="flex items-center gap-3">
           {/* Show entries dropdown */}
@@ -1146,16 +1168,16 @@ export default function CreateteamTD() {
 
       {showDetailsModal && selectedTeam && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-          <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative">
+          <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
             <button
               onClick={() => setShowDetailsModal(false)}
-              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors z-10"
             >
               <XMarkIcon className="w-6 h-6 stroke-2" />
             </button>
 
-            <div className="mb-8 pr-12">
-              <h3 className="text-2xl font-bold text-slate-800 font-sora">
+            <div className="p-8 pb-4 shrink-0">
+              <h3 className="text-2xl font-bold text-slate-800 font-sora pr-12">
                 {selectedTeam.team_name ||
                   selectedTeam.teamname ||
                   selectedTeam.leader_name ||
@@ -1164,73 +1186,75 @@ export default function CreateteamTD() {
               <p className="text-slate-500 mt-1">Team Details</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Project
-                </h4>
-                <p className="font-semibold text-slate-800">
-                  {selectedTeam.project_name || "N/A"}
-                </p>
-              </div>
+            <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
+              <div className="space-y-6">
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    Project
+                  </h4>
+                  <p className="font-semibold text-slate-800">
+                    {selectedTeam.project_name || "N/A"}
+                  </p>
+                </div>
 
-              <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  Leadership
-                </h4>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                    {
-                      (
-                        selectedTeam.leader_name ||
-                        getEmpName(selectedTeam.leader)
-                      )?.[0] ?? ""
-                    }
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">
-                      {selectedTeam.leader_name ||
-                        getEmpName(selectedTeam.leader)}
-                    </p>
-                    <p className="text-sm text-slate-500">Team Leader</p>
+                <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                    Leadership
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
+                      {
+                        (
+                          selectedTeam.leader_name ||
+                          getEmpName(selectedTeam.leader)
+                        )?.[0] ?? ""
+                      }
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800">
+                        {selectedTeam.leader_name ||
+                          getEmpName(selectedTeam.leader)}
+                      </p>
+                      <p className="text-sm text-slate-500">Team Leader</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div>
-                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 pl-1">
-                  Team Members (
-                  {selectedTeam.employee.split(",").filter(Boolean).length})
-                </h4>
-                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {selectedTeam.employee
-                    .split(",")
-                    .filter(Boolean)
-                    .map((eid, i) => {
-                      const empInfo = employees.find(
-                        (e) => e.id.toString() === eid,
-                      );
-                      return (
-                        <div
-                          key={eid}
-                          className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
-                        >
-                          <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
-                            {getEmpName(eid)?.[0] ?? ""}
-                          </div>
-                          <div>
-                            <p className="font-medium text-slate-800">
-                              {getEmpName(eid)}
-                            </p>
-                            {empInfo?.email && (
-                              <p className="text-sm text-slate-500">
-                                {empInfo.email}
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 pl-1">
+                    Team Members (
+                    {selectedTeam.employee.split(",").filter(Boolean).length})
+                  </h4>
+                  <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    {selectedTeam.employee
+                      .split(",")
+                      .filter(Boolean)
+                      .map((eid, i) => {
+                        const empInfo = employees.find(
+                          (e) => e.id.toString() === eid,
+                        );
+                        return (
+                          <div
+                            key={eid}
+                            className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
+                          >
+                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
+                              {getEmpName(eid)?.[0] ?? ""}
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-800">
+                                {getEmpName(eid)}
                               </p>
-                            )}
+                              {empInfo?.email && (
+                                <p className="text-sm text-slate-500">
+                                  {empInfo.email}
+                                </p>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                  </div>
                 </div>
               </div>
             </div>

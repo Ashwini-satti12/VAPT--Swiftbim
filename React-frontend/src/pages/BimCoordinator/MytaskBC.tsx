@@ -36,6 +36,11 @@ export interface Project {
     project_name: string;
     modules?: string;
     tasks?: string;
+    members_names?: string[];
+    project_manager_name?: string | null;
+    lead_name?: string | null;
+    bim_coordinator_name?: string | null;
+    uploader_name?: string | null;
 }
 
 export interface FormDropdownProps {
@@ -518,13 +523,13 @@ export function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-0 top-full mt-2 z-[100] min-w-[150px] bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right py-1"
+                            className="absolute right-0 top-full mt-2 z-[100] min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all origin-top-right overflow-hidden"
                             role="menu"
                         >
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
@@ -533,7 +538,7 @@ export function TaskCard({
                                 <img
                                     src={viewIcon}
                                     alt="view"
-                                    className="w-5 h-5 grayscale group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
                                 <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
@@ -542,7 +547,7 @@ export function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
@@ -551,16 +556,16 @@ export function TaskCard({
                                 <img
                                     src={editIcon}
                                     alt="edit"
-                                    className="w-5 h-5 grayscale transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Edit
                                 </span>
                             </button>
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 transition-colors group text-left hover:bg-white/10"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
@@ -569,9 +574,9 @@ export function TaskCard({
                                 <img
                                     src={deleteIcon}
                                     alt="delete"
-                                    className="w-5 h-5 grayscale transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Delete
                                 </span>
                             </button>
@@ -647,7 +652,31 @@ export default function MytaskBC() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const employeeOptions = ["Select Employee", ...employees.map(e => e.full_name)];
+    const getEmployeeOptions = () => {
+        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
+            return ["Select Employee", ...employees.map((e) => e.full_name)];
+        }
+        const proj = projects.find((p) => p.project_name === selectedProject);
+        if (!proj) {
+            return ["Select Employee", ...employees.map((e) => e.full_name)];
+        }
+        const involvedNames = new Set<string>();
+        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+        if (proj.lead_name) involvedNames.add(proj.lead_name);
+        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+        if (Array.isArray(proj.members_names)) {
+            proj.members_names.forEach((name: string) => {
+                if (name) involvedNames.add(name);
+            });
+        }
+
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+
+        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+    };
+
+    const employeeOptions = getEmployeeOptions();
     const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
 
     const statusToLabel = (

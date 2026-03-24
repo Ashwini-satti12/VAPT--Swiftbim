@@ -24,6 +24,11 @@ interface Project {
     modules?: string;
     /** Comma-separated resource ids or names involved in this project */
     members?: string;
+    members_names?: string[];
+    project_manager_name?: string | null;
+    lead_name?: string | null;
+    bim_coordinator_name?: string | null;
+    uploader_name?: string | null;
 }
 
 interface FormDropdownProps {
@@ -914,10 +919,32 @@ export default function MytaskPMV() {
     }, [isTeam, statusFilter]);
 
     // Data maps for dropdowns
-    const employeeOptions = [
-        "Select Employee",
-        ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
-    ];
+    const getEmployeeOptions = () => {
+        const rawEmployees = Array.isArray(employees) ? employees : [];
+        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
+            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
+        }
+        const proj = (Array.isArray(projects) ? projects : []).find((p) => p?.project_name === selectedProject);
+        if (!proj) {
+            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
+        }
+        const involvedNames = new Set<string>();
+        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+        if (proj.lead_name) involvedNames.add(proj.lead_name);
+        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+        if (Array.isArray(proj.members_names)) {
+            proj.members_names.forEach((name: string) => {
+                if (name) involvedNames.add(name);
+            });
+        }
+
+        const validEmployees = rawEmployees.filter((e) => e?.full_name && involvedNames.has(e.full_name));
+
+        return ["Select Employee", ...validEmployees.map((e) => e?.full_name).filter(Boolean)];
+    };
+
+    const employeeOptions = getEmployeeOptions();
 
     const projectOptions = [
         "Select Projects",

@@ -161,21 +161,9 @@ const LEAVE_TYPES = [
   "Unpaid Leave",
 ];
 
-const showEntriesOptions: {
-  value: string;
-  label: string;
-  start: number;
-  end: number | null;
-}[] = [
-  { value: "0-100", label: "0-100", start: 0, end: 100 },
-  { value: "101-200", label: "101-200", start: 100, end: 200 },
-  { value: "201-300", label: "201-300", start: 200, end: 300 },
-  { value: "301-400", label: "301-400", start: 300, end: 400 },
-  { value: "all", label: "All", start: 0, end: null },
-];
+// Show entries options removed
 
-const PER_PAGE = 10;
-const PAGINATION_VISIBLE = 4;
+// Pagination configs removed
 
 /** Allow only letters, numbers, symbols; collapse multiple spaces to one (for Employee Name and Reason). */
 function normalizeNameAndReason(value: string): string {
@@ -285,15 +273,10 @@ export default function ManageLeave() {
   const [selectedEmployee, setSelectedEmployee] = useState<string>("All");
   const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
-  const [selectedShowEntries, setSelectedShowEntries] = useState(
-    showEntriesOptions[0].value,
-  );
-  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
-  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  // Show entries state and refs removed
   const [leaveTypeOpen, setLeaveTypeOpen] = useState(false);
   const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+  // Pagination state removed
 
   const employeeOptions = [
     "All",
@@ -386,20 +369,7 @@ export default function ManageLeave() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [employeeDropdownOpen]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        showEntriesDropdownRef.current &&
-        !showEntriesDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowEntriesOpen(false);
-      }
-    };
-    if (showEntriesOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showEntriesOpen]);
+  // Show entries click outside handled removed
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -432,54 +402,14 @@ export default function ManageLeave() {
   }, [leaveTypeOpenEdit]);
 
   useEffect(() => {
-    setCurrentPage(1);
-    setPaginationWindowStart(1);
-  }, [selectedShowEntries, selectedEmployee]);
+    // CurrentPage reset removed
+  }, [selectedEmployee]);
 
   const filteredList =
     selectedEmployee === "All"
       ? leaves
       : leaves.filter((l) => l.employeeName === selectedEmployee);
-  const selectedRange =
-    showEntriesOptions.find((o) => o.value === selectedShowEntries) ??
-    showEntriesOptions[0];
-  const rangeStart = selectedRange.start;
-  const rangeEnd =
-    selectedRange.end === null
-      ? filteredList.length
-      : Math.min(selectedRange.end, filteredList.length);
-  const listInRange = filteredList.slice(rangeStart, rangeEnd);
-  const totalInRange = listInRange.length;
-  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-  const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  const displayedList = listInRange.slice(
-    (safePage - 1) * PER_PAGE,
-    safePage * PER_PAGE,
-  );
-
-  const pageRanges: { start: number; end: number; label: string }[] = [];
-  for (let p = 1; p <= totalPages; p++) {
-    const s = rangeStart + (p - 1) * PER_PAGE;
-    const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-    const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-    pageRanges.push({ start: s, end: e, label });
-  }
-  const activePage = safePage;
-  const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-  const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-  const visiblePageRanges = pageRanges.slice(
-    effectiveWindowStart - 1,
-    effectiveWindowStart - 1 + PAGINATION_VISIBLE,
-  );
-  const canPrevWindow = paginationWindowStart > 1;
-  const canNextWindow =
-    paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-  const goPrevWindow = () =>
-    setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-  const goNextWindow = () =>
-    setPaginationWindowStart((s) =>
-      Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
-    );
+  // Pagination logic removed
 
   const handleView = (row: LeaveEntry) => {
     setSelectedLeave(row);
@@ -815,7 +745,7 @@ export default function ManageLeave() {
   };
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 flex flex-col h-full  font-gantari">
+    <div className="p-4 flex flex-col h-full font-gantari">
       {/* Page header: heading left; Employee + Show entries + Apply Leave right */}
       <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">
@@ -872,56 +802,7 @@ export default function ManageLeave() {
               </div>
             )}
           </div>
-          <div className="relative" ref={showEntriesDropdownRef}>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowEntriesOpen((o) => !o);
-              }}
-              className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? "text-[#353535]" : "text-[#616161]"}`}
-            >
-              <span>Show:</span>
-              <span>{selectedRange.label}</span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={`transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
-              >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
-            </button>
-            {showEntriesOpen && (
-              <div
-                className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[140px] py-1.5"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {showEntriesOptions.map((opt) => {
-                  const isSelected = selectedShowEntries === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedShowEntries(opt.value);
-                        setShowEntriesOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* Show entries dropdown removed */}
           <button
             type="button"
             onClick={() => {
@@ -940,49 +821,49 @@ export default function ManageLeave() {
       </div>
 
       {/* Single table: all leave data with Role, Reason, and Approve/Reject for Pending */}
-      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
+      <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
         <div className="overflow-x-auto overflow-y-auto flex-1 ">
           <table className="w-full min-w-[900px] border-collapse table-fixed">
             <colgroup>
-              <col className="w-[6%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
-              <col className="w-[13.4%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
+              <col className="w-[12.5%]" />
             </colgroup>
-            <thead>
-              <tr className="bg-[#F8F9FA] border-b border-[#E5E5E5]">
-                <th className="pl-6 pr-8 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+            <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+              <tr className="bg-[#FFFFFF]">
+                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Sl.No
                 </th>
-                <th className="pl-8 pr-8 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Employee Name
                 </th>
-                <th className="pl-8 pr-6 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Role
                 </th>
-                <th className="px-6 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Leave Type
                 </th>
-                <th className="px-6 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   From Date
                 </th>
-                <th className="px-6 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="px-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   To Date
                 </th>
-                <th className="pl-6 pr-8 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Status
                 </th>
-                <th className="pl-8 pr-6 py-4 text-center text-md font-bold tracking-wider text-[#353535] whitespace-nowrap">
+                <th className="pl-4 pr-4 py-3 text-center text-[16px] font-semibold tracking-wider text-[#353535] whitespace-nowrap">
                   Action
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#EEEEEE]">
-              {displayedList.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
@@ -1010,41 +891,39 @@ export default function ManageLeave() {
                   </td>
                 </tr>
               ) : (
-                displayedList.map((row, index) => {
-                  const baseIndex =
-                    rangeStart + (safePage - 1) * PER_PAGE + index;
-                  const slNo = baseIndex + 1;
+                filteredList.map((row, index) => {
+                  const slNo = index + 1;
                   return (
                     <tr
                       key={row.id}
                       className={index % 2 === 1 ? "bg-[#FAFAFA]" : "bg-white"}
                     >
-                      <td className="pl-6 pr-8 py-3.5 text-center text-sm text-[#353535] font-medium align-middle">
+                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#353535] font-medium align-middle">
                         {String(slNo).padStart(2, "0")}
                       </td>
-                      <td className="pl-8 pr-8 py-3.5 text-center text-sm text-[#353535] font-semibold align-middle">
+                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#353535] font-semibold align-middle">
                         {row.employeeName}
                       </td>
-                      <td className="pl-8 pr-6 py-3.5 text-center text-sm text-[#616161] align-middle">
+                      <td className="pl-4 pr-4 py-6 text-center text-[14px] text-[#616161] align-middle">
                         {row.role ?? "–"}
                       </td>
-                      <td className="px-6 py-3.5 text-center text-sm text-[#616161] align-middle">
+                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
                         {row.leaveType}
                       </td>
-                      <td className="px-6 py-3.5 text-center text-sm text-[#616161] align-middle">
+                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
                         {row.fromDate ?? "–"}
                       </td>
-                      <td className="px-6 py-3.5 text-center text-sm text-[#616161] align-middle">
+                      <td className="px-4 py-6 text-center text-[14px] text-[#616161] align-middle">
                         {row.toDate ?? "–"}
                       </td>
-                      <td className="pl-6 pr-8 py-3.5 text-center align-middle">
+                      <td className="pl-4 pr-4 py-6 text-center align-middle">
                         <span
                           className={`inline-flex px-3 py-1 rounded-md text-xs font-semibold ${row.currentStatus === "Approved" ? "bg-[#E1F6EB] text-[#008F22]" : row.currentStatus === "Rejected" ? "bg-[#FFE5E5] text-[#C62828]" : "bg-[#FFF8E1] text-[#F57C00]"}`}
                         >
                           {row.currentStatus}
                         </span>
                       </td>
-                      <td className="pl-8 pr-6 py-3.5 text-center whitespace-nowrap align-middle">
+                      <td className="pl-4 pr-4 py-6 text-center whitespace-nowrap align-middle">
                         <div className="flex items-center justify-center gap-4 flex-nowrap">
                           <button
                             type="button"
@@ -1201,69 +1080,7 @@ export default function ManageLeave() {
         </div>
       </div>
 
-      {/* Pagination */}
-      {totalInRange > 0 && (
-        <div className="flex flex-wrap items-center justify-end mt-4 -mb-8 pt-2 flex-shrink-0">
-          <div className="flex items-center gap-2 flex-wrap bg-white border border-[#E5E5E5] rounded-xl px-4 py-2 shadow-sm">
-            <span className="text-[#666666] text-sm font-medium">Showing:</span>
-            <button
-              type="button"
-              onClick={goPrevWindow}
-              disabled={!canPrevWindow}
-              className="flex items-center gap-1 text-[#666666] text-sm font-medium hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Prev
-            </button>
-            {visiblePageRanges.map((pr) => {
-              const pageNum =
-                Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
-              const isActive = pageNum === activePage;
-              return (
-                <button
-                  key={pr.label}
-                  type="button"
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive ? "bg-[#DD4342] text-white shadow-sm" : "text-[#666666] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
-                >
-                  {pr.label}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={goNextWindow}
-              disabled={!canNextWindow}
-              className="flex items-center gap-1 text-[#666666] text-sm font-medium hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Pagination removed */}
 
       {/* Apply Leave Modal */}
       {applyModalOpen &&
@@ -1273,7 +1090,7 @@ export default function ManageLeave() {
             onClick={handleCloseModal}
           >
             <div
-              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
+              className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">

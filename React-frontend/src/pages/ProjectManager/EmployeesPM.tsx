@@ -5,6 +5,7 @@ import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import { getPhoneLength } from '../../utils/countryCodes';
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -168,15 +169,27 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
-          styleType === "header" 
-          ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold" 
-          : styleType === "table"
-          ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-          : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
-        }`}
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+            : styleType === "table"
+              ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
-        <span>{value || placeholder}</span>
+        <span className={`whitespace-nowrap ${
+            styleType === "header" || styleType === "form"
+              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+              : ""
+          }`}>
+          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+            <>
+              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="font-semibold">{toCamelCase(value)}</span>
+            </>
+          ) : (
+            value || placeholder
+          )}
+        </span>
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
       </button>
       {isOpen && (
@@ -190,7 +203,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[15px] text-[#353535] font-Gantari hover:bg-[#F4F4F4] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
               >
                 {option}
               </button>
@@ -297,30 +310,12 @@ export default function EmployeesPM() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('All');
   const [selectedShow, setSelectedShow] = useState<string>("Show");
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
-
-  const showTriggerRef = useRef<HTMLButtonElement>(null);
-  const showMenuRef = useRef<HTMLDivElement>(null);
-  const statusTriggerRef = useRef<HTMLButtonElement>(null);
-  const statusMenuRef = useRef<HTMLDivElement>(null);
 
   const canAdd = user?.panel_type === 1;
 
-  useEffect(() => {
-    if (!openDropdown) return;
-    function handleClickOutside(event: MouseEvent) {
-      const isClickInsideShow = showMenuRef.current?.contains(event.target as Node) || showTriggerRef.current?.contains(event.target as Node);
-      const isClickInsideStatus = statusMenuRef.current?.contains(event.target as Node) || statusTriggerRef.current?.contains(event.target as Node);
-      
-      if (!isClickInsideShow && !isClickInsideStatus) {
-        setOpenDropdown(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openDropdown]);
 
   useEffect(() => {
     api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
@@ -387,10 +382,18 @@ export default function EmployeesPM() {
   }, [editParam, list]);
 
   const filteredList = list.filter((emp: Employee) => {
-    if (statusFilter === 'All') return true;
-    const currentStatus = (emp.active || '').toLowerCase();
-    if (statusFilter === 'Active') return currentStatus === 'active';
-    if (statusFilter === 'Inactive') return currentStatus !== 'active';
+    if (statusFilter !== 'All') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+      if (statusFilter === 'Inactive' && currentStatus === 'active') return false;
+    }
+
+    if (typeFilter !== 'All') {
+      const currentType = (emp.user_type || '').toLowerCase();
+      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+    }
+
     return true;
   });
 
@@ -467,8 +470,9 @@ export default function EmployeesPM() {
       alert('Please select country code.');
       return;
     }
-    if (phoneDigits.length !== 12) {
-      alert('Phone number must be exactly 12 digits.');
+    const expectedLength = getPhoneLength(editForm.country_code);
+    if (phoneDigits.length !== expectedLength) {
+      alert(`Phone number must be exactly ${expectedLength} digits for ${editForm.country_code}.`);
       return;
     }
     if (editForm.dob && editForm.dob > dobMaxDate) {
@@ -553,8 +557,9 @@ export default function EmployeesPM() {
     }
 
     const phoneDigits = String(form.phone_number || '').replace(/\D/g, '');
-    if (phoneDigits.length !== 12) {
-      setAddError('Phone number must be exactly 12 digits.');
+    const expectedLength = getPhoneLength(form.country_code);
+    if (phoneDigits.length !== expectedLength) {
+      setAddError(`Phone number must be exactly ${expectedLength} digits for ${form.country_code}.`);
       return;
     }
 
@@ -718,103 +723,36 @@ export default function EmployeesPM() {
 
                 {/* Show Dropdown */}
                 {viewMode === 'table' && (
-                  <div className="relative">
-                    <button
-                      ref={showTriggerRef}
-                      type="button"
-                      onClick={() => setOpenDropdown(openDropdown === "show" ? null : "show")}
-                      className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
-                    >
-                      <span className="truncate font-Gantari">
-                        {selectedShow !== "Show" && selectedShow !== "All" ? (
-                          <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
-                            <span className="text-[#353535] font-semibold">{selectedShow}</span>
-                          </>
-                        ) : (
-                          <span className="text-[#616161] text-[14px] font-semibold">{selectedShow}</span>
-                        )}
-                      </span>
-                      <img
-                        src={ArrowDown}
-                        alt="arrow"
-                        className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "show" ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {openDropdown === "show" && (
-                      <div
-                        ref={showMenuRef}
-                        className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
-                      >
-                        <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
-                          {SHOW_OPTIONS.map((opt: string, idx: number) => (
-                            <button
-                              key={`${opt}-${idx}`}
-                              type="button"
-                              onClick={() => {
-                                setSelectedShow(opt);
-                                setOpenDropdown(null);
-                              }}
-                              className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${selectedShow === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
-                            >
-                              {opt}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <CustomDropdown
+                    options={['1-50', '51-100', '101-150', '151-200', '201-250', '251-300', 'All']}
+                    value={selectedShow === 'Show' ? 'Show' : selectedShow}
+                    onChange={(val) => setSelectedShow(val)}
+                    placeholder="Show"
+                    className="flex-1 sm:min-w-[120px]"
+                    styleType="header"
+                  />
                 )}
 
-                {/* Status Dropdown */}
-                <div className="relative">
-                  <button
-                    ref={statusTriggerRef}
-                    type="button"
-                    onClick={() => setOpenDropdown(openDropdown === "status" ? null : "status")}
-                    className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
-                  >
-                    <span className="truncate font-Gantari">
-                      {statusFilter !== "All" ? (
-                        <>
-                          <span className="text-sm text-[#353535]">Status:</span>{" "}
-                          <span className="text-[#353535] font-semibold">{statusFilter}</span>
-                        </>
-                      ) : (
-                        <span className="text-[#616161] text-[14px] font-semibold">Status</span>
-                      )}
-                    </span>
-                    <img
-                      src={ArrowDown}
-                      alt="arrow"
-                      className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "status" ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {openDropdown === "status" && (
-                    <div
-                      ref={statusMenuRef}
-                      className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
-                    >
-                      <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
-                        {(viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']).map((opt: string, idx: number) => (
-                          <button
-                            key={`${opt}-${idx}`}
-                            type="button"
-                            onClick={() => {
-                              let nextStatus = opt;
-                              if (viewMode === 'card' && opt === 'Deactive') nextStatus = 'Inactive';
-                              setStatusFilter(nextStatus);
-                              setOpenDropdown(null);
-                            }}
-                            className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${statusFilter === opt || (opt === 'Deactive' && statusFilter === 'Inactive') ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
-                          >
-                            {opt}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <CustomDropdown
+                  options={['All', 'Employee', 'Trainee']}
+                  value={typeFilter === 'All' ? 'Type' : typeFilter}
+                  onChange={(val) => setTypeFilter(val)}
+                  placeholder="Type"
+                  className="flex-1 sm:min-w-[120px]"
+                  styleType="header"
+                />
+                <CustomDropdown
+                  options={viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']}
+                  value={statusFilter === 'All' ? 'Status' : statusFilter}
+                  onChange={(val) => {
+                    let nextStatus = val;
+                    if (viewMode === 'card' && val === 'Deactive') nextStatus = 'Inactive';
+                    setStatusFilter(nextStatus);
+                  }}
+                  placeholder="Status"
+                  className="flex-1 sm:min-w-[120px]"
+                  styleType="header"
+                />
               </div>
             </div>
           </div>
@@ -960,12 +898,12 @@ export default function EmployeesPM() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
                       Sl.No
                     </th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
                     <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
                     <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
                   </tr>
@@ -983,16 +921,16 @@ export default function EmployeesPM() {
                       const slNoDisplay = String(slNo).padStart(2, '0');
                       return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#6B6B6B]">
+                        <td className="px-6 py-5 text-center text-[15px] font-medium font-Gantari text-[#6B6B6B]">
                           {slNoDisplay}
                         </td>
 
 
-                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">
+                        <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">
                           {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                         </td>
 
-                        <td className="px-6 py-5">
+                        <td className="px-6 py-5 ">
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
                               <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
@@ -1019,7 +957,7 @@ export default function EmployeesPM() {
                             <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
+                        <td className="px-6 py-5 text-center text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
                         <td className="px-6 py-5 text-center">
                           <div className="flex items-center justify-center gap-3">
                             <button 
@@ -1154,15 +1092,15 @@ export default function EmployeesPM() {
                           onChange={(e) =>
                             setForm((f) => ({
                               ...f,
-                              phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                              phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
                             }))
                           }
                           className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                         />
                       </div>
                     </div>
-                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== 12 && (
-                      <p className="text-[12px] text-red-600 mt-2">Phone must be exactly 12 digits.</p>
+                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== getPhoneLength(form.country_code) && (
+                      <p className="text-[12px] text-red-600 mt-2">Phone must be exactly {getPhoneLength(form.country_code)} digits.</p>
                     )}
                   </div>
                   <div>
@@ -1301,7 +1239,7 @@ export default function EmployeesPM() {
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
               <div className="w-10" />
             </div>
 
@@ -1325,7 +1263,6 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
                   <div className="flex items-end gap-3">
                     <div className="flex-1">
-                      <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
                       <CustomDropdown
                         options={COUNTRY_CODES}
                         value={editForm.country_code}
@@ -1339,9 +1276,9 @@ export default function EmployeesPM() {
                         placeholder="Enter Phone Number"
                         value={editForm.phone_number}
                         onChange={(e) =>
-                          setEditForm((f) => ({
+                          setEditForm((f: any) => ({
                             ...f,
-                            phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                            phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
                           }))
                         }
                         className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
@@ -1417,7 +1354,7 @@ export default function EmployeesPM() {
                 <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                   <CustomDropdown
-                    options={['Trainee', 'Consultant', ]}
+                    options={['Employee', 'Trainee' ]}
                     value={editForm.user_type}
                     onChange={(val) => setEditForm((f: any) => ({ ...f, user_type: val }))}
                     placeholder="Select Type"

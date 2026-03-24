@@ -384,7 +384,7 @@ export default function TrackerPM() {
                 e.stopPropagation();
                 setTimeDropdownOpen((o) => !o);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <svg
@@ -437,8 +437,8 @@ export default function TrackerPM() {
                     }}
                     className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
                       selectedTimeRange === opt
-                        ? "text-[#353535] bg-gray-50"
-                        : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
+                        ? "text-[#353535] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
                     }`}
                   >
                     {opt}
@@ -456,10 +456,10 @@ export default function TrackerPM() {
                 e.stopPropagation();
                 setStatusOpen((o) => !o);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
             >
               <span
-                className={`text-sm font-medium ${selectedStatus ? "text-[#353535]" : "text-[#616161]"}`}
+                className={`text-sm font-medium ${selectedStatus ? "text-[#353535]" : "text-[#8B8B8B]"}`}
               >
                 {selectedStatus || "Status"}
               </span>
@@ -493,8 +493,8 @@ export default function TrackerPM() {
                     }}
                     className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
                       selectedStatus === opt
-                        ? "text-[#353535] bg-gray-50"
-                        : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
+                        ? "text-[#353535] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
                     }`}
                   >
                     {opt === "" ? "Status" : opt}
@@ -514,7 +514,7 @@ export default function TrackerPM() {
               }}
               className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
             >
-              <span className="text-sm font-medium text-[#353535] font-gantari">
+              <span className="text-sm font-medium text-[#8B8B8B] font-gantari">
                 Show:
               </span>
               <span className="text-sm font-medium text-[#353535] font-gantari">
@@ -553,7 +553,7 @@ export default function TrackerPM() {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                   >
                     {opt.label}
                   </button>
@@ -594,25 +594,25 @@ export default function TrackerPM() {
           <table className="min-w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-100 bg-white">
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Sl.No
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Date
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Employee Name
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Time In
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Time Out
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Total Hours
                 </th>
-                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
                   Status
                 </th>
               </tr>
@@ -648,22 +648,22 @@ export default function TrackerPM() {
                       key={entry.id}
                       className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
                     >
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                         {slNo}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {formattedDate}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">
                         {entry.full_name ?? "-"}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {timeIn}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {timeOut}
                       </td>
-                      <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-3 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                         {totalHours}
                       </td>
                       <td className="px-3 py-3 text-center whitespace-nowrap align-middle">

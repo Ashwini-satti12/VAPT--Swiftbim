@@ -4,7 +4,7 @@ import { FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
-import { COUNTRY_CODES } from '../../utils/countryCodes';
+import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 
 function CustomDropdown({
   options,
@@ -75,7 +75,7 @@ export default function AddConsultantBC() {
     email: '',
     password: '',
     phone_number: '',
-    user_role: 'Consultant',
+    user_role: '',
     department: '',
     address: '',
     dob: '',
@@ -152,8 +152,9 @@ export default function AddConsultantBC() {
       return;
     }
 
-    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
-      setAddError('Phone number must be between 10 and 15 digits.');
+    const expectedLength = getPhoneLength(countryCode);
+    if (cleanPhone.length !== expectedLength) {
+      setAddError(`Phone number must be exactly ${expectedLength} digits for ${countryCode}.`);
       return;
     }
     
@@ -185,10 +186,10 @@ export default function AddConsultantBC() {
             if (data.success) {
                 navigate('/bc/consultants');
             } else {
-                setAddError(data.message || 'Failed to add consultant.');
+                setAddError(data.message || 'Failed to add employee/trainee.');
             }
         })
-        .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
+        .catch((err) => setAddError(err.response?.data?.message || 'Failed to add employee/trainee.'))
         .finally(() => setAddSubmitting(false));
   }
 
@@ -316,7 +317,7 @@ export default function AddConsultantBC() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
-                  options={['Trainee', 'Consultant']}
+                  options={['Employee', 'Trainee']}
                   value={form.type}
                   onChange={(val) => setForm((f) => ({ ...f, type: val }))}
                   placeholder="Select Type"

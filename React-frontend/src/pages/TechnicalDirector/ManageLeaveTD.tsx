@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
@@ -69,13 +70,14 @@ export default function ManageLeave() {
     const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
     const [leaves, setLeaves] = useState<LeaveEntry[]>([]);
 
-    const [selectedEmployee, setSelectedEmployee] = useState<string>('All');
+    const [selectedEmployee, setSelectedEmployee] = useState<string>('employee');
     const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (showEntriesOpen && dropdownContentRef.current) {
@@ -84,7 +86,7 @@ export default function ManageLeave() {
     }, [showEntriesOpen]);
 
 
-    const employeeOptions = ['All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
+    const employeeOptions = ['employee', 'All', ...Array.from(new Set(leaves.map((l) => l.employeeName)))];
 
     // Load leave applications from backend
     useEffect(() => {
@@ -147,7 +149,18 @@ export default function ManageLeave() {
 
 
 
-    const filteredList = leaves.filter((l) => selectedEmployee === 'All' || l.employeeName === selectedEmployee);
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+    const filteredList = leaves.filter((l) => {
+        const matchesEmployee = selectedEmployee === 'All' || l.employeeName === selectedEmployee;
+        const matchesSearch = !searchQuery || 
+            (l.employeeName || "").toLowerCase().includes(searchQuery) ||
+            (l.role || "").toLowerCase().includes(searchQuery) ||
+            (l.leaveType || "").toLowerCase().includes(searchQuery) ||
+            (l.fromDate || "").toLowerCase().includes(searchQuery) ||
+            (l.toDate || "").toLowerCase().includes(searchQuery) ||
+            (l.currentStatus || "").toLowerCase().includes(searchQuery);
+        return matchesEmployee && matchesSearch;
+    });
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
@@ -199,7 +212,7 @@ export default function ManageLeave() {
             {/* Page header: heading left; Employee + Show entries right */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2 mb-8">
                 <div className="flex items-center justify-between w-full md:w-auto">
-                    <h2 className="text-2xl font-semibold text-[#000000]">Manage Leaves</h2>
+                    <h2 className="text-[24px] font-semibold text-[#000000]">Manage Leaves</h2>
                 </div>
                 <div className="flex items-center gap-3 flex-wrap">
                     <div className="relative" ref={employeeDropdownRef}>
@@ -211,8 +224,14 @@ export default function ManageLeave() {
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Employee:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari truncate max-w-[100px]">{selectedEmployee}</span>
+                            {selectedEmployee === 'employee' ? (
+                                <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">Employee</span>
+                            ) : (
+                                <>
+                                    <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">Employee:</span>
+                                    <span className="text-[14px] font-medium text-[#353535] font-gantari truncate max-w-[100px]">{selectedEmployee} </span>
+                                </>
+                            )}
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
@@ -235,9 +254,9 @@ export default function ManageLeave() {
                                                 setSelectedEmployee(name);
                                                 setEmployeeDropdownOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors truncate ${isSelected ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                            className={`w-full text-left px-4 py-2.5 text-[14px] font-medium font-gantari transition-colors truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${(isSelected && name !== 'employee') ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                                         >
-                                            {name}
+                                            {name === 'employee' ? 'Employee' : name}
                                         </button>
                                     );
                                 })}
@@ -251,11 +270,11 @@ export default function ManageLeave() {
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             {selectedShowEntries === 'show' ? (
-                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                                <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">Show</span>
                             ) : (
                                 <>
-                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                    <span className="text-[14px] font-medium text-[#8B8B8B] font-gantari">Show:</span>
+                                    <span className="text-[14px] font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                                 </>
                             )}
                             <img
@@ -275,7 +294,7 @@ export default function ManageLeave() {
                                         key={opt.value}
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-medium font-gantari transition-colors hover:text-[#353535] hover:bg-[#F2F2F2] ${(selectedShowEntries === opt.value && opt.value !== 'show') ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                                     >
                                         {opt.label}
                                     </button>
@@ -292,14 +311,14 @@ export default function ManageLeave() {
                     <table className="min-w-full border-collapse">
                         <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                             <tr className="border-b border-gray-100 bg-[#FFFFFF]">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -317,14 +336,14 @@ export default function ManageLeave() {
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
                                             <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-bold font-gantari ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFE5E5] text-[#C62828]' : 'bg-[#FFF8E1] text-[#F57C00]'}`}>
                                                     {row.currentStatus}
                                                 </span>
                                             </td>

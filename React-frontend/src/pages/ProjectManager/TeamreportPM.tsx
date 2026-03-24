@@ -333,41 +333,37 @@ export default function TimesheetPM() {
 
   return (
     <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
-      {/* Header Section */}
-      <div className="flex items-center justify-between flex-shrink-0 px-2">
-        <h2 className="text-[24px] font-semibold text-gray-900 font-Gantari">
-          Time-Sheet
-        </h2>
-        {/* Download Button - moved above filters */}
-        <button
-          onClick={handleDownload}
-          disabled={filteredList.length === 0}
-          className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
+      {/* Header & Filter Section */}
+      <div className="flex flex-col gap-4 flex-shrink-0 px-">
+        {/* Line 1: Heading and Download */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
+          <button
+            onClick={handleDownload}
+            disabled={filteredList.length === 0}
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <path
-              d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19"
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <span className="text-sm">Download</span>
-        </button>
-      </div>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="text-[14px]">Download</span>
+          </button>
+        </div>
 
-      {/* Filter Row */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-        <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
-
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Line 2: Filters */}
+        <div className="flex flex-wrap items-center gap-3 justify-end">
           {/* Start Date */}
           <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
             <span
@@ -607,27 +603,19 @@ export default function TimesheetPM() {
           </div>
         </div>
       </div>
-
       {/* Table Section */}
       <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
         {loading ? (
-          <div className="flex justify-center items-center py-12">
+          <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
           </div>
         ) : (
           <div
             className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1"
-            style={{ maxHeight: "calc(100vh - 400px)" }}
+        
           >
             <table className="min-w-full border-collapse table-fixed">
-              <colgroup>
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "22%" }} />
-                <col style={{ width: "24%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "16%" }} />
-              </colgroup>
+      
               <thead className="sticky top-0 z-10 bg-white">
                 <tr className="border-b border-gray-200 bg-white">
                   <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
@@ -636,7 +624,7 @@ export default function TimesheetPM() {
                   <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
                     Project Name
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white font-gantari">
                     Task
                   </th>
                   <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
@@ -684,10 +672,12 @@ export default function TimesheetPM() {
                             ? row.project_name
                             : "-"}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">
-                          {row.task_name && row.task_name.trim() !== ""
-                            ? row.task_name
-                            : "-"}
+                        <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">
+                          <div className="mx-auto max-w-[250px] line-clamp-2 break-words text-center">
+                            {row.task_name && row.task_name.trim() !== ""
+                              ? row.task_name
+                              : "-"}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">
                           {startDate}

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
@@ -45,6 +46,7 @@ export default function TrackerTD() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (showEntriesOpen && dropdownContentRef.current) {
@@ -321,6 +323,8 @@ export default function TrackerTD() {
 
 
 
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+
     const filteredList = list.filter((item) => {
         let matchesStatus = true;
 
@@ -332,7 +336,14 @@ export default function TrackerTD() {
             matchesStatus = status === selectedStatus;
         }
 
-        return matchesStatus;
+        const matchesSearch = !searchQuery || 
+            (item.full_name || "").toLowerCase().includes(searchQuery) ||
+            (item.date || "").toLowerCase().includes(searchQuery) ||
+            (item.date_iso || "").toLowerCase().includes(searchQuery) ||
+            (item.time_in || "").toLowerCase().includes(searchQuery) ||
+            (item.time_out || "").toLowerCase().includes(searchQuery);
+
+        return matchesStatus && matchesSearch;
     });
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
@@ -448,7 +459,7 @@ export default function TrackerTD() {
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                            <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
                             <img
@@ -471,7 +482,7 @@ export default function TrackerTD() {
                                             setSelectedStatus(opt);
                                             setStatusOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt === '' ? 'All Status' : opt}
                                     </button>
@@ -488,10 +499,10 @@ export default function TrackerTD() {
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             {selectedShowEntries === 'show' ? (
-                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                                <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show</span>
                             ) : (
                                 <>
-                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show:</span>
                                     <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                                 </>
                             )}
@@ -512,7 +523,7 @@ export default function TrackerTD() {
                                         key={opt.value}
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt.label}
                                     </button>
@@ -541,13 +552,13 @@ export default function TrackerTD() {
                     <table className="min-w-full border-collapse">
                         <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -571,12 +582,12 @@ export default function TrackerTD() {
 
                                     return (
                                         <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
                                             <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
 
                                                 {(() => {

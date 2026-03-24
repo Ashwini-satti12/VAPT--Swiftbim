@@ -28,3 +28,17 @@ export const COUNTRY_CODES = Array.from(new Set([
     const numB = parseInt(b.replace(/\D/g, ''), 10);
     return numA - numB;
 });
+
+export const PHONE_LENGTHS: Record<string, number> = {
+  "+91": 10,  // India
+  "+1": 10,   // USA/Canada
+  "+44": 10,  // UK
+  "+971": 9,  // UAE
+  "+65": 8,   // Singapore
+  "+81": 10,  // Japan
+  "+61": 9,   // Australia
+};
+
+export const getPhoneLength = (code: string): number => {
+  return PHONE_LENGTHS[code] || 10; // Default to 10
+};

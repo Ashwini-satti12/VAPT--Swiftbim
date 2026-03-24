@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import { getPhoneLength } from '../../utils/countryCodes';
 
 const ROLE_OPTIONS: string[] = [];
 
@@ -135,8 +136,9 @@ export default function AddConsultantTD() {
     }
 
     const cleanPhone = form.phone_number.replace(/\D/g, '');
-    if (!cleanPhone || cleanPhone.length !== 12) {
-      setAddError('Phone number must be exactly 12 digits.');
+    const expectedLength = getPhoneLength(countryCode);
+    if (!cleanPhone || cleanPhone.length !== expectedLength) {
+      setAddError(`Phone number must be exactly ${expectedLength} digits for ${countryCode}.`);
       return;
     }
 
@@ -166,7 +168,7 @@ export default function AddConsultantTD() {
         if (data.success) {
           navigate('/td/consultants');
         } else {
-          setAddError(data.message || 'Failed to add consultant.');
+          setAddError(data.message || 'Failed to add employee/trainee.');
         }
       })
       .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
@@ -235,9 +237,9 @@ export default function AddConsultantTD() {
                     type="text"
                     placeholder="Enter Phone Number"
                     value={form.phone_number}
-                    maxLength={12}
+                    maxLength={getPhoneLength(countryCode)}
                     onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+                      const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(countryCode));
                       setForm((f) => ({ ...f, phone_number: digitsOnly }));
                     }}
                     className="flex-1 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
@@ -300,7 +302,7 @@ export default function AddConsultantTD() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                 <CustomDropdown
-                  options={['Trainee', 'Consultant']}
+                  options={['Employee', 'Trainee']}
                   value={form.type}
                   onChange={(val) => setForm((f) => ({ ...f, type: val }))}
                   placeholder="Select Type"

@@ -4,7 +4,7 @@ import { FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
-import { COUNTRY_CODES } from '../../utils/countryCodes';
+import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
@@ -203,8 +203,9 @@ export default function EditConsultantBC() {
       return;
     }
 
-    if (cleanPhone && (cleanPhone.length < 10 || cleanPhone.length > 15)) {
-      setEditError('Phone number must be between 10 and 15 digits.');
+    const expectedLength = getPhoneLength(countryCode);
+    if (cleanPhone && cleanPhone.length !== expectedLength) {
+      setEditError(`Phone number must be exactly ${expectedLength} digits for ${countryCode}.`);
       setEditSubmitting(false);
       return;
     }
@@ -267,7 +268,7 @@ export default function EditConsultantBC() {
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
           <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-            Edit Consultant
+            Edit Consultant Details
           </h3>
           <div className="w-10" />
         </div>
@@ -375,7 +376,7 @@ export default function EditConsultantBC() {
               <div className="relative">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                 <CustomDropdown
-                  options={['Trainee', 'Consultant', 'Employee']}
+                  options={['Employee', 'Trainee']}
                   value={form.user_type}
                   onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
                   placeholder="Select Type"
