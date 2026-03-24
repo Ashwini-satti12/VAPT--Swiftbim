@@ -412,40 +412,20 @@ export default function ConsultantTD() {
     }
   }, [editParam, list]);
 
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((emp: Employee) => {
-    // Search query filter
-    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
-    if (searchQuery) {
-      const name = (emp.full_name || "").toLowerCase();
-      const email = (emp.email || "").toLowerCase();
-      const role = (emp.user_role || "").toLowerCase();
-      const department = (emp.department || "").toLowerCase();
-      const phone = (emp.phone_number || "").toLowerCase();
-      const address = (emp.address || "").toLowerCase();
+    const matchesSearch = !searchQuery || 
+      (emp.full_name || "").toLowerCase().includes(searchQuery) || 
+      (emp.email || "").toLowerCase().includes(searchQuery) || 
+      (emp.user_role || "").toLowerCase().includes(searchQuery) ||
+      (emp.department || "").toLowerCase().includes(searchQuery) ||
+      (emp.phone_number || "").toLowerCase().includes(searchQuery);
+    if (!matchesSearch) return false;
 
-      const matches =
-        name.includes(searchQuery) ||
-        email.includes(searchQuery) ||
-        role.includes(searchQuery) ||
-        department.includes(searchQuery) ||
-        phone.includes(searchQuery) ||
-        address.includes(searchQuery);
-
-      if (!matches) return false;
-    }
-
-    if (statusFilter !== 'All') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
-      if (statusFilter === 'deactive' && currentStatus === 'active') return false;
-    }
-
-    if (typeFilter !== 'All') {
-      const currentType = (emp.user_type || '').toLowerCase();
-      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
-      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
-    }
-
+    if (statusFilter === 'All') return true;
+    const currentStatus = (emp.active || '').toLowerCase();
+    if (statusFilter === 'Active') return currentStatus === 'active';
+    if (statusFilter === 'deactive') return currentStatus !== 'active';
     return true;
   });
 

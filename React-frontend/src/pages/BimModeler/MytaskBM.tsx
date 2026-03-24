@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
-import { VscEye } from "react-icons/vsc";
-import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../lib/api";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
@@ -477,45 +478,63 @@ function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-transparent backdrop-blur-sm py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
-                 ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
+                            className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
                                 }}
                             >
-                                <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                                <span>View</span>
+                                <img
+                                    src={viewIcon}
+                                    alt="view"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                    View
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
                                 }}
                             >
-                                <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                                <span>Edit</span>
+                                <img
+                                    src={editIcon}
+                                    alt="edit"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                    Edit
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
                                 }}
                             >
-                                <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                                <span>Delete</span>
+                                <img
+                                    src={deleteIcon}
+                                    alt="delete"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                    Delete
+                                </span>
                             </button>
                         </div>
                     )}

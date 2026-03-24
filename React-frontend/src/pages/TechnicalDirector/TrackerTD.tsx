@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
@@ -45,6 +46,7 @@ export default function TrackerTD() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (showEntriesOpen && dropdownContentRef.current) {
@@ -321,6 +323,8 @@ export default function TrackerTD() {
 
 
 
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+
     const filteredList = list.filter((item) => {
         let matchesStatus = true;
 
@@ -332,7 +336,14 @@ export default function TrackerTD() {
             matchesStatus = status === selectedStatus;
         }
 
-        return matchesStatus;
+        const matchesSearch = !searchQuery || 
+            (item.full_name || "").toLowerCase().includes(searchQuery) ||
+            (item.date || "").toLowerCase().includes(searchQuery) ||
+            (item.date_iso || "").toLowerCase().includes(searchQuery) ||
+            (item.time_in || "").toLowerCase().includes(searchQuery) ||
+            (item.time_out || "").toLowerCase().includes(searchQuery);
+
+        return matchesStatus && matchesSearch;
     });
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
