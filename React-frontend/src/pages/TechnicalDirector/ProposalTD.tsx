@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
@@ -45,6 +45,7 @@ export default function ProposalTD() {
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
   const dropdownContentRef = useRef<HTMLDivElement>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (showEntriesOpen && dropdownContentRef.current) {
@@ -87,7 +88,17 @@ export default function ProposalTD() {
     return 'bg-[#F2F2F2] text-[#616161]';
   };
 
-  const filtered = bids;
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+  const filtered = bids.filter((bid) => {
+    if (!searchQuery) return true;
+    return (
+      (bid.project_name || "").toLowerCase().includes(searchQuery) ||
+      (bid.vendor_name || "").toLowerCase().includes(searchQuery) ||
+      (bid.vendor_email || "").toLowerCase().includes(searchQuery) ||
+      (bid.status || "").toLowerCase().includes(searchQuery) ||
+      (bid.timeline || "").toLowerCase().includes(searchQuery)
+    );
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

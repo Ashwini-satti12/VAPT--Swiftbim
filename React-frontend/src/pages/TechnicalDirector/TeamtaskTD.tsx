@@ -426,6 +426,11 @@ interface Project {
   id: number;
   project_name: string;
   tasks?: string;
+  members_names?: string[];
+  project_manager_name?: string | null;
+  lead_name?: string | null;
+  bim_coordinator_name?: string | null;
+  uploader_name?: string | null;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -730,6 +735,17 @@ export default function TeamtaskPM() {
   ];
   const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
   const allTasks = allTasksBase.filter((t: any) => {
+    // Search Filter
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+    if (searchQuery) {
+        const matchesSearch = (t.task_name || "").toLowerCase().includes(searchQuery) ||
+            (t.project_name || "").toLowerCase().includes(searchQuery) ||
+            (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
+            (t.module || "").toLowerCase().includes(searchQuery) ||
+            (t.type || "").toLowerCase().includes(searchQuery);
+        if (!matchesSearch) return false;
+    }
+
     // Employee filter
     if (
       selectedEmployee &&
@@ -996,10 +1012,31 @@ export default function TeamtaskPM() {
     }
   }, [addTaskForm.projectName, projects]);
 
-  const employeeOptions = [
-    "Select Employee",
-    ...employees.map((e) => e.full_name),
-  ];
+  const getEmployeeOptions = () => {
+    if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
+      return ["Select Employee", ...employees.map((e) => e.full_name)];
+    }
+    const proj = projects.find((p) => p.project_name === selectedProject);
+    if (!proj) {
+      return ["Select Employee", ...employees.map((e) => e.full_name)];
+    }
+    const involvedNames = new Set<string>();
+    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+    if (proj.lead_name) involvedNames.add(proj.lead_name);
+    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+    if (Array.isArray(proj.members_names)) {
+      proj.members_names.forEach((name: string) => {
+        if (name) involvedNames.add(name);
+      });
+    }
+
+    const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+
+    return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+  };
+
+  const employeeOptions = getEmployeeOptions();
   const projectOptions = [
     "Select Projects",
     ...projects.map((p) => p.project_name),

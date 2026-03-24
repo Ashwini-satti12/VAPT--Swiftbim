@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from './PartnerView/types';
 import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
@@ -10,6 +10,7 @@ import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
 export default function PartnerTD() {
     const [allList, setAllList] = useState<Vendor[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         // Fetch all vendors (no status filter) so we can switch tabs without refetching
@@ -81,12 +82,25 @@ export default function PartnerTD() {
             {/* Grid — fills remaining height; no extra bottom padding */}
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-0">
-                    {allList.length === 0 ? (
-                        <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
-                            No partners found.
-                        </div>
-                    ) : (
-                        allList.map((partner) => (
+                    {(() => {
+                        const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+                        const filteredList = allList.filter(v => {
+                            if (!searchQuery) return true;
+                            return (v.company_name || "").toLowerCase().includes(searchQuery) ||
+                                   (v.partner_name || "").toLowerCase().includes(searchQuery) ||
+                                   (v.contact_name || "").toLowerCase().includes(searchQuery) ||
+                                   (v.contact_email || "").toLowerCase().includes(searchQuery);
+                        });
+
+                        if (filteredList.length === 0) {
+                            return (
+                                <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
+                                    No partners found.
+                                </div>
+                            );
+                        }
+
+                        return filteredList.map((partner) => (
                             <div
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E8E8E8] overflow-hidden flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow duration-300"
@@ -124,8 +138,8 @@ export default function PartnerTD() {
                                     </div>
                                 </div>
                             </div>
-                        ))
-                    )}
+                        ));
+                    })()}
                 </div>
             </div>
         </div>

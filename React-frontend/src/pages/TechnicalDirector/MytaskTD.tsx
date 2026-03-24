@@ -35,6 +35,11 @@ export interface Project {
     project_name: string;
     modules?: string;
     tasks?: string;
+    members_names?: string[];
+    project_manager_name?: string;
+    lead_name?: string;
+    bim_coordinator_name?: string;
+    uploader_name?: string;
 }
 
 export interface FormDropdownProps {
@@ -664,6 +669,17 @@ export default function MytaskTD() {
 
     const allTasksBase = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
     const allTasks = allTasksBase.filter((t) => {
+        // Search Filter
+        const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+        if (searchQuery) {
+            const matchesSearch = (t.task_name || "").toLowerCase().includes(searchQuery) ||
+                (t.project_name || "").toLowerCase().includes(searchQuery) ||
+                (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
+                (t.module || "").toLowerCase().includes(searchQuery) ||
+                (t.type || "").toLowerCase().includes(searchQuery);
+            if (!matchesSearch) return false;
+        }
+
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -813,12 +829,44 @@ export default function MytaskTD() {
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    // Data maps for dropdowns
-    const employeeOptions = [
-        "Select Employee",
-        ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
-    ];
+    const getEmployeeOptions = () => {
+        const baseOptions = ["Select Employee"];
+        const isValidProject = selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject);
+        
+        if (!isValidProject) {
+            return [
+                ...baseOptions,
+                ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
+            ];
+        }
+        
+        const proj = projects.find((p) => p.project_name === selectedProject);
+        if (!proj) {
+            return [
+                ...baseOptions,
+                ...(Array.isArray(employees) ? employees : []).map(e => e?.full_name).filter(Boolean)
+            ];
+        }
+        
+        const involvedNames = new Set<string>();
+        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+        if (proj.lead_name) involvedNames.add(proj.lead_name);
+        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+        if (Array.isArray(proj.members_names)) {
+            proj.members_names.forEach(name => {
+                if (name) involvedNames.add(name);
+            });
+        }
+        
+        const validEmployees = (Array.isArray(employees) ? employees : []).filter(e => e?.full_name && involvedNames.has(e.full_name));
+        return [
+            ...baseOptions,
+            ...validEmployees.map(e => e?.full_name).filter(Boolean)
+        ];
+    };
 
+    const employeeOptions = getEmployeeOptions();
     const projectOptions = [
         "Select Projects",
         ...(Array.isArray(projects) ? projects : []).map(p => p?.project_name).filter(Boolean)
