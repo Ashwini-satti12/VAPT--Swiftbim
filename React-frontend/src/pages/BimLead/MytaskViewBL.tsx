@@ -72,7 +72,7 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
         bg: "bg-orange-100 text-orange-800 rounded-full",
     },
     in_progress: {
-        label: "In Progress",
+        label: "Inprogress",
         dot: "bg-sky-500",
         bg: "bg-sky-100 text-sky-800",
     },
@@ -94,8 +94,8 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
 };
 
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
+    { value: "in_progress", label: "Inprogress" },
+    { value: "completed", label: "Completed" },
 ];
 
 export default function MytaskViewBL() {
@@ -126,7 +126,7 @@ export default function MytaskViewBL() {
     const handleStatusUpdate = async (newStatus: StatusKey) => {
         if (!task || updatingStatus) return;
         setUpdatingStatus(true);
-        const backendStatus = newStatus === "approved" ? "Approved" : "Rejected";
+        const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
         try {
             await api.patch(`/api/tasks/${task.id}/status`, {

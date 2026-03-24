@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import Group1 from "../../assets/ProjectManager/MyTask/Group1.svg";
@@ -77,31 +77,28 @@ export default function TeamtaskBC() {
     
     const navigate = useNavigate();
 
-    const getEmployeeOptions = () => {
+    const employeeOptions = useMemo(() => {
+        const raw = Array.isArray(employees) ? employees : [];
+        const baseOptions = ["Select Employee", "Show All"];
+        
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
+        
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
-        const involvedNames = new Set<string>();
-        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-        if (proj.lead_name) involvedNames.add(proj.lead_name);
-        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-        if (Array.isArray(proj.members_names)) {
-            proj.members_names.forEach((name: string) => {
-                if (name) involvedNames.add(name);
-            });
-        }
-
-        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
-
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
-    };
-
-    const employeeOptions = getEmployeeOptions();
+        
+        const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
+        const filtered = raw.filter(emp => {
+            const name = (emp.full_name || "").trim();
+            const idStr = String(emp.id);
+            return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
+        });
+        
+        return [...baseOptions, ...filtered.map(e => e.full_name)];
+    }, [employees, projects, selectedProject]);
     const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
 
     const handleMoveTask = (
@@ -154,7 +151,7 @@ export default function TeamtaskBC() {
     }, []);
 
     useEffect(() => {
-        const params: Record<string, string> = { condition: "1" };
+        const params: Record<string, string> = { condition: "1", employeeid: "all" };
         if (statusFilter) params.status = statusFilter;
         api
             .get<{ tasks?: Task[] }>("/api/tasks", { params })
@@ -339,7 +336,7 @@ export default function TeamtaskBC() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">To Do</span>
                         <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
@@ -350,7 +347,7 @@ export default function TeamtaskBC() {
 
                     <Link
                         to={statusFilter === "in_progress" ? pathname : `${pathname}?status=in_progress`}
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
                         <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
@@ -361,7 +358,7 @@ export default function TeamtaskBC() {
 
                     <Link
                         to={statusFilter === "completed" ? pathname : `${pathname}?status=completed`}
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">Completed</span>
                         <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>

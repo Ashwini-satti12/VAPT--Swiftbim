@@ -4,6 +4,7 @@ import { VscEye } from "react-icons/vsc";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi";
 import api from "../../../lib/api";
 import toast from "react-hot-toast";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 import Group1 from "../../../assets/ProjectManager/MyTask/Group1.svg";
 import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
@@ -263,6 +264,8 @@ interface Task {
     Approval?: string;
     assigned_to?: number;
     uploaderid?: number;
+    assigned_profile_picture?: string;
+    uploader_profile_picture?: string;
 }
 
 /** Normalize various date strings to yyyy-mm-dd for <input type="date" />. */
@@ -287,6 +290,43 @@ function toInputDate(v: unknown): string {
     return "";
 }
 
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
+
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    return `${apiBaseUrl}${urlPath}`;
+};
+
 function getTodayInputDate(): string {
     const d = new Date();
     const y = d.getFullYear();
@@ -295,6 +335,7 @@ function getTodayInputDate(): string {
     return `${y}-${m}-${day}`;
 }
 
+/** When start/end are the same calendar day, end clock time must not be before start. */
 function isEndTimeBeforeStartOnSameDay(
     startDate: string,
     endDate: string,
@@ -343,10 +384,10 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
         assignTo: str(
             t.assign_to ??
-                t.assignTo ??
-                t.assigned_to ??
-                t.assigned_full_name ??
-                "",
+            t.assignTo ??
+            t.assigned_to ??
+            t.assigned_full_name ??
+            "",
         ),
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
@@ -436,7 +477,14 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const style = STATUS_STYLE[status];
-    const progress = task.progress ?? 0;
+    const progress =
+        task.progress !== undefined
+            ? task.progress
+            : status === "todo"
+                ? 0
+                : status === "in_progress"
+                    ? 50
+                    : 100;
     const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -562,22 +610,69 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {/* Show initials for assignee and uploader (if available) */}
-                        {[
-                            task.assigned_full_name,
-                            task.uploader_full_name,
-                        ]
-                            .filter((name): name is string => !!name)
-                            .slice(0, 3)
-                            .map((name, idx) => (
-                                <div
-                                    key={`${name}-${idx}`}
-                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700"
-                                    title={name}
-                                >
-                                    {name[0]}
-                                </div>
-                            ))}
+                        {/* Assigned To Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
+                        >
+                            {task.assigned_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
+                                    alt="Assignee"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.assigned_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Uploader Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned by: ${task.uploader_full_name || "System"}`}
+                        >
+                            {task.uploader_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
+                                    alt="Uploader"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.uploader_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <Link
@@ -895,7 +990,10 @@ export default function MytaskPMV() {
     useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
-        if (isTeam) params.condition = "1";
+        if (isTeam) {
+            params.condition = "1";
+            params.employeeid = "all";
+        }
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
@@ -918,33 +1016,28 @@ export default function MytaskPMV() {
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    // Data maps for dropdowns
-    const getEmployeeOptions = () => {
+    const employeeOptions = useMemo(() => {
         const rawEmployees = Array.isArray(employees) ? employees : [];
+        const baseOptions = ["Select Employee", "Show All"];
+        
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
+            return [...baseOptions, ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
         }
+        
         const proj = (Array.isArray(projects) ? projects : []).find((p) => p?.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
+            return [...baseOptions, ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
         }
-        const involvedNames = new Set<string>();
-        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-        if (proj.lead_name) involvedNames.add(proj.lead_name);
-        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-        if (Array.isArray(proj.members_names)) {
-            proj.members_names.forEach((name: string) => {
-                if (name) involvedNames.add(name);
-            });
-        }
-
-        const validEmployees = rawEmployees.filter((e) => e?.full_name && involvedNames.has(e.full_name));
-
-        return ["Select Employee", ...validEmployees.map((e) => e?.full_name).filter(Boolean)];
-    };
-
-    const employeeOptions = getEmployeeOptions();
+        
+        const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
+        const filtered = rawEmployees.filter(emp => {
+            const name = (emp.full_name || "").trim();
+            const idStr = String(emp.id);
+            return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
+        });
+        
+        return [...baseOptions, ...filtered.map(e => e.full_name)];
+    }, [employees, projects, selectedProject]);
 
     const projectOptions = [
         "Select Projects",
@@ -1143,7 +1236,7 @@ export default function MytaskPMV() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className={`rounded-xl border p-5 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
@@ -1160,7 +1253,7 @@ export default function MytaskPMV() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className={`rounded-xl border p-5 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
@@ -1177,7 +1270,7 @@ export default function MytaskPMV() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className={`rounded-xl border p-5 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />

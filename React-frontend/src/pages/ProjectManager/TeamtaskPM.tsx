@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Link,
   useSearchParams,
@@ -6,6 +6,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import api from "../../lib/api";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
@@ -18,6 +19,30 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+
+const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path || path.trim() === "") return "";
+  if (path.startsWith("http")) return path;
+  let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = "";
+  if (normalizedPath.startsWith("employee/")) {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  } else if (normalizedPath.startsWith("profiles/")) {
+    const filename = normalizedPath.replace("profiles/", "");
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes("/")) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+  return `${apiBaseUrl}${urlPath}`;
+};
 
 function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -416,6 +441,10 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
+  assigned_to?: number;
+  uploaderid?: number;
+  assigned_profile_picture?: string;
+  uploader_profile_picture?: string;
   Approval?: string;
   projectid?: number;
   created_at?: string;
@@ -435,6 +464,8 @@ interface Project {
   lead_name?: string | null;
   bim_coordinator_name?: string | null;
   uploader_name?: string | null;
+  members?: string;
+  project_status?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -550,7 +581,7 @@ function TaskCard({
   onEditTask?: (task: Task) => void;
   onDeleteTask?: (task: Task) => void;
 }) {
-  const progress = task.progress ?? 0;
+  const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -692,15 +723,65 @@ function TaskCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <div className="flex -space-x-2">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                title="Assignee"
-              />
-            ))}
+            {/* Assigned To avatar */}
+            {task.assigned_full_name &&
+              (() => {
+                const src =
+                  task.assigned_to != null && task.assigned_profile_picture
+                    ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                    : task.assigned_profile_picture
+                      ? getProfileUrl(task.assigned_profile_picture)
+                      : "";
+                const initials = task.assigned_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned To: ${task.assigned_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.assigned_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+            {/* Assigned By avatar */}
+            {task.uploader_full_name &&
+              (() => {
+                const src =
+                  task.uploaderid != null && task.uploader_profile_picture
+                    ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
+                    : task.uploader_profile_picture
+                      ? getProfileUrl(task.uploader_profile_picture)
+                      : "";
+                const initials = task.uploader_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned By: ${task.uploader_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.uploader_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
           </div>
-          <span className="text-xs text-slate-500">+4</span>
         </div>
         <Link
           to={`/tasks/${task.id}`}
@@ -902,7 +983,7 @@ export default function TeamtaskPM() {
           api
             .get<{
               tasks?: Task[];
-            }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+            }>("/api/tasks", { params: { condition: isTeam ? "1" : "0", employeeid: "all" } })
             .then((res) => setList(res.data.tasks ?? []));
           setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
           setDeletedIds((prev) =>
@@ -1014,7 +1095,10 @@ export default function TeamtaskPM() {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
-    if (isTeam) params.condition = "1";
+    if (isTeam) {
+      params.condition = "1";
+    }
+    params.employeeid = "all";
 
     Promise.all([
       api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
@@ -1053,31 +1137,45 @@ export default function TeamtaskPM() {
     }
   }, [addTaskForm.projectName, projects]);
 
-  const getEmployeeOptions = () => {
-    if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-      return ["Select Employee", ...employees.map((e) => e.full_name)];
+  const employeeOptions = useMemo(() => {
+    const raw = Array.isArray(employees) ? employees : [];
+    const baseOptions = ["Select Employee", "Show All"];
+    
+    if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All" || selectedProject === "Projects") {
+      return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
+    
     const proj = projects.find((p) => p.project_name === selectedProject);
     if (!proj) {
-      return ["Select Employee", ...employees.map((e) => e.full_name)];
+      return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    const involvedNames = new Set<string>();
-    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-    if (proj.lead_name) involvedNames.add(proj.lead_name);
-    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-    if (Array.isArray(proj.members_names)) {
-      proj.members_names.forEach((name: string) => {
-        if (name) involvedNames.add(name);
+    
+    const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
+    const filtered = raw.filter(emp => {
+      const name = (emp.full_name || "").trim();
+      const idStr = String(emp.id);
+      return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
+    });
+    
+    return [...baseOptions, ...filtered.map(e => e.full_name)];
+  }, [employees, projects, selectedProject]);
+
+  const employeesForAssignDropdown = useMemo(() => {
+    const all = Array.isArray(employees) ? employees : [];
+    const meta = projects.find((p) => p?.project_name === addTaskForm.projectName);
+    const raw = (meta?.members || "").trim();
+    if (!raw) return all;
+    const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    if (tokens.length === 0) return all;
+    return all.filter((emp) => {
+      const name = (emp.full_name || "").trim();
+      const idStr = String(emp.id);
+      return tokens.some((t) => {
+        const tl = t.toLowerCase();
+        return t === idStr || tl === name.toLowerCase() || name === t;
       });
-    }
-
-    const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
-
-    return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
-  };
-
-  const employeeOptions = getEmployeeOptions();
+    });
+  }, [employees, projects, addTaskForm.projectName]);
   const projectOptions = [
     "Select Projects",
     ...projects.map((p) => p.project_name),
@@ -1087,7 +1185,7 @@ export default function TeamtaskPM() {
     label: p.project_name,
   }));
   // taskTypes unused: ["Task", "Bug", "Feature"]
-  const modalAssignOptions = employees.map((e) => ({
+  const modalAssignOptions = employeesForAssignDropdown.map((e) => ({
     value: e.full_name,
     label: e.full_name,
   }));
@@ -1232,7 +1330,7 @@ export default function TeamtaskPM() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">To Do</span>
             <span className="text-xl font-bold text-[#0D1829]">
@@ -1249,7 +1347,7 @@ export default function TeamtaskPM() {
                 ? pathname
                 : `${pathname}?status=in_progress`
             }
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">
               In Progress
@@ -1268,7 +1366,7 @@ export default function TeamtaskPM() {
                 ? pathname
                 : `${pathname}?status=completed`
             }
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">Completed</span>
             <span className="text-xl font-bold text-[#0D1829]">

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Link,
   useSearchParams,
@@ -18,6 +18,30 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+
+const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
+const getProfileUrl = (path: string | undefined): string => {
+  if (!path || path.trim() === "") return "";
+  if (path.startsWith("http")) return path;
+  let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+  const apiBaseUrl = getApiBaseUrl();
+  let urlPath = "";
+  if (normalizedPath.startsWith("employee/")) {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  } else if (normalizedPath.startsWith("profiles/")) {
+    const filename = normalizedPath.replace("profiles/", "");
+    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+  } else if (!normalizedPath.includes("/")) {
+    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+  } else {
+    const parts = normalizedPath.split("/");
+    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+    urlPath = `/uploads/${encodedParts.join("/")}`;
+  }
+  return `${apiBaseUrl}${urlPath}`;
+};
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 
 interface Employee {
@@ -39,6 +63,7 @@ interface Project {
   lead_name?: string | null;
   bim_coordinator_name?: string | null;
   uploader_name?: string | null;
+  members?: string;
 }
 
 interface TaskDropdownProps {
@@ -184,6 +209,10 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   uploader_full_name?: string;
+  assigned_to?: number;
+  uploaderid?: number;
+  assigned_profile_picture?: string;
+  uploader_profile_picture?: string;
   Approval?: string;
   created_at?: string;
 }
@@ -221,21 +250,9 @@ function TaskCard({
   onOpenMemberProfile?: (emp: Employee) => void;
   onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
-  const progress = task.progress ?? 0;
+  const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // Resolve involved persons from task assignee
-  const involvedPersons: Employee[] = (() => {
-    const name = task.assigned_full_name || task.assign_to;
-    if (!name || !name.trim()) return [];
-    const emp = employees.find(
-      (e) => e.full_name === name.trim() || String(e.id) === String(name)
-    );
-    return emp ? [emp] : [];
-  })();
-  const visibleInvolved = involvedPersons.slice(0, 3);
-  const remainingCount = Math.max(0, involvedPersons.length - 3);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -376,74 +393,65 @@ function TaskCard({
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1">
-          <div className="flex -space-x-2" onClick={(e) => e.stopPropagation()}>
-            {visibleInvolved.length > 0 ? (
-              <>
-                {visibleInvolved.map((emp) => {
-                  const url = emp.profile_picture
-                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                    : null;
-                  return (
-                    <div
-                      key={emp.id}
-                      role="button"
-                      tabIndex={0}
-                      className="w-6 h-6 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                      title={emp.full_name}
-                      onClick={() => onOpenMemberProfile?.(emp)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") onOpenMemberProfile?.(emp);
-                      }}
-                    >
-                      {url ? (
-                        <img
-                          src={url}
-                          alt={emp.full_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ProfileIcon;
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-[10px] font-bold">
-                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {[1, 2, 3].slice(visibleInvolved.length).map((i) => (
+          <div className="flex -space-x-2">
+            {/* Assigned To avatar */}
+            {task.assigned_full_name &&
+              (() => {
+                const src =
+                  task.assigned_to != null && task.assigned_profile_picture
+                    ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                    : task.assigned_profile_picture
+                      ? getProfileUrl(task.assigned_profile_picture)
+                      : "";
+                const initials = task.assigned_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
                   <div
-                    key={`ph-${i}`}
-                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                    aria-hidden
-                  />
-                ))}
-              </>
-            ) : (
-              [1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                  aria-hidden
-                />
-              ))
-            )}
-          </div>
-          <div
-            role="button"
-            tabIndex={0}
-            className="text-xs text-slate-500 cursor-pointer hover:text-slate-700 select-none"
-            title="Involved persons"
-            onClick={() => onOpenInvolvedList?.(involvedPersons)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onOpenInvolvedList?.(involvedPersons);
-              }
-            }}
-          >
-            +{remainingCount > 0 ? remainingCount : (involvedPersons.length > 0 ? involvedPersons.length : "0")}
+                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned To: ${task.assigned_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.assigned_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+            {/* Assigned By avatar */}
+            {task.uploader_full_name &&
+              (() => {
+                const src =
+                  task.uploaderid != null && task.uploader_profile_picture
+                    ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
+                    : task.uploader_profile_picture
+                      ? getProfileUrl(task.uploader_profile_picture)
+                      : "";
+                const initials = task.uploader_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned By: ${task.uploader_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.uploader_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
           </div>
         </div>
         <Link
@@ -561,7 +569,10 @@ export default function MyTasksPM() {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (statusFilter) params.status = statusFilter;
-    if (isTeam) params.condition = "1";
+    if (isTeam) {
+      params.condition = "1";
+      params.employeeid = "all";
+    }
     api
       .get<{ tasks?: Task[] }>("/api/tasks", { params })
       .then(({ data }) => setList(data.tasks ?? []))
@@ -569,31 +580,28 @@ export default function MyTasksPM() {
       .finally(() => setLoading(false));
   }, [isTeam, statusFilter]);
 
-  const getEmployeeOptions = () => {
+  const employeeOptions = useMemo(() => {
+    const raw = Array.isArray(employees) ? employees : [];
+    const baseOptions = ["Select Employee", "Show All"];
+    
     if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-      return ["Select Employee", ...employees.map((e) => e.full_name)];
+      return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
+    
     const proj = projects.find((p) => p.project_name === selectedProject);
     if (!proj) {
-      return ["Select Employee", ...employees.map((e) => e.full_name)];
+      return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    const involvedNames = new Set<string>();
-    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-    if (proj.lead_name) involvedNames.add(proj.lead_name);
-    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-    if (Array.isArray(proj.members_names)) {
-      proj.members_names.forEach((name: string) => {
-        if (name) involvedNames.add(name);
-      });
-    }
-
-    const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
-
-    return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
-  };
-
-  const employeeOptions = getEmployeeOptions();
+    
+    const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
+    const filtered = raw.filter(emp => {
+      const name = (emp.full_name || "").trim();
+      const idStr = String(emp.id);
+      return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
+    });
+    
+    return [...baseOptions, ...filtered.map(e => e.full_name)];
+  }, [employees, projects, selectedProject]);
   const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
 
   const allTasks = list.filter((t) => {
@@ -764,7 +772,7 @@ export default function MyTasksPM() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">To Do</span>
             <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
@@ -779,7 +787,7 @@ export default function MyTasksPM() {
                 ? pathname
                 : `${pathname}?status=in_progress`
             }
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
             <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
@@ -794,7 +802,7 @@ export default function MyTasksPM() {
                 ? pathname
                 : `${pathname}?status=completed`
             }
-            className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative"
+            className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
           >
             <span className="text-xl font-bold text-[#0D1829]">Completed</span>
             <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>

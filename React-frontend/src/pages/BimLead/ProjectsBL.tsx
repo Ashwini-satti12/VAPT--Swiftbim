@@ -403,7 +403,7 @@ export default function ProjectsBL() {
           : allProjects;
         setList(filtered.map(mapApiProjectToProject));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -501,7 +501,7 @@ export default function ProjectsBL() {
                   {Math.max(
                     0,
                     (selectedProjectForView.total_tasks ?? 0) -
-                      (selectedProjectForView.completed_tasks ?? 0),
+                    (selectedProjectForView.completed_tasks ?? 0),
                   )}
                 </p>
               </button>
@@ -675,16 +675,16 @@ export default function ProjectsBL() {
                   const pmVal = selectedProjectForView.project_manager;
                   const projectManager = pmVal
                     ? allEmployees.find(
-                        (e) =>
-                          Number(e.id) === Number(pmVal) ||
-                          e.full_name === pmVal,
-                      )
+                      (e) =>
+                        Number(e.id) === Number(pmVal) ||
+                        e.full_name === pmVal,
+                    )
                     : null;
                   const pmProfileUrl = projectManager?.profile_picture
                     ? getGlobalProfileUrl(
-                        projectManager.id,
-                        projectManager.profile_picture,
-                      )
+                      projectManager.id,
+                      projectManager.profile_picture,
+                    )
                     : null;
 
                   return (
@@ -724,10 +724,10 @@ export default function ProjectsBL() {
                   const bimVal = selectedProjectForView.bim_lead;
                   const bimLead = bimVal
                     ? allEmployees.find(
-                        (e) =>
-                          Number(e.id) === Number(bimVal) ||
-                          e.full_name === bimVal,
-                      )
+                      (e) =>
+                        Number(e.id) === Number(bimVal) ||
+                        e.full_name === bimVal,
+                    )
                     : null;
                   const bimProfileUrl = bimLead?.profile_picture
                     ? getGlobalProfileUrl(bimLead.id, bimLead.profile_picture)
@@ -784,10 +784,10 @@ export default function ProjectsBL() {
                     {(() => {
                       const memberIds = selectedProjectForView.member
                         ? selectedProjectForView.member
-                            .split(",")
-                            .map((m) => m.trim())
-                            .filter(Boolean)
-                            .map(Number)
+                          .split(",")
+                          .map((m) => m.trim())
+                          .filter(Boolean)
+                          .map(Number)
                         : [];
 
                       const projectMembers = memberIds
@@ -810,116 +810,58 @@ export default function ProjectsBL() {
                         <>
                           {visibleMembers.length > 0
                             ? visibleMembers.map((emp) => {
-                                const profileUrl = getProfileImageUrl(emp);
-                                return (
-                                  <div
-                                    key={emp.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    title={
-                                      emp.full_name || `Employee ${emp.id}`
-                                    }
-                                    onClick={() => {
-                                      setSelectedMember(emp);
-                                      setShowMemberProfileModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                  >
-                                    {profileUrl ? (
-                                      <img
-                                        src={profileUrl}
-                                        alt={emp.full_name || "Member"}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src =
-                                            ProfileIcon;
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {(emp.full_name || `E${emp.id}`)
-                                          .charAt(0)
-                                          .toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            : [1, 2, 3].map((j) => (
+                              const profileUrl = getProfileImageUrl(emp);
+                              return (
                                 <div
-                                  key={j}
+                                  key={emp.id}
                                   role="button"
                                   tabIndex={0}
                                   className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  title="Click to see involved members"
+                                  title={
+                                    emp.full_name || `Employee ${emp.id}`
+                                  }
                                   onClick={() => {
-                                    const fallback =
-                                      memberIds.length > 0
-                                        ? memberIds.map((id) => ({
-                                            id,
-                                            full_name: `#${id}`,
-                                            employee_id: "",
-                                            email: "",
-                                            phone: "",
-                                            user_role: "",
-                                          }))
-                                        : [];
-                                    setAllMembersList(
-                                      projectMembers.length > 0
-                                        ? projectMembers
-                                        : (fallback as unknown as Employee[]),
-                                    );
-                                    setShowAllMembersModal(true);
+                                    setSelectedMember(emp);
+                                    setShowMemberProfileModal(true);
                                   }}
                                   onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      const fallback =
-                                        memberIds.length > 0
-                                          ? memberIds.map((id) => ({
-                                              id,
-                                              full_name: `#${id}`,
-                                              employee_id: "",
-                                              email: "",
-                                              phone: "",
-                                              user_role: "",
-                                            }))
-                                          : [];
-                                      setAllMembersList(
-                                        projectMembers.length > 0
-                                          ? projectMembers
-                                          : (fallback as unknown as Employee[]),
-                                      );
-                                      setShowAllMembersModal(true);
+                                    if (e.key === "Enter" && emp) {
+                                      setSelectedMember(emp);
+                                      setShowMemberProfileModal(true);
                                     }
                                   }}
                                 >
-                                  <img
-                                    src={ProfileIcon}
-                                    alt="avatar"
-                                    className="w-full h-full object-cover"
-                                  />
+                                  {profileUrl ? (
+                                    <img
+                                      src={profileUrl}
+                                      alt={emp.full_name || "Member"}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {(emp.full_name || `E${emp.id}`)
+                                        .charAt(0)
+                                        .toUpperCase()}
+                                    </div>
+                                  )}
                                 </div>
-                              ))}
-                          {(remainingCount > 0 ||
-                            (visibleMembers.length === 0 &&
-                              projectMembers.length === 0 &&
-                              memberIds.length > 0)) && (
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                              title="Click to see all members"
-                              onClick={() => {
-                                const fallback =
-                                  memberIds.length > 0
-                                    ? memberIds.map((id) => ({
+                              );
+                            })
+                            : [1, 2, 3].map((j) => (
+                              <div
+                                key={j}
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                title="Click to see involved members"
+                                onClick={() => {
+                                  const fallback =
+                                    memberIds.length > 0
+                                      ? memberIds.map((id) => ({
                                         id,
                                         full_name: `#${id}`,
                                         employee_id: "",
@@ -927,27 +869,6 @@ export default function ProjectsBL() {
                                         phone: "",
                                         user_role: "",
                                       }))
-                                    : [];
-                                setAllMembersList(
-                                  projectMembers.length > 0
-                                    ? projectMembers
-                                    : (fallback as unknown as Employee[]),
-                                );
-                                setShowAllMembersModal(true);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  const fallback =
-                                    memberIds.length > 0
-                                      ? memberIds.map((id) => ({
-                                          id,
-                                          full_name: `#${id}`,
-                                          employee_id: "",
-                                          email: "",
-                                          phone: "",
-                                          user_role: "",
-                                        }))
                                       : [];
                                   setAllMembersList(
                                     projectMembers.length > 0
@@ -955,12 +876,91 @@ export default function ProjectsBL() {
                                       : (fallback as unknown as Employee[]),
                                   );
                                   setShowAllMembersModal(true);
-                                }
-                              }}
-                            >
-                              +{remainingCount || memberIds.length}
-                            </div>
-                          )}
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    const fallback =
+                                      memberIds.length > 0
+                                        ? memberIds.map((id) => ({
+                                          id,
+                                          full_name: `#${id}`,
+                                          employee_id: "",
+                                          email: "",
+                                          phone: "",
+                                          user_role: "",
+                                        }))
+                                        : [];
+                                    setAllMembersList(
+                                      projectMembers.length > 0
+                                        ? projectMembers
+                                        : (fallback as unknown as Employee[]),
+                                    );
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
+                              >
+                                <img
+                                  src={ProfileIcon}
+                                  alt="avatar"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          {(remainingCount > 0 ||
+                            (visibleMembers.length === 0 &&
+                              projectMembers.length === 0 &&
+                              memberIds.length > 0)) && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                title="Click to see all members"
+                                onClick={() => {
+                                  const fallback =
+                                    memberIds.length > 0
+                                      ? memberIds.map((id) => ({
+                                        id,
+                                        full_name: `#${id}`,
+                                        employee_id: "",
+                                        email: "",
+                                        phone: "",
+                                        user_role: "",
+                                      }))
+                                      : [];
+                                  setAllMembersList(
+                                    projectMembers.length > 0
+                                      ? projectMembers
+                                      : (fallback as unknown as Employee[]),
+                                  );
+                                  setShowAllMembersModal(true);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    const fallback =
+                                      memberIds.length > 0
+                                        ? memberIds.map((id) => ({
+                                          id,
+                                          full_name: `#${id}`,
+                                          employee_id: "",
+                                          email: "",
+                                          phone: "",
+                                          user_role: "",
+                                        }))
+                                        : [];
+                                    setAllMembersList(
+                                      projectMembers.length > 0
+                                        ? projectMembers
+                                        : (fallback as unknown as Employee[]),
+                                    );
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
+                              >
+                                +{remainingCount || memberIds.length}
+                              </div>
+                            )}
                         </>
                       );
                     })()}
@@ -997,12 +997,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.start_date
                         ? new Date(
-                            selectedProjectForView.start_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.start_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -1066,12 +1066,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.end_date
                         ? new Date(
-                            selectedProjectForView.end_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.end_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -1492,7 +1492,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }}
                             className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="Mark as Paid"
@@ -1526,7 +1526,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }
                           }}
                           className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
@@ -1660,9 +1660,9 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(
                             filtered.map((r: any) => ({
@@ -1675,7 +1675,7 @@ export default function ProjectsBL() {
                             })),
                           );
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
                   .catch((err) =>
@@ -2354,16 +2354,16 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(filtered.map(mapApiProjectToProject));
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
-                  .catch(() => {})
+                  .catch(() => { })
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
@@ -2995,18 +2995,18 @@ export default function ProjectsBL() {
               {title}
             </h2>
             {canCreate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetFormFields();
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
-                >
-                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                  Create Project
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  resetFormFields();
+                  setShowCreateModal(true);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Create Project
+              </button>
+            )}
           </div>
 
           {/* Dashboard Content with Scrollbar */}
@@ -3160,9 +3160,9 @@ export default function ProjectsBL() {
                                     setEditModuleTags(
                                       p.module_name
                                         ? p.module_name
-                                            .split(",")
-                                            .map((m) => m.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((m) => m.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
@@ -3179,17 +3179,17 @@ export default function ProjectsBL() {
                                     setEditTaskTags(
                                       p.tasks
                                         ? p.tasks
-                                            .split(",")
-                                            .map((t) => t.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((t) => t.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
                                     const docs = p.document_attachment
                                       ? p.document_attachment
-                                          .split(",")
-                                          .map((s) => s.trim())
-                                          .filter(Boolean)
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean)
                                       : [];
                                     setExistingFiles(docs);
                                     setRemovedFiles([]);
@@ -3282,19 +3282,19 @@ export default function ProjectsBL() {
                             );
                           })()}
                         </div>
-                        
+
                         <div className="flex items-center gap-3">
 
-                            {p.priority && (
-                                <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                    ? "bg-[#DD4342]"
-                                    : "bg-[#94D6F2]"
-                                    }`}
-                                >
-                                {p.priority}
-                                </div>
-                            )}
+                          {p.priority && (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
+                                }`}
+                            >
+                              {p.priority}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3424,7 +3424,7 @@ export default function ProjectsBL() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-5 md:space-y-6 px-1"
             >
