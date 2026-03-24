@@ -292,6 +292,43 @@ function toInputDate(v: unknown): string {
     return "";
 }
 
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
+
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    return `${apiBaseUrl}${urlPath}`;
+};
+
 function getTodayInputDate(): string {
     const d = new Date();
     const y = d.getFullYear();
@@ -349,10 +386,10 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
         assignTo: str(
             t.assign_to ??
-                t.assignTo ??
-                t.assigned_to ??
-                t.assigned_full_name ??
-                "",
+            t.assignTo ??
+            t.assigned_to ??
+            t.assigned_full_name ??
+            "",
         ),
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
@@ -444,7 +481,14 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const style = STATUS_STYLE[status];
-    const progress = task.progress ?? 0;
+    const progress =
+        task.progress !== undefined
+            ? task.progress
+            : status === "todo"
+                ? 0
+                : status === "in_progress"
+                    ? 50
+                    : 100;
     const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -570,41 +614,69 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {/* Show only the assignee's avatar/name for this task */}
-                        {task.assigned_full_name && (
-                            (() => {
-                                const src =
-                                    task.assigned_to != null && task.assigned_profile_picture
-                                        ? getGlobalProfileUrl(
-                                              task.assigned_to,
-                                              task.assigned_profile_picture,
-                                          )
-                                        : "";
-                                const initials = task.assigned_full_name
-                                    .split(" ")
-                                    .filter(Boolean)
-                                    .map((part) => part[0])
-                                    .join("")
-                                    .slice(0, 2)
-                                    .toUpperCase();
-                                return (
-                                    <div
-                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={task.assigned_full_name}
-                                    >
-                                        {src ? (
-                                            <img
-                                                src={src}
-                                                alt={task.assigned_full_name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span>{initials}</span>
-                                        )}
-                                    </div>
-                                );
-                            })()
-                        )}
+                        {/* Assigned To Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
+                        >
+                            {task.assigned_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
+                                    alt="Assignee"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.assigned_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Uploader Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned by: ${task.uploader_full_name || "System"}`}
+                        >
+                            {task.uploader_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
+                                    alt="Uploader"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.uploader_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <Link
@@ -924,7 +996,10 @@ export default function MytaskEV() {
     useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
-        if (isTeam) params.condition = "1";
+        if (isTeam) {
+            params.condition = "1";
+            params.employeeid = "all";
+        }
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),

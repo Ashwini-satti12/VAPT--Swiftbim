@@ -2704,8 +2704,8 @@ export default function ProjectsBC() {
                               </button>
                               <div
                                 className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-[100] ${openMenuProjectId === p.id
-                                    ? "opacity-100 scale-100 visible"
-                                    : "opacity-0 scale-95 invisible"
+                                  ? "opacity-100 scale-100 visible"
+                                  : "opacity-0 scale-95 invisible"
                                   }`}
                               >
                                 <button
@@ -2951,8 +2951,8 @@ export default function ProjectsBC() {
                           {p.priority && (
                             <div
                               className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === "High"
-                                  ? "bg-[#DD4342]"
-                                  : "bg-[#94D6F2]"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
                                 }`}
                             >
                               {p.priority}

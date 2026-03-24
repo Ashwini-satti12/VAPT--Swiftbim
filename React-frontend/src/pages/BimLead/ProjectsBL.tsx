@@ -416,7 +416,7 @@ export default function ProjectsBL() {
           : allProjects;
         setList(filtered.map(mapApiProjectToProject));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -514,7 +514,7 @@ export default function ProjectsBL() {
                   {Math.max(
                     0,
                     (selectedProjectForView.total_tasks ?? 0) -
-                      (selectedProjectForView.completed_tasks ?? 0),
+                    (selectedProjectForView.completed_tasks ?? 0),
                   )}
                 </p>
               </button>
@@ -890,12 +890,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.start_date
                         ? new Date(
-                            selectedProjectForView.start_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.start_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -959,12 +959,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.end_date
                         ? new Date(
-                            selectedProjectForView.end_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.end_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -1358,7 +1358,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }}
                             className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="Mark as Paid"
@@ -1392,7 +1392,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }
                           }}
                           className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
@@ -1514,9 +1514,9 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(
                             filtered.map((r: any) => ({
@@ -1529,7 +1529,7 @@ export default function ProjectsBL() {
                             })),
                           );
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
                   .catch((err) =>
@@ -2196,16 +2196,16 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(filtered.map(mapApiProjectToProject));
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
-                  .catch(() => {})
+                  .catch(() => { })
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="mx-auto px-4 space-y-6 md:space-y-8"
@@ -2837,18 +2837,18 @@ export default function ProjectsBL() {
               {title}
             </h2>
             {canCreate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetFormFields();
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
-                >
-                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                  Create Project
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  resetFormFields();
+                  setShowCreateModal(true);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Create Project
+              </button>
+            )}
           </div>
 
           {/* Dashboard Content with Scrollbar */}
@@ -3002,9 +3002,9 @@ export default function ProjectsBL() {
                                     setEditModuleTags(
                                       p.module_name
                                         ? p.module_name
-                                            .split(",")
-                                            .map((m) => m.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((m) => m.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
@@ -3021,17 +3021,17 @@ export default function ProjectsBL() {
                                     setEditTaskTags(
                                       p.tasks
                                         ? p.tasks
-                                            .split(",")
-                                            .map((t) => t.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((t) => t.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
                                     const docs = p.document_attachment
                                       ? p.document_attachment
-                                          .split(",")
-                                          .map((s) => s.trim())
-                                          .filter(Boolean)
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean)
                                       : [];
                                     setExistingFiles(docs);
                                     setRemovedFiles([]);
@@ -3124,19 +3124,19 @@ export default function ProjectsBL() {
                             );
                           })()}
                         </div>
-                        
+
                         <div className="flex items-center gap-3">
 
-                            {p.priority && (
-                                <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                    ? "bg-[#DD4342]"
-                                    : "bg-[#94D6F2]"
-                                    }`}
-                                >
-                                {p.priority}
-                                </div>
-                            )}
+                          {p.priority && (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
+                                }`}
+                            >
+                              {p.priority}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3242,7 +3242,7 @@ export default function ProjectsBL() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-5 md:space-y-6 px-1"
             >
