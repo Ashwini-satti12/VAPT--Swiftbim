@@ -9,8 +9,9 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
-import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 interface Employee {
   id: number;
@@ -66,13 +67,13 @@ function FormSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none"
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none ${open ? "!border-[#AEACAC52]" : ""}`}
       >
         <span
           className={
             value
-              ? "text-[#000000] font-medium text-[16px]"
-              : "text-gray-400 font-medium text-[16px]"
+              ? "text-[#353535] font-medium"
+              : "text-[#8B8B8B] font-medium"
           }
         >
           {value || placeholder}
@@ -92,7 +93,7 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto">
           {options.map((opt) => (
             <button
               key={opt}
@@ -101,8 +102,8 @@ function FormSelect({
                 onChange(opt);
                 setOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
-                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors  
+                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
             >
               {opt}
             </button>
@@ -138,6 +139,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  client_id?: number | string;
 }
 
 interface Milestone {
@@ -457,33 +459,33 @@ export default function ProjectsBL() {
     <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Project View Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSelectedProjectForView(null);
-                setSearchParams({}, { replace: true });
-              }}
-              className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
-              title="Close"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
-            </button>
-            <div className="min-w-0">
-              <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
-                {selectedProjectForView?.project_name ?? "Loading..."}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
-                  Overall Progress Tracker
-                </p>
+          <div className="flex flex-col h-full bg-white">
+            {/* Project View Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSelectedProjectForView(null);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
+                  {selectedProjectForView?.project_name ?? "Loading..."}
+                </h3>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                    Overall Progress Tracker
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
@@ -1125,22 +1127,10 @@ export default function ProjectsBL() {
                         setShowMemberProfileModal(false);
                         setSelectedMember(null);
                       }}
-                      className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                       title="Close"
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                     </button>
                     <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                       Member Profile
@@ -1235,22 +1225,10 @@ export default function ProjectsBL() {
                   <button
                     type="button"
                     onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-6 top-6 p-2.5 rounded-[10px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                     title="Close"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                   </button>
                   <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
                     All Members ({allMembersList.length})
@@ -1309,37 +1287,34 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showMilestones && currentProject ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Milestones Header */}
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col h-full bg-white">
+            {/* Milestones Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                title="Back"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <div>
-                <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1
-                  to 09
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
                 </p>
               </div>
+              <button
+                onClick={() => setShowAddMilestoneModal(true)}
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
+                title="Add Milestone"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Add Milestone
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddMilestoneModal(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
-              title="Add Milestone"
-            >
-              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-              Add Milestone
-            </button>
-          </div>
 
           {/* Milestones Content - No Scroll Version */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
@@ -1555,36 +1530,24 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showCreateModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateModal(false);
-                setCreateError("");
-              }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors hover:bg-gray-200"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex flex-col h-full bg-white">
+            {/* Create Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateError("");
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#000000]">
-              Add New Project
-            </h3>
-          </div>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+                Add New Project
+              </h3>
+            </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -1685,7 +1648,7 @@ export default function ProjectsBL() {
                   )
                   .finally(() => setCreateSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
+              className="max-w-[1174px] mx-auto px-0 py-5 space-y-6 md:space-y-8"
             >
               {createError && (
                 <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">
@@ -1693,7 +1656,7 @@ export default function ProjectsBL() {
                 </p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6 px-4">
                 {/* ── Project Name ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
@@ -1704,7 +1667,7 @@ export default function ProjectsBL() {
                     required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
@@ -1717,7 +1680,7 @@ export default function ProjectsBL() {
                     required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
@@ -1741,7 +1704,7 @@ export default function ProjectsBL() {
                         setModuleNameInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1802,7 +1765,7 @@ export default function ProjectsBL() {
                         setCreateTaskInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1883,7 +1846,7 @@ export default function ProjectsBL() {
                     required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -1897,7 +1860,7 @@ export default function ProjectsBL() {
                     required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -1911,7 +1874,7 @@ export default function ProjectsBL() {
                     required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
@@ -1926,7 +1889,7 @@ export default function ProjectsBL() {
                     required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
@@ -2075,7 +2038,7 @@ export default function ProjectsBL() {
                     required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
@@ -2090,7 +2053,7 @@ export default function ProjectsBL() {
                     required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
@@ -2119,7 +2082,7 @@ export default function ProjectsBL() {
                     required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
@@ -2135,7 +2098,7 @@ export default function ProjectsBL() {
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
@@ -2229,14 +2192,14 @@ export default function ProjectsBL() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-10 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="px-10 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {createSubmitting ? "Creating..." : "Submit"}
                 </button>
@@ -2245,36 +2208,24 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showEditModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Edit Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowEditModal(false);
-                resetFormFields();
-              }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex flex-col h-full bg-white">
+            {/* Edit Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  resetFormFields();
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#1A1A1A]">
-              Edit Details
-            </h3>
-          </div>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+                Edit Project Details
+              </h3>
+            </div>
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -2366,7 +2317,7 @@ export default function ProjectsBL() {
                   .catch(() => {})
                   .finally(() => setIsEditSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
+              className="mx-auto px-4 space-y-6 md:space-y-8"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
                 {/* Project Name */}
@@ -2379,7 +2330,7 @@ export default function ProjectsBL() {
                     required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
@@ -2394,7 +2345,7 @@ export default function ProjectsBL() {
                     required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
@@ -2417,7 +2368,7 @@ export default function ProjectsBL() {
                         setEditModuleInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -2478,7 +2429,7 @@ export default function ProjectsBL() {
                         setEditTaskInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -2530,7 +2481,7 @@ export default function ProjectsBL() {
                     type="text"
                     readOnly
                     value={createClientName}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     placeholder="Enter Client Name"
                   />
                 </div>
@@ -2559,7 +2510,7 @@ export default function ProjectsBL() {
                     required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -2573,7 +2524,7 @@ export default function ProjectsBL() {
                     required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -2587,7 +2538,7 @@ export default function ProjectsBL() {
                     required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
@@ -2602,7 +2553,7 @@ export default function ProjectsBL() {
                     required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
@@ -2769,7 +2720,7 @@ export default function ProjectsBL() {
                     required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
@@ -2784,7 +2735,7 @@ export default function ProjectsBL() {
                     required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
@@ -2799,7 +2750,7 @@ export default function ProjectsBL() {
                     required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
@@ -2815,7 +2766,7 @@ export default function ProjectsBL() {
                     rows={4}
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
@@ -3314,22 +3265,10 @@ export default function ProjectsBL() {
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-6 md:left-10 top-6 md:top-10 p-2 md:p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
 
             {/* Content */}
@@ -3380,22 +3319,10 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2.5 md:p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
                 Add Payment Milestone

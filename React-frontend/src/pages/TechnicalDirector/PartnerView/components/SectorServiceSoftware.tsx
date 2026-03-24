@@ -8,9 +8,9 @@ interface Props {
 
 const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) => {
     const inputClass =
-        'w-full bg-white border border-gray-200 p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/30';
+        'w-full bg-[#F2F2F2] border-none px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/30 placeholder:text-[#8B8B8B] placeholder:text-[14px]';
     const readonlyClass =
-        'bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center';
+        'bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center';
 
     const toList = (val: Vendor['sectors'] | Vendor['service_categories'] | Vendor['software_tools']): string[] => {
         if (Array.isArray(val)) return val;
@@ -70,7 +70,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
 
             <div className="flex flex-col gap-8 max-w-4xl">
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Sectors</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Sectors</label>
                     {editable ? (
                         <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
@@ -127,7 +127,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Service Categories</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Service Categories</label>
                     {editable ? (
                         <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
@@ -184,7 +184,7 @@ const SectorServiceSoftware = ({ vendor, editable = false, onChange }: Props) =>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Software Tools</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Software Tools</label>
                     {editable ? (
                         <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -170,14 +170,14 @@ function CustomDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
-            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
             : styleType === "table"
               ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
               : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
         <span className={`whitespace-nowrap ${
-            styleType === "header" || styleType === "form"
+            (styleType === "header" || styleType === "form")
               ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
               : ""
           }`}>
@@ -203,7 +203,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                className={`w-full text-left px-4 py-2.5 text-[14px] font-medium font-Gantari transition-colors ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'} hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors`}
               >
                 {option}
               </button>
@@ -308,7 +308,6 @@ export default function EmployeesPM() {
   };
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('All');
   const [selectedShow, setSelectedShow] = useState<string>("Show");
@@ -350,44 +349,15 @@ export default function EmployeesPM() {
       });
   }, []);
 
-  const editParam = searchParams.get('edit');
-  useEffect(() => {
-    if (editParam && list.length) {
-      const id = parseInt(editParam, 10);
-      const emp = list.find((e) => e.id === id);
-      if (emp) {
-        setEditId(id);
-        setActiveView('edit');
-        const parsed = parsePhone(emp.phone_number || '');
-        setEditForm({
-          full_name: emp.full_name,
-          email: emp.email,
-          phone_number: parsed.phone_digits,
-          country_code: parsed.country_code,
-          user_role: emp.user_role || '',
-          department: emp.department || '',
-          address: emp.address || '',
-          dob: emp.dob || '',
-          password: '',
-          user_type: emp.user_type || '',
-          doj: emp.doj || '',
-          salary: emp.salary || '',
-          accountnumber: emp.accountnumber || '',
-          profile_picture: null,
-          roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : [],
-          active: emp.active === 'active' ? 'Active' : 'Deactivate',
-        });
-      }
-    }
-  }, [editParam, list]);
-
   const filteredList = list.filter((emp: Employee) => {
+    // 1. Status Filter
     if (statusFilter !== 'All') {
       const currentStatus = (emp.active || '').toLowerCase();
       if (statusFilter === 'Active' && currentStatus !== 'active') return false;
       if (statusFilter === 'Inactive' && currentStatus === 'active') return false;
     }
 
+    // 2. Type Filter
     if (typeFilter !== 'All') {
       const currentType = (emp.user_type || '').toLowerCase();
       if (typeFilter === 'Employee' && currentType !== 'employee') return false;
@@ -528,7 +498,6 @@ export default function EmployeesPM() {
         }));
         setEditId(null);
         setActiveView('list');
-        setSearchParams({});
       })
       .catch((err) => {
         console.error('Update failed:', err);
@@ -1062,7 +1031,7 @@ export default function EmployeesPM() {
                 {/* Column 1 */}
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Employee Name</label>
                     <input
                       type="text"
                       placeholder="Enter Employee Name"
@@ -1076,7 +1045,6 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
                     <div className="flex items-end gap-3">
                       <div className="flex-1">
-                        <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
                         <CustomDropdown
                           options={COUNTRY_CODES}
                           value={form.country_code}
@@ -1233,7 +1201,7 @@ export default function EmployeesPM() {
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
-                onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
+                onClick={() => { setActiveView('list'); setEditId(null); }}
                 className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
                 title="Back"
               >
@@ -1248,7 +1216,7 @@ export default function EmployeesPM() {
                 {/* Column 1 */}
                 <div className="space-y-5">
                 <div>
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name</label>
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Employee Name</label>
                   <input
                     type="text"
                       placeholder="Enter Employee Name"
@@ -1444,7 +1412,7 @@ export default function EmployeesPM() {
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
-                  onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
+                  onClick={() => { setActiveView('list'); setEditId(null); }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard

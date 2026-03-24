@@ -468,13 +468,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         activeIconSrc: whiteConsultantIcon,
         isVisible: isManagement,
       },
-      {
-        name: "Clients",
-        path: "/clients",
-        iconSrc: clientIcon,
-        activeIconSrc: whiteClientIcon,
-        isVisible: isManagement && showClients,
-      },
+      // {
+      //   name: "Clients",
+      //   path: "/clients",
+      //   iconSrc: clientIcon,
+      //   activeIconSrc: whiteClientIcon,
+      //   isVisible: isManagement && showClients,
+      // },
       {
         name: "Projects",
         path: "/projects",

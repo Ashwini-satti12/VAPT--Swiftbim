@@ -9,8 +9,9 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-import backIcon from "../../assets/TechnicalDirector/back icon.svg"
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
@@ -572,7 +573,7 @@ export default function ProjectsTD() {
         {showProjectView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
@@ -580,20 +581,18 @@ export default function ProjectsTD() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
-                    Overall Progress Tracker
-                  </p>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
                 </div>
               </div>
             </div>
@@ -1103,28 +1102,26 @@ export default function ProjectsTD() {
         ) : showMilestones && currentProject ? (
           <div className="flex flex-col h-full bg-white">
             {/* Milestones Header */}
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones(false)}
-                  className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                >
-                  <img src={backIcon} alt="Close" className="w-5 h-5" />
-                </button>
-                <div>
-                  <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
-                    Payment Milestones
-                  </h3>
-                  <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                    {currentProject.project_name ?? "Prestige Park Grove"}
-                    _Tower 1 to 09
-                  </p>
-                </div>
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                  Payment Milestones
+                </h3>
+                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                </p>
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm transition-colors"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1562,29 +1559,17 @@ export default function ProjectsTD() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
           <div className="bg-white rounded-2xl border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-8 py-6">
+            <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="absolute left-6 p-2 rounded-lg bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Add New Project
@@ -1850,22 +1835,10 @@ export default function ProjectsTD() {
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-10 top-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
 
             {/* Content */}
@@ -1919,22 +1892,10 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Add Payment Milestone
@@ -2067,7 +2028,7 @@ export default function ProjectsTD() {
         <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-8">
+            <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
               <button
                 type="button"
                 onClick={() => {
@@ -2095,22 +2056,10 @@ export default function ProjectsTD() {
                   setCreateLocation("");
                   setCreateDescription("");
                 }}
-                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2]  text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Edit Details
@@ -2476,22 +2425,10 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
@@ -2574,25 +2511,13 @@ export default function ProjectsTD() {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                Member Profile
+                View Details
               </h3>
             </div>
 

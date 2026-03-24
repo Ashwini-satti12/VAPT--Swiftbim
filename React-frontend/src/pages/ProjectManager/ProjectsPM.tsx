@@ -9,8 +9,8 @@ import paymentMilestone from "../../assets/ProjectManager/project/paymentMilesto
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
 import api from '../../lib/api';
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
-import backIcon from "../../assets/TechnicalDirector/back icon.svg"
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 interface Employee {
   id: number;
@@ -458,30 +458,30 @@ export default function ProjectsPM() {
     <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Project View Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 6 py-6  md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSearchParams({}, { replace: true });
-              }}
-              className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
-              title="Close"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
-            </button>
-            <div className="min-w-0">
-              <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
-                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+          <div className="flex flex-col h-full bg-white">
+            {/* Project View Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
+                  {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
+                </h3>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-6">
@@ -814,36 +814,34 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showMilestones && currentProject ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Milestones Header - match ProjectsTD */}
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col h-full bg-white">
+            {/* Milestones Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
               >
-                <img src={backIcon} alt="Close" className="w-5 h-5" />
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <div>
-                <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}
-                  _Tower 1 to 09
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
                 </p>
               </div>
+              <button
+                onClick={() => setShowAddMilestoneModal(true)}
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors"
+                title="Add Milestone"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Add Milestone
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddMilestoneModal(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm transition-colors"
-              title="Add Milestone"
-            >
-              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-              Add Milestone
-            </button>
-          </div>
 
           {/* Milestones Content - match ProjectsTD */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
@@ -967,19 +965,19 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showCreateModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Create Project Header - AddConsultantTD style */}
-          <div className="relative flex items-center justify-center px-4 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
-          </div>
+          <div className="flex flex-col h-full bg-white">
+            {/* Create Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
+            </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -1510,22 +1508,22 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showEditModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Edit Project Header - AddConsultantTD style */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowEditModal(false);
-                resetFormFields();
-              }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-              title="Back"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5" />
-            </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
-          </div>
+          <div className="flex flex-col h-full bg-white">
+            {/* Edit Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  resetFormFields();
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Edit Details</h3>
+            </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 lg:py-10 px-0 custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -2394,12 +2392,10 @@ export default function ProjectsPM() {
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-6 md:left-10 top-6 md:top-10 p-2 md:p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
 
             {/* Content */}
@@ -2445,12 +2441,10 @@ export default function ProjectsPM() {
               <button
                 type="button"
                 onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                 title="Close"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">Member Profile</h3>
             </div>
@@ -2513,12 +2507,10 @@ export default function ProjectsPM() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2.5 md:p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">Add Payment Milestone</h3>
             </div>
@@ -2633,12 +2625,10 @@ export default function ProjectsPM() {
               <button
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                 title="Close"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})

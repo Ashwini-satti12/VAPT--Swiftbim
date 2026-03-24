@@ -8,7 +8,8 @@ import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import BellIcon from "../../assets/ProductNavbarIcons/bell-notification.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
-import CloseIcon from "../../assets/ProductNavbarIcons/Closeicon.svg";
+import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
+
 
 interface UserProfile {
   name: string;
@@ -42,7 +43,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [localSearch, setLocalSearch] = useState("");
 
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -282,15 +283,26 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (localSearch.trim()) next.set(SEARCH_PARAM_KEY, localSearch.trim());
-        else next.delete(SEARCH_PARAM_KEY);
-        return next;
-      },
-      { replace: true },
-    );
+    const next = new URLSearchParams(searchParams);
+    const value = localSearch.trim().toLowerCase();
+    if (value) next.set(SEARCH_PARAM_KEY, value);
+    else next.delete(SEARCH_PARAM_KEY);
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    setLocalSearch((searchParams.get(SEARCH_PARAM_KEY) || "").toLowerCase());
+  }, [searchParams]);
+
+  const handleSearchChange = (value: string) => {
+    const normalized = value.toLowerCase();
+    setLocalSearch(normalized);
+
+    const next = new URLSearchParams(searchParams);
+    const trimmed = normalized.trim();
+    if (trimmed) next.set(SEARCH_PARAM_KEY, trimmed);
+    else next.delete(SEARCH_PARAM_KEY);
+    setSearchParams(next, { replace: true });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -414,7 +426,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
               <input
                 type="text"
                 value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search"
                 className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none min-w-0"
               />
@@ -471,7 +483,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
               setIsEditingActual(false);
             }}
           >
-            <span className="hidden sm:block text-sm sm:text-base font-medium text-slate-800 whitespace-nowrap">
+            <span className="hidden sm:block text-[18px] font-medium text-slate-800 whitespace-nowrap">
               Hello, {firstName}!
             </span>
             {profilePicture ? (
@@ -519,9 +531,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                 setIsEditMode(false);
                 setIsEditingActual(false);
               }}
-              className="absolute top-4 left-4 p-2 rounded-lg bg-[#F4F4F4] hover:bg-slate-200 transition-colors shrink-0"
+              className="absolute top-4 left-4 p-2 rounded-lg bg-[#F2F2F2] shrink-0"
             >
-              <img src={CloseIcon} alt="Close" className="w-4 h-4" />
+              <img src={CloseIcon} alt="Close" className="w-5 h-5" />
             </button>
 
             <div className="flex flex-col items-center">
@@ -618,7 +630,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                   </div>
                 ) : (
                   <>
-                    <h3 className="text-[18px] sm:text-[22px] font-bold text-[#020202] font-gantari leading-tight uppercase break-words">
+                    <h3 className="text-[18px] font-bold text-[#020202] font-gantari leading-tight uppercase break-words">
                       Hello, {profileData.name}!
                     </h3>
                     <p className="text-[14px] sm:text-[16px] text-[#353535] font-medium mt-1 break-words">
@@ -630,7 +642,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
               {/* Details Card */}
               <div className="w-full min-w-0 bg-white rounded-2xl border border-[#AEACAC52] p-4 sm:p-5 space-y-3 mb-5">
-                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[13px] sm:text-[15px] gap-x-2">
+                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[14px] gap-x-2">
                   <label className="font-semibold text-[#1A1A1A] font-gantari">
                     Email ID
                   </label>
@@ -650,7 +662,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[13px] sm:text-[15px] gap-x-2">
+                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-center text-[14px] gap-x-2">
                   <label className="font-semibold text-[#1A1A1A] font-gantari">
                     Phone Num
                   </label>
@@ -679,7 +691,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                   )}
                 </div>
 
-                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[13px] sm:text-[15px] gap-x-2">
+                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[14px] gap-x-2">
                   <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5 shrink-0">
                     Address
                   </label>
@@ -705,7 +717,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
                 <hr className="border-[#AEACAC33]" />
 
-                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[13px] sm:text-[15px] gap-x-2">
+                <div className="grid grid-cols-[90px_1ch_1fr] sm:grid-cols-[100px_20px_1fr] items-start text-[14px] gap-x-2">
                   <label className="font-semibold text-[#1A1A1A] font-gantari pt-0.5 shrink-0">
                     Password
                   </label>
@@ -771,13 +783,13 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         setIsEditMode(false);
                         setTimeout(() => setShowLogoutConfirm(true), 150);
                       }}
-                      className="px-10 py-2.5 bg-[#FFD9D9] text-[#E00100] rounded-[10px] font-bold text-[15px] transition-all hover:bg-rose-200"
+                      className="px-10 py-2 bg-[#FFD9D9] text-[#E00100] rounded-md font-medium text-[14px] transition-all"
                     >
                       Logout
                     </button>
                     <button
                       onClick={() => setIsEditingActual(true)}
-                      className="px-10 py-2.5 bg-[#DBE9FE] text-[#101827] rounded-[10px] font-bold text-[15px] transition-all hover:bg-[#c6dbff]"
+                      className="px-10 py-2 bg-[#DBE9FE] text-[#101827] rounded-md font-medium text-[14px] transition-all"
                     >
                       Update
                     </button>
