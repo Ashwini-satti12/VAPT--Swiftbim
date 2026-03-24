@@ -77,17 +77,27 @@ def list_projects():
     cur = conn.cursor()
 
     if type_id is None and not see_all_by_role:
-        # Default: only projects created by me (restrictive)
+        # Default: only projects created by me OR assigned to me
         cur.execute(
-            "SELECT * FROM projects WHERE Company_id = %s AND uploaderid = %s ORDER BY project_name",
-            (company_id, user_id),
+            """SELECT * FROM projects WHERE Company_id = %s AND (
+                 uploaderid = %s
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(members, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0
+               ) ORDER BY project_name""",
+            (company_id, user_id, user_id, user_id, user_id, user_id),
         )
     elif type_id is not None and str(type_id) != "1":
-        # type_id 2 or 3: projects where user is in members
+        # type_id 2 or 3: projects where user is in members or team
         cur.execute(
-            """SELECT * FROM projects WHERE FIND_IN_SET(%s, REPLACE(CONCAT(',', members, ','), ' ', '')) AND Company_id = %s
-               ORDER BY project_name""",
-            (user_id, company_id),
+            """SELECT * FROM projects WHERE Company_id = %s AND (
+                 FIND_IN_SET(%s, REPLACE(IFNULL(members, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0
+                 OR FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0
+               ) ORDER BY project_name""",
+            (company_id, user_id, user_id, user_id, user_id),
         )
     elif status:
         # Completed projects only
@@ -170,20 +180,36 @@ def _resolve_client_id(cur, company_id, value):
 
 
 def _resolve_employee_id(cur, company_id, value):
-    """Resolve employee by full_name to id."""
+    """Resolve employee by full_name to id, handling comma-separated lists."""
     if value is None or value == "":
         return None
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return int(value) if value == int(value) else None
+        return str(int(value) if value == int(value) else value)
     s = str(value).strip()
-    if not s or s.isdigit():
-        return int(s) if s.isdigit() else None
-    cur.execute(
-        "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s LIMIT 1",
-        (s, company_id),
-    )
-    row = cur.fetchone()
-    return int(row["id"]) if row else None
+    if not s:
+        return None
+
+    parts = [p.strip() for p in s.split(',')]
+    resolved_parts = []
+    
+    for p in parts:
+        if not p:
+            continue
+        if p.isdigit():
+            resolved_parts.append(p)
+        else:
+            cur.execute(
+                "SELECT id FROM employee WHERE full_name = %s AND Company_id = %s LIMIT 1",
+                (p, company_id),
+            )
+            row = cur.fetchone()
+            if row and "id" in row:
+                resolved_parts.append(str(row["id"]))
+            else:
+                # Keep original string if no such employee ID is found
+                resolved_parts.append(p)
+                
+    return ",".join(resolved_parts) if resolved_parts else None
 
 
 _PROJECT_SPECIAL_DEPARTMENT_VALUES = {"Budget Ceiling", "Submission Deadline"}
@@ -251,9 +277,13 @@ def _hydrate_project_display_fields(cur, company_id, project_dicts):
 
     for d in project_dicts:
         for k in ("project_manager_id", "lead_id", "bim_coordinator_id", "uploaderid"):
-            eid = _as_int_id(d.get(k))
-            if eid is not None:
-                employee_ids.add(eid)
+            val = d.get(k)
+            if not val:
+                continue
+            for p in str(val).split(','):
+                p = p.strip()
+                if p.isdigit():
+                    employee_ids.add(int(p))
 
         mids = _parse_csv_int_ids(d.get("members"))
         project_members_map[d.get("id")] = mids
@@ -320,13 +350,24 @@ def _hydrate_project_display_fields(cur, company_id, project_dicts):
         cid = _as_int_id(d.get("client_id"))
         d["client_name"] = clients_by_id.get(cid, "") if cid is not None else ""
 
-        pm = _as_int_id(d.get("project_manager_id"))
-        lead = _as_int_id(d.get("lead_id"))
-        bc = _as_int_id(d.get("bim_coordinator_id"))
+        def get_names_for_mixed(val):
+            if not val: return ""
+            parts = [p.strip() for p in str(val).split(',')]
+            out = []
+            for p in parts:
+                if not p: continue
+                if p.isdigit():
+                    name = employees_by_id.get(int(p))
+                    if name: out.append(name)
+                else:
+                    out.append(p)
+            return ", ".join(out)
+
+        d["project_manager_name"] = get_names_for_mixed(d.get("project_manager_id"))
+        d["lead_name"] = get_names_for_mixed(d.get("lead_id"))
+        d["bim_coordinator_name"] = get_names_for_mixed(d.get("bim_coordinator_id"))
+        
         up = _as_int_id(d.get("uploaderid"))
-        d["project_manager_name"] = employees_by_id.get(pm, "") if pm is not None else ""
-        d["lead_name"] = employees_by_id.get(lead, "") if lead is not None else ""
-        d["bim_coordinator_name"] = employees_by_id.get(bc, "") if bc is not None else ""
         d["uploader_name"] = employees_by_id.get(up, "") if up is not None else ""
 
         dep_id = _as_int_id(d.get("department"))
