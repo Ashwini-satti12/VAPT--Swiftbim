@@ -482,6 +482,45 @@ export default function AddTaskPM() {
     }
   };
 
+    const getAssignToOptions = () => {
+        if (!addTaskForm.projectName) {
+            return [
+                { value: "", label: "Select Assign To" },
+                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ];
+        }
+        const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        if (!proj) {
+            return [
+                { value: "", label: "Select Assign To" },
+                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ];
+        }
+        const involvedNames = new Set<string>();
+        // @ts-ignore - these fields might be added dynamically from backend
+        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+        // @ts-ignore
+        if (proj.lead_name) involvedNames.add(proj.lead_name);
+        // @ts-ignore
+        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+        // @ts-ignore
+        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+        // @ts-ignore
+        if (Array.isArray(proj.members_names)) {
+            // @ts-ignore
+            proj.members_names.forEach((name: string) => {
+                if (name) involvedNames.add(name);
+            });
+        }
+        
+        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name));
+        
+        return [
+            { value: "", label: "Select Assign To" },
+            ...validEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
+        ];
+    };
+
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden p-2 bg-white">
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -773,13 +812,7 @@ export default function AddTaskPM() {
                   </label>
                   <FormDropdown
                     label="Select Assign To"
-                    options={[
-                      { value: "", label: "Select Assign To" },
-                      ...employees.map((e) => ({
-                        value: e.full_name,
-                        label: e.full_name,
-                      })),
-                    ]}
+                    options={getAssignToOptions()}
                     value={addTaskForm.assignTo}
                     onChange={(v) =>
                       setAddTaskForm((f) => ({ ...f, assignTo: v }))

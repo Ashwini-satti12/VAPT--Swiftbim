@@ -34,6 +34,13 @@ interface Employee {
 interface Project {
     id: number;
     project_name: string;
+    modules?: string;
+    tasks?: string;
+    members_names?: string[];
+    project_manager_name?: string | null;
+    lead_name?: string | null;
+    bim_coordinator_name?: string | null;
+    uploader_name?: string | null;
 }
 
 interface FormDropdownProps {
@@ -576,7 +583,31 @@ export default function MytaskBL() {
     const [modules, setModules] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const employeeOptions = ["Select Employee", ...employees.map(e => e.full_name)];
+    const getEmployeeOptions = () => {
+        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
+            return ["Select Employee", ...employees.map((e) => e.full_name)];
+        }
+        const proj = projects.find((p) => p.project_name === selectedProject);
+        if (!proj) {
+            return ["Select Employee", ...employees.map((e) => e.full_name)];
+        }
+        const involvedNames = new Set<string>();
+        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+        if (proj.lead_name) involvedNames.add(proj.lead_name);
+        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+        if (Array.isArray(proj.members_names)) {
+            proj.members_names.forEach((name: string) => {
+                if (name) involvedNames.add(name);
+            });
+        }
+
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+
+        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+    };
+
+    const employeeOptions = getEmployeeOptions();
     const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
 
     const statusToLabel = (
