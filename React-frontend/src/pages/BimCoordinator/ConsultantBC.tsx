@@ -122,6 +122,90 @@ const getAllowedRoles = () => [
     'Consultant', 'BIM Coordinator', 'BIM Lead', 'Project Manager', 'BIM Modeler', 'BIM Architect', 'BIM Architect Lead', 'Tekla Modeler', 'BIM Project Manager', 'Business Development Manager', 'Vice President Projects', 'Junior BIM Modeler', 'Architect Intern', 'BIM Modeler- MEP', 'HR Executive', 'Graphic Designer', 'Management'
 ];
 
+const toCamelCase = (str: string) => {
+    if (!str) return str;
+    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+};
+
+function CustomDropdown({
+    options,
+    value,
+    onChange,
+    placeholder,
+    className = "",
+    styleType = "form"
+}: {
+    options: string[];
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    className?: string;
+    styleType?: "form" | "header" | "table";
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className={`relative ${className}`} ref={dropdownRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+                    ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+                    : styleType === "table"
+                        ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+                        : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+                    }`}
+            >
+                <span className={`whitespace-nowrap ${
+                    styleType === "header" || styleType === "form"
+                        ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+                        : ""
+                    }`}>
+                    {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+                        <>
+                            <span className="text-sm">{placeholder}:</span>{" "}
+                            <span className="font-semibold">{toCamelCase(value)}</span>
+                        </>
+                    ) : (
+                        value || placeholder
+                    )}
+                </span>
+                <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
+            </button>
+            {isOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {options.map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => {
+                                    onChange(option);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 
 export default function ConsultantBC() {
     const { user } = useAuth();
@@ -150,10 +234,6 @@ export default function ConsultantBC() {
     });
     const [addSubmitting, setAddSubmitting] = useState(false);
     const [addError, setAddError] = useState('');
-    const [selectedShow, setSelectedShow] = useState<string>("Show");
-    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-    const showTriggerRef = useRef<HTMLButtonElement>(null);
-    const showMenuRef = useRef<HTMLDivElement>(null);
     const [departments, setDepartments] = useState<string[]>([]);
 
 
@@ -170,8 +250,8 @@ export default function ConsultantBC() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Deactive'>('All');
-    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-    const statusDropdownRef = useRef<HTMLDivElement | null>(null);
+    const [typeFilter, setTypeFilter] = useState('All');
+    const [selectedShow, setSelectedShow] = useState<string>("Show");
     const todayISO = new Date().toISOString().split('T')[0];
 
     const COUNTRY_CODES = ['+91', '+1', '+44', '+61', '+81', '+971', '+33', '+49', '+82', '+86'];
@@ -190,17 +270,6 @@ export default function ConsultantBC() {
         return () => { document.head.removeChild(styleTag); };
     }, []);
 
-    useEffect(() => {
-        if (!openDropdown) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            const isClickInsideShow = showMenuRef.current?.contains(e.target as Node) || showTriggerRef.current?.contains(e.target as Node);
-            if (!isClickInsideShow) {
-                setOpenDropdown(null);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [openDropdown]);
 
 
 
@@ -220,22 +289,21 @@ export default function ConsultantBC() {
             });
     }, []);
 
-    // Close status dropdown on outside click
-    useEffect(() => {
-        if (!statusDropdownOpen) return;
-        const onMouseDown = (event: MouseEvent) => {
-            if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target as Node)) {
-                setStatusDropdownOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', onMouseDown);
-        return () => document.removeEventListener('mousedown', onMouseDown);
-    }, [statusDropdownOpen]);
 
     const filteredList = list.filter((emp) => {
-        if (statusFilter === 'All') return true;
-        const isActive = isEmployeeActive(emp);
-        return statusFilter === 'Active' ? isActive : !isActive;
+        if (statusFilter !== 'All') {
+            const isActive = isEmployeeActive(emp);
+            if (statusFilter === 'Active' && !isActive) return false;
+            if (statusFilter === 'Deactive' && isActive) return false;
+        }
+
+        if (typeFilter !== 'All') {
+            const currentType = (emp.user_type || '').toLowerCase();
+            if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+            if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+        }
+
+        return true;
     });
 
     let limitStart = 0;
@@ -402,7 +470,7 @@ export default function ConsultantBC() {
         <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
             <div className="sticky top-0 z-50 bg-white px-2 sm:px-4 pb-4 sm:pb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-4">
-                    <h2 className="text-[20px] sm:text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight text-center sm:text-left">Consultant</h2>
+                    <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate text-center sm:text-left"> Consultant</h2>
                     <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4">
                         {canAdd && (
                             <>
@@ -444,150 +512,58 @@ export default function ConsultantBC() {
                 </div>
 
                 {/* Control Row: List/Grid View and Status Dropdown */}
-                <div className="flex justify-end items-center gap-4 shrink-0">
-                    <button
-                        type="button"
-                        onClick={() => setViewMode('table')}
-                        className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                        <FiMenu className="w-6 h-6" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setViewMode('card')}
-                        className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
-                    >
-                        <FiGrid className="w-6 h-6" />
-                    </button>
-
-                    {/* Show Dropdown */}
-                    {viewMode === 'table' && (
-                        <div className="relative">
-                            <button
-                                ref={showTriggerRef}
-                                type="button"
-                                onClick={() => setOpenDropdown(openDropdown === "show" ? null : "show")}
-                                className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
-                            >
-                                <span className="truncate font-Gantari text-[#353535]">
-                                    {selectedShow !== "Show" && selectedShow !== "All" ? (
-                                        <>
-                                            <span className="text-sm font-normal">Show:</span>{" "}
-                                            <span className="font-semibold">{selectedShow}</span>
-                                        </>
-                                    ) : (
-                                        <span className="text-[14px] font-semibold">{selectedShow}</span>
-                                    )}
-                                </span>
-                                <img
-                                    src={ArrowDown}
-                                    alt="arrow"
-                                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${openDropdown === "show" ? "rotate-180" : ""}`}
-                                />
-                            </button>
-                            {openDropdown === "show" && (
-                                <div
-                                    ref={showMenuRef}
-                                    className="absolute top-full right-0 z-[100] mt-1 rounded-lg border border-gray-200 bg-white shadow-lg min-w-[160px]"
-                                >
-                                    <div className="max-h-[220px] overflow-y-auto py-1 custom-scrollbar">
-                                        {SHOW_OPTIONS.map((opt, idx) => (
-                                            <button
-                                                key={`${opt}-${idx}`}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedShow(opt);
-                                                    setOpenDropdown(null);
-                                                }}
-                                                className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors ${selectedShow === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
-                                            >
-                                                {opt}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-
-
-
-                    <div className="relative" ref={statusDropdownRef}>
+                <div className="flex flex-col sm:flex-row justify-between sm:justify-end items-start sm:items-center gap-4 mt-4 sm:mt-6 mb-2">
+                    <div className="flex items-center gap-2">
                         <button
                             type="button"
-                            onClick={() => setStatusDropdownOpen((v) => !v)}
-                            className="inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm min-w-[120px]"
+                            onClick={() => setViewMode('table')}
+                            className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
                         >
-                            <span className="truncate font-Gantari">
-                                {statusFilter !== 'All' ? (
-                                    <>
-                                        <span className="text-sm text-[#353535]">Status:</span>{" "}
-                                        <span className="text-[#353535] font-semibold">{statusFilter === 'Deactive' ? 'Deactivate' : statusFilter}</span>
-                                    </>
-                                ) : (
-                                    <span className="text-[#616161] font-semibold">Status</span>
-                                )}
-                            </span>
-                            <img
-                                src={ArrowDown}
-                                alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusDropdownOpen ? 'rotate-180' : ''}`}
-                            />
+                            <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode('card')}
+                            className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                        >
+                            <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                        </button>
+                    </div>
 
-
-                        {statusDropdownOpen && (
-                            <div className="absolute right-0 top-full mt-2 w-[180px] bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden z-[100]">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setStatusFilter('All');
-                                        setCurrentPage(1);
-                                        setStatusDropdownOpen(false);
-                                    }}
-                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
-                                        statusFilter === 'All' ? 'text-[#DD4342]' : 'text-[#353535]'
-                                    }`}
-                                >
-                                    All
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setStatusFilter('Active');
-                                        setCurrentPage(1);
-                                        setStatusDropdownOpen(false);
-                                    }}
-                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
-                                        statusFilter === 'Active' ? 'text-[#008F22]' : 'text-[#353535]'
-                                    }`}
-                                >
-                                    <span className="inline-flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                                        Active
-                                    </span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setStatusFilter('Deactive');
-                                        setCurrentPage(1);
-                                        setStatusDropdownOpen(false);
-                                    }}
-                                    className={`w-full px-4 py-3 text-left text-[14px] font-semibold font-Gantari hover:bg-slate-50 ${
-                                        statusFilter === 'Deactive' ? 'text-[#E00100]' : 'text-[#353535]'
-                                    }`}
-                                >
-                                    <span className="inline-flex items-center gap-2">
-                                        <span className="w-2 h-2 rounded-full bg-[#ef4444]" />
-                                        Deactivate
-                                    </span>
-                                </button>
-                            </div>
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                        {viewMode === 'table' && (
+                            <CustomDropdown
+                                options={SHOW_OPTIONS.filter(o => o !== 'Show')}
+                                value={selectedShow === 'Show' ? 'Show' : selectedShow}
+                                onChange={(val) => setSelectedShow(val)}
+                                placeholder="Show"
+                                className="flex-1 sm:min-w-[120px]"
+                                styleType="header"
+                            />
                         )}
+
+                        <CustomDropdown
+                            options={['All', 'Employee', 'Trainee']}
+                            value={typeFilter === 'All' ? 'Type' : typeFilter}
+                            onChange={(val) => setTypeFilter(val)}
+                            placeholder="Type"
+                            className="flex-1 sm:min-w-[120px]"
+                            styleType="header"
+                        />
+
+                        <CustomDropdown
+                            options={['All', 'Active', 'Deactive']}
+                            value={statusFilter === 'All' ? 'Status' : (statusFilter === 'Deactive' ? 'Deactivate' : statusFilter)}
+                            onChange={(val) => {
+                                let nextStatus: any = val;
+                                if (val === 'Deactivate') nextStatus = 'Deactive';
+                                setStatusFilter(nextStatus);
+                                setCurrentPage(1);
+                            }}
+                            placeholder="Status"
+                            className="flex-1 sm:min-w-[120px]"
+                            styleType="header"
+                        />
                     </div>
                 </div>
             </div>

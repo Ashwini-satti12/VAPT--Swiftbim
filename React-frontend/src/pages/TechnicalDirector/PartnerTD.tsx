@@ -97,7 +97,7 @@ export default function PartnerTD() {
                                     </h3>
 
                                     <p className="text-[13px] font-Gantari font-medium text-[#9E9E9E] mb-1">
-                                        Director Name
+                                        Vendor Name
                                     </p>
                                     <p className="text-[16px] font-bold text-[#000000] font-Gantari leading-snug">
                                         {partner.contact_name || '—'}

@@ -170,18 +170,25 @@ function CustomDropdown({
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
           styleType === "header"
-            ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold"
+            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
             : styleType === "table"
               ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === "Active" ? "bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFEEEE] border-[#FECACA] text-[#E00100]"}`
               : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
-        <span
-          className={
-            styleType === "form" ? (value ? "text-[#353535]" : "text-[#8B8B8B]") : ""
-          }
-        >
-          {value || placeholder}
+        <span className={`whitespace-nowrap ${
+            styleType === "header" || styleType === "form"
+              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+              : ""
+          }`}>
+          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+            <>
+              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="font-semibold">{toCamelCase(value)}</span>
+            </>
+          ) : (
+            value || placeholder
+          )}
         </span>
         <FiChevronDown
           className={`w-5 h-5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`}
@@ -198,7 +205,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
               >
                 {option}
               </button>
@@ -242,6 +249,7 @@ export default function ConsultantBL() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, _setItemsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
 
   const canAdd = user?.panel_type === 1;
 
@@ -314,15 +322,25 @@ export default function ConsultantBL() {
   }, [editParam, list, navigate, setSearchParams]);
 
   const filteredList = list.filter((emp) => {
-    if (statusFilter === "All") return true;
-    const isActive = (emp.active || "").toLowerCase() === "active";
-    if (statusFilter === "Active") return isActive;
-    if (
-      statusFilter === "Deactive" ||
-      statusFilter === "deactive" ||
-      statusFilter === "Deactivate"
-    )
-      return !isActive;
+    if (statusFilter !== "All") {
+      const isActive = (emp.active || "").toLowerCase() === "active";
+      if (statusFilter === "Active" && !isActive) return false;
+      if (
+        (statusFilter === "Deactive" ||
+          statusFilter === "deactive" ||
+          statusFilter === "Deactivate") &&
+        isActive
+      )
+        return false;
+    }
+
+    if (typeFilter !== "All") {
+      const currentType = (emp.user_type || "").toLowerCase();
+      if (typeFilter === "Employee" && currentType !== "employee") return false;
+      if (typeFilter === "Trainee" && currentType !== "trainee")
+        return false;
+    }
+
     return true;
   });
 
@@ -423,7 +441,7 @@ export default function ConsultantBL() {
       <div className="sticky z-50 bg-white mb-4 mt-2">
         {/* ROW 1 */}
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-          <h2 className="text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight">
+          <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate">
             Consultant
           </h2>
           {canAdd && (
@@ -485,6 +503,14 @@ export default function ConsultantBL() {
             </button>
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <CustomDropdown
+              options={["All", "Employee", "Trainee"]}
+              value={typeFilter === "All" ? "Type" : typeFilter}
+              onChange={(val) => setTypeFilter(val)}
+              placeholder="Type"
+              className="flex-1 sm:min-w-[120px]"
+              styleType="header"
+            />
             <CustomDropdown
               options={
                 viewMode === "card"

@@ -565,13 +565,18 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     navigate('/login');
   };
 
-  const isActive = (path: string) => {
-    if (location.pathname === path) return true;
-    // Special handling for tasks to avoid overlapping highlighting
-    if (path === '/tasks') {
-      return location.pathname === '/tasks';
+  const isActive = (path: string, name: string) => {
+    const normalizedCurrent = location.pathname.toLowerCase().replace(/\/+$/, '');
+    const normalizedTarget = path.toLowerCase().replace(/\/+$/, '');
+
+    if (normalizedCurrent === normalizedTarget) return true;
+    
+    // Special case for dashboard matching
+    if (name === 'Dashboard' && (normalizedCurrent === '/dashboard' || normalizedCurrent === '')) return true;
+
+    if (normalizedTarget !== '' && normalizedTarget !== '/') {
+      return normalizedCurrent.startsWith(normalizedTarget + '/');
     }
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
 
@@ -581,7 +586,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
         <div className="flex-1 overflow-y-auto px-4 pb-4 pt-8 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
-            const active = isActive(item.path);
+            const active = isActive(item.path, item.name);
             const isNavigating = navigatingTo === item.path;
 
             return (

@@ -3,6 +3,7 @@ import api from '../../lib/api';
 import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
+import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from '../../assets/ProductNavbarIcons/Profile.svg';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
@@ -120,10 +121,11 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
 
             <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
 
-            {/* Members */}
-            <div className="mt-auto flex flex-col">
-                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Members ({memberIds.length})</span>
-                <div className="flex -space-x-3">
+            {/* Members & Details */}
+            <div className="mt-auto flex items-center justify-between">
+                <div className="flex flex-col">
+                    <span className="text-[15px] font-medium text-[#999999] mb-1.5">Members ({memberIds.length})</span>
+                    <div className="flex -space-x-3">
                     {(() => {
                         const projectEmployees = memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[];
                         const visibleMembers = projectEmployees.slice(0, 3);
@@ -182,7 +184,15 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                             </>
                         );
                     })()}
+                    </div>
                 </div>
+                <button
+                    onClick={() => onViewDetails(team)}
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 mt-5"
+                >
+                    Details
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                </button>
             </div>
         </div>
     );
@@ -374,7 +384,7 @@ export default function CreateteamBC() {
     return (
         <div className="h-full min-h-0 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between mb-8 flex-shrink-0">
-                <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Team</h2>
+                <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Team Workspace</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
                     className="flex items-center gap-2 rounded-lg bg-[#DD4342] px-6 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
@@ -754,8 +764,8 @@ export default function CreateteamBC() {
             )}
 
             {showDetailsModal && selectedTeam && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200 overflow-y-auto">
+                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative max-h-[90vh] flex flex-col my-auto overflow-y-auto no-scrollbar shrink-0">
                         <button
                             onClick={() => setShowDetailsModal(false)}
                             className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
