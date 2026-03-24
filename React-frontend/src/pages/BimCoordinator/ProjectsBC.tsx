@@ -162,8 +162,8 @@ export default function ProjectsBC() {
   const [editDepartment, setEditDepartment] = useState("");
   const [editProjectManager, setEditProjectManager] = useState("");
   const [editBIMLead, setEditBIMLead] = useState("");
-  const [editBIMCoOrd, setEditBIMCoOrd] = useState("");
-  const [editMember, setEditMember] = useState("");
+  const [editBIMCoOrd, _setEditBIMCoOrd] = useState("");
+  const [editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -188,10 +188,10 @@ export default function ProjectsBC() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
-  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
-  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  const [_showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [_allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [_showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [_selectedMember, setSelectedMember] = useState<Employee | null>(null);
   const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
   const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
 

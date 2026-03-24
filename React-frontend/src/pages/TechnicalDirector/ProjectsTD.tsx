@@ -260,7 +260,7 @@ export default function ProjectsTD() {
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
 
   // Employee data for dropdowns
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [_employees, setEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
