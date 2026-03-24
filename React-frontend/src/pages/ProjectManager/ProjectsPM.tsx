@@ -91,13 +91,18 @@ interface Project {
   client_name?: string;
   project_manager?: string;       // name (for display)
   project_manager_id?: string;    // raw ID from API (for filtering)
+  project_manager_name?: string;
   start_date?: string;
   end_date?: string;
   total_hours?: string;
   per_day?: string;
   department?: string;
   bim_lead?: string;
+  lead_id?: string;
+  lead_name?: string;
   bim_co_ordinator?: string;
+  bim_coordinator_id?: string;
+  bim_coordinator_name?: string;
   member?: string;
   resources?: string;
   required_resources?: string;
@@ -366,7 +371,10 @@ export default function ProjectsPM() {
         // Filter: only show projects where the logged-in PM is the project manager
         const userId = user?.id;
         const filtered = userId
-          ? allProjects.filter(p => String(p.project_manager_id) === String(userId))
+          ? allProjects.filter(p => {
+              if (!p.project_manager_id) return false;
+              return String(p.project_manager_id).split(',').map(s => s.trim()).includes(String(userId));
+            })
           : allProjects;
         setList(filtered);
       })
@@ -387,6 +395,7 @@ export default function ProjectsPM() {
     client_name: r.client_name != null ? String(r.client_name) : undefined,
     project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
     project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
+    project_manager_name: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
     end_date:
       r.end_date != null
@@ -398,7 +407,11 @@ export default function ProjectsPM() {
     per_day: r.perday != null ? String(r.perday) : undefined,
     department: r.department_name != null ? String(r.department_name) : undefined,
     bim_lead: r.lead_id != null ? String(r.lead_id) : undefined,
+    lead_id: r.lead_id != null ? String(r.lead_id) : undefined,
+    lead_name: r.lead_name != null ? String(r.lead_name) : undefined,
     bim_co_ordinator: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
     member: r.members != null ? String(r.members) : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
@@ -590,127 +603,188 @@ export default function ProjectsPM() {
             </div>
 
             {/* Team Overview Section */}
-            <div className="border border-slate-200 rounded-[10px] md:rounded-[10px] p-6 lg:p-4">
-              <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">Team Overview</h4>
-              {(() => {
-                const getEmpName = (val?: string) => {
-                  if (!val) return 'N/A';
-                  const id = parseInt(val, 10);
-                  if (isNaN(id)) return val;
-                  const emp = allEmployees.find(e => e.id === id);
-                  return emp ? emp.full_name : val;
-                };
-                const memberIdsForView = selectedProjectForView.member
-                  ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-                  : [];
-                const memberNames = memberIdsForView.map(id => {
-                  const emp = allEmployees.find(e => e.id === id);
-                  return emp ? emp.full_name : `#${id}`;
-                });
-                const pmName = getEmpName(selectedProjectForView.project_manager);
-                const blName = getEmpName(selectedProjectForView.bim_lead);
-                return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                    <div className="flex items-center gap-4">
-                      {(() => {
-                        const pm = allEmployees.find(e => String(e.id) === String(selectedProjectForView.project_manager) || e.full_name === selectedProjectForView.project_manager);
-                        const pmProfileUrl = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
-                        return pmProfileUrl ? (
-                          <img src={pmProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="PM" />
-                        ) : (
-                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                            <img src={ProfileIcon} className="w-6 h-6" alt="PM" />
+            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
+              <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                Team Overview
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
+                {/* Project Manager(s) */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Project Manager</p>
+                  {(() => {
+                    const pmIds = selectedProjectForView.project_manager_id
+                      ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                      : [];
+                    const pmNames = selectedProjectForView.project_manager_name
+                      ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                      : [];
+
+                    if (pmIds.length === 0 && pmNames.length === 0) {
+                      return (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                            <span className="text-slate-600 font-semibold">PM</span>
                           </div>
-                        );
-                      })()}
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">{pmName}</p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">Project Manager</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {(() => {
-                        const bl = allEmployees.find(e => String(e.id) === String(selectedProjectForView.bim_lead) || e.full_name === selectedProjectForView.bim_lead);
-                        const blProfileUrl = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
-                        return blProfileUrl ? (
-                          <img src={blProfileUrl} className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover" alt="BIM" />
-                        ) : (
-                          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                            <img src={ProfileIcon} className="w-6 h-6" alt="BIM" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
                           </div>
-                        );
-                      })()}
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">{blName}</p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">BIM Lead</p>
+                        </div>
+                      );
+                    }
+
+                    const maxCount = Math.max(pmIds.length, pmNames.length);
+                    return (
+                      <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                        {Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = pmIds[i];
+                          const pName = pmNames[i];
+                          const pm = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                          const dName = pm?.full_name || pName || "Unknown";
+                          const url = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              {url ? (
+                                <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                  <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                              <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                    <div>
-                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Members Involved</p>
-                      {memberNames.length > 0 ? (
-                        <div className="flex flex-wrap items-center -space-x-4">
-                          {memberIdsForView.slice(0, 3).map((id, j) => {
-                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
-                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                            return (
-                              <div
-                                key={j}
-                                role="button"
-                                tabIndex={0}
-                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                title={emp?.full_name}
-                                onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                              >
-                                {url ? (
-                                  <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <img src={ProfileIcon} alt={emp?.full_name} className="p-2 w-full h-full object-cover" />
-                                )}
-                              </div>
-                            );
-                          })}
-                          {memberNames.length > 3 && (
+                    );
+                  })()}
+                </div>
+
+                {/* BIM Lead(s) */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">BIM Lead</p>
+                  {(() => {
+                    const blIds = selectedProjectForView.lead_id
+                      ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                      : [];
+                    const blNames = selectedProjectForView.lead_name
+                      ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                      : [];
+
+                    if (blIds.length === 0 && blNames.length === 0) {
+                      return (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                            <span className="text-slate-600 font-semibold">BL</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const maxCount = Math.max(blIds.length, blNames.length);
+                    return (
+                      <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                        {Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = blIds[i];
+                          const pName = blNames[i];
+                          const bl = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                          const dName = bl?.full_name || pName || "Unknown";
+                          const url = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              {url ? (
+                                <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                  <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                              <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Department Involved */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                  <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                </div>
+
+                {/* Members Involved */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                  {(() => {
+                    const memberIdsForView = selectedProjectForView.member
+                      ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                      : [];
+                    
+                    if (memberIdsForView.length === 0) {
+                      return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                    }
+
+                    return (
+                      <div className="flex flex-wrap items-center -space-x-4">
+                        {memberIdsForView.slice(0, 3).map((id, j) => {
+                          const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                          const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                          return (
                             <div
+                              key={j}
                               role="button"
                               tabIndex={0}
-                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                              onClick={(e) => {
+                              className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                              title={emp?.full_name}
+                              onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                            >
+                              {url ? (
+                                <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                              )}
+                            </div>
+                          );
+                        })}
+                        {memberIdsForView.length > 3 && (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const emps = memberIdsForView
+                                .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                .filter(Boolean) as Employee[];
+                              setAllMembersList(emps);
+                              setShowAllMembersModal(true);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                e.stopPropagation();
                                 const emps = memberIdsForView
                                   .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
                                   .filter(Boolean) as Employee[];
                                 setAllMembersList(emps);
                                 setShowAllMembersModal(true);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  const emps = memberIdsForView
-                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
-                                    .filter(Boolean) as Employee[];
-                                  setAllMembersList(emps);
-                                  setShowAllMembersModal(true);
-                                }
-                              }}
-                              title="Click to see all members"
-                            >
-                              +{memberNames.length - 3}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-[14px] font-Gantari font-bold text-[#999999]">N/A</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()}
+                              }
+                            }}
+                            title="Click to see all members"
+                          >
+                            +{memberIdsForView.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
             </div>
 
             {/* Project Details Section */}
