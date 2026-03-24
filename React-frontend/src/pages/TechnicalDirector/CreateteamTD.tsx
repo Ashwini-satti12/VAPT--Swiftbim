@@ -3,11 +3,11 @@ import api from "../../lib/api";
 import {
   PlusIcon,
   XMarkIcon,
-  PencilSquareIcon,
-  TrashIcon,
 } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../assets/ProjectManager/CreateTeam/three dots.svg";
-import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
@@ -129,20 +129,20 @@ function TeamCard({
         </button>
 
         {showMenu && (
-          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
+          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
             <button
               onClick={() => {
                 onViewDetails(team);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
               <img
-                src={eyeIcon}
+                src={viewIcon}
                 alt="View"
                 className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
               />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 View
               </span>
             </button>
@@ -151,10 +151,14 @@ function TeamCard({
                 onEdit(team);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
-              <PencilSquareIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <img
+                src={editIcon}
+                alt="Edit"
+                className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+              />
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 Edit
               </span>
             </button>
@@ -163,10 +167,14 @@ function TeamCard({
                 onDelete(team.team_id);
                 setShowMenu(false);
               }}
-              className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
             >
-              <TrashIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-              <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">
+              <img
+                src={deleteIcon}
+                alt="Delete"
+                className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
+              />
+              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
                 Delete
               </span>
             </button>
