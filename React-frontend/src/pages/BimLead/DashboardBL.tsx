@@ -1,10 +1,25 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
 );
+
+type DashboardStats = {
+    totalProjects: number;
+    completedProjects: number;
+    inProgressTasks: number;
+    completedTasks: number;
+};
+
+const defaultStats: DashboardStats = {
+    totalProjects: 0,
+    completedProjects: 0,
+    inProgressTasks: 0,
+    completedTasks: 0,
+};
 
 type InvolvedPerson = { id: number; full_name: string; profile_picture: string | null };
 type PriorityTask = {
@@ -66,6 +81,7 @@ type CelebrationEvent = {
 
 export default function DashboardBL() {
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
     const [nowMs, setNowMs] = useState(() => Date.now());
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
@@ -77,8 +93,17 @@ export default function DashboardBL() {
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
 
+    // KPI cards: fetch from dashboard API (same as TD, BC, PM)
     useEffect(() => {
-        setLoading(false);
+        api.get<DashboardStats>('/api/dashboard/stats')
+            .then(({ data }) => setStats({
+                totalProjects: Number(data?.totalProjects) || 0,
+                completedProjects: Number(data?.completedProjects) || 0,
+                inProgressTasks: Number(data?.inProgressTasks) || 0,
+                completedTasks: Number(data?.completedTasks) || 0,
+            }))
+            .catch(() => setStats(defaultStats))
+            .finally(() => setLoading(false));
     }, []);
 
     useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
@@ -146,15 +171,15 @@ export default function DashboardBL() {
 
     const goPrevMonth = () => {
         if (displayMonth === 0) {
-            setDisplayYear((y) => y - 1);
+            setDisplayYear((y: number) => y - 1);
             setDisplayMonth(11);
-        } else setDisplayMonth((m) => m - 1);
+        } else setDisplayMonth((m: number) => m - 1);
     };
     const goNextMonth = () => {
         if (displayMonth === 11) {
-            setDisplayYear((y) => y + 1);
+            setDisplayYear((y: number) => y + 1);
             setDisplayMonth(0);
-        } else setDisplayMonth((m) => m + 1);
+        } else setDisplayMonth((m: number) => m + 1);
     };
 
     const handleDateClick = (cell: { day: number; type: 'prev' | 'current' | 'next' }) => {
@@ -177,101 +202,33 @@ export default function DashboardBL() {
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Total Projects - Red Card */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-6 shadow-lg flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Total<br />Projects</h3>
-                            </div>
-                            <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">115</p>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">35%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: '35%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Completed Projects */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Projects</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: '35%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* In-Progress Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">In-Progress<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total In-Progress Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: '35%' }}></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Completed Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">24</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">12%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: '35%' }}></div>
-                            </div>
-                        </div>
-                    </div>
+                {/* KPI Grid — same style as DashboardTD */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
+                    </Link>
+                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
+                    </Link>
+                    <Link to="/bl/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
+                    </Link>
+                    <Link to="/bl/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
+                    </Link>
                 </div>
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <div className="flex items-center justify-between mb-4 shrink-0">
+                    <div className="mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
-                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
                     </div>
-                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
                             <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
@@ -319,11 +276,27 @@ export default function DashboardBL() {
                                                                 <span className="bg-[#3B82F6] text-white text-[12px] px-3.5 py-1 rounded-md font-medium font-gantari tracking-tight">{task.category || 'Task'}</span>
                                                             </div>
                                                             <div className="absolute bottom-4 right-4 flex -space-x-4">
-                                                                {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
-                                                                    <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
-                                                                        {person.profile_picture ? <img src={person.profile_picture} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>}
-                                                                    </div>
-                                                                ))}
+                                                                {(task.involved_persons?.length ? task.involved_persons : [])
+                                                                    .slice(0, 3)
+                                                                    .map((person) => (
+                                                                        <div
+                                                                            key={person.id}
+                                                                            className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden"
+                                                                            title={person.full_name}
+                                                                        >
+                                                                            {person.profile_picture ? (
+                                                                                <img
+                                                                                    src={getGlobalProfileUrl(person.id, person.profile_picture)}
+                                                                                    alt=""
+                                                                                    className="w-full h-full object-cover"
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
+                                                                                    {person.full_name?.slice(0, 2).toUpperCase() || '?'}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
                                                             </div>
                                                         </div>
                                                     );
@@ -360,7 +333,7 @@ export default function DashboardBL() {
                             <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                                 <button
                                     type="button"
-                                    onClick={() => setMonthDropdownOpen((o) => !o)}
+                                    onClick={() => setMonthDropdownOpen((o: boolean) => !o)}
                                     className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent"
                                     aria-expanded={monthDropdownOpen}
                                     aria-haspopup="listbox"
@@ -394,10 +367,10 @@ export default function DashboardBL() {
                             <div className="flex items-center">
                                 <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                 <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
                                     </button>
-                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                                     </button>
                                 </div>
@@ -417,13 +390,14 @@ export default function DashboardBL() {
                                         {calendarDays.map((cell, i) => {
                                             const cellDate = getCellDate(cell);
                                             const isSelected = isSameDay(cellDate, selectedDate);
+                                            const isToday = isSameDay(cellDate, today);
                                             const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
                                             return (
                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>
@@ -449,7 +423,7 @@ export default function DashboardBL() {
                                 {celebrations.length === 0 ? (
                                     <p className="text-sm text-slate-400 font-gantari py-4 text-center">No celebrations for this date.</p>
                                 ) : (
-                                    celebrations.map((event, i) => (
+                                    celebrations.map((event: CelebrationEvent, i: number) => (
                                         <div key={i} className="bg-[#F8F9FA] p-5 rounded-xl border border-transparent hover:border-slate-200 transition-all flex flex-col relative">
                                             <div className="flex justify-between items-center mb-2">
                                                 <h4 className="font-bold text-[#353535] text-[17px] font-gantari">{event.full_name || event.project_name || 'Employee'}</h4>

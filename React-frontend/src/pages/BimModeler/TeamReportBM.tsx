@@ -47,23 +47,65 @@ export default function TeamReportBM() {
     const employeeOptions = useMemo(() => ['All', ...employees.map(e => e.full_name)], [employees]);
     const teamOptions = useMemo(() => ['All', ...teams.map(t => t.teamname || `Team ${t.team_id}`)], [teams]);
 
-    // Format date from ISO to DD/MM/YYYY
+    const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+        { value: 'show', label: 'Show', start: 0, end: 50 },
+        { value: '1-50', label: '1-50', start: 0, end: 50 },
+        { value: '51-100', label: '51-100', start: 50, end: 100 },
+        { value: '101-150', label: '101-150', start: 100, end: 150 },
+        { value: '151-200', label: '151-200', start: 150, end: 200 },
+        { value: '201-250', label: '201-250', start: 200, end: 250 },
+        { value: '251-300', label: '251-300', start: 250, end: 300 },
+        { value: 'all', label: 'All', start: 0, end: null },
+    ];
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownContentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (showEntriesOpen && dropdownContentRef.current) {
+            dropdownContentRef.current.scrollTop = 0;
+        }
+    }, [showEntriesOpen]);
+
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0].split(' ')[0];
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yyyy] = s.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return '';
+    };
+
+    const shiftYmd = (ymd: string, deltaDays: number): string => {
+        // Parse YYYY-MM-DD safely without timezone surprises.
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
+        const dt = new Date(Date.UTC(yy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + deltaDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    // Format date (avoid timezone shifts by not using `new Date(...)` for ISO strings)
     const formatDate = (dateStr: string | undefined): string => {
         if (!dateStr) return '-';
-        try {
-            const date = new Date(dateStr);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch {
-            return dateStr;
+        const ymd = toYmd(dateStr);
+        if (ymd) {
+            const [yyyy, mm, dd] = ymd.split('-');
+            return `${dd}/${mm}/${yyyy}`;
         }
+        return String(dateStr);
     };
 
     // Calculate task duration from start_time, end_time, Pause, and restart
     const calculateDuration = (entry: TimesheetEntry): string => {
-        if (!entry.start_time || !entry.end_time) return '00:00:00';
+        if (!entry.start_time || !entry.end_time) return '-';
         
         try {
             const start = new Date(entry.start_time);
@@ -120,8 +162,17 @@ export default function TeamReportBM() {
             selectteam?: string;
         } = {};
 
-        if (startDate) payload.startDate = startDate;
-        if (endDate) payload.endDate = endDate;
+        // If user picks only one side of the range, treat it as a single-day filter.
+        // Also fix accidental reversed ranges (start > end).
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+        // Expand the range slightly so "today" doesn't fail due to timezone/date-format mismatch.
+        // We still apply the exact filter on the frontend after receiving results.
+        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
         
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);
@@ -149,6 +200,15 @@ export default function TeamReportBM() {
             .finally(() => setLoading(false));
     }, [startDate, endDate, employee, team, employees, teams]);
 
+    const getTaskDateYmd = (entry: TimesheetEntry): string => {
+        // Match the backend intent:
+        // 1) use start_time
+        // 2) else Actual_start_time
+        // 3) else due_date
+        const src = entry.start_time || entry.Actual_start_time || entry.due_date;
+        return toYmd(src);
+    };
+
     // Handle click outside for dropdowns
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -158,6 +218,9 @@ export default function TeamReportBM() {
             if (teamDropdownRef.current && !teamDropdownRef.current.contains(event.target as Node)) {
                 setTeamOpen(false);
             }
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
@@ -166,7 +229,29 @@ export default function TeamReportBM() {
         };
     }, []);
 
-    const filteredList = list; // API already filters, so we use list directly
+    // Client-side fallback filter:
+    // The backend filtering is date-range based, but "today" can fail due to timezone/format differences.
+    // We filter by comparing the extracted YYYY-MM-DD dates (same extraction used for display).
+    const filteredList = useMemo(() => {
+        const effectiveStart = startDate || endDate;
+        const effectiveEnd = endDate || startDate;
+        if (!effectiveStart || !effectiveEnd) return list;
+
+        let s = effectiveStart;
+        let e = effectiveEnd;
+        if (s > e) [s, e] = [e, s];
+
+        return list.filter((row) => {
+            const ymd = getTaskDateYmd(row);
+            if (!ymd) return false;
+            return ymd >= s && ymd <= e;
+        });
+    }, [list, startDate, endDate]);
+
+    const selectedRange = useMemo(() => showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0], [selectedShowEntries]);
+    const rangeStart = selectedRange.start;
+    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
+    const displayedList = useMemo(() => filteredList.slice(rangeStart, rangeEnd), [filteredList, rangeStart, rangeEnd]);
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -180,8 +265,8 @@ export default function TeamReportBM() {
             
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
                 startDate,
                 endDate,
                 duration
@@ -202,10 +287,10 @@ export default function TeamReportBM() {
     };
 
     return (
-        <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
-                <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+                <h2 className="text-[24px] font-semibold text-[#000000] font-gantari">Monthly Report</h2>
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
@@ -219,8 +304,8 @@ export default function TeamReportBM() {
             </div>
 
             {/* Filter Row */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 flex-shrink-0 px-2">
+                
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
@@ -313,6 +398,7 @@ export default function TeamReportBM() {
                                 e.stopPropagation();
                                 setTeamOpen(o => !o);
                                 setEmployeeOpen(false);
+                                setShowEntriesOpen(false);
                             }}
                             className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
@@ -345,6 +431,46 @@ export default function TeamReportBM() {
                         )}
                     </div>
 
+                    {/* Show entries dropdown */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); setTeamOpen(false); setEmployeeOpen(false); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer border-0"
+                        >
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                </>
+                            )}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {showEntriesOpen && (
+                            <div
+                                ref={dropdownContentRef}
+                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                                onMouseDown={(e) => e.preventDefault()}
+                            >
+                                {showEntriesOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             </div>
 
@@ -355,40 +481,44 @@ export default function TeamReportBM() {
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
                     </div>
                 ) : (
-                    <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1" style={{ maxHeight: 'calc(100vh - 350px)' }}>
-                        <table className="min-w-full border-collapse">
-                            <thead className="sticky top-0 z-10 bg-white">
-                                <tr className="border-b border-gray-100 bg-white">
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Sl.No</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Project Name</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Start Date</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">End Date</th>
-                                    <th className="px-6 py-4 text-center text-lg font-bold text-gray-700 bg-white">Task Duration</th>
+                    <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 pr-1 pb-0">
+                        <table className="min-w-full border-collapse table-fixed">
+                            <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                                <tr className="bg-white">
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Name</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Start Date</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">End Date</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Duration</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredList.length === 0 ? (
+                                {displayedList.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-12 text-center text-gray-400 font-medium">
                                             No records found
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredList.map((row, index) => {
-                                        const slNo = (index + 1).toString().padStart(2, '0');
+                                    displayedList.map((row, index) => {
+                                        const slNo = (rangeStart + index + 1).toString().padStart(2, '0');
                                         const startDate = formatDate(row.start_time || row.Actual_start_time);
                                         const endDate = formatDate(row.end_time || row.due_date);
                                         const duration = calculateDuration(row);
                                         
                                         return (
                                             <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-500 font-medium">{slNo}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-800 font-semibold">{row.project_name ?? '-'}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-600">{row.task_name ?? '-'}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-600">{startDate}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-600">{endDate}</td>
-                                                <td className="px-6 py-3 text-center text-sm text-gray-600 font-medium">{duration}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari align-middle">
+                                                    <div className="mx-auto max-w-[200px] line-clamp-2 break-words text-center">
+                                                        {row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{startDate}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{endDate}</td>
+                                                <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{duration}</td>
                                             </tr>
                                         );
                                     })

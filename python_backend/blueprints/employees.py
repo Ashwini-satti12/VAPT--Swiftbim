@@ -28,7 +28,74 @@ def _restricted_roles_for_current_user():
 @project_app_required
 def list_employees():
     conn = get_db()
-    cur = conn.cursor()
+
+    user_type = getattr(g, "user_type", "employee")
+
+    if user_type == "vendor":
+        cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), "dictionary") else conn.cursor()
+
+        # Prefer selecting a real profile_picture column if it exists on vendor_employee.
+        # Fallback to the previous behaviour (NULL AS profile_picture) if the column
+        # is missing so older databases keep working.
+        try:
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    empid,
+                    full_name,
+                    email,
+                    phone_number,
+                    'vendor' AS user_type,
+                    role AS user_role,
+                    profile_picture,
+                    NULL AS address,
+                    NULL AS doj,
+                    NULL AS dob,
+                    'Vendor' AS department,
+                    status AS active,
+                    'Vendor' AS Allpannel,
+                    NULL AS salary,
+                    NULL AS accountnumber
+                FROM vendor_employee
+                WHERE vendor_id = %s
+                ORDER BY full_name
+                """,
+                (g.company_id,),
+            )
+        except Exception:
+            # Older schema without profile_picture column on vendor_employee.
+            cur.execute(
+                """
+                SELECT
+                    id,
+                    empid,
+                    full_name,
+                    email,
+                    phone_number,
+                    'vendor' AS user_type,
+                    role AS user_role,
+                    NULL AS profile_picture,
+                    NULL AS address,
+                    NULL AS doj,
+                    NULL AS dob,
+                    'Vendor' AS department,
+                    status AS active,
+                    'Vendor' AS Allpannel,
+                    NULL AS salary,
+                    NULL AS accountnumber
+                FROM vendor_employee
+                WHERE vendor_id = %s
+                ORDER BY full_name
+                """,
+                (g.company_id,),
+            )
+
+        rows = cur.fetchall()
+        employees = [dict(r) for r in rows]
+        return jsonify({"employees": employees})
+
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
     # Join with department table so we can return the department NAME
     # while still storing the numeric id in employee.department.
     cur.execute(
@@ -48,7 +115,9 @@ def list_employees():
             COALESCE(d.name, e.department) AS department,
             e.active,
             e.status,
-            e.Allpannel
+            e.Allpannel,
+            e.salary,
+            e.accountnumber
         FROM employee e
         LEFT JOIN department d ON d.id = e.department
         WHERE e.Company_id = %s
@@ -64,7 +133,39 @@ def list_employees():
             if d.get(k) and hasattr(d[k], "isoformat"):
                 d[k] = d[k].isoformat()
         employees.append(d)
+        
     return jsonify({"employees": employees})
+
+
+@bp.route("/by-role", methods=["GET"])
+@project_app_required
+def employees_by_role():
+    """
+    Return active employees filtered by a specific user_role.
+
+    Query params:
+    - role: exact value of employee.user_role (e.g. "BIM Lead")
+    """
+    role = request.args.get("role")
+    if not role:
+        return jsonify({"success": False, "message": "role is required"}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, full_name, user_role, email, profile_picture
+        FROM employee
+        WHERE Company_id = %s
+          AND active = 'active'
+          AND user_role = %s
+        ORDER BY full_name
+        """,
+        (g.company_id, role),
+    )
+    rows = cur.fetchall()
+    employees = [dict(r) for r in rows]
+    return jsonify({"success": True, "employees": employees})
 
 
 @bp.route("", methods=["POST"])
@@ -120,6 +221,28 @@ def create_employee():
 
     if not full_name or not email or not password:
         return jsonify({"success": False, "message": "full_name, email, password required"}), 400
+    # Vendor logic
+    user_type_env = getattr(g, "user_type", "employee")
+    if user_type_env == "vendor":
+        conn = get_db()
+        cur = conn.cursor()
+        # check duplicate
+        cur.execute("SELECT id FROM vendor_employee WHERE email = %s AND vendor_id = %s LIMIT 1", (email, g.company_id))
+        if cur.fetchone():
+            return jsonify({"success": False, "message": "Email already exists"}), 400
+        
+        hashed = hashlib.md5(password.encode()).hexdigest()
+        try:
+            cur.execute(
+                "INSERT INTO vendor_employee (vendor_id, empid, full_name, email, password, phone_number, role, status) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
+                (g.company_id, empid, full_name, email, hashed, phone_number, user_role, active)
+            )
+            emp_id = cur.lastrowid
+            return jsonify({"success": True, "id": emp_id, "profile_picture": None})
+        except Exception as e:
+            return jsonify({"success": False, "message": str(e)}), 400
+
+    # Internal employee fallback
 
     # Check for duplicate email within the same company
     conn = get_db()
@@ -181,7 +304,20 @@ def create_employee():
 @project_app_required
 def get_employee(emp_id):
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
+    
+    user_type = getattr(g, "user_type", "employee")
+    if user_type == "vendor":
+        cur.execute(
+            "SELECT id, empid, full_name, email, phone_number, 'vendor' AS user_type, role AS user_role, NULL AS profile_picture, NULL AS address, NULL AS doj, NULL AS dob, 'Vendor' AS department, status AS active, 'Vendor' AS Allpannel, NULL AS salary, NULL AS accountnumber FROM vendor_employee WHERE id = %s AND vendor_id = %s",
+            (emp_id, g.company_id)
+        )
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": False, "message": "Employee not found"}), 404
+        return jsonify(dict(row))
+    
+    # Internal employee fallback
     # Join department to return department NAME instead of numeric id
     cur.execute(
         """
@@ -267,6 +403,13 @@ def update_employee(emp_id):
                     pass
             sets.append(f"`{key}` = %s")
             params.append(value)
+
+    # Password update (never returned back to frontend)
+    password = data.get("password")
+    if password is not None and str(password).strip():
+        hashed = hashlib.md5(str(password).encode()).hexdigest()
+        sets.append("`password` = %s")
+        params.append(hashed)
     
     # Add profile_picture if uploaded
     if profile_path is not None:
@@ -294,8 +437,19 @@ def update_employee(emp_id):
 def update_status(emp_id):
     data = request.get_json() or request.form
     active = data.get("active")  # 'active' or 'inactive'
+    user_type = getattr(g, "user_type", "employee")
     conn = get_db()
     cur = conn.cursor()
+    
+    if user_type == "vendor":
+        cur.execute(
+            "UPDATE vendor_employee SET status = %s WHERE id = %s AND vendor_id = %s",
+            (active or "inactive", emp_id, g.company_id),
+        )
+        if cur.rowcount:
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Employee not found"}), 404
+
     cur.execute(
         "UPDATE employee SET active = %s WHERE id = %s AND Company_id = %s",
         (active or "inactive", emp_id, g.company_id),
@@ -378,6 +532,17 @@ def bulk_status():
         ids = [ids]
     if not ids:
         return jsonify({"success": False, "message": "ids required"}), 400
+    user_type = getattr(g, "user_type", "employee")
+    conn = get_db()
+    cur = conn.cursor()
+    placeholders = ",".join(["%s"] * len(ids))
+    
+    if user_type == "vendor":
+        cur.execute(
+            f"UPDATE vendor_employee SET status = %s WHERE id IN ({placeholders}) AND vendor_id = %s",
+            [action] + list(ids) + [g.company_id],
+        )
+        return jsonify({"success": True, "updated": cur.rowcount})
     conn = get_db()
     cur = conn.cursor()
     placeholders = ",".join(["%s"] * len(ids))
@@ -392,12 +557,20 @@ def bulk_status():
 @project_app_required
 def list_members():
     leader_id = request.args.get("leaderId")
+    user_type = getattr(g, "user_type", "employee")
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, full_name, email, user_role, profile_picture FROM employee WHERE Company_id = %s AND active = 'active' ORDER BY full_name",
-        (g.company_id,),
-    )
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
+    
+    if user_type == "vendor":
+        cur.execute(
+            "SELECT id, full_name, email, role AS user_role, NULL AS profile_picture FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
+            (g.company_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT id, full_name, email, user_role, profile_picture FROM employee WHERE Company_id = %s AND active = 'active' ORDER BY full_name",
+            (g.company_id,),
+        )
     rows = cur.fetchall()
     members = [dict(r) for r in rows]
     return jsonify({"members": members})
@@ -407,12 +580,20 @@ def list_members():
 @project_app_required
 def availability():
     # Placeholder: return active employees for assignee dropdown
+    user_type = getattr(g, "user_type", "employee")
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, full_name, user_role FROM employee WHERE Company_id = %s AND active = 'active' ORDER BY full_name",
-        (g.company_id,),
-    )
+    cur = conn.cursor(dictionary=True) if hasattr(conn.cursor(), 'dictionary') else conn.cursor()
+    
+    if user_type == "vendor":
+        cur.execute(
+            "SELECT id, full_name, role AS user_role FROM vendor_employee WHERE vendor_id = %s AND status = 'active' ORDER BY full_name",
+            (g.company_id,),
+        )
+    else:
+        cur.execute(
+            "SELECT id, full_name, user_role FROM employee WHERE Company_id = %s AND active = 'active' ORDER BY full_name",
+            (g.company_id,),
+        )
     rows = cur.fetchall()
     return jsonify({"employees": [dict(r) for r in rows]})
 

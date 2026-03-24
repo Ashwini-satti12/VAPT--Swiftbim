@@ -1,6 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
 import type { BiddingEntry } from './BiddingTD';
+import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface VendorBid {
     id: number;
@@ -12,7 +16,6 @@ interface VendorBid {
     team_size: number;
     status: string;
     created_at: string;
-    // enriched from employee table
     vendor_name: string;
     vendor_email: string;
     vendor_phone: string;
@@ -26,6 +29,27 @@ interface ViewBidsTDProps {
     onBack: () => void;
 }
 
+const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: 'show', label: 'Show', start: 0, end: 50 },
+    { value: '1-50', label: '1-50', start: 0, end: 50 },
+    { value: '51-100', label: '51-100', start: 50, end: 100 },
+    { value: '101-150', label: '101-150', start: 100, end: 150 },
+    { value: '151-200', label: '151-200', start: 150, end: 200 },
+    { value: '201-250', label: '201-250', start: 200, end: 250 },
+    { value: 'all', label: 'All', start: 0, end: null },
+];
+
+/** Recomputes ranks: rejected bids go to bottom, rest renumber 1,2,3… */
+function rerank(bids: VendorBid[]): VendorBid[] {
+    const active = bids.filter(b => b.status !== 'lost').sort((a, b) => a.bid_amount - b.bid_amount);
+    const rejected = bids.filter(b => b.status === 'lost');
+    const ranked = [
+        ...active.map((b, i) => ({ ...b, rank: i + 1 })),
+        ...rejected.map((b, i) => ({ ...b, rank: active.length + i + 1 })),
+    ];
+    return ranked;
+}
+
 const rankLabel = (rank: number) => {
     if (rank === 1) return '1st';
     if (rank === 2) return '2nd';
@@ -33,212 +57,486 @@ const rankLabel = (rank: number) => {
     return `${rank}th`;
 };
 
-const rankColors: Record<number, { text: string; bg: string }> = {
-    1: { text: 'text-green-600', bg: 'bg-green-50' },
-    2: { text: 'text-blue-600', bg: 'bg-blue-50' },
-    3: { text: 'text-orange-500', bg: 'bg-orange-50' },
-};
-
 export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [bids, setBids] = useState<VendorBid[]>([]);
     const [opportunity, setOpportunity] = useState<Partial<BiddingEntry>>(project);
 
+    // Scope of work (fetched from phase-one proposal/enquiry in new_swiftbim)
+    const [scopeLoading, setScopeLoading] = useState(false);
+    const [projectSector, setProjectSector] = useState("");
+    const [bimServices, setBimServices] = useState("");
+    const [scopeOfWorkHtml, setScopeOfWorkHtml] = useState<string>("");
+
+    // Per-bid action states
+    const [actionLoading, setActionLoading] = useState<Record<number, boolean>>({});
+    const [viewLoading, setViewLoading] = useState<Record<number, boolean>>({});
+    const [actionToast, setActionToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
         api.get<{ opportunity: BiddingEntry; bids: VendorBid[] }>(`/api/vendors/bidding/${project.id}/bids`)
             .then(({ data }) => {
-                setBids(data.bids ?? []);
+                setBids(rerank(data.bids ?? []));
                 if (data.opportunity) setOpportunity(data.opportunity);
             })
             .catch(() => setBids([]))
             .finally(() => setLoading(false));
     }, [project.id]);
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
-    };
+    useEffect(() => {
+        if (!project?.id) return;
+
+        setScopeLoading(true);
+        setProjectSector("");
+        setBimServices("");
+        setScopeOfWorkHtml("");
+
+        api.get<{ proposal?: any }>("/api/vendors/proposals/phase-one", {
+            params: { opportunity_id: project.id },
+        })
+            .then(({ data }) => {
+                const base = data?.proposal;
+                if (!base) return;
+
+                if (base.project_type_sector) {
+                    try {
+                        const parsed = JSON.parse(base.project_type_sector);
+                        const sectors = Object.entries(parsed)
+                            .map(([key, val]) => {
+                                if (Array.isArray(val) && val.length > 0) return `${key}: ${val.join(" / ")}`;
+                                return key;
+                            })
+                            .join(", ");
+                        setProjectSector(sectors);
+                    } catch {
+                        setProjectSector(base.project_type_sector);
+                    }
+                }
+
+                if (base.bim_services_required) {
+                    try {
+                        const parsed = JSON.parse(base.bim_services_required);
+                        const services = Object.values(parsed)
+                            .flat()
+                            .join(" & ");
+                        setBimServices(services);
+                    } catch {
+                        setBimServices(base.bim_services_required);
+                    }
+                }
+
+                if (base.scope_of_work) {
+                    setScopeOfWorkHtml(base.scope_of_work);
+                }
+            })
+            .catch(() => {
+                // If scope cannot be fetched, keep empty (UI hides the section)
+            })
+            .finally(() => setScopeLoading(false));
+    }, [project?.id]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
+        };
+        if (showEntriesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEntriesOpen]);
+
+    const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
 
     const formatDate = (dateStr: string) => {
         if (!dateStr) return '—';
-        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
     };
 
-    const top4Bids = bids.filter(b => b.is_top4);
+    const showToast = (msg: string, type: 'success' | 'error') => {
+        setActionToast({ msg, type });
+        setTimeout(() => setActionToast(null), 3500);
+    };
+
+    // ── View Vendor → redirect to /td/partner/:id ──
+    const handleViewVendor = async (bid: VendorBid) => {
+        setViewLoading(prev => ({ ...prev, [bid.id]: true }));
+        try {
+            const { data } = await api.get<{ vendor: { id: number } | null }>(`/api/vendors/by-email?email=${encodeURIComponent(bid.vendor_email)}`);
+            if (data.vendor?.id) {
+                navigate(`/td/partner/${data.vendor.id}`);
+            } else {
+                showToast('Vendor onboarding profile not found.', 'error');
+            }
+        } catch {
+            showToast('Failed to load vendor profile.', 'error');
+        } finally {
+            setViewLoading(prev => ({ ...prev, [bid.id]: false }));
+        }
+    };
+
+    // ── Accept ──
+    const handleAccept = async (bid: VendorBid) => {
+        setActionLoading(prev => ({ ...prev, [bid.id]: true }));
+        try {
+            const { data } = await api.post<{ success: boolean; bid: VendorBid }>(
+                `/api/vendors/bidding/${project.id}/bids/${bid.id}/accept`
+            );
+            if (data.success) {
+                setBids(prev => rerank(prev.map(b => b.id === bid.id ? { ...b, status: 'shortlisted' } : b)));
+                showToast(`${bid.vendor_name} accepted — redirecting to Proposals...`, 'success');
+                setTimeout(() => {
+                    navigate('/td/proposals', {
+                        state: {
+                            acceptedBid: data.bid || bid,
+                            projectName: opportunity.project_name,
+                            opportunityId: project.id,
+                        },
+                    });
+                }, 1400);
+            } else {
+                showToast('Failed to accept bid.', 'error');
+            }
+        } catch {
+            showToast('Error accepting bid.', 'error');
+        } finally {
+            setActionLoading(prev => ({ ...prev, [bid.id]: false }));
+        }
+    };
+
+    // ── Reject → move to bottom, increment other ranks ──
+    const handleReject = async (bid: VendorBid) => {
+        setActionLoading(prev => ({ ...prev, [bid.id]: true }));
+        try {
+            const { data } = await api.post<{ success: boolean }>(
+                `/api/vendors/bidding/${project.id}/bids/${bid.id}/reject`
+            );
+            if (data.success) {
+                // Rerank: rejected → bottom, others reordered
+                setBids(prev => rerank(prev.map(b => b.id === bid.id ? { ...b, status: 'lost' } : b)));
+                showToast(`${bid.vendor_name}'s bid rejected and moved to bottom.`, 'success');
+            } else {
+                showToast('Failed to reject bid.', 'error');
+            }
+        } catch {
+            showToast('Error rejecting bid.', 'error');
+        } finally {
+            setActionLoading(prev => ({ ...prev, [bid.id]: false }));
+        }
+    };
+
+    const getRankBg = (rank: number, status: string) => {
+        if (status === 'lost') return 'bg-[#FCE8E8] text-[#D93025]';
+        if (status === 'shortlisted') return 'bg-[#E6F4EA] text-[#1E7E34]';
+        if (rank === 1) return 'bg-[#E6F4EA] text-[#1E7E34]';
+        if (rank === 2) return 'bg-[#EAF0FB] text-[#1967D2]';
+        if (rank === 3) return 'bg-[#FFF3E0] text-[#E65100]';
+        return 'bg-[#F2F2F2] text-[#353535]';
+    };
+
+
+    const computedStatus = (opportunity.computed_status || opportunity.status || 'active').toLowerCase();
+    const oppStatusLabel = computedStatus === 'active' ? 'Open' : computedStatus === 'awarded' ? 'Awarded' : 'Closed';
+    const oppStatusCls = computedStatus === 'active' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+        computedStatus === 'awarded' ? 'bg-green-50 text-green-600 border-green-100' :
+            'bg-gray-50 text-gray-500 border-gray-100';
 
     return (
-        <div className="h-full bg-[#F0F4F8] font-sans text-[#334155] flex flex-col">
-            {/* Header */}
-            <div className="bg-white px-8 py-4 flex items-center gap-4 shadow-sm border-b border-slate-200 shrink-0">
-                <button onClick={onBack} className="text-[#353535] hover:bg-slate-100 p-1.5 rounded-full transition-colors">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                    </svg>
-                </button>
-                <h1 className="text-2xl font-bold text-[#353535] font-gantari tracking-tight">Bidding Details</h1>
+        <div className="h-full flex flex-col px-2 pt-1 pb-0 font-gantari bg-white">
+            {/* Toast */}
+            {actionToast && (
+                <div className={`fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl font-gantari text-sm font-medium min-w-[280px] transition-all ${actionToast.type === 'success' ? 'bg-[#1A8A47] text-white' : 'bg-[#D93025] text-white'}`}>
+                    {actionToast.type === 'success'
+                        ? <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                        : <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    }
+                    <span>{actionToast.msg}</span>
+                </div>
+            )}
+
+            {/* ── Page Header ── */}
+            <div className="grid grid-cols-3 items-center flex-shrink-0 mb-6">
+                <div className="flex items-center">
+                    <button
+                        onClick={onBack}
+                        className="p-1 hover:bg-gray-100 rounded-lg transition-colors flex items-center justify-center"
+                        title="Back to Bidding"
+                    >
+                        <img src={backIcon} alt="Back" className="w-6 h-6 object-contain" />
+                    </button>
+                </div>
+
+                <h2 className="text-2xl text-center font-gantari font-semibold text-[#000000]">Bid Details</h2>
+
+                <div className="flex justify-end items-center gap-3">
+                    {/* Show entries dropdown */}
+                    <div className="relative" ref={showEntriesDropdownRef}>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+                        >
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{showEntriesOptions.find(o => o.value === selectedShowEntries)?.label}</span>
+                                </>
+                            )}
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                            />
+                        </button>
+                        {showEntriesOpen && (
+                            <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar" onMouseDown={(e) => e.preventDefault()}>
+                                {showEntriesOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <span className={`px-3 py-1 rounded-md text-xs font-bold border ${oppStatusCls}`}>
+                        {oppStatusLabel}
+                    </span>
+                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-                    {/* Project Summary */}
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="bg-[#353535] inline-block px-8 py-2 rounded-br-3xl">
-                            <h2 className="text-white font-bold font-gantari tracking-wide">Project Summary</h2>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pb-8 space-y-6 flex flex-col min-h-0">
+
+                {/* ── Project Summary ── */}
+                <div className="space-y-4 flex-shrink-0">
+                    <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
+                        <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">Project Name</p>
+                            <p className="font-semibold text-[#616161] text-base font-gantari truncate text-center">{opportunity.project_name || '—'}</p>
                         </div>
-                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-12 relative">
-                            <div className="hidden md:block absolute left-1/2 top-8 bottom-8 w-px bg-slate-100" />
-                            {/* Left */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-slate-500 w-36 text-sm">Project:</span>
-                                    <span className="font-bold text-slate-700 font-gantari">{opportunity.project_name}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-slate-500 w-36 text-sm">Outsourcing Budget:</span>
-                                    <span className="text-lg font-black text-[#353535] font-gantari">
-                                        {formatCurrency(opportunity.budget_ceiling || opportunity.outsource_budget || 0)}
-                                    </span>
-                                </div>
-                                {opportunity.description && (
-                                    <div className="flex items-start gap-3">
-                                        <span className="font-semibold text-slate-500 w-36 text-sm shrink-0">Description:</span>
-                                        <span className="text-sm text-slate-600 font-gantari">{opportunity.description}</span>
-                                    </div>
-                                )}
-                            </div>
-                            {/* Right */}
-                            <div className="space-y-4 md:pl-12">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-slate-500 w-44 text-sm">Bidding End Date:</span>
-                                    <span className="font-bold text-slate-700 font-gantari">{formatDate(opportunity.bid_deadline || '')}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-slate-500 w-44 text-sm">Total Bids Received:</span>
-                                    <span className="font-bold text-slate-700 font-gantari text-lg">{bids.length}</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <span className="font-semibold text-slate-500 w-44 text-sm">Status:</span>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${(opportunity.computed_status || opportunity.status || 'active') === 'active'
-                                        ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                        : 'bg-gray-50 text-gray-500 border-gray-100'
-                                        }`}>
-                                        {(opportunity.computed_status || opportunity.status || 'active') === 'active' ? 'Open' : 'Closed'}
-                                    </span>
-                                </div>
-                            </div>
+                        <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">Outsourcing Budget</p>
+                            <p className="font-semibold text-[#616161] text-base font-gantari text-center">
+                                {formatCurrency(opportunity.budget_ceiling || opportunity.outsource_budget || 0)}
+                            </p>
+                        </div>
+                        <div className="flex-1 min-w-[160px] px-8 border-r border-[#AEACAC52] last:border-r-0">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">Bidding End Date</p>
+                            <p className="font-semibold text-[#616161] text-base font-gantari text-center">
+                                {opportunity.bid_deadline ? formatDate(opportunity.bid_deadline) : '—'}
+                            </p>
+                        </div>
+                        <div className="flex-1 min-w-[100px] px-8 border-r border-[#AEACAC52] last:border-r-0">
+                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider font-gantari text-center whitespace-nowrap">Total Bids</p>
+                            <p className="font-semibold text-[#353535] text-3xl font-gantari text-center leading-none">{bids.length}</p>
                         </div>
                     </div>
 
-                    {/* Vendor Bids Table */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-1">
-                            <svg className="w-5 h-5 text-[#353535]" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M12 7.13l.97 2.29 2.48.21-1.88 1.63.55 2.44-2.12-1.25-2.12 1.25.55-2.44-1.88-1.63 2.48-.21.97-2.29M12 2l-3.3 7.82-8.35.71 6.38 5.56-1.8 7.91L12 19l7.07 4.14-1.8-7.91 6.38-5.56-8.35-.71L12 2z" />
-                            </svg>
-                            <h2 className="text-lg font-bold text-slate-700 font-gantari uppercase tracking-wide">Vendor Bids</h2>
-                            <span className="text-sm text-slate-400 font-gantari">({bids.length} bids — ranked by lowest amount)</span>
-                        </div>
+                    {(opportunity.description || scopeLoading || projectSector || bimServices || scopeOfWorkHtml) && (
+                        <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md px-8 py-4">
+                            <p className="text-lg font-bold text-[#353535] mb-1 font-gantari">Project Description</p>
+                            {!scopeOfWorkHtml && (
+                                <p className="font-semibold text-[#616161] text-base font-gantari">{opportunity.description}</p>
+                            )}
 
-                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                            {loading ? (
-                                <div className="flex justify-center py-16">
-                                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
-                                </div>
-                            ) : bids.length === 0 ? (
-                                <div className="py-16 text-center text-slate-400 font-gantari">
-                                    <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                                    </svg>
-                                    <p className="text-base font-semibold">No bids received yet</p>
-                                    <p className="text-sm mt-1">Vendors will appear here once they submit bids.</p>
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto w-full custom-scrollbar">
-                                    <table className="w-full text-left border-collapse min-w-[900px]">
-                                        <thead>
-                                            <tr className="bg-[#F8FAFC] border-b border-slate-200">
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] font-gantari">Vendor Name</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] font-gantari">Contact Email</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] text-center font-gantari">Bid Amount</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] text-center font-gantari">Timeline</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] text-center font-gantari">Team Size</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] text-center font-gantari">Bid Date</th>
-                                                <th className="px-6 py-4 text-sm font-bold text-[#353535] text-center font-gantari">Rank</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {bids.map((bid) => {
-                                                const colors = rankColors[bid.rank] || { text: 'text-slate-500', bg: 'bg-slate-50' };
-                                                return (
-                                                    <tr key={bid.id} className={`hover:bg-slate-50 transition duration-150 ${bid.rank === 1 ? 'bg-green-50/30' : ''}`}>
-                                                        <td className="px-6 py-5">
-                                                            <div className="font-bold text-slate-700 font-gantari">{bid.vendor_name}</div>
-                                                            {bid.notes && (
-                                                                <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{bid.notes}</div>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-6 py-5">
-                                                            <span className="text-[#353535] text-sm underline cursor-pointer font-gantari">{bid.vendor_email || '—'}</span>
-                                                        </td>
-                                                        <td className="px-6 py-5 text-center font-bold text-slate-800 font-gantari">
-                                                            {formatCurrency(bid.bid_amount)}
-                                                        </td>
-                                                        <td className="px-6 py-5 text-center text-slate-600 font-gantari text-sm">
-                                                            {bid.timeline || '—'}
-                                                        </td>
-                                                        <td className="px-6 py-5 text-center font-gantari text-sm text-slate-600">
-                                                            {bid.team_size > 0 ? `${bid.team_size} members` : '—'}
-                                                        </td>
-                                                        <td className="px-6 py-5 text-center text-slate-600 font-gantari text-sm">
-                                                            {formatDate(bid.created_at)}
-                                                        </td>
-                                                        <td className="px-6 py-5 text-center">
-                                                            <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${colors.bg} ${colors.text}`}>
-                                                                {rankLabel(bid.rank)}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                            {(scopeLoading || projectSector || bimServices || scopeOfWorkHtml) && (
+                                <div className="mt-4 space-y-3">
+                                    {(projectSector || bimServices) && (
+                                        <div className="bg-[#F9F9F9] border border-[#AEACAC52] rounded-md p-6 space-y-4">
+                                            {projectSector && (
+                                                <div className="flex items-start gap-4">
+                                                    <span className="font-bold text-[#353535] min-w-[220px]">Project Sector:</span>
+                                                    <span className="text-[#616161] font-medium">{projectSector}</span>
+                                                </div>
+                                            )}
+                                            {bimServices && (
+                                                <div className="flex items-start gap-4">
+                                                    <span className="font-bold text-[#353535] min-w-[220px]">BIM Services Required:</span>
+                                                    <span className="text-[#616161] font-medium">{bimServices}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {scopeOfWorkHtml && (
+                                        <div
+                                            className="bg-[#F9FAFB] rounded-md px-5 py-4 text-[15px] text-[#353535] font-gantari leading-relaxed [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                            dangerouslySetInnerHTML={{ __html: scopeOfWorkHtml }}
+                                        />
+                                    )}
+
+                                    {scopeLoading && !scopeOfWorkHtml && !(projectSector || bimServices) && (
+                                        <div className="py-6 text-sm text-[#616161] font-gantari">Loading scope...</div>
+                                    )}
                                 </div>
                             )}
                         </div>
-                    </div>
+                    )}
 
-                    {/* Top Recommended Vendors */}
-                    {top4Bids.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2 px-1">
-                                <svg className="w-5 h-5 text-[#353535]" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 10.63 21 8.55 21 6V5c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
-                                </svg>
-                                <h2 className="text-lg font-bold text-slate-700 font-gantari uppercase tracking-wide">Top Recommended Vendors</h2>
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                                {top4Bids.map((bid) => {
-                                    const colors = rankColors[bid.rank] || { text: 'text-slate-500', bg: 'bg-slate-50' };
-                                    const initials = (bid.vendor_name || 'V').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-                                    return (
-                                        <div key={bid.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col items-center text-center hover:shadow-md transition duration-300">
-                                            <div className={`w-16 h-16 mb-3 flex items-center justify-center rounded-full text-xl font-black tracking-tighter ${colors.bg} ${colors.text}`}>
-                                                {initials}
-                                            </div>
-                                            <h3 className="font-bold text-slate-800 text-base font-gantari">{bid.vendor_name}</h3>
-                                            <p className="text-xs text-slate-400 mt-0.5 mb-3 font-gantari">{bid.vendor_email}</p>
-                                            <span className={`text-xs font-bold px-2.5 py-1 rounded-full mb-4 ${colors.bg} ${colors.text}`}>
-                                                {rankLabel(bid.rank)} Place
-                                            </span>
-                                            <div className="w-full bg-slate-50 rounded-lg p-3">
-                                                <div className="text-xl font-black text-[#353535] font-gantari">{formatCurrency(bid.bid_amount)}</div>
-                                                {bid.timeline && (
-                                                    <div className="text-xs text-slate-400 mt-1 font-gantari">{bid.timeline}</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                </div>
+
+                {/* ── Vendor Bids Table ── */}
+                <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-[400px] relative">
+                    {/* Table header bar */}
+                    {/* <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
+                        <h3 className="text-base font-bold text-[#353535] font-gantari">
+                            Vendor Bids
+                            <span className="ml-2 text-sm font-semibold text-[#616161]">({bids.length})</span>
+                        </h3>
+                        <span className="text-xs text-[#616161] font-gantari">Ranked by lowest bid amount · rejected bids move to bottom</span>
+                    </div> */}
+
+                    {loading ? (
+                        <div className="flex justify-center items-center py-20">
+                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
+                        </div>
+                    ) : bids.length === 0 ? (
+                        <div className="py-20 text-center text-[#616161] font-gantari">
+                            <svg className="w-14 h-14 mx-auto mb-4 text-[#E2E8F0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p className="text-lg font-semibold mb-1 text-[#353535]">No bids received yet</p>
+                            <p className="text-sm">Vendors will appear here once they submit bids.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto custom-scrollbar smooth-scroll flex-shrink-0">
+                            <table className="min-w-full border-collapse">
+                                <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                                    <tr className=" bg-white">
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Contact Email</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Team Size</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Date</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Rank</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">View Vendor</th>
+                                        <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                {bids.slice(
+                                    showEntriesOptions.find(o => o.value === selectedShowEntries)?.start ?? 0,
+                                    showEntriesOptions.find(o => o.value === selectedShowEntries)?.end === null 
+                                        ? bids.length 
+                                        : Math.min(showEntriesOptions.find(o => o.value === selectedShowEntries)?.end ?? bids.length, bids.length)
+                                ).map((bid, index) => {
+                                        const isRejected = bid.status === 'lost';
+                                        const busy = !!actionLoading[bid.id];
+                                        const viewBusy = !!viewLoading[bid.id];
+                                        const slNo = (index + 1).toString().padStart(2, '0');
+
+                                        return (
+                                            <tr
+                                                key={bid.id}
+                                                className={`${isRejected ? 'opacity-60' : ''} ${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}
+                                            >
+                                                {/* Sl.No */}
+                                                <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+
+                                                {/* Vendor Name */}
+                                                <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    {bid.vendor_name}
+                                                </td>
+
+                                                {/* Email */}
+                                                <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.vendor_email || '—'}</td>
+
+                                                {/* Bid Amount */}
+                                                <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    {formatCurrency(bid.bid_amount)}
+                                                </td>
+
+                                                {/* Timeline */}
+                                                <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || '—'}</td>
+
+                                                {/* Team Size */}
+                                                <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                                    {bid.team_size > 0 ? bid.team_size : '—'}
+                                                </td>
+
+                                                {/* Bid Date */}
+                                                <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formatDate(bid.created_at)}</td>
+
+                                                {/* Rank */}
+                                                <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    <span className={`inline-flex px-3 py-1.5 rounded-lg text-xs font-bold font-gantari ${getRankBg(bid.rank, bid.status)}`}>
+                                                        {isRejected ? 'Rejected' : rankLabel(bid.rank)}
+                                                    </span>
+                                                </td>
+
+                                                {/* View Vendor → redirects to /td/partner/:id */}
+                                                <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    <button
+                                                        onClick={() => handleViewVendor(bid)}
+                                                        disabled={viewBusy}
+                                                        className="flex items-center justify-center gap-1.5 mx-auto px-4 py-3 rounded-md text-xs font-bold bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60"
+                                                        title="View vendor profile"
+                                                    >
+                                                        {viewBusy
+                                                            ? <span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full inline-block" />
+                                                            : <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
+                                                        }
+                                                        View
+                                                    </button>
+                                                </td>
+
+                                                {/* Action */}
+                                                <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                                                    {bid.status === 'shortlisted' ? (
+                                                        <span className="inline-flex px-4 py-1.5 rounded-lg text-[10px] font-bold font-gantari bg-[#E6F4EA] text-[#1E7E34]">
+                                                            Accepted
+                                                        </span>
+                                                    ) : bid.status === 'lost' ? (
+                                                        <span className="inline-flex px-4 py-1.5 rounded-lg text-[10px] font-bold font-gantari bg-[#FCE8E8] text-[#D93025]">
+                                                            Rejected
+                                                        </span>
+                                                    ) : (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {/* Accept — icon only circle */}
+                                                            <button
+                                                                disabled={busy}
+                                                                onClick={() => handleAccept(bid)}
+                                                                title="Accept bid"
+                                                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#E6F4EA] text-[#1E7E34] transition-colors disabled:opacity-60"
+                                                            >
+                                                                {busy
+                                                                    ? <span className="animate-spin w-3 h-3 border-b-2 border-current rounded-full inline-block" />
+                                                                    : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                                                                }
+                                                            </button>
+                                                            {/* Reject — icon only circle */}
+                                                            <button
+                                                                disabled={busy}
+                                                                onClick={() => handleReject(bid)}
+                                                                title="Reject bid"
+                                                                className="flex items-center justify-center w-8 h-8 rounded-full bg-[#FCE8E8] text-[#D93025] transition-colors disabled:opacity-60"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
                         </div>
                     )}
                 </div>

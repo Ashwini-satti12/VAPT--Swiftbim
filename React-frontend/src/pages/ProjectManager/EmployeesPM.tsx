@@ -4,6 +4,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import { getPhoneLength } from '../../utils/countryCodes';
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -17,6 +19,9 @@ import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg'
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
   id: number;
   full_name: string;
@@ -164,15 +169,27 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
-          styleType === "header" 
-          ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold" 
-          : styleType === "table"
-          ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-          : "px-4 py-3 bg-[#F4F4F4] rounded-[5px] text-[15px] text-[#353535]"
-        }`}
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+            : styleType === "table"
+              ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
-        <span>{value || placeholder}</span>
+        <span className={`whitespace-nowrap ${
+            styleType === "header" || styleType === "form"
+              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+              : ""
+          }`}>
+          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+            <>
+              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="font-semibold">{toCamelCase(value)}</span>
+            </>
+          ) : (
+            value || placeholder
+          )}
+        </span>
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
       </button>
       {isOpen && (
@@ -186,7 +203,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[15px] text-[#353535] font-Gantari hover:bg-[#F4F4F4] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
               >
                 {option}
               </button>
@@ -212,12 +229,16 @@ export default function EmployeesPM() {
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+  const [currentPage, setCurrentPage] = useState(1);
+  const effectivePerPage = 10;
+
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState('');
   const [form, setForm] = useState({
     full_name: '',
     dob: '',
     phone_number: '',
+    country_code: '+91',
     email: '',
     password: '',
     type: '',
@@ -241,6 +262,7 @@ export default function EmployeesPM() {
     full_name: '',
     email: '',
     phone_number: '',
+    country_code: '+91',
     user_role: '',
     department: '',
     address: '',
@@ -255,15 +277,45 @@ export default function EmployeesPM() {
     active: 'Active',
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const COUNTRY_CODES = ['+91', '+1', '+44', '+971', '+65', '+81'];
+
+  const getDateMinusDaysInput = (days: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Per your request: disable selecting "yesterday and above"
+  // => allow only dates <= (today - 2 days)
+  const dobMaxDate = getDateMinusDaysInput(2);
+
+  const parsePhone = (raw: string): { country_code: string; phone_digits: string } => {
+    const s = String(raw || '').trim();
+    const sortedCodes = [...COUNTRY_CODES].sort((a, b) => b.length - a.length);
+    for (const code of sortedCodes) {
+      if (s.startsWith(code)) {
+        return {
+          country_code: code,
+          phone_digits: s.slice(code.length).replace(/\D/g, ''),
+        };
+      }
+    }
+    return { country_code: COUNTRY_CODES[0], phone_digits: s.replace(/\D/g, '') };
+  };
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [currentPage, setCurrentPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('All');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [selectedShow, setSelectedShow] = useState<string>("Show");
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
 
   const canAdd = user?.panel_type === 1;
+
 
   useEffect(() => {
     api.get<{ employees?: Employee[] }>('/api/employees').then(({ data }) => setList(data.employees ?? [])).catch(() => setList([])).finally(() => setLoading(false));
@@ -306,10 +358,12 @@ export default function EmployeesPM() {
       if (emp) {
         setEditId(id);
         setActiveView('edit');
+        const parsed = parsePhone(emp.phone_number || '');
         setEditForm({
           full_name: emp.full_name,
           email: emp.email,
-          phone_number: emp.phone_number || '',
+          phone_number: parsed.phone_digits,
+          country_code: parsed.country_code,
           user_role: emp.user_role || '',
           department: emp.department || '',
           address: emp.address || '',
@@ -328,19 +382,54 @@ export default function EmployeesPM() {
   }, [editParam, list]);
 
   const filteredList = list.filter((emp: Employee) => {
-    if (statusFilter === 'All') return true;
-    const currentStatus = (emp.active || '').toLowerCase();
-    if (statusFilter === 'Active') return currentStatus === 'active';
-    if (statusFilter === 'Inactive') return currentStatus !== 'active';
+    if (statusFilter !== 'All') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+      if (statusFilter === 'Inactive' && currentStatus === 'active') return false;
+    }
+
+    if (typeFilter !== 'All') {
+      const currentType = (emp.user_type || '').toLowerCase();
+      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+    }
+
     return true;
   });
 
-  const paginatedList = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const totalPages = Math.ceil(filteredList.length / itemsPerPage);
+  let limitStart = 0;
+  let limitEnd = Infinity;
+  if (selectedShow && selectedShow.includes("-")) {
+      const parts = selectedShow.split("-");
+      if (parts.length === 2) {
+          limitStart = parseInt(parts[0], 10) - 1;
+          limitEnd = parseInt(parts[1], 10);
+      }
+  } else if (selectedShow === "All") {
+      limitStart = 0;
+      limitEnd = Infinity;
+  }
+
+  const displayedList = filteredList.slice(limitStart, limitEnd);
+  const totalPages = Math.ceil(filteredList.length / effectivePerPage);
+
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department', 'Account Number', 'Salary'];
-    const rows = list.map((e) => [e.full_name, e.email, e.user_role || '', e.active || '', e.phone_number || '', e.department || ''].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
+    const rows = list.map((e) =>
+      [
+        e.full_name,
+        e.email,
+        e.user_role || '',
+        e.active || '',
+        e.phone_number || '',
+        e.department || '',
+        e.accountnumber || '',
+        e.salary || '',
+      ]
+        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
+        .join(',')
+    );
     const csv = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const a = document.createElement('a');
@@ -375,13 +464,32 @@ export default function EmployeesPM() {
   function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!editId) return;
+
+    const phoneDigits = String(editForm.phone_number || '').replace(/\D/g, '');
+    if (!editForm.country_code) {
+      alert('Please select country code.');
+      return;
+    }
+    const expectedLength = getPhoneLength(editForm.country_code);
+    if (phoneDigits.length !== expectedLength) {
+      alert(`Phone number must be exactly ${expectedLength} digits for ${editForm.country_code}.`);
+      return;
+    }
+    if (editForm.dob && editForm.dob > dobMaxDate) {
+      alert('Date of birth cannot be yesterday and above.');
+      return;
+    }
+
     setEditSubmitting(true);
 
     // Build payload with all fields from redesign
     const payload = {
       full_name: editForm.full_name,
       email: editForm.email,
-      phone_number: editForm.phone_number || undefined,
+      phone_number:
+        editForm.phone_number && editForm.country_code
+          ? `${editForm.country_code}${editForm.phone_number}`.replace(/\s+/g, '')
+          : undefined,
       user_role: editForm.user_role,
       department: editForm.department || undefined,
       address: editForm.address || undefined,
@@ -442,13 +550,36 @@ export default function EmployeesPM() {
       setAddError('Name, email and password are required.');
       return;
     }
+
+    if (!form.country_code) {
+      setAddError('Please select country code.');
+      return;
+    }
+
+    const phoneDigits = String(form.phone_number || '').replace(/\D/g, '');
+    const expectedLength = getPhoneLength(form.country_code);
+    if (phoneDigits.length !== expectedLength) {
+      setAddError(`Phone number must be exactly ${expectedLength} digits for ${form.country_code}.`);
+      return;
+    }
+
+    if (form.dob && form.dob > dobMaxDate) {
+      setAddError(`Date of birth cannot be ${dobMaxDate.split('-')[2]}/${dobMaxDate.split('-')[1]}/${dobMaxDate.split('-')[0]} or later.`);
+      return;
+    }
+
     setAddSubmitting(true);
 
     const formData = new FormData();
     formData.append('full_name', form.full_name.trim());
     formData.append('email', form.email.trim());
     formData.append('password', form.password);
-    if (form.phone_number.trim()) formData.append('phone_number', form.phone_number.trim());
+    if (form.phone_number.trim()) {
+      formData.append(
+        'phone_number',
+        `${form.country_code}${form.phone_number.trim()}`.replace(/\s+/g, '')
+      );
+    }
     if (form.user_role) formData.append('user_role', form.user_role);
     if (form.address.trim()) formData.append('address', form.address.trim());
     if (form.dob) formData.append('dob', form.dob);
@@ -477,6 +608,7 @@ export default function EmployeesPM() {
             email: '',
             password: '',
             phone_number: '',
+            country_code: '+91',
             type: '',
             user_role: 'Consultant',
             department: '',
@@ -588,36 +720,34 @@ export default function EmployeesPM() {
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+
+                {/* Show Dropdown */}
                 {viewMode === 'table' && (
                   <CustomDropdown
-                    options={['10', '20', '30', '40']}
-                    value={`Show: ${itemsPerPage}`}
-                    onChange={(val) => {
-                      setItemsPerPage(parseInt(val, 10));
-                      setCurrentPage(1);
-                    }}
+                    options={['1-50', '51-100', '101-150', '151-200', '201-250', '251-300', 'All']}
+                    value={selectedShow === 'Show' ? 'Show' : selectedShow}
+                    onChange={(val) => setSelectedShow(val)}
                     placeholder="Show"
                     className="flex-1 sm:min-w-[120px]"
                     styleType="header"
                   />
                 )}
+
                 <CustomDropdown
-                  options={viewMode === 'card' ? ['All', 'Online', 'Offline'] : ['All', 'Active', 'Inactive']}
-                  value={
-                    statusFilter === 'All' 
-                      ? 'Status' 
-                      : (viewMode === 'card' 
-                          ? (statusFilter === 'Active' ? 'Online' : statusFilter === 'Inactive' ? 'Offline' : statusFilter)
-                          : statusFilter)
-                  }
+                  options={['All', 'Employee', 'Trainee']}
+                  value={typeFilter === 'All' ? 'Type' : typeFilter}
+                  onChange={(val) => setTypeFilter(val)}
+                  placeholder="Type"
+                  className="flex-1 sm:min-w-[120px]"
+                  styleType="header"
+                />
+                <CustomDropdown
+                  options={viewMode === 'card' ? ['All', 'Active', 'Deactive'] : ['All', 'Active', 'Inactive']}
+                  value={statusFilter === 'All' ? 'Status' : statusFilter}
                   onChange={(val) => {
                     let nextStatus = val;
-                    if (viewMode === 'card') {
-                      if (val === 'Online') nextStatus = 'Active';
-                      if (val === 'Offline') nextStatus = 'Inactive';
-                    }
+                    if (viewMode === 'card' && val === 'Deactive') nextStatus = 'Inactive';
                     setStatusFilter(nextStatus);
-                    setCurrentPage(1);
                   }}
                   placeholder="Status"
                   className="flex-1 sm:min-w-[120px]"
@@ -631,7 +761,7 @@ export default function EmployeesPM() {
           <div className="flex-1 overflow-y-auto custom-scrollbar">
         {viewMode === 'card' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
-            {filteredList.length === 0 ? (
+            {displayedList.length === 0 ? (
               <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                 No consultants found.
               </div>
@@ -654,7 +784,7 @@ export default function EmployeesPM() {
                       <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                         <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
                         <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                          {emp.active === 'active' ? 'Online' : 'Offline'}
+                          {emp.active === 'active' ? 'Active' : 'Deactive'}
                         </span>
                       </div>
                     </div>
@@ -731,10 +861,12 @@ export default function EmployeesPM() {
                           onClick={() => {
                             setEditId(emp.id);
                             setActiveView('edit');
+                            const parsed = parsePhone(emp.phone_number || '');
                             setEditForm({
                               full_name: emp.full_name,
                               email: emp.email,
-                              phone_number: emp.phone_number || '',
+                              phone_number: parsed.phone_digits,
+                              country_code: parsed.country_code,
                               user_role: emp.user_role || 'Consultant',
                               department: emp.department || '',
                               address: emp.address || '',
@@ -766,27 +898,39 @@ export default function EmployeesPM() {
               <table className="min-w-full border-separate border-spacing-0">
                 <thead className="sticky top-0 z-40">
                   <tr className="bg-white">
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
+                      Sl.No
+                    </th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
+                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
                     <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
                     <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {paginatedList.length === 0 ? (
+                  {displayedList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-500 font-Gantari">
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    paginatedList.map((emp, idx) => (
+                    displayedList.map((emp, idx) => {
+                      const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
+                      const slNoDisplay = String(slNo).padStart(2, '0');
+                      return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                        <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
+                        <td className="px-6 py-5 text-center text-[15px] font-medium font-Gantari text-[#6B6B6B]">
+                          {slNoDisplay}
+                        </td>
+
+
+                        <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">
                           {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                         </td>
-                        <td className="px-6 py-5">
+
+                        <td className="px-6 py-5 ">
                           <div className="flex items-center gap-4">
                             <div className="relative shrink-0">
                               <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
@@ -813,7 +957,7 @@ export default function EmployeesPM() {
                             <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
+                        <td className="px-6 py-5 text-center text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
                         <td className="px-6 py-5 text-center">
                           <div className="flex items-center justify-center gap-3">
                             <button 
@@ -848,82 +992,67 @@ export default function EmployeesPM() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Pagination Bottom Bar */}
-      {viewMode === 'table' && (
-        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
-          <div className="flex justify-center sm:justify-end sm:pr-8">
-            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
-              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
-              >
-                <FiChevronDown className="w-5 h-5 rotate-90" />
-                Prev
-              </button>
-
-              <div className="flex items-center gap-1.5 px-2">
-                {(() => {
-                  const maxVisible = 4;
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + maxVisible - 1);
-                  if (end - start + 1 < maxVisible) {
-                    start = Math.max(1, end - maxVisible + 1);
-                  }
-                  const pages = [];
-                  for (let i = start; i <= end; i++) pages.push(i);
-
-                  return pages.map((page) => (
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
+                <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
+                  Showing {(currentPage - 1) * effectivePerPage + 1} to {Math.min(currentPage * effectivePerPage, filteredList.length)} of {filteredList.length} entries
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                  >
+                    <FiChevronDown className="w-5 h-5 rotate-90" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
+                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all ${currentPage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
                     >
-                      {(page - 1) * itemsPerPage + 1}-{Math.min(page * itemsPerPage, filteredList.length)}
+                      {String(page).padStart(2, '0')}
                     </button>
-                  ));
-                })()}
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                  >
+                    <FiChevronDown className="w-5 h-5 -rotate-90" />
+                  </button>
+                </div>
               </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
-              >
-                Next
-                <FiChevronDown className="w-5 h-5 -rotate-90" />
-              </button>
-            </div>
+            )}
           </div>
-        </div>
-      )}
+
+        )}
+      </div>
+
+
         </>
       )}
 
       {activeView === 'add' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                title="Back"
               >
-                <FiX className="w-5 h-5 font-bold" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
-              <div className="w-10" /> {/* Spacer to center title */}
+              <div className="w-10" />
             </div>
 
             <form onSubmit={handleAddSubmit} className="space-y-6">
@@ -938,20 +1067,41 @@ export default function EmployeesPM() {
                       type="text"
                       placeholder="Enter Employee Name"
                       value={form.full_name}
-                      onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      onChange={(e) => setForm((f: any) => ({ ...f, full_name: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter Phone Number"
-                      value={form.phone_number}
-                      onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                    />
+                    <div className="flex items-end gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
+                        <CustomDropdown
+                          options={COUNTRY_CODES}
+                          value={form.country_code}
+                          onChange={(val) => setForm((f: any) => ({ ...f, country_code: val }))}
+                          placeholder="Select Code"
+                        />
+                      </div>
+                      <div className="flex-[2]">
+                        <input
+                          type="text"
+                          placeholder="Enter Phone Number"
+                          value={form.phone_number}
+                          onChange={(e) =>
+                            setForm((f) => ({
+                              ...f,
+                              phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
+                            }))
+                          }
+                          className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        />
+                      </div>
+                    </div>
+                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== getPhoneLength(form.country_code) && (
+                      <p className="text-[12px] text-red-600 mt-2">Phone must be exactly {getPhoneLength(form.country_code)} digits.</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
@@ -959,8 +1109,8 @@ export default function EmployeesPM() {
                       type="password"
                       placeholder="Enter Password"
                       value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      onChange={(e) => setForm((f: any) => ({ ...f, password: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -969,7 +1119,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={ROLE_OPTIONS}
                       value={form.user_role}
-                      onChange={(val) => setForm((f) => ({ ...f, user_role: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
                     />
                   </div>
@@ -978,17 +1128,8 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={departmentOptions}
                       value={form.department}
-                      onChange={(val) => setForm((f) => ({ ...f, department: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, department: val }))}
                       placeholder="Select Department"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={form.active}
-                      onChange={(val) => setForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
                     />
                   </div>
                 </div>
@@ -1000,8 +1141,9 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={form.dob}
-                      onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      max={dobMaxDate}
                     />
                   </div>
                   <div>
@@ -1010,8 +1152,8 @@ export default function EmployeesPM() {
                       type="email"
                       placeholder="Enter Email"
                       value={form.email}
-                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1020,7 +1162,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={['Trainee', 'Consultant',]}
                       value={form.type}
-                      onChange={(val) => setForm((f) => ({ ...f, type: val }))}
+                      onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
                       placeholder="Select Type"
                     />
                   </div>
@@ -1029,8 +1171,8 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={form.joining_date}
-                      onChange={(e) => setForm((f) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1045,7 +1187,7 @@ export default function EmployeesPM() {
                           type="file"
                           className="hidden"
                           accept=".jpg,.jpeg"
-                          onChange={(e) => setForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                          onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                         />
                       </label>
                     </div>
@@ -1060,22 +1202,22 @@ export default function EmployeesPM() {
                   rows={4}
                   placeholder="Type your Address..."
                   value={form.address}
-                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  onChange={(e) => setForm((f: any) => ({ ...f, address: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1086,18 +1228,19 @@ export default function EmployeesPM() {
       )}
 
       {activeView === 'edit' && (
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-2 bg-white">
           <div className="max-w-[1174px] mx-auto">
             <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                title="Back"
               >
-                <FiX className="w-5 h-5 font-bold" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
-              <div className="w-10" /> {/* Spacer to center title */}
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
+              <div className="w-10" />
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-6">
@@ -1110,29 +1253,48 @@ export default function EmployeesPM() {
                     type="text"
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
-                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
+                    disabled
                   />
                 </div>
                 <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                  <input
-                      type="text"
-                      placeholder="Enter Phone Number"
-                      value={editForm.phone_number}
-                      onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                  />
+                  <div className="flex items-end gap-3">
+                    <div className="flex-1">
+                      <CustomDropdown
+                        options={COUNTRY_CODES}
+                        value={editForm.country_code}
+                        onChange={(val) => setEditForm((f: any) => ({ ...f, country_code: val }))}
+                        placeholder="Select Code"
+                      />
+                    </div>
+                    <div className="flex-[2]">
+                      <input
+                        type="text"
+                        placeholder="Enter Phone Number"
+                        value={editForm.phone_number}
+                        onChange={(e) =>
+                          setEditForm((f: any) => ({
+                            ...f,
+                            phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
+                          }))
+                        }
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password</label>
                     <input
                       type="password"
-                      placeholder="Enter Password (Leave blank to keep current)"
+                      placeholder="******** (password hidden)"
                       value={editForm.password}
-                      onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                    disabled
                     />
                   </div>
                   <div className="relative">
@@ -1140,7 +1302,7 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={ROLE_OPTIONS}
                       value={editForm.user_role}
-                      onChange={(val) => setEditForm((f) => ({ ...f, user_role: val }))}
+                      onChange={(val) => setEditForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
                     />
                   </div>
@@ -1149,17 +1311,8 @@ export default function EmployeesPM() {
                     <CustomDropdown
                       options={departmentOptions}
                       value={editForm.department}
-                      onChange={(val) => setEditForm((f) => ({ ...f, department: val }))}
+                      onChange={(val) => setEditForm((f: any) => ({ ...f, department: val }))}
                       placeholder="Select Department"
-                    />
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Status</label>
-                    <CustomDropdown
-                      options={['Active', 'Deactivate']}
-                      value={editForm.active}
-                      onChange={(val) => setEditForm((f) => ({ ...f, active: val }))}
-                      placeholder="Select Status"
                     />
                   </div>
                   <div>
@@ -1168,8 +1321,8 @@ export default function EmployeesPM() {
                     type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
-                      onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 </div>
@@ -1181,8 +1334,9 @@ export default function EmployeesPM() {
                     <input
                       type="date"
                       value={editForm.dob}
-                      onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                      onChange={(e) => setEditForm((f: any) => ({ ...f, dob: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      max={dobMaxDate}
                     />
                   </div>
                   <div>
@@ -1191,17 +1345,18 @@ export default function EmployeesPM() {
                     type="email"
                     placeholder="Enter Email"
                     value={editForm.email}
-                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
+                    disabled
                   />
                 </div>
                 <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                   <CustomDropdown
-                    options={['Trainee', 'Consultant', ]}
+                    options={['Employee', 'Trainee' ]}
                     value={editForm.user_type}
-                    onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
+                    onChange={(val) => setEditForm((f: any) => ({ ...f, user_type: val }))}
                     placeholder="Select Type"
                   />
                 </div>
@@ -1210,8 +1365,8 @@ export default function EmployeesPM() {
                   <input
                     type="date"
                     value={editForm.doj}
-                    onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1220,8 +1375,8 @@ export default function EmployeesPM() {
                     type="text"
                     placeholder="0000$"
                     value={editForm.salary}
-                    onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                    onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1236,7 +1391,7 @@ export default function EmployeesPM() {
                         type="file"
                         className="hidden"
                         accept=".jpg,.jpeg"
-                        onChange={(e) => setEditForm((f) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
+                        onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                       />
                     </label>
                     </div>
@@ -1251,8 +1406,8 @@ export default function EmployeesPM() {
                   rows={4}
                   placeholder="Type your Address..."
                   value={editForm.address}
-                  onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none resize-none"
+                  onChange={(e) => setEditForm((f: any) => ({ ...f, address: e.target.value }))}
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
 
@@ -1286,18 +1441,18 @@ export default function EmployeesPM() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8 border-t border-[#F0F0F0]">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="w-full sm:w-auto px-14 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px]transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px]  transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1455,7 +1610,7 @@ export default function EmployeesPM() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[750px] w-full max-h-[90vh] overflow-hidden px-[20px] py-[20px] relative shadow-2xl flex flex-col gap-6 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-4 py-4 relative shadow-2xl flex flex-col gap-3 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
@@ -1465,12 +1620,12 @@ export default function EmployeesPM() {
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[20px] font-semibold text-[#020202]">View Details</h3>
+              <h3 className="text-[24px] font-semibold text-[#020202]">View Details</h3>
             </div>
 
             {/* Profile Section: show uploaded photo if available, otherwise initials */}
-            <div className="flex items-center gap-6 px-4">
-              <div className="w-[100px] h-[100px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
+            <div className="flex items-center gap-2 px-0">
+              <div className="w-[38px] h-[38px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     src={getProfileUrl(selectedEmployee.profile_picture)}
@@ -1488,13 +1643,13 @@ export default function EmployeesPM() {
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <h4 className="text-[24px] font-bold text-[#000000]">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[16px] font-semibold text-[#353535]">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 
             {/* Details Table */}
-            <div className="px-4 sm:px-8 space-y-4 pt-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
+            <div className="px-4 sm:px-8 space-y-2 overflow-y-auto max-h-[60vh] custom-scrollbar">
               {[
                 { label: 'Date of Birth', value: selectedEmployee.dob },
                 { label: 'Phone Number', value: selectedEmployee.phone_number },
@@ -1508,9 +1663,9 @@ export default function EmployeesPM() {
                 { label: 'Account Number', value: selectedEmployee.accountnumber }, 
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:grid sm:grid-cols-[140px_20px_1fr] text-[15px] gap-2 sm:gap-15 pb-2 sm:pb-0 border-b sm:border-none border-[#F0F0F0] last:border-none">
-                  <span className="font-semibold font-Gantari text-[#000000]">{item.label}</span>
-                  <span className="hidden sm:inline text-[#353535] font-Gantari text-center">:</span>
-                  <span className="text-[#353535] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
+                  <span className="text-[14px] font-semibold font-Gantari text-[#000000]">{item.label}</span>
+                  <span className="hidden sm:inline text-[14px] font-Gantari text-[#000000] text-center">:</span>
+                  <span className="text-[14px] text-[#616161] font-Gantari font-medium break-words">{item.value || 'N/A'}</span>
                 </div>
               ))}
             </div>

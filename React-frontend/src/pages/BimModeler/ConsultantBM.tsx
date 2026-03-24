@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -45,6 +45,90 @@ const ROLE_OPTIONS = [
     'CEO',
     'CTO',
 ];
+
+const toCamelCase = (str: string) => {
+    if (!str) return str;
+    return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+};
+
+function CustomDropdown({
+    options,
+    value,
+    onChange,
+    placeholder,
+    className = "",
+    styleType = "form"
+}: {
+    options: string[];
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    className?: string;
+    styleType?: "form" | "header" | "table";
+}) {
+    const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className={`relative ${className}`} ref={dropdownRef}>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+                    ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+                    : styleType === "table"
+                        ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+                        : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+                    }`}
+            >
+                <span className={`whitespace-nowrap ${
+                    styleType === "header" || styleType === "form"
+                        ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+                        : ""
+                    }`}>
+                    {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+                        <>
+                            <span className="text-sm">{placeholder}:</span>{" "}
+                            <span className="font-semibold">{toCamelCase(value)}</span>
+                        </>
+                    ) : (
+                        value || placeholder
+                    )}
+                </span>
+                <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
+            </button>
+            {isOpen && (
+                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
+                    <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                        {options.map((option) => (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => {
+                                    onChange(option);
+                                    setIsOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                            >
+                                {option}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function ConsultantBM() {
     const { user } = useAuth();
@@ -96,7 +180,11 @@ export default function ConsultantBM() {
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const [currentPage, setCurrentPage] = useState(1);
+    const [statusFilter, setStatusFilter] = useState('All');
+    const [typeFilter, setTypeFilter] = useState('All');
+    const [selectedShow, setSelectedShow] = useState<string>("Show");
     const itemsPerPage = 10;
+    const todayISO = new Date().toISOString().split('T')[0];
 
     const canAdd = user?.panel_type === 1;
 
@@ -131,8 +219,39 @@ export default function ConsultantBM() {
         }
     }, [editParam, list]);
 
-    const paginatedList = list.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const totalPages = Math.ceil(list.length / itemsPerPage);
+    const filteredList = list.filter((emp: Employee) => {
+        if (statusFilter !== 'All') {
+            const currentStatus = (emp.active || '').toLowerCase();
+            if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+            if (statusFilter === 'Deactive' && currentStatus === 'active') return false;
+        }
+
+        if (typeFilter !== 'All') {
+            const currentType = (emp.user_type || '').toLowerCase();
+            if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+            if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+        }
+
+        return true;
+    });
+
+    let limitStart = 0;
+    let limitEnd = Infinity;
+    if (selectedShow && selectedShow.includes("-")) {
+        const parts = selectedShow.split("-");
+        limitStart = parseInt(parts[0], 10) - 1;
+        limitEnd = parseInt(parts[1], 10);
+    } else if (selectedShow === "All") {
+        limitStart = 0;
+        limitEnd = Infinity;
+    } else {
+        // Fallback to pagination if no range selected
+        limitStart = (currentPage - 1) * itemsPerPage;
+        limitEnd = currentPage * itemsPerPage;
+    }
+
+    const paginatedList = filteredList.slice(limitStart, limitEnd);
+    const totalPages = Math.ceil(filteredList.length / itemsPerPage);
 
     function exportCsv() {
         const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -172,6 +291,18 @@ export default function ConsultantBM() {
         e.preventDefault();
         if (!editId) return;
         setEditSubmitting(true);
+
+        if (editForm.dob) {
+            const today = new Date();
+            const dobDate = new Date(editForm.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setEditSubmitting(false);
+                alert('Date of birth cannot be in the future.');
+                return;
+            }
+        }
 
         // Build payload with all fields from redesign
         const payload = {
@@ -228,6 +359,17 @@ export default function ConsultantBM() {
             setAddError('Name, email and password are required.');
             return;
         }
+
+        if (form.dob) {
+            const today = new Date();
+            const dobDate = new Date(form.dob);
+            today.setHours(0, 0, 0, 0);
+            dobDate.setHours(0, 0, 0, 0);
+            if (dobDate > today) {
+                setAddError('Date of birth cannot be in the future.');
+                return;
+            }
+        }
         setAddSubmitting(true);
         api
             .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
@@ -257,10 +399,10 @@ export default function ConsultantBM() {
                     });
                     setList((prev) => [...prev, { id: data.id!, full_name: form.full_name, email: form.email, user_role: form.user_role, active: 'active' }]);
                 } else {
-                    setAddError(data.message || 'Failed to add consultant.');
+                    setAddError(data.message || 'Failed to add employee/trainee.');
                 }
             })
-            .catch((err) => setAddError(err.response?.data?.message || 'Failed to add consultant.'))
+            .catch((err) => setAddError(err.response?.data?.message || 'Failed to add employee/trainee.'))
             .finally(() => setAddSubmitting(false));
     }
 
@@ -276,7 +418,7 @@ export default function ConsultantBM() {
         <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
             <div className="sticky top-0 z-50 bg-white shadow-sm px-2 pb-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pt-4">
-                    <h2 className="text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight">Consultant</h2>
+                    <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate">Employee / Trainee List</h2>
                     <div className="flex flex-wrap items-center gap-6">
                         {canAdd && (
                             <>
@@ -286,7 +428,7 @@ export default function ConsultantBM() {
                                     className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100"
                                 >
                                     <FiPlus className="text-2xl font-bold text-[#F2F2F2] w-[27px] h-[27px]" />
-                                    Add Consultant
+                                    Add Employee / Trainee
                                 </button>
                                 <button
                                     type="button"
@@ -332,21 +474,36 @@ export default function ConsultantBM() {
                     >
                         <FiGrid className="w-6 h-6" />
                     </button>
-                    <div className="relative group">
-                        <div className="flex items-center gap-2 px-3 py-2 bg-[#F2F2F2] rounded-[5px]">
-                            <span className="text-[14px] font-Gantari text-[#6B6B6B]">Show:</span>
-                            <button className="flex items-center gap-2 text-[14px] font-semibold text-[#353535]">
-                                {itemsPerPage}
-                                <FiChevronDown className="w-4 h-4 text-slate-500" />
-                            </button>
-                        </div>
-                    </div>
-                    <div className="relative group">
-                        <button className="inline-flex items-center gap-4 px-5 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-[5px] font-semibold font-Gantari">
-                            Status
-                            <FiChevronDown className="w-5 h-5 text-slate-500" />
-                        </button>
-                    </div>
+                    {viewMode === 'table' && (
+                        <CustomDropdown
+                            options={['1-50', '51-100', '101-150', '151-200', '201-250', '251-300', 'All']}
+                            value={selectedShow === 'Show' ? 'Show' : selectedShow}
+                            onChange={(val) => setSelectedShow(val)}
+                            placeholder="Show"
+                            className="flex-1 sm:min-w-[120px]"
+                            styleType="header"
+                        />
+                    )}
+                    <CustomDropdown
+                        options={['All', 'Employee', 'Trainee']}
+                        value={typeFilter === 'All' ? 'Type' : typeFilter}
+                        onChange={(val) => setTypeFilter(val)}
+                        placeholder="Type"
+                        className="flex-1 sm:min-w-[120px]"
+                        styleType="header"
+                    />
+                    <CustomDropdown
+                        options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
+                        value={statusFilter === 'All' ? 'Status' : statusFilter}
+                        onChange={(val) => {
+                            let nextStatus = val;
+                            if (viewMode === 'card' && val === 'Deactivate') nextStatus = 'Deactive';
+                            setStatusFilter(nextStatus);
+                        }}
+                        placeholder="Status"
+                        className="flex-1 sm:min-w-[120px]"
+                        styleType="header"
+                    />
                 </div>
             </div>
 
@@ -674,6 +831,7 @@ export default function ConsultantBM() {
                                             type="date"
                                             value={form.dob}
                                             onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
                                             className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#979797] font-Gantari transition-all outline-none"
                                         />
                                     </div>
@@ -1028,6 +1186,7 @@ export default function ConsultantBM() {
                                             type="date"
                                             value={editForm.dob}
                                             onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                                            max={todayISO}
                                             className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] font-Gantari transition-all outline-none text-[#353535]"
                                         />
                                     </div>

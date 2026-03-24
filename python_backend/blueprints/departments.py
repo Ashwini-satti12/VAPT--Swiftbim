@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from db import get_db
 from auth_middleware import project_app_required
+from flask import g
 
 bp = Blueprint("departments", __name__, url_prefix="/api/departments")
 
@@ -14,7 +15,7 @@ def list_departments():
     """
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT name FROM department ORDER BY name")
+    cur.execute("SELECT name FROM department WHERE Company_id = %s ORDER BY name", (g.company_id,))
     rows = cur.fetchall()
     names = [r.get("name") for r in rows if r.get("name")]
     return jsonify({"departments": names})

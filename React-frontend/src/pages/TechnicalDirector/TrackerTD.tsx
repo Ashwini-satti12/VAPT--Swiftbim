@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface LocationEntry {
     id: number;
+    employee_db_id?: number | null;
     full_name?: string;
     /** Original attendance date string (d-m-Y or Y-m-d) */
     date?: string | null;
@@ -21,33 +24,57 @@ interface LocationEntry {
 export default function TrackerTD() {
     const [list, setList] = useState<LocationEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedDate, setSelectedDate] = useState('');
+    // Selected time used to determine Busy/Available at that time (HH:MM, 24h)
+    const [selectedTime, setSelectedTime] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('');
     const [statusOpen, setStatusOpen] = useState(false);
-    const statusOptions = ['', 'Online', 'Offline'];
+    const statusOptions = ['', 'Available', 'Busy'];
     const statusDropdownRef = useRef<HTMLDivElement>(null);
-    const dateInputRef = useRef<HTMLInputElement>(null);
+    const timeInputRef = useRef<HTMLInputElement>(null);
 
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: '0-100', label: '0-100', start: 0, end: 100 },
-        { value: '101-200', label: '101-200', start: 100, end: 200 },
-        { value: '201-300', label: '201-300', start: 200, end: 300 },
-        { value: '301-400', label: '301-400', start: 300, end: 400 },
+        { value: 'show', label: 'Show', start: 0, end: 50 },
+        { value: '1-50', label: '1-50', start: 0, end: 50 },
+        { value: '51-100', label: '51-100', start: 50, end: 100 },
+        { value: '101-150', label: '101-150', start: 100, end: 150 },
+        { value: '151-200', label: '151-200', start: 150, end: 200 },
+        { value: '201-250', label: '201-250', start: 200, end: 250 },
+        { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
-    const PER_PAGE = 10;
-    const PAGINATION_VISIBLE = 4; // show 4 page buttons at a time
-    const [currentPage, setCurrentPage] = useState(1);
-    const [paginationWindowStart, setPaginationWindowStart] = useState(1); // 1-based start of visible 4 buttons
+    useEffect(() => {
+        if (showEntriesOpen && dropdownContentRef.current) {
+            dropdownContentRef.current.scrollTop = 0;
+        }
+    }, [showEntriesOpen]);
 
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return 'Select Date';
-        const [year, month, day] = dateStr.split('-');
-        return `${day}/${month}/${year}`;
+
+    const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+
+    const todayIso = (() => {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    })();
+
+
+    const formatTime12 = (time24: string) => {
+        if (!time24) return 'Time';
+        const [hhStr, mmStr] = time24.split(':');
+        const hh = Number(hhStr);
+        const mm = Number(mmStr || '0');
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return 'Time';
+        const ampm = hh >= 12 ? 'PM' : 'AM';
+        const h12 = hh % 12 === 0 ? 12 : hh % 12;
+        return `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`;
     };
 
     // Convert a date string into YYYY-MM-DD for filtering.
@@ -121,25 +148,148 @@ export default function TrackerTD() {
                 // Ignore calculation errors
             }
         }
-        return 'N/A';
+        return '-';
     };
 
     useEffect(() => {
         api
-            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker')
+            // Ask backend for today's attendance only (backend expects YYYY-MM-DD)
+            .get<{ records?: LocationEntry[] }>('/api/attendance/tracker', {
+                params: { date: todayIso, roles: 'BIM Coordinator,BIM Modeler,BIM Moduler' },
+            })
             .then(({ data }) => {
-                const records = (data.records ?? []).map((item) => {
-                    const statusValue = (item.status || '').toString().toLowerCase() === 'online' ? 'Online' : 'Offline';
-                    return { ...item, status: statusValue };
-                });
-
+                const records = (data.records ?? []).map((item) => ({
+                    ...item,
+                }));
                 setList(records);
             })
             .catch(() => {
                 setList([]);
             })
             .finally(() => setLoading(false));
-    }, []);
+    }, [todayIso]);
+
+    // Fetch tasks for selected date to determine Availability / Busy
+    useEffect(() => {
+        const fetchTasksForDate = async () => {
+            // date is always today for this tracker
+            const targetDate = todayIso;
+            try {
+                const params: { condition: string } = { condition: '1' }; // management/team view
+                const { data } = await api.get<{ tasks?: any[] }>('/api/tasks', { params });
+                const tasks = data.tasks || [];
+                const targetTime = selectedTime; // HH:MM (24h)
+                const busy: Record<string, boolean> = {};
+
+                const parseDateTime = (raw: any): Date | null => {
+                    if (!raw) return null;
+                    const s = String(raw).trim();
+                    if (!s) return null;
+                    // Normalize "YYYY-MM-DD HH:MM:SS" to ISO-like "YYYY-MM-DDTHH:MM:SS"
+                    const isoLike = s.includes('T') ? s : s.replace(' ', 'T');
+                    const d = new Date(isoLike);
+                    return Number.isNaN(d.getTime()) ? null : d;
+                };
+
+                const parseTimeOnly = (raw: any): string | null => {
+                    if (!raw) return null;
+                    const s = String(raw).trim();
+                    if (!s) return null;
+                    // accept "HH:MM" or "HH:MM:SS"
+                    if (/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(s)) {
+                        const [hh, mm, ss] = s.split(':');
+                        return `${String(hh).padStart(2, '0')}:${mm}:${ss ?? '00'}`;
+                    }
+                    return null;
+                };
+
+                const sameDay = (d: Date) => {
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${dd}` === targetDate;
+                };
+
+                // Build selected datetime for comparisons
+                let selectedDt: Date | null = null;
+                if (targetTime && /^\d{2}:\d{2}$/.test(targetTime)) {
+                    selectedDt = new Date(`${targetDate}T${targetTime}:00`);
+                }
+
+                tasks.forEach((t) => {
+                    const status = String(t.status || '').toLowerCase();
+                    if (status === 'completed') return;
+
+                    const assignedIdRaw = (t as any).assigned_to ?? (t as any).assignedTo ?? (t as any).assigned_to_id;
+                    const assignedKey =
+                        assignedIdRaw != null && String(assignedIdRaw).trim() !== ''
+                            ? String(assignedIdRaw)
+                            : '';
+                    const name = (t.assigned_full_name || '').trim();
+                    if (!assignedKey && !name) return;
+
+                    // Determine task window.
+                    // Prefer explicit datetime columns; otherwise use preferred time window on the selected date.
+                    const preferStartTime =
+                        parseTimeOnly((t as any).perferstart_time) ||
+                        parseTimeOnly((t as any).prefer_start_time) ||
+                        parseTimeOnly((t as any).startTime);
+                    const preferEndTime =
+                        parseTimeOnly((t as any).perferend_time) ||
+                        parseTimeOnly((t as any).prefer_end_time) ||
+                        parseTimeOnly((t as any).dueTime);
+
+                    let start =
+                        parseDateTime((t as any).start_time) ||
+                        parseDateTime((t as any).Actual_start_time) ||
+                        parseDateTime((t as any).due_date);
+                    let end =
+                        parseDateTime((t as any).end_time) ||
+                        parseDateTime((t as any).endTime) ||
+                        null;
+
+                    // If we only have preferred time(s), build start/end within today's date
+                    if (!start && preferStartTime) start = new Date(`${targetDate}T${preferStartTime}`);
+                    if (!end && preferEndTime) end = new Date(`${targetDate}T${preferEndTime}`);
+
+                    if (!start) return;
+                    if (!sameDay(start)) return;
+
+                    // If no selected time, treat any task on today as busy
+                    if (!selectedDt) {
+                        if (assignedKey) busy[assignedKey] = true;
+                        if (name) busy[name] = true; // fallback
+                        return;
+                    }
+
+                    // If end exists, check overlap; otherwise assume busy from start time onward for today
+                    if (end && !Number.isNaN(end.getTime())) {
+                        // If preferred end is before start (bad data), treat as start-only
+                        if (end < start) end = null;
+                    }
+                    if (end && !Number.isNaN(end.getTime())) {
+                        if (selectedDt >= start && selectedDt <= end) {
+                            if (assignedKey) busy[assignedKey] = true;
+                            if (name) busy[name] = true;
+                        }
+                    } else {
+                        // start-only: busy if selected time is after start (same day)
+                        if (selectedDt >= start) {
+                            if (assignedKey) busy[assignedKey] = true;
+                            if (name) busy[name] = true;
+                        }
+                    }
+                });
+
+                setBusyMap(busy);
+            } catch (err) {
+                console.error('Error fetching tasks for TrackerTD:', err);
+                setBusyMap({});
+            }
+        };
+
+        fetchTasksForDate();
+    }, [todayIso, selectedTime]);
 
     // Close status dropdown when clicking outside
     useEffect(() => {
@@ -171,55 +321,36 @@ export default function TrackerTD() {
         };
     }, [showEntriesOpen]);
 
-    // Reset to page 1 and window when show entries range changes
-    useEffect(() => {
-        setCurrentPage(1);
-        setPaginationWindowStart(1);
-    }, [selectedShowEntries]);
+
+
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
 
     const filteredList = list.filter((item) => {
-        let matchesDate = true;
         let matchesStatus = true;
 
-        if (selectedDate) {
-            // selectedDate is already in YYYY-MM-DD format from the date input
-            const itemDate = toLocalDateKey(item.date_iso, item.date ?? null);
-            // Compare date strings directly
-            matchesDate = itemDate === selectedDate;
-        }
-
         if (selectedStatus) {
-            matchesStatus = item.status === selectedStatus;
+            const name = (item.full_name || '').trim();
+            const entryKey = item.employee_db_id != null ? String(item.employee_db_id) : name;
+            const status =
+                (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
+            matchesStatus = status === selectedStatus;
         }
 
-        return matchesDate && matchesStatus;
+        const matchesSearch = !searchQuery || 
+            (item.full_name || "").toLowerCase().includes(searchQuery) ||
+            (item.date || "").toLowerCase().includes(searchQuery) ||
+            (item.date_iso || "").toLowerCase().includes(searchQuery) ||
+            (item.time_in || "").toLowerCase().includes(searchQuery) ||
+            (item.time_out || "").toLowerCase().includes(searchQuery);
+
+        return matchesStatus && matchesSearch;
     });
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
-    const totalInRange = listInRange.length;
-    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-    const safePage = Math.min(Math.max(1, currentPage), totalPages);
-    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-
-    // Page ranges for pagination bar: 0-10, 11-20, 21-30, ... (no overlapping numbers)
-    const pageRanges: { start: number; end: number; label: string }[] = [];
-    for (let p = 1; p <= totalPages; p++) {
-        const s = rangeStart + (p - 1) * PER_PAGE;
-        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-        pageRanges.push({ start: s, end: e, label });
-    }
-    const activePage = safePage;
-    // Visible window of 4 page buttons: from paginationWindowStart (1-based)
-    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-    const visiblePageRanges = pageRanges.slice(paginationWindowStart - 1, paginationWindowStart - 1 + PAGINATION_VISIBLE);
-    const canPrevWindow = paginationWindowStart > 1;
-    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+    const displayedList = listInRange;
 
     const handleDownload = () => {
         if (filteredList.length === 0) return;
@@ -235,14 +366,19 @@ export default function TrackerTD() {
             const rawTimeOut = pickTime(loc.time_out) || '';
             const totalHours = formatTotalHours(loc.total_hours, rawTimeIn, rawTimeOut);
 
+            const name = (loc.full_name || '').trim();
+            const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
+            const statusLabel =
+                (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
+
             return [
                 slNo,
                 formattedDate,
-                loc.full_name || 'N/A',
+                loc.full_name || '-',
                 rawTimeIn,
                 rawTimeOut,
                 totalHours,
-                loc.status || '-'
+                statusLabel
             ].map(val => `"${val || ''}"`).join(',');
         });
 
@@ -276,68 +412,65 @@ export default function TrackerTD() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Select Date Filter */}
-                    <div
-                        className="relative flex items-center justify-between gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all group min-w-[130px] cursor-pointer"
-                        onClick={() => { dateInputRef.current?.showPicker?.(); dateInputRef.current?.focus(); }}
-                    >
-                        <span className={`text-sm font-medium flex-1 ${selectedDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
-                            {formatDate(selectedDate)}
-                        </span>
-                        {selectedDate && (
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedDate('');
-                                }}
-                                className="text-[#616161] hover:text-[#353535] transition-colors"
-                                title="Clear date filter"
+                    {/* Time picker (today only, date hidden) */}
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                timeInputRef.current?.showPicker?.();
+                                timeInputRef.current?.focus();
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 group"
+                        >
+                            <span className="text-sm font-medium text-[#353535] font-gantari">
+                                {formatTime12(selectedTime)}
+                            </span>
+                            <svg 
+                                width="18" 
+                                height="18" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="#616161" 
+                                strokeWidth="1.7" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                                className="shrink-0 transition-colors group-hover:stroke-[#353535]"
                             >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        )}
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-                        </svg>
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+                        </button>
                         <input
-                            ref={dateInputRef}
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            style={{ colorScheme: 'light' }}
+                            ref={timeInputRef}
+                            type="time"
+                            value={selectedTime}
+                            onChange={(e) => setSelectedTime(e.target.value)}
+                            className="absolute opacity-0 pointer-events-none w-0 h-0"
                         />
                     </div>
 
                     {/* Status Custom Dropdown */}
-                    <div className="relative min-w-[120px]" ref={statusDropdownRef}>
+                    <div className="relative" ref={statusDropdownRef}>
                         <button
                             type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setStatusOpen(o => !o);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className={`text-sm font-medium ${selectedStatus ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                            <span className={`text-sm font-medium font-gantari ${selectedStatus ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}>
                                 {selectedStatus || 'Status'}
                             </span>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: statusOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${statusOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {statusOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1"
+                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-md shadow-xl min-w-[130px] py-1"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {statusOptions.map(opt => (
@@ -349,7 +482,7 @@ export default function TrackerTD() {
                                             setSelectedStatus(opt);
                                             setStatusOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-gray-50' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt === '' ? 'All Status' : opt}
                                     </button>
@@ -362,34 +495,35 @@ export default function TrackerTD() {
                     <div className="relative" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowEntriesOpen(o => !o);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            {selectedShowEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show</span>
+                            ) : (
+                                <>
+                                    <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                </>
+                            )}
+                            <img
+                                src={ArrowDown}
+                                alt="arrow"
+                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                            />
                         </button>
                         {showEntriesOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                                ref={dropdownContentRef}
+                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
                                 {showEntriesOptions.map(opt => (
                                     <button
                                         key={opt.value}
                                         type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedShowEntries(opt.value);
-                                            setShowEntriesOpen(false);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt.label}
                                     </button>
@@ -413,30 +547,30 @@ export default function TrackerTD() {
             </div>
 
             {/* Table Section - scrollable when many rows */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
+            <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
                     <table className="min-w-full border-collapse">
-                        <thead className="sticky top-0 z-10 bg-white">
+                        <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                             <tr className="border-b border-gray-100 bg-white">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Date</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time In</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Time Out</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Hours</th>
+                                <th className="px-3 py-4 text-center text-[16px] font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
+                                    <td colSpan={7} className="px-3 py-20 text-center text-[#616161] font-medium font-gantari bg-white">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
                                 displayedList.map((loc, index) => {
-                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
+                                    const baseIndex = rangeStart + index;
                                     const slNo = (baseIndex + 1).toString().padStart(2, '0');
                                     const dateKey = toLocalDateKey(loc.date_iso, loc.date ?? null);
                                     const [y, m, d] = dateKey ? dateKey.split('-') : ['', '', ''];
@@ -447,17 +581,30 @@ export default function TrackerTD() {
                                     const totalHours = formatTotalHours(loc.total_hours, timeIn, timeOut);
 
                                     return (
-                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? 'N/A'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${loc.status === 'Online' ? 'bg-[#E6F4EA] text-[#1E7E34]' : 'bg-[#FCE8E8] text-[#D93025]'}`}>
-                                                    {loc.status || 'Offline'}
-                                                </span>
+                                        <tr key={loc.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{formattedDate}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{loc.full_name ?? '-'}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeIn}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{timeOut}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{totalHours}</td>
+                                            <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+
+                                                {(() => {
+                                                    const name = (loc.full_name || '').trim();
+                                                    const entryKey = loc.employee_db_id != null ? String(loc.employee_db_id) : name;
+                                                    const statusLabel =
+                                                        (entryKey && busyMap[entryKey]) || (name && busyMap[name]) ? 'Busy' : 'Available';
+                                                    const colorClass =
+                                                        statusLabel === 'Busy'
+                                                            ? 'bg-[#FCE8E8] text-[#D93025]'
+                                                            : 'bg-[#E6F4EA] text-[#1E7E34]';
+                                                    return (
+                                                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${colorClass}`}>
+                                                            {statusLabel}
+                                                        </span>
+                                                    );
+                                                })()}
                                             </td>
                                         </tr>
                                     );
@@ -468,70 +615,9 @@ export default function TrackerTD() {
                 </div>
             </div>
 
-            {/* Pagination bar - pinned to bottom; right-aligned */}
-            <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
-                <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-                    <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-                    <button
-                        type="button"
-                        onClick={goPrevWindow}
-                        disabled={!canPrevWindow}
-                        className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                        Prev
-                    </button>
-                    {visiblePageRanges.map((pr) => {
-                        const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
-                        const isActive = pageNum === activePage;
-                        return (
-                            <button
-                                key={pr.label}
-                                type="button"
-                                onClick={() => setCurrentPage(pageNum)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                            >
-                                {pr.label}
-                            </button>
-                        );
-                    })}
-                    <button
-                        type="button"
-                        onClick={goNextWindow}
-                        disabled={!canNextWindow}
-                        className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Next
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                    </button>
-                </div>
-            </div>
 
-            <style>{`
-        .smooth-scroll {
-          scroll-behavior: smooth;
-        }
-        .custom-scrollbar {
-          scrollbar-width: thin;
-          scrollbar-color: #8c8c8c #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f3f3f3;
-          border-radius: 20px;
-          margin: 10px 0;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #8c8c8c;
-          border-radius: 20px;
-          border: 2px solid #f3f3f3;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #666666;
-        }
-      `}</style>
+
+           
         </div>
     );
 }

@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data } = await api.get<{ success: boolean; user?: User }>('/api/auth/me');
       if (data.success && data.user) {
-        const u = { ...data.user, user_type: 'employee' as const };
+        const u = { ...data.user, user_type: data.user.user_type || 'employee' };
         setUser(u);
         localStorage.setItem('user', JSON.stringify(u));
       } else {
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user?: User;
         }>('/api/auth/login', { email, password });
         if (data.success && data.token && data.user) {
-          const u = { ...data.user, user_type: 'employee' as const };
+          const u = { ...data.user, user_type: data.user.user_type || 'employee' };
           setToken(data.token);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
@@ -134,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('userProfilePicture');
   }, [setToken, user?.user_type]);
 
   const value: AuthState = {

@@ -5,6 +5,7 @@ import sendIcon from "../assets/Chat/sendicon.svg";
 import videoIcon from "../assets/Chat/video.svg";
 import api from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";
+import { getGlobalProfileUrl } from "../lib/profileHelpers";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -159,6 +160,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const [videoCallError, setVideoCallError] = useState<string | null>(null);
     const [isMutedVideo, setIsMutedVideo] = useState(false);
     const [isMutedAudio, setIsMutedAudio] = useState(false);
+    const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -190,6 +192,18 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
             .catch(() => { /* fail silently */ })
             .finally(() => setContactsLoading(false));
     }, []);
+
+    // Fetch current user profile picture for "user" message avatars
+    useEffect(() => {
+        if (userType !== "employee") return;
+        api.get<{ id?: number; profile_picture?: string | null }>("/api/profile")
+            .then(({ data }) => {
+                if (data?.id != null && data?.profile_picture) {
+                    setCurrentUserAvatarUrl(getGlobalProfileUrl(data.id, data.profile_picture));
+                }
+            })
+            .catch(() => {});
+    }, [userType]);
 
     // ── Fetch conversation history ──────────────────────────────────────────────
     const loadConversation = useCallback(async (contactId: number) => {
@@ -390,9 +404,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
 
     // ── Render ───────────────────────────────────────────────────────────────────
     return (
-        <div>
-            <h2 className="text-2xl text-black mb-4">Chat</h2>
-            <div className="flex gap-4 h-[calc(100vh-8rem)] min-h-[500px] p-4 bg-transparent">
+        <div className="px-1 pt-1 pb-0 flex flex-col h-[calc(100vh-110px)] bg-white overflow-hidden">
+            <div className="px-2 py-3 flex-shrink-0">
+                <h2 className="text-2xl font-semibold text-[#000000]">Chat</h2>
+            </div>
+            <div className="flex gap-4 flex-1 min-h-0 px-2 pb-2 bg-transparent overflow-hidden">
                 {/* ── Left panel: Contacts ────────────────────────────────────────────── */}
                 <div className="w-[300px] shrink-0 flex flex-col rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-slate-200 bg-white">
@@ -434,7 +450,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border border-[#AEACAC] rounded-lg mt-2 ${selectedContact?.id === contact.id ? "bg-[#F2F2F2]" : "hover:bg-slate-50"}`}
                                 >
                                     <div className="relative shrink-0">
-                                        <Avatar name={contact.name} src={contact.profile_picture} />
+                                        <Avatar name={contact.name} src={getGlobalProfileUrl(contact.id, contact.profile_picture) || undefined} />
                                         {contact.isOnline && (
                                             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
                                         )}
@@ -461,10 +477,10 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                     {selectedContact ? (
                         <>
                             {/* Conversation header */}
-                            <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF]">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF] flex-shrink-0">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="relative">
-                                        <Avatar name={selectedContact.name} src={selectedContact.profile_picture} className="w-11 h-11" />
+                                        <Avatar name={selectedContact.name} src={getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined} className="w-11 h-11" />
                                         {selectedContact.isOnline && (
                                             <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
                                         )}
@@ -496,7 +512,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                             </div>
 
                             {/* Messages area */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                                 <div className="flex items-center gap-3 my-4">
                                     <div className="flex-1 h-px bg-slate-200" />
                                     <span className="text-xs font-medium text-slate-500">{today}</span>
@@ -519,7 +535,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                             {msg.sender === "contact" && (
                                                 <Avatar
                                                     name={selectedContact?.name || ""}
-                                                    src={selectedContact?.profile_picture}
+                                                    src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
                                                     className="w-7 h-7 shrink-0 mb-1"
                                                 />
                                             )}
@@ -556,7 +572,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                             {msg.sender === "user" && (
                                                 <Avatar
                                                     name={user?.full_name || "You"}
-                                                    src={null}
+                                                    src={currentUserAvatarUrl || undefined}
                                                     className="w-7 h-7 shrink-0 mb-1"
                                                 />
                                             )}
@@ -592,7 +608,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 )}
 
                             {/* Message input */}
-                            <div className="p-4 border-t border-slate-200 bg-[#FFFFFF]">
+                            <div className="p-4 border-t border-slate-200 bg-[#FFFFFF] flex-shrink-0">
                                 <input
                                     id="chat-file-attach-input"
                                     ref={fileInputRef}
@@ -685,7 +701,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         <div className="text-center text-slate-500">
                                             <Avatar
                                                 name={selectedContact?.name || ""}
-                                                src={selectedContact?.profile_picture}
+                                                src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
                                                 className="w-20 h-20 mx-auto mb-2 opacity-80"
                                             />
                                             <p className="font-medium text-slate-400">{selectedContact?.name}</p>

@@ -1,6 +1,7 @@
-import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
     new Date(2000, m, 1).toLocaleString('default', { month: 'long' })
@@ -27,6 +28,8 @@ type PriorityTask = {
     category: string | null;
     perferstart_time: string | null;
     perferend_time: string | null;
+    start_time: string | null;
+    end_time: string | null;
     projectid?: number;
     project_name?: string;
     involved_persons: InvolvedPerson[];
@@ -117,6 +120,7 @@ function taskProgressAndCountdown(
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 36;
 
 export default function DashboardTD() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -139,6 +143,8 @@ export default function DashboardTD() {
             .catch(() => setStats(defaultStats))
             .finally(() => setLoading(false));
     }, []);
+
+    const [searchParams] = useSearchParams();
 
     // Integration: GET /api/dashboard/priority-tasks → Today's Priority (task_name, due_date, times, project_name, involved_persons)
     useEffect(() => {
@@ -256,87 +262,39 @@ export default function DashboardTD() {
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Total Projects - Red Card */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] rounded-2xl border border-[#AEACAC52] p-6 shadow-lg flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Total<br />Projects</h3>
-                            </div>
-                            <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none pt-1">{stats.totalProjects}</p>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#DE3D3A] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
+                {/* KPI Grid: compact cards — label left, number right (match reference image) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {/* Total Projects — first card red, white text */}
+                    <div 
+                        onClick={() => navigate('/td/projects')}
+                        className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+                    >
+                        <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+                        <p className="text-[26px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
                     </div>
-
                     {/* Completed Projects */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Projects</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Projects</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.totalProjects ? Math.round((stats.completedProjects / stats.totalProjects) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.totalProjects ? `${Math.min(100, (stats.completedProjects / stats.totalProjects) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
+                    <div 
+                        onClick={() => navigate('/td/projects')}
+                        className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+                    >
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                     </div>
-
                     {/* In-Progress Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">In-Progress<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total In-Progress Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#E47E00] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.inProgressTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
+                    <div 
+                        onClick={() => navigate('/td/mytasks')}
+                        className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+                    >
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                     </div>
-
-                    {/* Completed Tasks */}
-                    <div className="bg-[#F2F2F2] group hover:bg-[#DE3D3A] border border-[#AEACAC52] rounded-2xl p-6 shadow-sm flex flex-col min-h-[140px] lg:h-[100px] transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari leading-tight">Completed<br />Task</h3>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <p className="text-[28px] lg:text-[32px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
-                            </div>
-                        </div>
-                        <div className="mt-auto w-full">
-                            <div className="flex justify-between items-center mb-1">
-                                <p className="text-[12px] text-[#353535] group-hover:text-[#F2F2F2] font-medium font-gantari whitespace-nowrap">Total Completed Task</p>
-                                <span className="text-[12px] text-[#717171] group-hover:text-[#F2F2F2] font-bold">{stats.completedTasks + stats.inProgressTasks ? Math.round((stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100) : 0}%</span>
-                            </div>
-                            <div className="h-2 w-full bg-white rounded-full flex items-center px-1 overflow-hidden">
-                                <div className="h-1 bg-[#00882E] rounded-full" style={{ width: stats.completedTasks + stats.inProgressTasks ? `${Math.min(100, (stats.completedTasks / (stats.completedTasks + stats.inProgressTasks)) * 100)}%` : '0%' }}></div>
-                            </div>
-                        </div>
+                    {/* Completed Tasks */}  
+                    <div 
+                        onClick={() => navigate('/td/mytasks')}
+                        className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+                    >
+                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
+                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                     </div>
                 </div>
             </div>
@@ -344,13 +302,9 @@ export default function DashboardTD() {
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 {/* Today's Priority — projects with today's tasks (image 2 card design) */}
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
-                    <div className="flex items-center justify-between mb-4 shrink-0">
+                    <div className="mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
-                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
                     </div>
-                    <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
 
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
                         {priorityTasks.length === 0 ? (
@@ -362,8 +316,22 @@ export default function DashboardTD() {
                                     <Link to="/td/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                 </div>
                                 {(() => {
+                                    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+                                    const filteredTasks = priorityTasks.filter(t => {
+                                        if (!searchQuery) return true;
+                                        return (
+                                            (t.task_name || "").toLowerCase().includes(searchQuery) ||
+                                            (t.project_name || "").toLowerCase().includes(searchQuery) ||
+                                            (t.status || "").toLowerCase().includes(searchQuery)
+                                        );
+                                    });
+
+                                    if (filteredTasks.length === 0 && searchQuery) {
+                                        return <p className="text-[#717171] text-sm font-gantari py-4">No tasks match your search.</p>;
+                                    }
+
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                    for (const task of priorityTasks) {
+                                    for (const task of filteredTasks) {
                                         const pid = task.projectid ?? 0;
                                         const name = task.project_name || `Project #${pid}`;
                                         if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
@@ -377,13 +345,15 @@ export default function DashboardTD() {
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {
-                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, task.perferstart_time, task.perferend_time, nowMs);
+                                                    const effStart = task.perferstart_time || task.start_time;
+                                                    const effEnd = task.perferend_time || task.end_time;
+                                                    const { progress, countdown } = taskProgressAndCountdown(task.due_date, effStart, effEnd, nowMs);
                                                     const strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progress / 100);
                                                     const dateLabel = formatDateOnly(task.due_date);
-                                                    const hasStart = (task.perferstart_time || '').trim().length > 0;
-                                                    const hasEnd = (task.perferend_time || '').trim().length > 0;
-                                                    const startLabel = hasStart ? formatTimeStringToAMPM(task.perferstart_time) : '—';
-                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(task.perferend_time) : '—';
+                                                    const hasStart = (effStart || '').trim().length > 0;
+                                                    const hasEnd = (effEnd || '').trim().length > 0;
+                                                    const startLabel = hasStart ? formatTimeStringToAMPM(effStart) : '—';
+                                                    const endLabel = hasEnd ? formatTimeStringToAMPM(effEnd) : '—';
                                                     const timeRangeLabel = hasStart || hasEnd ? `${startLabel} — ${endLabel}` : '—';
                                                     return (
                                                         <div key={task.id} className="flex items-center gap-5 p-5 bg-[#F8F8F8] rounded-xl border border-slate-200/80 shadow-sm relative">
@@ -405,7 +375,7 @@ export default function DashboardTD() {
                                                                 {(task.involved_persons?.length ? task.involved_persons : []).slice(0, 3).map((person) => (
                                                                     <div key={person.id} className="w-10 h-10 rounded-full border-2 border-white bg-white shadow-sm flex items-center justify-center overflow-hidden" title={person.full_name}>
                                                                         {person.profile_picture ? (
-                                                                            <img src={person.profile_picture} alt="" className="w-full h-full object-cover" />
+                                                                            <img src={getGlobalProfileUrl(person.id, person.profile_picture)} alt="" className="w-full h-full object-cover" />
                                                                         ) : (
                                                                             <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">{person.full_name?.slice(0, 2).toUpperCase() || '?'}</div>
                                                                         )}
@@ -514,13 +484,14 @@ export default function DashboardTD() {
                                         {calendarDays.map((cell, i) => {
                                             const cellDate = getCellDate(cell);
                                             const isSelected = isSameDay(cellDate, selectedDate);
+                                            const isToday = isSameDay(cellDate, today);
                                             const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
                                             return (
                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>

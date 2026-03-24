@@ -42,20 +42,8 @@ export default function TeamReportBL() {
     const employeeDropdownRef = useRef<HTMLDivElement>(null);
     const teamDropdownRef = useRef<HTMLDivElement>(null);
 
-    const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: '0-100', label: '0-100', start: 0, end: 100 },
-        { value: '101-200', label: '101-200', start: 100, end: 200 },
-        { value: '201-300', label: '201-300', start: 200, end: 300 },
-        { value: '301-400', label: '301-400', start: 300, end: 400 },
-        { value: 'all', label: 'All', start: 0, end: null },
-    ];
-    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
-    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
-    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-    const PER_PAGE = 10;
-    const PAGINATION_VISIBLE = 4;
-    const [currentPage, setCurrentPage] = useState(1);
-    const [paginationWindowStart, setPaginationWindowStart] = useState(1);
+    // Show entries state and refs removed
+    // Pagination state removed
 
     const employeeOptions = useMemo(
         () => ['All', ...employees.map(e => e.full_name)],
@@ -66,23 +54,43 @@ export default function TeamReportBL() {
         [teams]
     );
 
-    // Format ISO date to DD/MM/YYYY
+    const toYmd = (v: string | undefined): string => {
+        if (!v) return '';
+        const s = String(v).trim();
+        if (!s) return '';
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0].split(' ')[0];
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+            const [dd, mm, yyyy] = s.split('/');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return '';
+    };
+
+    // Format date (avoid timezone shifts by not using `new Date(...)` for ISO strings)
     const formatDate = (dateStr: string | undefined): string => {
         if (!dateStr) return '-';
-        try {
-            const date = new Date(dateStr);
-            const day = date.getDate().toString().padStart(2, '0');
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
-        } catch {
-            return dateStr;
+        const ymd = toYmd(dateStr);
+        if (ymd) {
+            const [yyyy, mm, dd] = ymd.split('-');
+            return `${dd}/${mm}/${yyyy}`;
         }
+        return String(dateStr);
+    };
+
+    const shiftYmd = (ymd: string, deltaDays: number): string => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
+        const [yy, mm, dd] = ymd.split('-').map((x) => Number(x));
+        const dt = new Date(Date.UTC(yy, mm - 1, dd));
+        dt.setUTCDate(dt.getUTCDate() + deltaDays);
+        const y = dt.getUTCFullYear();
+        const m = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(dt.getUTCDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     };
 
     // Calculate duration from start_time / end_time and pause / restart
     const calculateDuration = (entry: TimesheetEntry): string => {
-        if (!entry.start_time || !entry.end_time) return '00:00:00';
+        if (!entry.start_time || !entry.end_time) return '-';
 
         try {
             const start = new Date(entry.start_time);
@@ -130,8 +138,17 @@ export default function TeamReportBL() {
             selectteam?: string;
         } = {};
 
-        if (startDate) payload.startDate = startDate;
-        if (endDate) payload.endDate = endDate;
+        // If user picks only one side of the range, treat it as a single-day filter.
+        // Also fix accidental reversed ranges (start > end).
+        let effectiveStart = startDate || endDate;
+        let effectiveEnd = endDate || startDate;
+        if (effectiveStart && effectiveEnd && effectiveStart > effectiveEnd) {
+            [effectiveStart, effectiveEnd] = [effectiveEnd, effectiveStart];
+        }
+        // Expand by +/- 1 day to avoid timezone/date-format boundary mismatches.
+        // Then we do exact filtering client-side below.
+        if (effectiveStart) payload.startDate = shiftYmd(effectiveStart, -1);
+        if (effectiveEnd) payload.endDate = shiftYmd(effectiveEnd, 1);
 
         if (employee !== 'All') {
             const selectedEmp = employees.find(e => e.full_name === employee);
@@ -169,49 +186,35 @@ export default function TeamReportBL() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
-                setShowEntriesOpen(false);
-            }
-        };
-        if (showEntriesOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [showEntriesOpen]);
+    // Show entries effects removed
 
     useEffect(() => {
-        setCurrentPage(1);
-        setPaginationWindowStart(1);
-    }, [selectedShowEntries]);
+        // CurrentPage reset removed
+    }, []);
 
-    const filteredList = list; // backend already filtered
+    const getTaskDateYmd = (entry: TimesheetEntry): string => {
+        const src = entry.start_time || entry.Actual_start_time || entry.due_date;
+        return toYmd(src);
+    };
 
-    const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
-    const rangeStart = selectedRange.start;
-    const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
-    const listInRange = filteredList.slice(rangeStart, rangeEnd);
-    const totalInRange = listInRange.length;
-    const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
-    const safePage = Math.min(Math.max(1, currentPage), totalPages);
-    const displayedList = listInRange.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+    // Exact filter on YYYY-MM-DD (client-side) to make "today" always match.
+    const filteredList = useMemo(() => {
+        const effectiveStart = startDate || endDate;
+        const effectiveEnd = endDate || startDate;
+        if (!effectiveStart || !effectiveEnd) return list;
 
-    const pageRanges: { start: number; end: number; label: string }[] = [];
-    for (let p = 1; p <= totalPages; p++) {
-        const s = rangeStart + (p - 1) * PER_PAGE;
-        const e = Math.min(rangeStart + p * PER_PAGE, rangeEnd);
-        const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
-        pageRanges.push({ start: s, end: e, label });
-    }
-    const activePage = safePage;
-    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
-    const canPrevWindow = paginationWindowStart > 1;
-    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+        let s = effectiveStart;
+        let e = effectiveEnd;
+        if (s > e) [s, e] = [e, s];
+
+        return list.filter((row) => {
+            const ymd = getTaskDateYmd(row);
+            if (!ymd) return false;
+            return ymd >= s && ymd <= e;
+        });
+    }, [list, startDate, endDate]);
+
+    // Pagination logic removed
 
     if (loading) {
         return (
@@ -233,8 +236,8 @@ export default function TeamReportBL() {
 
             return [
                 slNo,
-                row.project_name || '-',
-                row.task_name || '-',
+                row.project_name && row.project_name.trim() !== '' ? row.project_name : '-',
+                row.task_name && row.task_name.trim() !== '' ? row.task_name : '-',
                 start,
                 end,
                 duration
@@ -255,14 +258,14 @@ export default function TeamReportBL() {
     };
 
     return (
-        <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
+        <div className="px-0 pt-2 pb-6 space-y-8 flex flex-col h-full bg-white">
             {/* Header Section */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
-                <h2 className="text-2xl font-bold text-gray-900">Time-Sheet</h2>
+                <h2 className="text-[24px] font-semibold text-[#000000]">Time-Sheet</h2>
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -272,8 +275,8 @@ export default function TeamReportBL() {
             </div>
 
             {/* Filter Row */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-bold text-gray-800">Month Report</h3>
+            <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 flex-shrink-0 px-2">
+                {/* <h3 className="text-xl font-bold text-gray-800">Month Report</h3> */}
 
                 <div className="flex flex-wrap items-center gap-3">
                     {/* Start Date */}
@@ -354,45 +357,7 @@ export default function TeamReportBL() {
                         )}
                     </div>
 
-                    {/* Show entries dropdown - same design as TeamReportTD */}
-                    <div className="relative" ref={showEntriesDropdownRef}>
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setShowEntriesOpen(o => !o);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
-                        >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
-                        </button>
-                        {showEntriesOpen && (
-                            <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
-                                onMouseDown={(e) => e.preventDefault()}
-                            >
-                                {showEntriesOptions.map(opt => (
-                                    <button
-                                        key={opt.value}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectedShowEntries(opt.value);
-                                            setShowEntriesOpen(false);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* Show entries removed */}
                 </div>
             </div>
 
@@ -401,45 +366,44 @@ export default function TeamReportBL() {
                 <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-260px)] pr-1 pb-18">
                     <table className="min-w-full border-collapse table-fixed">
                         <colgroup>
-                            <col style={{ width: '8%' }} />
-                            <col style={{ width: '22%' }} />
-                            <col style={{ width: '28%' }} />
-                            <col style={{ width: '14%' }} />
-                            <col style={{ width: '14%' }} />
-                            <col style={{ width: '14%' }} />
+                            <col style={{ width: '16.66%' }} />
+                            <col style={{ width: '16.66%' }} />
+                            <col style={{ width: '16.66%' }} />
+                            <col style={{ width: '16.66%' }} />
+                            <col style={{ width: '16.66%' }} />
+                            <col style={{ width: '16.66%' }} />
                         </colgroup>
-                        <thead className="sticky top-0 z-10 bg-white">
-                            <tr className="border-b border-gray-200 bg-white">
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Start Date</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">End Date</th>
-                                <th className="px-4 py-4 text-center text-base font-bold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Duration</th>
+                        <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                            <tr className="bg-white">
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">Task</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">Start Date</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">End Date</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold text-gray-700 bg-white font-gantari whitespace-nowrap">Task Duration</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {displayedList.length === 0 ? (
+                            {filteredList.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-12 text-center text-gray-400 font-medium font-gantari">
                                         No records found
                                     </td>
                                 </tr>
                             ) : (
-                                displayedList.map((row, index) => {
-                                    const baseIndex = rangeStart + (safePage - 1) * PER_PAGE + index;
-                                    const slNo = (baseIndex + 1).toString().padStart(2, '0');
+                                filteredList.map((row, index) => {
+                                    const slNo = (index + 1).toString().padStart(2, '0');
                                     const start = formatDate(row.start_time || row.Actual_start_time);
                                     const end = formatDate(row.end_time || row.due_date);
                                     const duration = calculateDuration(row);
                                     return (
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold font-gantari align-middle">{row.project_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{row.task_name ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{start}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">{end}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium font-gantari align-middle">{duration}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-600 font-medium font-gantari align-middle">{slNo}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-800 font-semibold font-gantari align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-600 font-gantari align-middle">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-600 font-gantari align-middle">{start}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-600 font-gantari align-middle">{end}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-gray-600 font-medium font-gantari align-middle">{duration}</td>
                                         </tr>
                                     );
                                 })
@@ -449,46 +413,7 @@ export default function TeamReportBL() {
                 </div>
             </div>
 
-            {/* Pagination bar - same design as TeamReportTD */}
-            {totalInRange > 0 && (
-                <div className="flex flex-wrap items-center justify-end mt-4 -mb-2 pt-0 pb-2 flex-shrink-0">
-                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-                        <button
-                            type="button"
-                            onClick={goPrevWindow}
-                            disabled={!canPrevWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                            Prev
-                        </button>
-                        {visiblePageRanges.map((pr, i) => {
-                            const pageNum = effectiveWindowStart + i;
-                            const isActive = pageNum === activePage;
-                            return (
-                                <button
-                                    key={pr.label}
-                                    type="button"
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                                >
-                                    {pr.label}
-                                </button>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={goNextWindow}
-                            disabled={!canNextWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Next
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* Pagination removed */}
 
             <style>{`
         .smooth-scroll {

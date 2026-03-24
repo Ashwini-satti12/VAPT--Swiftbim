@@ -39,6 +39,10 @@ def _serialize_row(d):
     return {k: _serialize_value(v) for k, v in d.items()}
 
 
+# Roles that see all company projects and tasks
+MANAGEMENT_ROLES = ("Technical Director", "CEO", "Project Manager", "BIM Lead", "BIM Coordinator")
+
+
 @bp.route("/stats", methods=["GET"])
 @project_app_required
 def stats():
@@ -52,7 +56,10 @@ def stats():
     cur = conn.cursor()
 
     # BIM Coordinator: only projects where they are coordinator or in members
-    if user_role == "BIM Coordinator":
+    if user_role in MANAGEMENT_ROLES:
+        # Management roles: see all company projects and tasks
+        _involved_where = "p.Company_id = %s"
+    elif user_role == "BIM Coordinator":
         _involved_where = """p.Company_id = %s AND (
                 p.bim_coordinator_id = %s
                 OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
@@ -69,12 +76,14 @@ def stats():
 
     def get_tasks_in_my_projects(uid, task_status):
         """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in."""
-        if user_role == "BIM Coordinator":
-            params = [company_id, uid, uid, task_status]
-        elif user_role == "BIM Modeler":
-            params = [company_id, uid, task_status]
-        else:
-            params = [company_id, uid, uid, uid, uid, uid, uid, task_status]
+        if user_role in MANAGEMENT_ROLES:
+            cur.execute(
+                "SELECT COUNT(*) AS total_tasks FROM tasks WHERE Company_id = %s AND status = %s",
+                (company_id, task_status),
+            )
+            row = cur.fetchone()
+            return (row or {}).get("total_tasks") or 0
+
         try:
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
@@ -101,7 +110,10 @@ def stats():
                 return 0
 
     def get_total_projects(uid, status=None):
-        if user_role == "BIM Coordinator":
+        if user_role in MANAGEMENT_ROLES:
+            sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s"
+            params = [company_id]
+        elif user_role == "BIM Coordinator":
             sql = """SELECT COUNT(*) AS total_projects FROM projects
                      WHERE Company_id = %s
                        AND (
@@ -133,7 +145,12 @@ def stats():
             row = cur.fetchone()
             return (row or {}).get("total_projects") or 0
         except Exception:
-            if user_role == "BIM Coordinator":
+            if user_role in MANAGEMENT_ROLES:
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s"
+                if status == "Completed":
+                    fallback_sql += " AND progress = 100"
+                cur.execute(fallback_sql, (company_id,))
+            elif user_role == "BIM Coordinator":
                 fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND (bim_coordinator_id = %s OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0)"
                 if status == "Completed":
                     fallback_sql += " AND progress = 100"
@@ -192,7 +209,10 @@ def priority_tasks():
     cur = conn.cursor()
 
     # Same role-based "involved projects" as stats: tasks in projects the user is involved in
-    if user_role == "BIM Coordinator":
+    if user_role in MANAGEMENT_ROLES:
+        _involved_where = "p.Company_id = %s"
+        params = [company_id, company_id, today]
+    elif user_role == "BIM Coordinator":
         _involved_where = """p.Company_id = %s AND (
                 p.bim_coordinator_id = %s
                 OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
@@ -208,23 +228,42 @@ def priority_tasks():
             )"""
         params = [company_id, user_id, user_id, user_id, user_id, user_id, user_id, company_id, today]
 
-    cur.execute(
-        """SELECT t.id, t.task_name, t.due_date, t.status, t.category, t.perferstart_time, t.perferend_time,
-                  t.projectid, t.assigned_to, t.uploaderid,
-                  e_assigned.full_name AS assigned_full_name, e_assigned.profile_picture AS assigned_profile_picture,
-                  e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture,
-                  p.project_name
-           FROM tasks t
-           INNER JOIN projects p ON t.projectid = p.id AND """ + _involved_where + """
-           LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
-           LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
-           WHERE t.Company_id = %s
-             AND (t.status IN ('Todo', 'InProgress', 'Pause'))
-             AND DATE(t.due_date) = %s
-           ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
-           LIMIT 20""",
-        tuple(params),
-    )
+    if user_role in MANAGEMENT_ROLES:
+        cur.execute(
+            """SELECT t.id, t.task_name, t.due_date, t.status, t.category, t.perferstart_time, t.perferend_time,
+                      t.projectid, t.assigned_to, t.uploaderid, t.start_time, t.end_time,
+                      e_assigned.full_name AS assigned_full_name, e_assigned.profile_picture AS assigned_profile_picture,
+                      e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture,
+                      p.project_name
+               FROM tasks t
+               LEFT JOIN projects p ON t.projectid = p.id
+               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
+               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
+               WHERE t.Company_id = %s
+                 AND (t.status IN ('Todo', 'InProgress', 'Pause'))
+                 AND DATE(t.due_date) = %s
+               ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
+               LIMIT 20""",
+            (company_id, today),
+        )
+    else:
+        cur.execute(
+            """SELECT t.id, t.task_name, t.due_date, t.status, t.category, t.perferstart_time, t.perferend_time,
+                      t.projectid, t.assigned_to, t.uploaderid, t.start_time, t.end_time,
+                      e_assigned.full_name AS assigned_full_name, e_assigned.profile_picture AS assigned_profile_picture,
+                      e_uploader.full_name AS uploader_full_name, e_uploader.profile_picture AS uploader_profile_picture,
+                      p.project_name
+               FROM tasks t
+               INNER JOIN projects p ON t.projectid = p.id AND """ + _involved_where + """
+               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
+               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
+               WHERE t.Company_id = %s
+                 AND (t.status IN ('Todo', 'InProgress', 'Pause'))
+                 AND DATE(t.due_date) = %s
+               ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
+               LIMIT 20""",
+            tuple(params),
+        )
     rows = cur.fetchall()
     tasks = []
     for r in rows:

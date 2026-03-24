@@ -21,6 +21,10 @@ def completed_tasks():
     conn = get_db()
     cur = conn.cursor()
 
+    # Normalize range if client sends start > end (YYYY-MM-DD compares lexicographically)
+    if start_date and end_date and start_date > end_date:
+        start_date, end_date = end_date, start_date
+
     start_dt = start_date + " 00:00:00"
     end_dt = end_date + " 23:59:59"
 
@@ -59,9 +63,15 @@ def completed_tasks():
         where_parts.append(emp_where)
         where_params.extend(emp_params)
     
-    # Filter by due_date (or start_time if due_date is NULL) within date range
-    where_parts.append("((tasks.due_date BETWEEN %s AND %s) OR (tasks.due_date IS NULL AND tasks.start_time BETWEEN %s AND %s))")
-    where_params.extend([start_dt, end_dt, start_dt, end_dt])
+    # Filter by task start date range (prefer start_time, then Actual_start_time, then due_date as a last fallback)
+    where_parts.append(
+        "("
+        "(tasks.start_time BETWEEN %s AND %s) "
+        "OR (tasks.start_time IS NULL AND tasks.Actual_start_time BETWEEN %s AND %s) "
+        "OR (tasks.start_time IS NULL AND tasks.Actual_start_time IS NULL AND tasks.due_date BETWEEN %s AND %s)"
+        ")"
+    )
+    where_params.extend([start_dt, end_dt, start_dt, end_dt, start_dt, end_dt])
     
     where_clause = " AND ".join(where_parts)
     

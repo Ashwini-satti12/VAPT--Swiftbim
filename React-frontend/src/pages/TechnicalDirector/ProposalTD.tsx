@@ -1,264 +1,286 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import api from "../../lib/api";
+import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
-interface ServiceRequest {
-  id: string;
-  siNo: string;
-  serviceId: string;
-  serviceName: string;
-  category: string;
-  vendorName: string;
-  vendorStatus: string;
-  companyName: string;
-  proposalCreated?: boolean;
+interface AcceptedBid {
+  id: number;
+  vendor_id: number;
+  opportunity_id: number;
+  bid_amount: number;
+  notes: string;
+  timeline: string;
+  team_size: number;
+  status: string;
+  created_at: string;
+  project_name: string;
+  vendor_name: string;
+  vendor_email: string;
+  outsource_budget: number;
+  budget_ceiling: number;
+  proposal_exists?: boolean;
+  proposal_id?: number;
+  proposal_status?: string;
 }
 
-const DUMMY_SERVICE_REQUESTS: ServiceRequest[] = [
-  { id: "1", siNo: "01", serviceId: "INV-001", serviceName: "BIM Modeling", category: "Architecture", vendorName: "John Smith", vendorStatus: "Confirmed", companyName: "ABC Construction", proposalCreated: false },
-  { id: "2", siNo: "02", serviceId: "INV-002", serviceName: "Clash Detection", category: "MEP", vendorName: "Sarah Johnson", vendorStatus: "Under Review", companyName: "XYZ Developers", proposalCreated: false },
-  { id: "3", siNo: "03", serviceId: "INV-003", serviceName: "4D/5D Simulation", category: "Structural", vendorName: "Michael Brown", vendorStatus: "Confirmed", companyName: "Gulf Engineering", proposalCreated: true },
-  { id: "4", siNo: "04", serviceId: "INV-004", serviceName: "As-Built Drawings", category: "Architecture", vendorName: "Emily Davis", vendorStatus: "Under Review", companyName: "Delta Projects", proposalCreated: false },
-  { id: "5", siNo: "05", serviceId: "INV-005", serviceName: "Quantity Takeoff", category: "MEP", vendorName: "David Wilson", vendorStatus: "Not Confirmed", companyName: "Prime Builders", proposalCreated: false },
-  { id: "6", siNo: "06", serviceId: "INV-006", serviceName: "BIM Coordination", category: "Structural", vendorName: "Lisa Anderson", vendorStatus: "Confirmed", companyName: "Skyline Contractors", proposalCreated: false },
+const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+  { value: 'show', label: 'Show', start: 0, end: 50 },
+  { value: '1-50', label: '1-50', start: 0, end: 50 },
+  { value: '51-100', label: '51-100', start: 50, end: 100 },
+  { value: '101-150', label: '101-150', start: 100, end: 150 },
+  { value: '151-200', label: '151-200', start: 150, end: 200 },
+  { value: '201-250', label: '201-250', start: 200, end: 250 },
+  { value: '251-300', label: '251-300', start: 250, end: 300 },
+  { value: 'all', label: 'All', start: 0, end: null },
 ];
 
 export default function ProposalTD() {
   const navigate = useNavigate();
-  const [serviceRequests] = useState<ServiceRequest[]>(DUMMY_SERVICE_REQUESTS);
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [showDropdownOpen, setShowDropdownOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const showOptions = [10, 20, 50, 100];
-  const categories = Array.from(new Set(serviceRequests.map((r) => r.category))).sort();
-
-  const filteredRequests = selectedCategory === "All"
-    ? serviceRequests
-    : serviceRequests.filter((r) => r.category === selectedCategory);
-
-  const totalItems = filteredRequests.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedRequests = filteredRequests.slice(startIndex, startIndex + itemsPerPage);
+  const location = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [bids, setBids] = useState<AcceptedBid[]>([]);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownContentRef = useRef<HTMLDivElement>(null);
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, itemsPerPage]);
+    if (showEntriesOpen && dropdownContentRef.current) {
+      dropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
+    const state: any = (location && (location as any).state) || {};
+    if (state?.acceptedBid) {
+      setSuccessMsg(`${state.acceptedBid.vendor_name || "Vendor"} accepted — create a proposal below.`);
+      setTimeout(() => setSuccessMsg(null), 4000);
+    }
+  }, []);
+
+  useEffect(() => {
+    api.get<{ bids: AcceptedBid[] }>("/api/vendors/bidding/accepted-bids")
+      .then(({ data }) => setBids(data.bids ?? []))
+      .catch(() => setBids([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const formatCurrency = (amount: number | undefined) => {
+    if (!amount) return "—";
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+  };
+
+  const getStatusLabel = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'accepted') return 'Accepted';
+    if (s === 'pending') return 'Pending';
+    return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+  };
+
+  const getStatusBadge = (status: string) => {
+    const s = (status || '').toLowerCase();
+    if (s === 'accepted') return 'bg-[#E6F4EA] text-[#1E7E34]';
+    if (s === 'pending' || s === 'active') return 'bg-[#EAF0FB] text-[#1967D2]';
+    return 'bg-[#F2F2F2] text-[#616161]';
+  };
+
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+  const filtered = bids.filter((bid) => {
+    if (!searchQuery) return true;
+    return (
+      (bid.project_name || "").toLowerCase().includes(searchQuery) ||
+      (bid.vendor_name || "").toLowerCase().includes(searchQuery) ||
+      (bid.vendor_email || "").toLowerCase().includes(searchQuery) ||
+      (bid.status || "").toLowerCase().includes(searchQuery) ||
+      (bid.timeline || "").toLowerCase().includes(searchQuery)
+    );
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEntriesOpen]);
+
+  const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+  const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);
+  const listInRange = filtered.slice(selectedRange.start, rangeEnd);
+  const displayList = listInRange;
 
   return (
-    <div className="w-full">
-      {/* <div className="bg-white border border-[rgb(89,89,89)]/20 rounded-xl shadow-sm p-8 w-full"> */}
-        {/* Title and filters row */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-gantari font-semibold text-lg text-[#000000]">
-            List of Service Requests
-          </h2>
-          <div className="flex gap-4 items-center">
-            {/* Discipline dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setCategoryDropdownOpen(!categoryDropdownOpen);
-                  setShowDropdownOpen(false);
-                }}
-                className="bg-[#E8E8E8] rounded-lg px-4 py-2 flex items-center gap-2 font-gantari text-sm text-[#353535] font-medium focus:outline-none"
-              >
-                <span>Discipline: {selectedCategory}</span>
-                <ChevronDownIcon className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? "rotate-180" : ""}`} />
-              </button>
-              {categoryDropdownOpen && (
-                <div className="absolute top-full mt-1 right-0 bg-white border border-[rgb(89,89,89)]/20 rounded-lg shadow-lg z-50 min-w-[160px]">
-                  <div
-                    onClick={() => { setSelectedCategory("All"); setCategoryDropdownOpen(false); }}
-                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
-                  >
-                    All
-                  </div>
-                  {categories.map((cat) => (
-                    <div
-                      key={cat}
-                      onClick={() => { setSelectedCategory(cat); setCategoryDropdownOpen(false); }}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
-                    >
-                      {cat}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {/* Show dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowDropdownOpen(!showDropdownOpen);
-                  setCategoryDropdownOpen(false);
-                }}
-                className="bg-[#E8E8E8] rounded-lg px-4 py-2 flex items-center gap-2 font-gantari text-sm text-[#353535] font-medium focus:outline-none"
-              >
-                <span>Show: {itemsPerPage}</span>
-                <ChevronDownIcon className={`w-4 h-4 transition-transform ${showDropdownOpen ? "rotate-180" : ""}`} />
-              </button>
-              {showDropdownOpen && (
-                <div className="absolute top-full mt-1 right-0 bg-white border border-[rgb(89,89,89)]/20 rounded-lg shadow-lg z-50 min-w-[100px]">
-                  {showOptions.map((option) => (
-                    <div
-                      key={option}
-                      onClick={() => { setItemsPerPage(option); setCurrentPage(1); setShowDropdownOpen(false); }}
-                      className="px-4 py-2 text-center hover:bg-gray-100 cursor-pointer font-gantari text-sm text-[#353535]"
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
+      {/* Toast */}
+      {successMsg && (
+        <div className="fixed top-5 right-6 z-[9999] flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-xl bg-[#1A8A47] text-white font-gantari text-sm font-medium min-w-[280px]">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{successMsg}</span>
         </div>
-
-        {/* Table with vertical scroll only */}
-        <div className="border border-[rgb(89,89,89)]/20 rounded-lg overflow-hidden">
-          <div className="overflow-y-auto overflow-x-auto max-h-[60vh]">
-            <table className="w-full min-w-[700px]">
-              <thead className="sticky top-0 z-10 bg-[#F2F2F2] border-b border-[rgb(89,89,89)]/20 shadow-sm">
-              <tr>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">S.No</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Service Id</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">BIM Services</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Discipline</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Vendor Name</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Vendor Status</th>
-                <th className="px-4 py-4 text-center text-sm font-gantari font-bold text-[#353535] tracking-wider whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[rgb(89,89,89)]/10 bg-white">
-              {paginatedRequests.map((request, index) => (
-                <tr
-                  key={request.id}
-                  className={`${index % 2 === 1 ? "bg-[#F9FAFB]" : "bg-white"} hover:bg-gray-50 transition-colors`}
-                >
-                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{startIndex + index + 1}</td>
-                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.serviceId}</td>
-                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.serviceName}</td>
-                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.category}</td>
-                  <td className="px-4 py-4 font-gantari text-sm text-[#353535] text-center">{request.vendorName}</td>
-                  <td className="px-4 py-4 text-center">
-                    <span
-                      className={`inline-block px-3 py-1.5 rounded-md text-xs font-gantari font-medium ${
-                        request.vendorStatus === "Confirmed"
-                          ? "bg-[#E1F6EB] text-[#008F22]"
-                          : request.vendorStatus === "Under Review" || request.vendorStatus === "Not Confirmed"
-                            ? "bg-[#FFD9D9] text-[#E00100]"
-                            : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {request.vendorStatus === "Not Confirmed" ? "Under Review" : request.vendorStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center justify-center">
-                      <button
-                        type="button"
-                        disabled={request.proposalCreated}
-                        onClick={() => {
-                          if (request.proposalCreated) return;
-                          navigate("/td/create-proposal", {
-                            state: {
-                              serviceId: request.serviceId,
-                              serviceName: request.serviceName,
-                              clientName: request.vendorName,
-                              category: request.category,
-                              companyName: request.companyName,
-                              request,
-                            },
-                          });
-                        }}
-                        className={`font-gantari font-medium px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 text-xs transition-colors ${
-                          request.proposalCreated
-                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            : "bg-[#DD4342] text-white hover:bg-[#c93b3a] cursor-pointer"
-                        }`}
-                      >
-                        {request.proposalCreated ? (
-                          <>
-                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Proposal Created</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>+</span>
-                            <span>Create Proposal</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-end mt-4 gap-4 bg-[#E8E8E8] w-fit ml-auto rounded-lg px-4 py-2">
-            <span className="font-gantari text-sm text-[#353535] font-medium">Showing:</span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1 font-gantari text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed text-[#353535] hover:text-black"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Prev
-            </button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                const rangeStart = (p - 1) * itemsPerPage + 1;
-                const rangeEnd = Math.min(p * itemsPerPage, totalItems);
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p)}
-                    className={`px-3 py-1 rounded-md text-xs font-gantari font-medium ${
-                      currentPage === p ? "bg-[#DD4342] text-white" : "text-[#353535] hover:bg-gray-200"
-                    }`}
-                  >
-                    {rangeStart}-{rangeEnd}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1 font-gantari text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed text-[#353535] hover:text-black"
-            >
-              Next
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        )}
-      {/* </div> */}
-
-      {/* Click outside to close dropdowns */}
-      {(categoryDropdownOpen || showDropdownOpen) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setCategoryDropdownOpen(false);
-            setShowDropdownOpen(false);
-          }}
-        />
       )}
+
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <h2 className="text-2xl font-semibold text-[#000000]">Proposals</h2>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Show entries dropdown */}
+          <div className="relative" ref={showEntriesDropdownRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+            >
+              {selectedShowEntries === 'show' ? (
+                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+              ) : (
+                <>
+                  <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
+                  <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                </>
+              )}
+              <img
+                src={ArrowDown}
+                alt="arrow"
+                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {showEntriesOpen && (
+              <div
+                ref={dropdownContentRef}
+                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                onMouseDown={(e) => e.preventDefault()}
+              >
+                {showEntriesOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Table Card */}
+      <div className="bg-white rounded-xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+        <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-220px)]">
+          {loading ? (
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-20 text-center text-[#616161] font-gantari">
+              <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p className="text-lg font-semibold mb-1 text-[#353535]">No accepted bids yet</p>
+              <p className="text-sm">Accept vendor bids from the Bidding module to create proposals here.</p>
+            </div>
+          ) : (
+            <table className="min-w-full border-collapse">
+              <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                <tr className="border-b border-gray-100 bg-white">
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {displayList.map((bid, index) => {
+                  const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
+                  const displayStatus =
+                    bid.proposal_exists && bid.proposal_status
+                      ? bid.proposal_status
+                      : bid.status;
+                  return (
+                    <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
+                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                      <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                        <div className="text-sm font-semibold text-[#353535] font-gantari">{bid.vendor_name}</div>
+                      </td>
+                      <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                        {formatCurrency(bid.bid_amount)}
+                      </td>
+                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(displayStatus)}`}>
+                          {getStatusLabel(displayStatus)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() =>
+                              !bid.proposal_exists && navigate("/td/create-proposal", {
+                                state: {
+                                  bid,
+                                  projectName: bid.project_name,
+                                  opportunityId: bid.opportunity_id,
+                                },
+                              })
+                            }
+                            disabled={!!bid.proposal_exists}
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                                bid.proposal_exists 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:bg-[#c23b3a]'
+                            }`}
+                          >
+                            <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
+                            Create
+                          </button>
+                          
+                          <button
+                            onClick={() =>
+                              bid.proposal_exists && navigate("/td/view-proposal", {
+                                state: {
+                                  proposalId: bid.proposal_id,
+                                  bid,
+                                },
+                              })
+                            }
+                            disabled={!bid.proposal_exists}
+                            title="View Proposal"
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                                !bid.proposal_exists 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : 'hover:bg-[#c23b3a]'
+                            }`}
+                          >
+                            <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
+                            view
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
