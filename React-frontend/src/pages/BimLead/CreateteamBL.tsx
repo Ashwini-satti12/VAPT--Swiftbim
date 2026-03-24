@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
-import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
 import ProfileIcon from '../../assets/ProductNavbarIcons/Profile.svg';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
@@ -75,36 +78,36 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                 </button>
 
                 {showMenu && (
-                    <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right">
+                    <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
                         <button
                             onClick={() => {
                                 onViewDetails(team);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
                         >
-                            <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                            <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">View</span>
+                            <img src={viewIcon} alt="View" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                            <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">View</span>
                         </button>
                         <button
                             onClick={() => {
                                 onEdit(team);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
                         >
-                            <PencilSquareIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-                            <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
+                            <img src={editIcon} alt="Edit" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                            <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
                         </button>
                         <button
                             onClick={() => {
                                 onDelete(team.team_id);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
                         >
-                            <TrashIcon className="w-5 h-5 text-[#616161] group-hover/item:text-[#DD4342]" />
-                            <span className="text-[16px] font-medium text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
+                            <img src={deleteIcon} alt="Delete" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                            <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
                         </button>
                     </div>
                 )}
@@ -123,65 +126,74 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
             {/* Members */}
             <div className="mt-auto flex flex-col">
                 <span className="text-[15px] font-medium text-[#999999] mb-1.5">Members ({memberIds.length})</span>
-                <div className="flex -space-x-3">
-                    {(() => {
-                        const projectEmployees = memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[];
-                        const visibleMembers = projectEmployees.slice(0, 3);
-                        const remainingCount = Math.max(0, projectEmployees.length - 3);
-                        return (
-                            <>
-                                {visibleMembers.map((emp) => {
-                                    const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                    return (
+                <div className="flex items-center justify-between">
+                    <div className="flex -space-x-3">
+                        {(() => {
+                            const projectEmployees = memberIds.map(id => getEmployee(id)).filter(Boolean) as Employee[];
+                            const visibleMembers = projectEmployees.slice(0, 3);
+                            const remainingCount = Math.max(0, projectEmployees.length - 3);
+                            return (
+                                <>
+                                    {visibleMembers.map((emp) => {
+                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                        return (
+                                            <div
+                                                key={emp.id}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => onShowMemberProfile(emp)}
+                                                onKeyDown={(e) => e.key === 'Enter' && onShowMemberProfile(emp)}
+                                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all flex items-center justify-center"
+                                                title={emp.full_name || getEmpName(emp.id)}
+                                            >
+                                                {profileUrl ? (
+                                                    <img src={profileUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                                        {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                    {remainingCount > 0 && (
                                         <div
-                                            key={emp.id}
                                             role="button"
                                             tabIndex={0}
-                                            onClick={() => onShowMemberProfile(emp)}
-                                            onKeyDown={(e) => e.key === 'Enter' && onShowMemberProfile(emp)}
-                                            className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all flex items-center justify-center"
-                                            title={emp.full_name || getEmpName(emp.id)}
+                                            onClick={() => onShowAllMembers(projectEmployees)}
+                                            onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
+                                            className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                            title="View all members"
                                         >
-                                            {profileUrl ? (
-                                                <img src={profileUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                                    {(emp.full_name || 'U').charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
+                                            +{remainingCount}
                                         </div>
-                                    );
-                                })}
-                                {remainingCount > 0 && (
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => onShowAllMembers(projectEmployees)}
-                                        onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
-                                        className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                        title="View all members"
-                                    >
-                                        +{remainingCount}
-                                    </div>
-                                )}
-                                {visibleMembers.length === 0 && memberIds.length > 0 && (
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => onShowAllMembers(projectEmployees)}
-                                        onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
-                                        className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
-                                        title="View all members"
-                                    >
-                                        +{memberIds.length}
-                                    </div>
-                                )}
-                                {memberIds.length === 0 && (
-                                    <span className="text-[15px] font-medium text-[#999999]">No members</span>
-                                )}
-                            </>
-                        );
-                    })()}
+                                    )}
+                                    {visibleMembers.length === 0 && memberIds.length > 0 && (
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => onShowAllMembers(projectEmployees)}
+                                            onKeyDown={(e) => e.key === 'Enter' && onShowAllMembers(projectEmployees)}
+                                            className="w-9 h-9 rounded-full border-2 border-dashed border-white bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors"
+                                            title="View all members"
+                                        >
+                                            +{memberIds.length}
+                                        </div>
+                                    )}
+                                    {memberIds.length === 0 && (
+                                        <span className="text-[15px] font-medium text-[#999999]">No members</span>
+                                    )}
+                                </>
+                            );
+                        })()}
+                    </div>
+                    <button
+                        onClick={() => onViewDetails(team)}
+                        className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2"
+                    >
+                        Details
+                        <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                    </button>
                 </div>
             </div>
         </div>
@@ -372,9 +384,9 @@ export default function CreateteamBL() {
     }
 
     return (
-        <div className="h-full flex flex-col p-6">
+        <div className="h-full flex flex-col p-4">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1E293B]">Team</h2>
+                <h2 className="text-2xl font-bold text-[#1E293B]">Team Workspace</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
                     className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg transition-all font-semibold active:scale-95"
@@ -433,13 +445,13 @@ export default function CreateteamBL() {
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
 
-                        <div className="text-center mb-10">
+                        <div className="text-center mb-6">
                             <h3 className="text-[26px] font-medium text-[#000000]">Create New Team</h3>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Team Name</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Team Name</label>
                                 <input
                                     type="text"
                                     placeholder="Enter Team Name"
@@ -451,7 +463,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Project</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Project</label>
                                 <select
                                     value={form.project_id}
                                     onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
@@ -468,7 +480,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Team Leader</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Team Leader</label>
                                 <div className="relative" ref={leaderDropdownRef}>
                                     <div className="relative">
                                         <input
@@ -516,7 +528,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Member</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Member</label>
                                 <div className="relative" ref={memberDropdownRef}>
                                     <div className="relative">
                                         <input
@@ -590,13 +602,13 @@ export default function CreateteamBL() {
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
 
-                        <div className="text-center mb-10">
+                        <div className="text-center mb-6">
                             <h3 className="text-[26px] font-medium text-[#000000]">Edit Team Details</h3>
                         </div>
 
-                        <form onSubmit={handleUpdate} className="space-y-6">
+                        <form onSubmit={handleUpdate} className="space-y-4">
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Team Name</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Team Name</label>
                                 <input
                                     type="text"
                                     placeholder="Enter Team Name"
@@ -607,7 +619,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Project</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Project</label>
                                 <select
                                     value={editForm.project_id}
                                     onChange={(e) => setEditForm((f) => ({ ...f, project_id: e.target.value }))}
@@ -624,7 +636,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Team Leader</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Team Leader</label>
                                 <div className="relative" ref={leaderDropdownRef}>
                                     <div className="relative">
                                         <input
@@ -672,7 +684,7 @@ export default function CreateteamBL() {
                             </div>
 
                             <div>
-                                <label className="block text-[16px] font-medium text-[#000000] mb-3">Select Member</label>
+                                <label className="block text-[16px] font-medium text-[#000000] mb-2">Select Member</label>
                                 <div className="relative" ref={memberDropdownRef}>
                                     <div className="relative">
                                         <input
@@ -739,59 +751,61 @@ export default function CreateteamBL() {
 
             {showDetailsModal && selectedTeam && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px] animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative">
+                    <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
                         <button
                             onClick={() => setShowDetailsModal(false)}
-                            className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                            className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors z-10"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-2" />
                         </button>
 
-                        <div className="mb-8 pr-12">
-                            <h3 className="text-2xl font-bold text-slate-800 font-sora">
+                        <div className="p-8 pb-4 shrink-0">
+                            <h3 className="text-2xl font-bold text-slate-800 font-sora pr-12">
                                 {selectedTeam.team_name || selectedTeam.teamname || selectedTeam.leader_name || getEmpName(selectedTeam.leader)}
                             </h3>
                             <p className="text-slate-500 mt-1">Team Details</p>
                         </div>
 
-                        <div className="space-y-6">
-                            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Project</h4>
-                                <p className="font-semibold text-slate-800">{selectedTeam.project_name || "N/A"}</p>
-                            </div>
+                        <div className="p-8 pt-0 flex-1 overflow-y-auto custom-scrollbar">
+                            <div className="space-y-6">
+                                <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Project</h4>
+                                    <p className="font-semibold text-slate-800">{selectedTeam.project_name || "N/A"}</p>
+                                </div>
 
-                            <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
-                                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Leadership</h4>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                                        {(selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? ''))?.charAt(0) ?? '?'}
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-800">{selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? '')}</p>
-                                        <p className="text-sm text-slate-500">Team Leader</p>
+                                <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Leadership</h4>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
+                                            {(selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? ''))?.charAt(0) ?? '?'}
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-slate-800">{selectedTeam?.leader_name || getEmpName(selectedTeam?.leader ?? '')}</p>
+                                            <p className="text-sm text-slate-500">Team Leader</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 pl-1">
-                                    Team Members ({(selectedTeam?.employee ?? '').split(',').filter(Boolean).length})
-                                </h4>
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm max-h-[300px] overflow-y-auto custom-scrollbar">
-                                    {(selectedTeam?.employee ?? '').split(',').filter(Boolean).map((eid, i) => {
-                                        const empInfo = employees.find(e => String(e.id) === eid);
-                                        return (
-                                            <div key={eid} className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? 'border-t border-slate-100' : ''}`}>
-                                                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
-                                                    {getEmpName(eid)?.charAt(0) ?? '?'}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 pl-1">
+                                        Team Members ({(selectedTeam?.employee ?? '').split(',').filter(Boolean).length})
+                                    </h4>
+                                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                                        {(selectedTeam?.employee ?? '').split(',').filter(Boolean).map((eid, i) => {
+                                            const empInfo = employees.find(e => String(e.id) === eid);
+                                            return (
+                                                <div key={eid} className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? 'border-t border-slate-100' : ''}`}>
+                                                    <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
+                                                        {getEmpName(eid)?.charAt(0) ?? '?'}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-slate-800">{getEmpName(eid)}</p>
+                                                        {empInfo?.email && <p className="text-sm text-slate-500">{empInfo.email}</p>}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-medium text-slate-800">{getEmpName(eid)}</p>
-                                                    {empInfo?.email && <p className="text-sm text-slate-500">{empInfo.email}</p>}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         </div>

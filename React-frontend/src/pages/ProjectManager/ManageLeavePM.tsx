@@ -498,7 +498,7 @@ export default function ManageLeavePM() {
             >
             {/* Page header: heading left; Employee + Show entries right */}
             <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-                <h1 className="text-2xl md:text-[24px] font-bold text-[#353535] tracking-tight">Manage Leave</h1>
+                <h1 className="text-[30px] font-gantari font-semibold">Manage Leave</h1>
                 <div className="flex items-center gap-3 flex-wrap">
                     <button
                         type="button"
@@ -509,7 +509,7 @@ export default function ManageLeavePM() {
                             }
                             setApplyModalOpen(true);
                         }}
-                        className="px-4 py-2.5 bg-[#DD4346] text-white rounded-lg text-sm font-gantari font-medium hover:bg-[#c43a39] transition-colors"
+                        className="px-4 py-2 bg-[#DD4346] text-white rounded-lg text-[16px] font-gantari font-medium hover:bg-[#c43a39] transition-colors"
                     >
                         Apply Leave
                     </button>
@@ -520,9 +520,9 @@ export default function ManageLeavePM() {
                                 e.stopPropagation();
                                 setEmployeeDropdownOpen((o) => !o);
                             }}
-                            className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between ${employeeDropdownOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
+                            className={`flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between ${employeeDropdownOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
                         >
-                            <span>Employee:</span>
+                            <span className="text-[16px]">Employee:</span>
                             <span className="truncate max-w-[100px]">{selectedEmployee}</span>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                                 className={`shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? 'rotate-180' : ''}`}>
@@ -563,8 +563,8 @@ export default function ManageLeavePM() {
                                 }}
                                 className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? 'text-[#353535]' : 'text-[#616161]'}`}
                             >
-                                <span>Show:</span>
-                                <span>{selectedRange.label}</span>
+                                <span className="text-[16px]">Show:</span>
+                                <span className="text-[16px]">{selectedRange.label}</span>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                                     className={`transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}>
                                     <path d="M6 9l6 6 6-6" />
@@ -599,24 +599,25 @@ export default function ManageLeavePM() {
             </div>
 
             {/* Table Section - same design as TrackerTD; no min-height so card fits content and no extra padding below */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative">
+            <div className="bg-white rounded-2xl border border-[#AEACAC52] overflow-hidden flex flex-col relative">
                 <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
                     <table className="min-w-full border-collapse">
-                        <thead className="sticky top-0 z-10 bg-[#FFFFFF]">
+                        <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                            
                             <tr className="border-b border-gray-100 bg-[#FFFFFF]">
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Sl.No</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Employee Name</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Role</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Leave Type</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">From Date</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">To Date</th>
+                                <th className="px-3 py-6 text-center text-[20px] font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white">
+                                    <td colSpan={7} className="px-3 py-12 text-center text-[18px] text-gray-400 font-medium font-gantari bg-white">
                                         No leave records found
                                     </td>
                                 </tr>
@@ -629,13 +630,13 @@ export default function ManageLeavePM() {
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{String(slNo).padStart(2, '0')}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.employeeName}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.role ?? '–'}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.leaveType}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.fromDate ?? '–'}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">{row.toDate ?? '–'}</td>
+                                            <td className="px-3 py-8 text-center text-[17px] whitespace-nowrap align-middle">
                                                 <div className="flex items-center justify-center gap-2 flex-nowrap">
                                                     <button
                                                         type="button"
@@ -676,46 +677,7 @@ export default function ManageLeavePM() {
                 </div>
             </div>
 
-            {/* Pagination bar - same as TrackerTD: pinned to bottom; right-aligned */}
-            {totalInRange > 0 && (
-                <div className="flex flex-wrap items-center justify-end mt-4 pt-0 flex-shrink-0">
-                    <div className="flex items-center gap-2 flex-wrap bg-[#EEEEEE] rounded-xl px-4 py-1">
-                        <span className="text-[#666666] text-sm font-medium font-gantari">Showing:</span>
-                        <button
-                            type="button"
-                            onClick={goPrevWindow}
-                            disabled={!canPrevWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                            Prev
-                        </button>
-                        {visiblePageRanges.map((pr) => {
-                            const pageNum = Math.floor((pr.start - rangeStart) / PER_PAGE) + 1;
-                            const isActive = pageNum === activePage;
-                            return (
-                                <button
-                                    key={pr.label}
-                                    type="button"
-                                    onClick={() => setCurrentPage(pageNum)}
-                                    className={`px-3 py-1.5 rounded-md text-sm font-medium font-gantari transition-colors ${isActive ? 'bg-[#DD4342] text-white' : 'text-[#666666] hover:text-[#353535] hover:bg-gray-200'}`}
-                                >
-                                    {pr.label}
-                                </button>
-                            );
-                        })}
-                        <button
-                            type="button"
-                            onClick={goNextWindow}
-                            disabled={!canNextWindow}
-                            className="flex items-center gap-1 text-[#666666] text-sm font-medium font-gantari hover:text-[#353535] disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Next
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-                        </button>
-                    </div>
-                </div>
-            )}
+          
 
             </div>
             </div>
@@ -799,14 +761,14 @@ export default function ManageLeavePM() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]" onClick={(e) => e.stopPropagation()}>
                         <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                            <button type="button" onClick={handleCloseModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
+                            {/* <button type="button" onClick={handleCloseModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                            </button>
-                            <h3 className="text-xl font-bold text-[#353535]">Apply Leave</h3>
+                            </button> */}
+                            <h3 className="text-[24px] font-semibold text-[#353535]">Apply Leave</h3>
                         </div>
                         <form onSubmit={handleSubmitApply} className="px-6 py-6 space-y-4">
                             <div>
-                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name <span className="text-[#DD4342]">*</span></label>
+                                <label className="block text-16px font-semibold text-[#000000] mb-2">Employee Name<span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="text"
                                     value={user ? `${user.full_name}${user.user_role ? ` - ${user.user_role}` : ''}` : ''}

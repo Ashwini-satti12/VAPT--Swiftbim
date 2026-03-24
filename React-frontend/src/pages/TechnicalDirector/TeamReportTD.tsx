@@ -437,26 +437,27 @@ export default function TeamReportTD() {
 
     return (
         <div className="px-1 pt-1 pb-0 space-y-8 flex flex-col h-full bg-white">
-            {/* Header Section */}
-            <div className="flex items-center justify-end flex-shrink-0 px-2">
-                {/* <h2 className="text-2xl font-semibold text-[#000000]">Time-Sheet</h2> */}
-                <button
-                    onClick={handleDownload}
-                    disabled={filteredList.length === 0}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <span className="text-[16px]">Download</span>
-                </button>
-            </div>
 
-            {/* Filter Row */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
-                <h3 className="text-xl font-semibold text-[#000000]">Monthly Report</h3>
 
-                <div className="flex flex-wrap items-center gap-3">
+            {/* Header & Filter Section */}
+            <div className="flex flex-col gap-4 flex-shrink-0 px-2">
+                {/* Line 1: Heading and Download */}
+                <div className="flex items-center justify-between">
+                    <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
+                    <button
+                        onClick={handleDownload}
+                        disabled={filteredList.length === 0}
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <span className="text-[14px]">Download</span>
+                    </button>
+                </div>
+
+                {/* Line 2: Filters */}
+                <div className="flex flex-wrap items-right justify-end gap-3">
                     {/* Start Date */}
                     <div
                         className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer group min-w-[130px]"
@@ -633,7 +634,6 @@ export default function TeamReportTD() {
                             </div>
                         )}
                     </div>
-
                 </div>
             </div>
 
@@ -645,7 +645,7 @@ export default function TeamReportTD() {
                             <tr className="border-b border-gray-100 bg-white">
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Name</th>
+                                <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari">Task Name</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Start Date</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">End Date</th>
                                 <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Task Duration</th>
@@ -666,7 +666,11 @@ export default function TeamReportTD() {
                                         <tr key={row.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-semibold font-gantari whitespace-nowrap align-middle">{row.project_name && row.project_name.trim() !== '' ? row.project_name : '-'}</td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}</td>
+                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari align-middle">
+                                                <div className="mx-auto max-w-[250px] line-clamp-2 break-words text-center">
+                                                    {row.task_name && row.task_name.trim() !== '' ? row.task_name : '-'}
+                                                </div>
+                                            </td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.start_date && row.start_date.trim() !== '' ? row.start_date : '-'}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{row.end_date ?? '-'}</td>
                                             <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{row.duration ?? 'hh:mm:ss'}</td>

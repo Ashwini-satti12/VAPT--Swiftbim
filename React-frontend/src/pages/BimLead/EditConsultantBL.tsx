@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { FiChevronDown } from 'react-icons/fi';
 import api from '../../lib/api';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import { getPhoneLength } from '../../utils/countryCodes';
 
 const PANEL_ROLES = [
     'Management', 'Accounts',
@@ -209,8 +210,9 @@ export default function EditConsultantBL() {
             setEditError('Please select country code.');
             return;
         }
-        if (phoneDigits.length !== 12) {
-            setEditError('Phone number must be exactly 12 digits.');
+        const expectedLength = getPhoneLength(form.country_code);
+        if (phoneDigits.length !== expectedLength) {
+            setEditError(`Phone number must be exactly ${expectedLength} digits for ${form.country_code}.`);
             return;
         }
         setEditSubmitting(true);
@@ -314,7 +316,6 @@ export default function EditConsultantBL() {
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
                                     <div className="flex items-end gap-3">
                                         <div className="flex-1">
-                                            <label className="block text-[14px] font-semibold text-[#000000] mb-2 font-Gantari">Country Code</label>
                                             <CustomDropdown
                                                 options={COUNTRY_CODES}
                                                 value={form.country_code}
@@ -330,15 +331,15 @@ export default function EditConsultantBL() {
                                                 onChange={(e) =>
                                                     setForm((f) => ({
                                                         ...f,
-                                                        phone_number: e.target.value.replace(/\D/g, '').slice(0, 12),
+                                                        phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
                                                     }))
                                                 }
                                                 className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                             />
                                         </div>
                                     </div>
-                                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== 12 && (
-                                        <p className="text-[12px] text-red-600 mt-2">Phone must be exactly 12 digits.</p>
+                                    {form.phone_number && String(form.phone_number).replace(/\D/g, '').length !== getPhoneLength(form.country_code) && (
+                                        <p className="text-[12px] text-red-600 mt-2">Phone must be exactly {getPhoneLength(form.country_code)} digits.</p>
                                     )}
                             </div>
                             <div>
@@ -404,7 +405,7 @@ export default function EditConsultantBL() {
                             <div>
                                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                                 <CustomDropdown
-                                    options={['Trainee', 'Consultant']}
+                                    options={['Employee', 'Trainee']}
                                     value={form.user_type}
                                     onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
                                     placeholder="Select Type"

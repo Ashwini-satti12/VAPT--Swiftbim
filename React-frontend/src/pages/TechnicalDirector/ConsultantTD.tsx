@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
+import { FiPlus, FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
@@ -17,6 +17,9 @@ import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
   id: number;
   full_name: string;
@@ -39,27 +42,27 @@ interface Employee {
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
   if (path.startsWith("http")) return path;
-  
+
   // Normalize path separators
   let normalizedPath = path.replace(/\\/g, "/").trim();
-  
+
   // Remove leading numbers and spaces (e.g., "1 WhatsApp Image..." or "0 anu.jpg" -> "WhatsApp Image..." or "anu.jpg")
   normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
-  
+
   // Remove leading slashes if any
   normalizedPath = normalizedPath.replace(/^\/+/, "");
-  
+
   // Get API base URL
   const apiBaseUrl = getApiBaseUrl();
-  
+
   // Build the full URL path
   let urlPath = "";
-  
+
   // If path already starts with "employee/", use it directly
   if (normalizedPath.startsWith("employee/")) {
     // URL encode the path parts to handle spaces and special characters
     const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => 
+    const encodedParts = parts.map((part, index) =>
       index === 0 ? part : encodeURIComponent(part)
     );
     urlPath = `/uploads/${encodedParts.join("/")}`;
@@ -79,27 +82,27 @@ const getProfileUrl = (path: string | undefined): string => {
   // If path has other subfolders, encode each part
   else {
     const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => 
+    const encodedParts = parts.map((part, index) =>
       index === 0 ? part : encodeURIComponent(part)
     );
     urlPath = `/uploads/${encodedParts.join("/")}`;
   }
-  
+
   // Combine API base URL with the path
   // Remove trailing slash from base URL if present, and ensure path starts with /
   const base = apiBaseUrl.replace(/\/$/, "");
-  
+
   // If base URL is empty, use relative path (works if frontend and backend are on same domain)
   if (!base) {
     return urlPath;
   }
-  
+
   return `${base}${urlPath}`;
 };
 
 const toCamelCase = (str: string): string => {
   if (!str) return str;
-  return str.toLowerCase().split(' ').map(word => 
+  return str.toLowerCase().split(' ').map(word =>
     word.charAt(0).toUpperCase() + word.slice(1)
   ).join(' ');
 };
@@ -171,20 +174,41 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
-          styleType === "header" 
-          ? "px-4 py-1.5 bg-[#F2F2F2] rounded-[10px] text-[#616161] text-[14px] font-semibold" 
-          : styleType === "table"
-          ? `px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`
-          : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
-        }`}
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+            : styleType === "table"
+              ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          }`}
       >
-        <span className={styleType === "form" ? (value ? "text-[#353535]" : "text-[#8B8B8B]") : ""}>{value || placeholder}</span>
-        <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`} />
+        <span className={`whitespace-nowrap ${
+            styleType === "header" || styleType === "form"
+              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+              : ""
+          }`}>
+          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+            <>
+              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="font-semibold">{toCamelCase(value)}</span>
+            </>
+          ) : (
+            value || placeholder
+          )}
+        </span>
+        <img
+          src={ArrowDown}
+          alt="arrow"
+          className={`w-2.5 h-2.5 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : ""}`}
+        />
       </button>
       {isOpen && (
         <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
           <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+            {styleType === "header" && (
+              <div className="px-4 py-2 text-[14px] font-bold text-[#8B8B8B] bg-[#F9F9F9] border-b border-[#F0F0F0]">
+                {placeholder}
+              </div>
+            )}
             {options.map((option) => (
               <button
                 key={option}
@@ -193,7 +217,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
               >
                 {option}
               </button>
@@ -248,7 +272,8 @@ export default function ConsultantTD() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState('All');
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [selectedShow, setSelectedShow] = useState<string>("Show");
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
@@ -316,25 +341,25 @@ export default function ConsultantTD() {
         ...emp,
         active: emp.active === 'inactive' ? 'deactive' : (emp.active || 'active')
       }));
-      
+
       // Debug: Check what profile_picture values we're getting
       console.log('=== EMPLOYEES API RESPONSE ===');
       console.log('Total employees:', normalizedEmployees.length);
       const apiBase = getApiBaseUrl();
       console.log('API Base URL:', apiBase || '(empty - using relative URLs with Vite proxy)');
-      
+
       if (!apiBase) {
         console.log('ℹ️ Note: Vite proxy should forward /uploads/* to http://localhost:5000');
         console.log('ℹ️ If images fail, make sure dev server was restarted after vite.config.ts changes');
       }
-      
+
       // Log first few employees with profile pictures
       const withPics = normalizedEmployees.filter(emp => emp.profile_picture);
       const withoutPics = normalizedEmployees.filter(emp => !emp.profile_picture);
-      
+
       console.log(`Employees WITH profile_picture: ${withPics.length}`);
       console.log(`Employees WITHOUT profile_picture: ${withoutPics.length}`);
-      
+
       withPics.slice(0, 5).forEach(emp => {
         const url = getProfileUrl(emp.profile_picture);
         console.log(`✓ ${emp.full_name}:`, {
@@ -343,11 +368,11 @@ export default function ConsultantTD() {
           willLoad: url ? 'YES' : 'NO'
         });
       });
-      
+
       if (withoutPics.length > 0) {
         console.log('Employees without profile_picture:', withoutPics.slice(0, 3).map(e => e.full_name).join(', '));
       }
-      
+
       setList(normalizedEmployees);
     }).catch((err) => {
       console.error('Failed to load employees:', err);
@@ -403,6 +428,22 @@ export default function ConsultantTD() {
     if (statusFilter === 'deactive') return currentStatus !== 'active';
     return true;
   });
+
+  let limitStart = 0;
+  let limitEnd = Infinity;
+  if (selectedShow && selectedShow.includes("-")) {
+    const parts = selectedShow.split("-");
+    if (parts.length === 2) {
+      limitStart = parseInt(parts[0], 10) - 1;
+      limitEnd = parseInt(parts[1], 10);
+    }
+  } else if (selectedShow === "All") {
+    limitStart = 0;
+    limitEnd = Infinity;
+  }
+
+  const displayedList = filteredList.slice(limitStart, limitEnd);
+
 
   function exportCsv() {
     const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
@@ -583,10 +624,10 @@ export default function ConsultantTD() {
     const backendStatus = newStatus.toLowerCase() === 'active' ? 'active' : 'inactive';
     // Frontend uses 'active' or 'deactive' for display
     const frontendStatus = newStatus.toLowerCase() === 'active' ? 'active' : 'deactive';
-    
+
     // Store previous state for rollback on error
     const previousList = [...list];
-    
+
     // Optimistic UI update – change immediately
     setList(prev => prev.map(e => e.id === id ? { ...e, active: frontendStatus } : e));
 
@@ -630,10 +671,12 @@ export default function ConsultantTD() {
         <>
           <div className="sticky z-50 bg-white mb-4 mt-2">
             {/* ROW 1 */}
-            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-              <h2 className="text-[24px] font-Gantari font-semibold text-[#000000] tracking-tight">
-                Consultant
-              </h2>
+            <div className="flex flex-col lg:flex-row lg:justify-between">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate">
+                  Consultant
+                </h2>
+              </div>
               {canAdd && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <button
@@ -688,26 +731,30 @@ export default function ConsultantTD() {
                   <FiGrid className="w-5 h-5 sm:w-6 h-6" />
                 </button>
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {viewMode === 'table' && (
                   <CustomDropdown
-                    options={['50', '100']}
-                    value={`Show: ${itemsPerPage}`}
-                    onChange={(val) => {
-                      setItemsPerPage(parseInt(val, 10));
-                      setCurrentPage(1);
-                    }}
+                    options={SHOW_OPTIONS}
+                    value={selectedShow}
+                    onChange={(val) => setSelectedShow(val)}
                     placeholder="Show"
                     className="flex-1 sm:min-w-[120px]"
                     styleType="header"
                   />
                 )}
-
+                <CustomDropdown
+                  options={['All', 'Employee', 'Trainee']}
+                  value={typeFilter === 'All' ? 'Type' : typeFilter}
+                  onChange={(val) => setTypeFilter(val)}
+                  placeholder="Type"
+                  className="flex-1 sm:min-w-[120px]"
+                  styleType="header"
+                />
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
                   value={
-                    statusFilter === 'All' 
-                      ? 'Status' 
+                    statusFilter === 'All'
+                      ? 'Status'
                       : statusFilter
                   }
                   onChange={(val) => {
@@ -727,321 +774,270 @@ export default function ConsultantTD() {
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-        {viewMode === 'card' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
-            {filteredList.length === 0 ? (
-              <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
-                No consultants found.
+            {viewMode === 'card' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
+                {displayedList.length === 0 ? (
+                  <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
+                    No consultants found.
+                  </div>
+                ) : (
+                  displayedList.map((emp: Employee) => (
+                    <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
+                      {/* Image Section */}
+                      <div className="relative h-[128px] overflow-hidden group">
+                        <div className="absolute inset-0 z-0">
+                          <img
+                            src={pmprofilebg}
+                            alt="Background"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/30" />
+                        </div>
+
+                        {/* Top Status - Pill Shape */}
+                        <div className="absolute top-3 right-3 z-10">
+                          <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
+                            <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
+                            <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                              {emp.active === 'active' ? 'Active' : 'Deactivate'}
+                            </span>
+                          </div>
+                        </div>
+                        {/* User Profile Info on Image */}
+                        <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
+                          <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
+                            {emp.profile_picture && emp.profile_picture.trim() ? (
+                              <img
+                                key={`${emp.id}-${emp.profile_picture}`}
+                                src={getProfileUrl(emp.profile_picture)}
+                                alt={emp.full_name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  const url = getProfileUrl(emp.profile_picture);
+                                  console.error(`❌ Failed to load image for ${emp.full_name}:`, {
+                                    attemptedUrl: target.src,
+                                    generatedUrl: url,
+                                    dbValue: emp.profile_picture,
+                                    apiBaseUrl: getApiBaseUrl(),
+                                    note: 'Check if file exists in backend/uploads/employee/ folder'
+                                  });
+                                  // Replace with placeholder on error
+                                  const parent = target.parentElement;
+                                  if (parent && !parent.querySelector('.error-placeholder')) {
+                                    parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
+                                  }
+                                }}
+                                onLoad={() => {
+                                  console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                <span className="text-gray-400 text-xs">No Photo</span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                              {toCamelCase(emp.full_name)}
+                            </h3>
+                            <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                              {emp.user_role || 'Consultant'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Content Area */}
+                      <div className="p-4 space-y-4 sm:space-y-5">
+                        {/* Contact Buttons */}
+                        <div className="flex flex-wrap items-center gap-3">
+                          <button
+                            onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
+                          >
+                            <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
+                          </button>
+                          <button
+                            onClick={() => navigate('/td/chat')}
+                            className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                          >
+                            <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
+                          </button>
+                          <button
+                            onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                          >
+                            <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
+                          </button>
+                        </div>
+
+                        <hr className="border-slate-200" />
+
+                        {/* Actions Grid */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                            className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                          >
+                            <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
+                          </button>
+                          {canAdd && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditId(emp.id);
+                                setActiveView('edit');
+                                // Store current profile picture URL for display
+                                const currentPicUrl = emp.profile_picture ? getProfileUrl(emp.profile_picture) : null;
+                                setCurrentProfilePicture(currentPicUrl);
+                                setEditForm({
+                                  full_name: emp.full_name,
+                                  email: emp.email,
+                                  phone_number: emp.phone_number || '',
+                                  user_role: emp.user_role || 'Consultant',
+                                  department: emp.department || '',
+                                  address: emp.address || '',
+                                  dob: emp.dob || '',
+                                  password: '',
+                                  user_type: emp.user_type || '',
+                                  doj: emp.doj || '',
+                                  salary: emp.salary || '',
+                                  accountnumber: emp.accountnumber || '',
+                                  profile_picture: null,
+                                  roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
+                                  active: emp.active === 'active' ? 'Active' : 'Deactivate',
+                                });
+                              }}
+                              className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                            >
+                              <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             ) : (
-              filteredList.map((emp: Employee) => (
-                <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
-                  {/* Image Section */}
-                  <div className="relative h-[128px] overflow-hidden group">
-                    <div className="absolute inset-0 z-0">
-                      <img
-                        src={pmprofilebg}
-                        alt="Background"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/30" />
-                    </div>
-
-                    {/* Top Status - Pill Shape */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
-                        <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                        <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
-                          {emp.active === 'active' ? 'Active' : 'Deactivate'}
-                        </span>
-                      </div>
-                    </div>
-                    {/* User Profile Info on Image */}
-                    <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
-                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
-                        {emp.profile_picture && emp.profile_picture.trim() ? (
-                          <img
-                            key={`${emp.id}-${emp.profile_picture}`}
-                            src={getProfileUrl(emp.profile_picture)}
-                            alt={emp.full_name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              const url = getProfileUrl(emp.profile_picture);
-                              console.error(`❌ Failed to load image for ${emp.full_name}:`, {
-                                attemptedUrl: target.src,
-                                generatedUrl: url,
-                                dbValue: emp.profile_picture,
-                                apiBaseUrl: getApiBaseUrl(),
-                                note: 'Check if file exists in backend/uploads/employee/ folder'
-                              });
-                              // Replace with placeholder on error
-                              const parent = target.parentElement;
-                              if (parent && !parent.querySelector('.error-placeholder')) {
-                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
-                              }
-                            }}
-                            onLoad={() => {
-                              console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
-                            }}
-                          />
+              <div className="px-4 pb-12">
+                <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
+                  <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-320px)] pb-4">
+                    <table className="min-w-full border-collapse">
+                      <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                        <tr className="border-b border-gray-100 bg-white">
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Emp ID</th>
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Consultant Name</th>
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Email ID</th>
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Contact Info</th>
+                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {displayedList.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-3 py-20 text-center text-[#616161] font-medium font-Gantari bg-white">
+                              No records found
+                            </td>
+                          </tr>
                         ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">No Photo</span>
-                          </div>
+                          displayedList.map((emp, idx) => {
+                            const slNo = (limitStart + idx + 1).toString().padStart(2, '0');
+                            return (
+                              <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white hover:bg-slate-50 transition-colors'}>
+                                <td className="px-3 py-5 text-center text-[14px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                  {slNo}
+                                </td>
+                                <td className="px-3 py-5 text-center text-[14px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                  {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
+                                </td>
+                                <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
+                                  <div className="flex items-center justify-center gap-4">
+                                    <div className="relative shrink-0">
+                                      <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
+                                        {emp.profile_picture && emp.profile_picture.trim() ? (
+                                          <img
+                                            key={`table-${emp.id}-${emp.profile_picture}`}
+                                            src={getProfileUrl(emp.profile_picture)}
+                                            alt={emp.full_name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              const parent = target.parentElement;
+                                              if (parent && !parent.querySelector('.error-placeholder')) {
+                                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
+                                              }
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                            <span className="text-gray-400 text-[10px]">No Photo</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
+                                    </div>
+                                    <span
+                                      className="text-[14px] font-semibold font-Gantari text-[#353535] cursor-pointer hover:text-[#DD4342]"
+                                      onClick={() => navigate(`/td/consultants/${emp.id}`)}
+                                    >
+                                      {toCamelCase(emp.full_name || '-')}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-5 text-center text-[14px] font-medium font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                  {emp.email || '-'}
+                                </td>
+                                <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                  <div className="flex items-center justify-center gap-3">
+                                    <button
+                                      onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                    >
+                                      <img src={mailIcon} className="w-5 h-5" alt="Mail" />
+                                    </button>
+                                    <button
+                                      onClick={() => navigate('/td/chat')}
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                    >
+                                      <img src={messageIcon} className="w-5 h-5" alt="Message" />
+                                    </button>
+                                    <button
+                                      onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                    >
+                                      <img src={callIcon} className="w-5 h-5" alt="Call" />
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                  <div className="flex items-center justify-center">
+                                    <CustomDropdown
+                                      options={['Active', 'Deactivate']}
+                                      value={emp.active === 'active' ? 'Active' : 'Deactivate'}
+                                      onChange={(val) => handleStatusToggle(emp.id, val)}
+                                      placeholder="Status"
+                                      className="w-[140px]"
+                                      styleType="table"
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
                         )}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
-                          {toCamelCase(emp.full_name)}
-                        </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
-                          {emp.user_role || 'Consultant'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content Area */}
-                  <div className="p-4 space-y-4 sm:space-y-5">
-                    {/* Contact Buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
-                      <button 
-                        onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
-                      >
-                        <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
-                      </button>
-                      <button 
-                        onClick={() => navigate('/chat')}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
-                      >
-                        <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
-                      </button>
-                      <button 
-                        onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
-                      >
-                        <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
-                      </button>
-                    </div>
-
-                    <hr className="border-slate-200" />
-
-                    {/* Actions Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
-                      >
-                        <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
-                      </button>
-                      {canAdd && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditId(emp.id);
-                            setActiveView('edit');
-                            // Store current profile picture URL for display
-                            const currentPicUrl = emp.profile_picture ? getProfileUrl(emp.profile_picture) : null;
-                            setCurrentProfilePicture(currentPicUrl);
-                            setEditForm({
-                              full_name: emp.full_name,
-                              email: emp.email,
-                              phone_number: emp.phone_number || '',
-                              user_role: emp.user_role || 'Consultant',
-                              department: emp.department || '',
-                              address: emp.address || '',
-                              dob: emp.dob || '',
-                              password: '',
-                              user_type: emp.user_type || '',
-                              doj: emp.doj || '',
-                              salary: emp.salary || '',
-                              accountnumber: emp.accountnumber || '',
-                              profile_picture: null,
-                              roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
-                              active: emp.active === 'active' ? 'Active' : 'Deactivate',
-                            });
-                          }}
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
-                        >
-                          <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
-                        </button>
-                      )}
-                    </div>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              ))
+              </div>
             )}
           </div>
-        ) : (
-          <div className=" sticky top-0 z-40 border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white">
-              <div className="overflow-x-auto custom-scrollbar">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead className="sticky top-0 z-40">
-                  <tr className="bg-white">
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Sl.No</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Emp ID</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Consultant Name</th>
-                    <th className="px-4 py-4 text-left text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Email ID</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Contact Info</th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filteredList.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500 font-Gantari">
-                        No consultants found.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredList.map((emp, idx) => {
-                      const serialNumber = idx + 1;
-                      return (
-                        <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                          <td className="px-6 py-5 text-center text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {String(serialNumber).padStart(2, '0')}
-                            {String(serialNumber).padStart(2, '0')}
-                          </td>
-                          <td className="px-6 py-5 text-left text-[15px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-4">
-                              <div className="relative shrink-0">
-                                <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200">
-                                  {emp.profile_picture && emp.profile_picture.trim() ? (
-                                    <img
-                                      key={`table-${emp.id}-${emp.profile_picture}`}
-                                      src={getProfileUrl(emp.profile_picture)}
-                                      alt={emp.full_name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        console.error(`❌ Failed to load image for ${emp.full_name}:`, {
-                                          attemptedUrl: target.src,
-                                          generatedUrl: getProfileUrl(emp.profile_picture),
-                                          dbValue: emp.profile_picture
-                                        });
-                                        // Replace with placeholder on error
-                                        const parent = target.parentElement;
-                                        if (parent && !parent.querySelector('.error-placeholder')) {
-                                          parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-[10px]">No Photo</span></div>';
-                                        }
-                                      }}
-                                      onLoad={() => {
-                                        console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                                      <span className="text-gray-400 text-[10px]">No Photo</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
-                              </div>
-                              <span className="text-[16px] font-semibold font-Gantari text-[#353535]">{toCamelCase(emp.full_name)}</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-left text-[15px] font-medium font-Gantari text-[#353535]">{emp.email}</td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="flex items-center justify-center gap-3">
-                              <button 
-                                onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                              >
-                                <img src={mailIcon} className="w-5 h-5" alt="Mail" />
-                              </button>
-                              <button 
-                                onClick={() => navigate('/chat')}
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                              >
-                                <img src={messageIcon} className="w-5 h-5" alt="Message" />
-                              </button>
-                              <button 
-                                onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
-                              >
-                                <img src={callIcon} className="w-5 h-5" alt="Call" />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center">
-                            <div className="inline-block min-w-[140px]">
-                              <CustomDropdown
-                                options={['Active', 'Deactivate']}
-                                value={emp.active === 'active' ? 'Active' : 'Deactivate'}
-                                onChange={(val) => handleStatusToggle(emp.id, val)}
-                                placeholder="Status"
-                                styleType="table"
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Pagination Bottom Bar */}
-      {viewMode === 'table' && (
-        <div className="sticky bottom-0 z-50 bg-white py-4 sm:py-6 mt-auto">
-          <div className="flex justify-center sm:justify-end sm:pr-8">
-            <div className="flex flex-wrap items-center justify-center bg-[#F2F2F2] rounded-2xl sm:rounded-full p-1.5 shadow-sm gap-2">
-              <span className="hidden sm:inline px-4 text-[14px] font-semibold text-[#6B6B6B] font-Gantari">Showing:</span>
-              
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535] hover:text-[#DD4342] transition-colors disabled:opacity-30 font-Gantari"
-              >
-                <FiChevronDown className="w-5 h-5 rotate-90" />
-                Prev
-              </button>
-
-              <div className="flex items-center gap-1.5 px-2">
-                {(() => {
-                  const maxVisible = 4;
-                  let start = Math.max(1, currentPage - 1);
-                  let end = Math.min(totalPages, start + maxVisible - 1);
-                  if (end - start + 1 < maxVisible) {
-                    start = Math.max(1, end - maxVisible + 1);
-                  }
-                  const pages = [];
-                  for (let i = start; i <= end; i++) pages.push(i);
-
-                  return pages.map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-5 py-2 text-[14px] font-bold rounded-full transition-all font-Gantari ${currentPage === page ? 'text-white bg-[#DD4342] shadow-md' : 'text-[#6B6B6B] hover:bg-white'}`}
-                    >
-                      {(page - 1) * itemsPerPage}-{Math.min(page * itemsPerPage, filteredList.length)}
-                    </button>
-                  ));
-                })()}
-              </div>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages || totalPages === 0}
-                className="flex items-center gap-1 px-4 py-2 text-[14px] font-semibold text-[#353535]"
-              >
-                Next
-                <FiChevronDown className="w-5 h-5 -rotate-90" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          {/* Pagination Bottom Bar removed per user request */}
         </>
       )}
 
@@ -1057,7 +1053,7 @@ export default function ConsultantTD() {
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Details</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
               <div className="w-10" /> {/* Spacer to center title */}
             </div>
 
@@ -1065,29 +1061,29 @@ export default function ConsultantTD() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                 {/* Column 1 */}
                 <div className="space-y-5">
-                <div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Full Name <span className="text-[#DD4342]">*</span></label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                       placeholder="Enter Employee Name"
-                    value={editForm.full_name}
-                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
-                    disabled
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
-                    required
-                  />
-                </div>
-                <div>
+                      value={editForm.full_name}
+                      onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                      disabled
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
+                      required
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number <span className="text-[#DD4342]">*</span></label>
-                  <input
+                    <input
                       type="text"
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
-                <div>
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Password <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="password"
@@ -1118,19 +1114,19 @@ export default function ConsultantTD() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Account Number <span className="text-[#DD4342]">*</span></label>
-                  <input
-                    type="text"
+                    <input
+                      type="text"
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
                 </div>
 
                 {/* Column 2 */}
                 <div className="space-y-5">
-                <div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Birth <span className="text-[#DD4342]">*</span></label>
                     <input
                       type="date"
@@ -1141,92 +1137,92 @@ export default function ConsultantTD() {
                   </div>
                   <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Email ID <span className="text-[#DD4342]">*</span></label>
-                  <input
-                    type="email"
-                    placeholder="Enter Email"
-                    value={editForm.email}
-                    onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    required
-                  />
-                </div>
-                <div className="relative">
+                    <input
+                      type="email"
+                      placeholder="Enter Email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      required
+                    />
+                  </div>
+                  <div className="relative">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
-                  <CustomDropdown
-                    options={['Trainee', 'Consultant', ]}
-                    value={editForm.user_type}
-                    onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
-                    placeholder="Select Type"
-                  />
-                </div>
-                <div className="pt-5">
+                    <CustomDropdown
+                      options={['Trainee', 'Consultant',]}
+                      value={editForm.user_type}
+                      onChange={(val) => setEditForm((f) => ({ ...f, user_type: val }))}
+                      placeholder="Select Type"
+                    />
+                  </div>
+                  <div className="pt-5">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Date of Joining <span className="text-[#DD4342]">*</span></label>
-                  <input
-                    type="date"
-                    value={editForm.doj}
-                    onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
-                <div>
+                    <input
+                      type="date"
+                      value={editForm.doj}
+                      onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Salary <span className="text-[#DD4342]">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="0000$"
-                    value={editForm.salary}
-                    onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                  />
-                </div>
-                <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="0000$"
+                      value={editForm.salary}
+                      onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                  {/* Display current profile picture if available */}
-                  {currentProfilePicture && !editForm.profile_picture && (
-                    <div className="mb-3 flex items-center gap-4">
-                      <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
-                        <img
-                          src={currentProfilePicture}
-                          alt="Current profile"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            const parent = target.parentElement;
-                            if (parent && !parent.querySelector('.error-placeholder')) {
-                              parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
+                    {/* Display current profile picture if available */}
+                    {currentProfilePicture && !editForm.profile_picture && (
+                      <div className="mb-3 flex items-center gap-4">
+                        <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 border-2 border-gray-300">
+                          <img
+                            src={currentProfilePicture}
+                            alt="Current profile"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const parent = target.parentElement;
+                              if (parent && !parent.querySelector('.error-placeholder')) {
+                                parent.innerHTML = '<div class="w-full h-full bg-gray-200 flex items-center justify-center error-placeholder"><span class="text-gray-400 text-xs">No Photo</span></div>';
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[14px] font-medium text-[#353535] font-Gantari">Current Profile Picture</p>
+                          <p className="text-[12px] text-[#666666] font-Gantari">Upload a new file to replace it</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 text-[14px] text-[#8B8B8B] truncate">
+                        {editForm.profile_picture
+                          ? editForm.profile_picture.name
+                          : currentProfilePicture
+                            ? 'Current picture shown above - Choose new file to replace'
+                            : 'Choose file (JPEG or JPG only)'}
+                      </div>
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
+                        Browse File
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".jpg,.jpeg"
+                          onChange={(e) => {
+                            const file = e.target.files ? e.target.files[0] : null;
+                            setEditForm((f) => ({ ...f, profile_picture: file }));
+                            // Clear current picture preview when new file is selected
+                            if (file) {
+                              setCurrentProfilePicture(null);
                             }
                           }}
                         />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-[14px] font-medium text-[#353535] font-Gantari">Current Profile Picture</p>
-                        <p className="text-[12px] text-[#666666] font-Gantari">Upload a new file to replace it</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
-                    <div className="flex-1 px-4 text-[14px] text-[#8B8B8B] truncate">
-                      {editForm.profile_picture 
-                        ? editForm.profile_picture.name 
-                        : currentProfilePicture 
-                          ? 'Current picture shown above - Choose new file to replace' 
-                          : 'Choose file (JPEG or JPG only)'}
-                    </div>
-                    <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari hover:bg-[#D0D0D0]">
-                      Browse File
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".jpg,.jpeg"
-                        onChange={(e) => {
-                          const file = e.target.files ? e.target.files[0] : null;
-                          setEditForm((f) => ({ ...f, profile_picture: file }));
-                          // Clear current picture preview when new file is selected
-                          if (file) {
-                            setCurrentProfilePicture(null);
-                          }
-                        }}
-                      />
-                    </label>
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -1257,9 +1253,8 @@ export default function ConsultantTD() {
                             : [...editForm.roles, role];
                           setEditForm({ ...editForm, roles: newRoles });
                         }}
-                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${
-                          editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
-                        }`}
+                        className={`w-6 h-6 rounded-[4px] border-2 flex items-center justify-center cursor-pointer transition-all ${editForm.roles.includes(role) ? 'bg-[#D1E6FF] border-[#D1E6FF]' : 'bg-white border-[#E0E0E0]'
+                          }`}
                       >
                         {editForm.roles.includes(role) && (
                           <svg width="14" height="11" viewBox="0 0 14 11" fill="none">
