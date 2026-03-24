@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
@@ -53,6 +54,7 @@ export default function TeamReportTD() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (showEntriesOpen && dropdownContentRef.current) {
@@ -346,8 +348,21 @@ export default function TeamReportTD() {
             .finally(() => setLoading(false));
     };
 
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+
     const filteredList = useMemo(() => {
         return list.filter(item => {
+            // Search filter
+            const matchesSearch = !searchQuery || 
+                (item.project_name || "").toLowerCase().includes(searchQuery) ||
+                (item.task_name || "").toLowerCase().includes(searchQuery) ||
+                (item.assignee_name || "").toLowerCase().includes(searchQuery) ||
+                (item.team || "").toLowerCase().includes(searchQuery) ||
+                (item.start_date || "").toLowerCase().includes(searchQuery) ||
+                (item.end_date || "").toLowerCase().includes(searchQuery);
+
+            if (!matchesSearch) return false;
+
             // Date Range Filter Logic
             if (startDate || endDate) {
                 // Use string comparisons in YYYY-MM-DD to avoid timezone issues
@@ -375,7 +390,7 @@ export default function TeamReportTD() {
 
             return true;
         });
-    }, [list, startDate, endDate, employee, team]);
+    }, [list, startDate, endDate, employee, team, searchQuery]);
 
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;

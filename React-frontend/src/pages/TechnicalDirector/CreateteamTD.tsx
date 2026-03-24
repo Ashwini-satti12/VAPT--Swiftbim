@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import {
   PlusIcon,
@@ -267,6 +268,7 @@ function TeamCard({
 }
 
 export default function CreateteamTD() {
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -489,10 +491,22 @@ export default function CreateteamTD() {
     );
   }
 
+  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+  
+  const filteredTeams = teams.filter(t => {
+      if (!searchQuery) return true;
+      const tName = (t.team_name || t.teamname || "").toLowerCase();
+      const pName = (t.project_name || "").toLowerCase();
+      const lName = (t.leader_name || getEmpName(t.leader) || "").toLowerCase();
+      return tName.includes(searchQuery) ||
+             pName.includes(searchQuery) ||
+             lName.includes(searchQuery);
+  });
+
   const displayTeams =
     selectedRange.end === null
-      ? teams
-      : teams.slice(selectedRange.start, selectedRange.end);
+      ? filteredTeams
+      : filteredTeams.slice(selectedRange.start, selectedRange.end);
 
   return (
     <div className="h-full flex flex-col p-2">

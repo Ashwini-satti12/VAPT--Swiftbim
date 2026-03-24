@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
@@ -76,6 +77,7 @@ export default function ManageLeave() {
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
     const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         if (showEntriesOpen && dropdownContentRef.current) {
@@ -147,7 +149,18 @@ export default function ManageLeave() {
 
 
 
-    const filteredList = leaves.filter((l) => selectedEmployee === 'All' || l.employeeName === selectedEmployee);
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+    const filteredList = leaves.filter((l) => {
+        const matchesEmployee = selectedEmployee === 'All' || l.employeeName === selectedEmployee;
+        const matchesSearch = !searchQuery || 
+            (l.employeeName || "").toLowerCase().includes(searchQuery) ||
+            (l.role || "").toLowerCase().includes(searchQuery) ||
+            (l.leaveType || "").toLowerCase().includes(searchQuery) ||
+            (l.fromDate || "").toLowerCase().includes(searchQuery) ||
+            (l.toDate || "").toLowerCase().includes(searchQuery) ||
+            (l.currentStatus || "").toLowerCase().includes(searchQuery);
+        return matchesEmployee && matchesSearch;
+    });
     const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);

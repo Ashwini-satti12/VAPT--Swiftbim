@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import ViewBidsTD from './ViewBidsTD';
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
@@ -36,6 +37,7 @@ export default function BiddingTD() {
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
 
     useEffect(() => {
         api.get<{ bidding: BiddingEntry[] }>('/api/vendors/bidding')
@@ -75,7 +77,19 @@ export default function BiddingTD() {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
     };
 
-    const filtered = projects;
+    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+    const filtered = projects.filter((p) => {
+        if (!searchQuery) return true;
+        
+        const statusLabel = getStatusLabel(p).toLowerCase();
+        return (
+            (p.project_name || "").toLowerCase().includes(searchQuery) ||
+            (p.description || "").toLowerCase().includes(searchQuery) ||
+            (p.status || "").toLowerCase().includes(searchQuery) ||
+            (p.computed_status || "").toLowerCase().includes(searchQuery) ||
+            statusLabel.includes(searchQuery)
+        );
+    });
 
     const selectedRange = showEntriesOptions.find(o => o.value === selectedShowEntries) ?? showEntriesOptions[0];
     const rangeEnd = selectedRange.end === null ? filtered.length : Math.min(selectedRange.end, filtered.length);

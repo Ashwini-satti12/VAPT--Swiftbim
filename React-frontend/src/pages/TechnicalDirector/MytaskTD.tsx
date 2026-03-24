@@ -645,6 +645,17 @@ export default function MytaskTD() {
 
     const allTasksBase = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
     const allTasks = allTasksBase.filter((t) => {
+        // Search Filter
+        const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+        if (searchQuery) {
+            const matchesSearch = (t.task_name || "").toLowerCase().includes(searchQuery) ||
+                (t.project_name || "").toLowerCase().includes(searchQuery) ||
+                (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
+                (t.module || "").toLowerCase().includes(searchQuery) ||
+                (t.type || "").toLowerCase().includes(searchQuery);
+            if (!matchesSearch) return false;
+        }
+
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;

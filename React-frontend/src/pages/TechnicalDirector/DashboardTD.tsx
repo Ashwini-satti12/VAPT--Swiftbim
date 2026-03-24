@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
@@ -143,6 +143,8 @@ export default function DashboardTD() {
             .catch(() => setStats(defaultStats))
             .finally(() => setLoading(false));
     }, []);
+
+    const [searchParams] = useSearchParams();
 
     // Integration: GET /api/dashboard/priority-tasks → Today's Priority (task_name, due_date, times, project_name, involved_persons)
     useEffect(() => {
@@ -314,8 +316,22 @@ export default function DashboardTD() {
                                     <Link to="/td/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                 </div>
                                 {(() => {
+                                    const searchQuery = searchParams.get('q')?.toLowerCase() || "";
+                                    const filteredTasks = priorityTasks.filter(t => {
+                                        if (!searchQuery) return true;
+                                        return (
+                                            (t.task_name || "").toLowerCase().includes(searchQuery) ||
+                                            (t.project_name || "").toLowerCase().includes(searchQuery) ||
+                                            (t.status || "").toLowerCase().includes(searchQuery)
+                                        );
+                                    });
+
+                                    if (filteredTasks.length === 0 && searchQuery) {
+                                        return <p className="text-[#717171] text-sm font-gantari py-4">No tasks match your search.</p>;
+                                    }
+
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                    for (const task of priorityTasks) {
+                                    for (const task of filteredTasks) {
                                         const pid = task.projectid ?? 0;
                                         const name = task.project_name || `Project #${pid}`;
                                         if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });

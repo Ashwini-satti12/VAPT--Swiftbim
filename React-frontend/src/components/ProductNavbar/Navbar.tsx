@@ -414,7 +414,19 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
               <input
                 type="text"
                 value={localSearch}
-                onChange={(e) => setLocalSearch(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocalSearch(val);
+                  setSearchParams(
+                    (prev) => {
+                      const next = new URLSearchParams(prev);
+                      if (val.trim()) next.set(SEARCH_PARAM_KEY, val.trim());
+                      else next.delete(SEARCH_PARAM_KEY);
+                      return next;
+                    },
+                    { replace: true }
+                  );
+                }}
                 placeholder="Search"
                 className="flex-1 bg-transparent text-sm text-slate-700 placeholder-slate-400 outline-none min-w-0"
               />
