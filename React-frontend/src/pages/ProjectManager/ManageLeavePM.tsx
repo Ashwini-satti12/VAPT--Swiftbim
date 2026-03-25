@@ -475,15 +475,15 @@ export default function ManageLeavePM() {
         const label = s === 0 ? `0-${e}` : `${s + 1}-${e}`;
         pageRanges.push({ start: s, end: e, label });
     }
-    const activePage = safePage;
-    const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
-    const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
-    const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
-    const canPrevWindow = paginationWindowStart > 1;
-    const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
-    const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
-    const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
-    void [activePage, visiblePageRanges, canPrevWindow, canNextWindow, goPrevWindow, goNextWindow];
+    // const activePage = safePage;
+    // const maxWindowStart = Math.max(1, totalPages - PAGINATION_VISIBLE + 1);
+    // const effectiveWindowStart = Math.min(paginationWindowStart, maxWindowStart);
+    // const visiblePageRanges = pageRanges.slice(effectiveWindowStart - 1, effectiveWindowStart - 1 + PAGINATION_VISIBLE);
+    // const canPrevWindow = paginationWindowStart > 1;
+    // const canNextWindow = paginationWindowStart <= totalPages - PAGINATION_VISIBLE;
+    // const goPrevWindow = () => setPaginationWindowStart((s) => Math.max(1, s - PAGINATION_VISIBLE));
+    // const goNextWindow = () => setPaginationWindowStart((s) => Math.min(s + PAGINATION_VISIBLE, maxWindowStart));
+    // void [activePage, visiblePageRanges, canPrevWindow, canNextWindow, goPrevWindow, goNextWindow];
 
     const handleView = (row: LeaveEntry) => {
         setSelectedLeave(row);
