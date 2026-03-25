@@ -828,6 +828,46 @@ def project_module_progress(project_id):
     )
 
 
+def _sync_vendor_bidding_for_outsource_project(cur, company_id, project_id, department_val, budget_ceiling, bidding_end_date):
+    """
+    When a project is outsource (Submission Deadline) or has bidding fields set,
+    upsert vendor_bidding so vendor Opportunities lists stay in sync.
+    Same rules as update_project OUTSOURCE BRIDGE.
+    """
+    department_val = department_val or ""
+    is_outsource = (department_val == "Submission Deadline") or (budget_ceiling and bidding_end_date)
+    if not is_outsource:
+        return
+    try:
+        cur.execute(
+            "SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
+            (project_id, company_id),
+        )
+        proj = cur.fetchone()
+        if not proj:
+            return
+        project_name = proj["project_name"]
+        outsource_budget = proj["budget"]
+        description = proj.get("description") or ""
+        cur.execute(
+            """INSERT INTO vendor_bidding
+                 (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
+               VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
+               ON DUPLICATE KEY UPDATE
+                 project_name   = VALUES(project_name),
+                 description    = VALUES(description),
+                 outsource_budget = VALUES(outsource_budget),
+                 budget_ceiling = VALUES(budget_ceiling),
+                 bid_deadline   = VALUES(bid_deadline),
+                 status         = 'active',
+                 company_id     = VALUES(company_id)
+            """,
+            (project_id, project_name, description, outsource_budget, budget_ceiling or outsource_budget, bidding_end_date, company_id),
+        )
+    except Exception:
+        pass
+
+
 @bp.route("", methods=["POST"])
 @project_app_required
 def create_project():
@@ -856,6 +896,8 @@ def create_project():
     resources = data.get("resources") or data.get("no_resource") or None
     required_resources = data.get("required_resources") or data.get("no_resources_requried") or None
     tasks = data.get("tasks") or ""
+    budget_ceiling = data.get("budget_ceiling")
+    bidding_end_date = data.get("bidding_end_date")
 
     if not project_name:
         return jsonify({"success": False, "message": "project_name required"}), 400
@@ -888,13 +930,15 @@ def create_project():
 
     cur.execute(
         """INSERT INTO projects (project_name, uploaderid, members, department, due_date, priority, budget, modules,
-           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+           progress, Company_id, client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date, no_resource, no_resources_requried, tasks, document_attachment, budget_ceiling, bidding_end_date)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
         (project_name, g.user_id, members, department, due_date, priority, budget, modules, g.company_id,
          client_id, project_manager_id, lead_id, bim_coordinator_id, totalhours, perday, location, description, start_date,
-         resources, required_resources, tasks, document_attachment),
+         resources, required_resources, tasks, document_attachment, budget_ceiling, bidding_end_date),
     )
     project_id = cur.lastrowid
+
+    _sync_vendor_bidding_for_outsource_project(cur, g.company_id, project_id, department, budget_ceiling, bidding_end_date)
 
     # Notifications: inform everyone involved in this project
     try:
@@ -1047,35 +1091,7 @@ def update_project(project_id):
     department_val = data.get("department", "")
     budget_ceiling = data.get("budget_ceiling")
     bidding_end_date = data.get("bidding_end_date")
-    is_outsource = (department_val == "Submission Deadline") or (budget_ceiling and bidding_end_date)
-
-    if is_outsource:
-        try:
-            cur.execute("SELECT project_name, budget, description FROM projects WHERE id = %s AND Company_id = %s",
-                        (project_id, g.company_id))
-            proj = cur.fetchone()
-            if proj:
-                project_name = proj["project_name"]
-                outsource_budget = proj["budget"]
-                description = proj.get("description") or ""
-                cur.execute(
-                    """INSERT INTO vendor_bidding
-                         (project_id, project_name, description, outsource_budget, budget_ceiling, bid_deadline, status, company_id)
-                       VALUES (%s, %s, %s, %s, %s, %s, 'active', %s)
-                       ON DUPLICATE KEY UPDATE
-                         project_name   = VALUES(project_name),
-                         description    = VALUES(description),
-                         outsource_budget = VALUES(outsource_budget),
-                         budget_ceiling = VALUES(budget_ceiling),
-                         bid_deadline   = VALUES(bid_deadline),
-                         status         = 'active',
-                         company_id     = VALUES(company_id)
-                    """,
-                    (project_id, project_name, description, outsource_budget,
-                     budget_ceiling or outsource_budget, bidding_end_date, g.company_id),
-                )
-        except Exception:
-            pass
+    _sync_vendor_bidding_for_outsource_project(cur, g.company_id, project_id, department_val, budget_ceiling, bidding_end_date)
 
     return jsonify({"success": True})
 
