@@ -236,7 +236,7 @@ export default function DashboardBM() {
                             <>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                    <Link to="/bm/mytasks" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                    <Link to="/bm/mytasks" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari cursor-pointer">View all</Link>
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
@@ -249,7 +249,7 @@ export default function DashboardBM() {
                                     return Array.from(byProject.entries()).map(([id, { projectName, tasks: projectTasks }]) => (
                                         <div key={id} className="mb-6">
                                             <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                <Link to="/bm/mytasks" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
+                                                <Link to="/bm/mytasks" className="hover:text-[#DE3D3A] hover:underline cursor-pointer" title={projectName}>{projectName}</Link>
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {
@@ -327,14 +327,14 @@ export default function DashboardBM() {
                         </div>
 
                         <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
+                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Previous month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
                             <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                                 <button
                                     type="button"
                                     onClick={() => setMonthDropdownOpen((o: boolean) => !o)}
-                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent"
+                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent cursor-pointer"
                                     aria-expanded={monthDropdownOpen}
                                     aria-haspopup="listbox"
                                     aria-label="Select month"
@@ -354,7 +354,7 @@ export default function DashboardBM() {
                                                         role="option"
                                                         aria-selected={isSelected}
                                                         onClick={() => { setDisplayMonth(m); setMonthDropdownOpen(false); }}
-                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
                                                     >
                                                         {name}
                                                     </button>
@@ -367,10 +367,10 @@ export default function DashboardBM() {
                             <div className="flex items-center">
                                 <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                 <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y: number) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
                                     </button>
-                                    <button type="button" onClick={() => setDisplayYear((y: number) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
+                                    <button type="button" onClick={() => setDisplayYear((y: number) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Previous year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                                     </button>
                                 </div>
@@ -393,11 +393,11 @@ export default function DashboardBM() {
                                             const isToday = isSameDay(cellDate, today);
                                             const isOtherMonth = cell.type === 'prev' || cell.type === 'next';
                                             return (
-                                                <button
+                                                 <button
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors rounded-full ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-full cursor-pointer ${isToday ? 'bg-[#DD4346] text-[#FFFFFF]' : isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>

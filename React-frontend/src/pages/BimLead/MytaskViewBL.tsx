@@ -110,8 +110,6 @@ export default function MytaskViewBL() {
     const statusDropdownRef = useRef<HTMLDivElement>(null);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
     const [selectedImagePreview, setSelectedImagePreview] = useState<string | null>(null);
-    const [submittingWork, setSubmittingWork] = useState(false);
-    const [updatingStatus, setUpdatingStatus] = useState(false);
     const [loading, setLoading] = useState(!task);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,8 +123,7 @@ export default function MytaskViewBL() {
     };
 
     const handleStatusUpdate = async (newStatus: StatusKey) => {
-        if (!task || updatingStatus) return;
-        setUpdatingStatus(true);
+        if (!task) return;
         const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
         try {
@@ -140,14 +137,12 @@ export default function MytaskViewBL() {
             console.error("Error updating status:", error);
             toast.error("Failed to update status");
         } finally {
-            setUpdatingStatus(false);
             setStatusDropdownOpen(false);
         }
     };
 
     const handleImageSubmit = async () => {
-        if (!task || !selectedImage || submittingWork) return;
-        setSubmittingWork(true);
+        if (!task || !selectedImage) return;
         const formData = new FormData();
         formData.append("image", selectedImage);
 
@@ -160,8 +155,6 @@ export default function MytaskViewBL() {
         } catch (error) {
             console.error("Error submitting work:", error);
             toast.error("Failed to submit work");
-        } finally {
-            setSubmittingWork(false);
         }
     };
 
@@ -224,7 +217,7 @@ export default function MytaskViewBL() {
                 <p className="text-slate-600 mb-4">No task selected or task not found.</p>
                 <Link
                     to="/bl/mytasks"
-                    className="text-[#3d3399] hover:underline font-medium"
+                    className="text-[#3d3399] hover:underline font-medium cursor-pointer"
                 >
                     ← Back to Tasks
                 </Link>
@@ -240,7 +233,7 @@ export default function MytaskViewBL() {
             <div className="flex items-center justify-between px-6 py-4">
                 <Link
                     to="/bl/mytasks"
-                    className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                    className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 >
                     <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </Link>
@@ -267,16 +260,15 @@ export default function MytaskViewBL() {
                     <div className="relative" ref={statusDropdownRef}>
                         <button
                             type="button"
-                            disabled={updatingStatus}
                             onClick={() => setStatusDropdownOpen((prev) => !prev)}
-                            className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50"
+                            className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] cursor-pointer"
                             aria-expanded={statusDropdownOpen}
                             aria-haspopup="listbox"
                         >
-                            {updatingStatus ? "Updating..." : "Select Status"}
+                            Select Status
                             <FiChevronDown className="w-4 h-4" />
                         </button>
-                        {statusDropdownOpen && !updatingStatus && (
+                        {statusDropdownOpen && (
                             <div
                                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
                                 role="listbox"
@@ -288,7 +280,7 @@ export default function MytaskViewBL() {
                                         role="option"
                                         aria-selected={statusDisplay === opt.value}
                                         onClick={() => handleStatusUpdate(opt.value)}
-                                        className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
+                                         className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 cursor-pointer ${statusDisplay === opt.value
                                             ? "bg-slate-50 font-medium"
                                             : ""
                                             }`}
@@ -393,7 +385,7 @@ export default function MytaskViewBL() {
                                             setSelectedImage(null);
                                             setSelectedImagePreview(null);
                                         }}
-                                        className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10"
+                                         className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10 cursor-pointer"
                                     >
                                         <FiX className="w-4 h-4 text-slate-600" />
                                     </button>
@@ -413,21 +405,17 @@ export default function MytaskViewBL() {
                         <div className="flex gap-4 mt-6 justify-center">
                             <button
                                 type="button"
-                                disabled={submittingWork}
                                 onClick={() => fileInputRef.current?.click()}
-                                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
+                                 className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap cursor-pointer"
                             >
                                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                                 <span className="mr-2">Select Image</span>
                             </button>
                             <button
-                                type="button"
-                                disabled={!selectedImage || submittingWork}
                                 onClick={handleImageSubmit}
-                                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
+                                className="bg-[#52D28333] border border-[#52D283AD] text-[#29834CB2] px-4 py-2 text-sm font-semibold rounded-lg hover:bg-[#52D28355] cursor-pointer"
                             >
-                                <FiCheck className="w-4 h-4 text-[#008F22]" />
-                                {submittingWork ? "Submitting..." : "Submit Image"}
+                                Submit Work
                             </button>
                         </div>
                     </div>
