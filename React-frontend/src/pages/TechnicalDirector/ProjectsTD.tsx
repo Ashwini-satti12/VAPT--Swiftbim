@@ -563,13 +563,6 @@ export default function ProjectsTD() {
     }
   }, [showMilestones, currentProject?.id]);
 
-  // Helper function to get employee name by ID
-  const getEmployeeName = (id: string | number | undefined): string => {
-    if (!id) return "";
-    const emp = employees.find((e) => e.id === Number(id));
-    return emp?.full_name || "";
-  };
-
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((p) => {
     if (!searchQuery) return true;
