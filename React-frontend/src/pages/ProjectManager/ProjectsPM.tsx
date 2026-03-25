@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
@@ -134,6 +134,7 @@ interface Milestone {
 
 export default function ProjectsPM() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -564,7 +565,8 @@ export default function ProjectsPM() {
               {/* Total Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() => navigate('/teamtask' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Total Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
@@ -575,7 +577,8 @@ export default function ProjectsPM() {
               {/* Completed Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() => navigate('/teamtask?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
                 <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">Completed Tasks</p>
                 <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
@@ -586,7 +589,8 @@ export default function ProjectsPM() {
               {/* To Do Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() => navigate('/teamtask?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">To Do Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
@@ -597,7 +601,8 @@ export default function ProjectsPM() {
               {/* In Progress Tasks */}
               <button
                 type="button"
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() => navigate('/teamtask?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">

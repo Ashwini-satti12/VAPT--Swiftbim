@@ -113,6 +113,13 @@ def list_tasks():
         params.extend([employee_id, employee_id])
 
     if status:
+        if status == 'todo':
+            status = 'Todo'
+        elif status == 'in_progress':
+            status = 'InProgress'
+        elif status == 'completed':
+            status = 'Completed'
+            
         where.append("t.status = %s")
         params.append(status)
     if project_id:

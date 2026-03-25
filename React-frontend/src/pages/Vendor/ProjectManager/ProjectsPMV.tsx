@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
+import { useNavigate } from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
@@ -46,6 +47,7 @@ interface Employee {
 }
 
 export default function ProjectsPMV() {
+    const navigate = useNavigate();
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
@@ -635,15 +637,20 @@ export default function ProjectsPMV() {
                             {/* Task Status Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
                                 {[
-                                    { label: "To Do Tasks", value: taskStats.todo },
-                                    { label: "In Progress", value: taskStats.inProgress },
-                                    { label: "Paused", value: taskStats.paused },
-                                    { label: "Completed", value: taskStats.completed },
+                                    { label: "To Do Tasks", value: taskStats.todo, status: "todo" },
+                                    { label: "In Progress", value: taskStats.inProgress, status: "in_progress" },
+                                    { label: "Paused", value: taskStats.paused, status: "paused" },
+                                    { label: "Completed", value: taskStats.completed, status: "completed" },
                                 ].map((stat, i) => (
-                                    <div key={i} className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] transition-colors group">
+                                    <button 
+                                        key={i} 
+                                        type="button" 
+                                        onClick={() => navigate('/vpm/teamtasks?status=' + stat.status + (selectedProject?.project_name ? `&project=${encodeURIComponent(selectedProject.project_name)}` : ''))}
+                                        className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group"
+                                    >
                                         <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
                                         <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
 

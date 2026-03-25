@@ -505,7 +505,7 @@ export default function ProjectsBL() {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
               <button
                 type="button"
-                onClick={() => navigate("/teamtask?status=todo")}
+                onClick={() => navigate('/bl/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
@@ -523,7 +523,7 @@ export default function ProjectsBL() {
               {/* In Progress Tasks */}
               <button
                 type="button"
-                onClick={() => navigate("/teamtask?status=in_progress")}
+                onClick={() => navigate('/bl/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
@@ -534,10 +534,24 @@ export default function ProjectsBL() {
                 </p>
               </button>
 
+              {/* Paused Tasks */}
+              <button
+                type="button"
+                onClick={() => navigate('/bl/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+              >
+                <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
+                  Paused Tasks
+                </p>
+                <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {selectedProjectForView.total_tasks ?? 0}
+                </p>
+              </button>
+
               {/* Completed Tasks */}
               <button
                 type="button"
-                onClick={() => navigate("/teamtask?status=completed")}
+                onClick={() => navigate('/bl/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
