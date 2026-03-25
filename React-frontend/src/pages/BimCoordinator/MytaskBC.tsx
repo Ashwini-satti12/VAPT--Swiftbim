@@ -92,7 +92,7 @@ export function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -135,7 +135,7 @@ export function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -204,7 +204,7 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -260,7 +260,7 @@ export function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -338,7 +338,7 @@ export function AttachmentPreviewItem({
             <button
                 type="button"
                 onClick={() => onPreviewClick?.(file)}
-                className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90"
+                className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90 cursor-pointer"
             >
                 {previewUrl ? (
                     <img
@@ -361,7 +361,7 @@ export function AttachmentPreviewItem({
             <button
                 type="button"
                 onClick={onRemove}
-                className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
+                className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
                 aria-label={`Remove ${file.name}`}
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -566,7 +566,7 @@ export function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100"
+                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -580,7 +580,7 @@ export function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
@@ -598,7 +598,7 @@ export function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
@@ -616,7 +616,7 @@ export function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
@@ -720,7 +720,7 @@ export function TaskCard({
                 <Link
                     to={`/tasks/${task.id}`}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
                 >
                     Details
                     <img src={Arrow} alt="Arrow" className="w-2 h-2" />

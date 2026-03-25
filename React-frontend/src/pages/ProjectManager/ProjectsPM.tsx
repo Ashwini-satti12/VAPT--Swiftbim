@@ -36,6 +36,14 @@ const idToName = (id: string | number | undefined, employeesList: Employee[]) =>
   const emp = employeesList.find((e) => String(e.id) === String(id));
   return emp ? emp.full_name : '';
 };
+
+const firstCsvValue = (value: string | undefined): string => {
+  if (!value) return '';
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)[0] ?? '';
+};
 function FormSelect({
   placeholder, options, value, onChange,
 }: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -242,9 +250,31 @@ export default function ProjectsPM() {
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
-          setProjectManagers(empData.filter(e => e.user_role === 'Project Manager' || e.user_role === 'BIM Project Manager').map(e => e.full_name));
-          setBimLeads(empData.filter(e => e.user_role === 'BIM Lead').map(e => e.full_name));
-          setBimCoordinators(empData.filter(e => e.user_role === 'BIM Coordinator').map(e => e.full_name));
+          const roleOf = (e: Employee) => String(e.user_role || '').toLowerCase().trim();
+          setProjectManagers(
+            empData
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes('project manager');
+              })
+              .map((e) => e.full_name),
+          );
+          setBimLeads(
+            empData
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes('bim lead');
+              })
+              .map((e) => e.full_name),
+          );
+          setBimCoordinators(
+            empData
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes('coordinator');
+              })
+              .map((e) => e.full_name),
+          );
           setAllEmployees(empData);
           setDepartments(depRes.data.departments || []);
           setClientsList(clientRes.data.clients || []);
@@ -364,23 +394,51 @@ export default function ProjectsPM() {
     }
   }, [showMilestones, currentProject?.id]);
 
+  const csvIncludes = (value: unknown, needle: string): boolean => {
+    if (!value || !needle) return false;
+    return String(value)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .includes(needle);
+  };
+
+  const csvIncludesName = (value: unknown, name: string): boolean => {
+    if (!value || !name) return false;
+    const normalizedName = name.trim().toLowerCase();
+    if (!normalizedName) return false;
+    return String(value)
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+      .includes(normalizedName);
+  };
+
   useEffect(() => {
     api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
       .then(res => {
         const allProjects = (res.data.projects ?? []).map(mapApiProjectToProject);
-        // Filter: only show projects where the logged-in PM is the project manager
-        const userId = user?.id;
+        const userId = user?.id != null ? String(user.id) : '';
+        const userName = user?.full_name ?? '';
         const filtered = userId
-          ? allProjects.filter(p => {
-              if (!p.project_manager_id) return false;
-              return String(p.project_manager_id).split(',').map(s => s.trim()).includes(String(userId));
+          ? allProjects.filter((p) => {
+              // Include any project where this PM user is involved.
+              return (
+                csvIncludes(p.project_manager_id, userId) ||
+                csvIncludes(p.lead_id, userId) ||
+                csvIncludes(p.bim_coordinator_id, userId) ||
+                csvIncludes(p.member, userId) ||
+                csvIncludesName(p.project_manager_name, userName) ||
+                csvIncludesName(p.lead_name, userName) ||
+                csvIncludesName(p.bim_coordinator_name, userName)
+              );
             })
           : allProjects;
         setList(filtered);
       })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.id, user?.full_name]);
 
   // Map API project to Project interface
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
@@ -2273,16 +2331,16 @@ export default function ProjectsPM() {
                                     setCreateBudget(p.budget ?? '');
                                     const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
                                     setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
-                                    const pmName = p.project_manager ?? '';
+                                    const pmName = firstCsvValue(p.project_manager_name) || idToName(firstCsvValue(p.project_manager_id), allEmployees);
                                     setCreateProjectManager(pmName);
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
                                     setCreateDepartment(p.department ?? '');
-                                    const blName = idToName(p.bim_lead, allEmployees);
+                                    const blName = firstCsvValue(p.lead_name) || idToName(firstCsvValue(p.lead_id), allEmployees);
                                     setCreateBIMLead(blName);
-                                    const bimCoName = idToName(p.bim_co_ordinator, allEmployees);
+                                    const bimCoName = firstCsvValue(p.bim_coordinator_name) || idToName(firstCsvValue(p.bim_coordinator_id), allEmployees);
                                     setCreateBIMCoOrdinator(bimCoName);
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));

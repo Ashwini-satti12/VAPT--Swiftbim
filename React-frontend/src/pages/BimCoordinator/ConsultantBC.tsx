@@ -16,7 +16,7 @@ import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg'
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
-import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+
 
 const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
@@ -160,7 +160,7 @@ function CustomDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${styleType === "header"
                     ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
                     : styleType === "table"
                         ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
@@ -194,7 +194,7 @@ function CustomDropdown({
                                     onChange(option);
                                     setIsOpen(false);
                                 }}
-                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
                             >
                                 {option}
                             </button>
@@ -477,7 +477,7 @@ export default function ConsultantBC() {
                                 <button
                                     type="button"
                                     onClick={() => navigate('/bc/consultants/add')}
-                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px]"
+                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px] cursor-pointer"
                                 >
                                     <FiPlus className="text-xl sm:text-2xl font-bold text-[#F2F2F2] w-5 h-5 sm:w-[27px] sm:h-[27px]" />
                                     Add Consultant
@@ -485,7 +485,7 @@ export default function ConsultantBC() {
                                 <button
                                     type="button"
                                     onClick={() => setShowInviteModal(true)}
-                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px]"
+                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px] cursor-pointer"
                                 >
                                     <FiPlus className="text-xl sm:text-2xl font-bold text-[#F2F2F2] w-5 h-5 sm:w-[27px] sm:h-[27px]" />
                                     Invite
@@ -493,7 +493,7 @@ export default function ConsultantBC() {
                                 <button
                                     type="button"
                                     onClick={exportCsv}
-                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px]"
+                                    className="inline-flex items-center gap- px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px] cursor-pointer"
                                 >
                                     <img src={exportIcon} alt="Export" className="w-5 h-5 sm:w-[27px] sm:h-[27px] object-contain" />
                                     <span className="hidden xs:inline">Export to CSV</span>
@@ -502,7 +502,7 @@ export default function ConsultantBC() {
                                 <button
                                     type="button"
                                     onClick={() => setShowInactiveModal(true)}
-                                    className="inline-flex items-center px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px]"
+                                    className="inline-flex items-center px-3 sm:px-4 py-2 sm:py-2 rounded-lg bg-[#DD4342] text-[#F2F2F2] transition-all shadow-lg shadow-red-100 text-[12px] sm:text-[14px] cursor-pointer"
                                 >
                                     Manage Inactive
                                 </button>
@@ -517,14 +517,14 @@ export default function ConsultantBC() {
                         <button
                             type="button"
                             onClick={() => setViewMode('table')}
-                            className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                            className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
                         >
                             <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                         <button
                             type="button"
                             onClick={() => setViewMode('card')}
-                            className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                            className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
                         >
                             <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
@@ -638,21 +638,21 @@ export default function ConsultantBC() {
                                             <button 
                                                 type="button"
                                                 onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                                className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff] cursor-pointer"
                                             >
                                                 <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                                             </button>
                                             <button 
                                                 type="button"
                                                 onClick={() => navigate('/chat')}
-                                                className="flex-[1.4] min-w-[130px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all"
+                                                className="flex-[1.4] min-w-[130px] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all cursor-pointer"
                                             >
                                                 <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                                             </button>
                                             <button 
                                                 type="button"
                                                 onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                                className="flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[13px] sm:text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff]"
+                                                className="flex-1 min-w-[110px] flex items-center justify-center gap-2 py-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[13px] sm:text-[14px] font-semibold font-Gantari transition-all hover:bg-[#c6dbff] cursor-pointer"
                                             >
                                                 <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                                             </button>
@@ -666,7 +666,7 @@ export default function ConsultantBC() {
                                             <button
                                                 type="button"
                                                 onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                                                className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[12px] sm:text-[14px] font-Gantari"
+                                                className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[12px] sm:text-[14px] font-Gantari cursor-pointer"
                                             >
                                                 <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                                             </button>
@@ -675,7 +675,7 @@ export default function ConsultantBC() {
                                                 <button
                                                     type="button"
                                                     onClick={() => navigate(`/bc/consultants/edit/${emp.id}`)}
-                                                    className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
+                                                    className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari cursor-pointer"
                                                 >
                                                     <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                                                 </button>
@@ -747,21 +747,21 @@ export default function ConsultantBC() {
                                                         <button 
                                                             type="button"
                                                             onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors"
+                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors cursor-pointer"
                                                         >
                                                             <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                                         </button>
                                                         <button 
                                                             type="button"
                                                             onClick={() => navigate('/chat')}
-                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors"
+                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors cursor-pointer"
                                                         >
                                                             <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                                         </button>
                                                         <button 
                                                             type="button"
                                                             onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors"
+                                                            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#c6dbff] transition-colors cursor-pointer"
                                                         >
                                                             <img src={callIcon} className="w-5 h-5" alt="Call" />
                                                         </button>
@@ -769,7 +769,7 @@ export default function ConsultantBC() {
                                                 </td>
                                                 <td className="px-6 py-5">
                                                     <div className="flex justify-center">
-                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
+                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari cursor-pointer ${isEmployeeActive(emp) ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
                                                             {isEmployeeActive(emp) ? 'Active' : 'Deactivate'}
                                                             <FiChevronDown className="w-5 h-5 opacity-70" />
                                                         </button>
@@ -799,7 +799,7 @@ export default function ConsultantBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -835,7 +835,7 @@ export default function ConsultantBC() {
                                             <select
                                                 value={countryCode}
                                                 onChange={(e) => setCountryCode(e.target.value)}
-                                                className="px-3 py-2.5 text-[14px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none"
+                                                className="px-3 py-2.5 text-[14px] text-[#353535] bg-[#F4F4F4] border-none rounded-[5px] font-Gantari focus:outline-none cursor-pointer"
                                             >
                                                 {COUNTRY_CODES.map((code) => (
                                                     <option key={code} value={code}>{code}</option>
@@ -986,14 +986,14 @@ export default function ConsultantBC() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-8 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[15px] hover:bg-slate-200 transition-all font-Gantari min-w-[120px]"
+                                    className="px-8 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[15px] hover:bg-slate-200 transition-all font-Gantari min-w-[120px] cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={addSubmitting}
-                                    className="px-8 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[15px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[120px]"
+                                    className="px-8 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[15px] hover:bg-[#b0ccff] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-Gantari min-w-[120px] cursor-pointer"
                                 >
                                     {addSubmitting ? 'Adding...' : 'Submit'}
                                 </button>
@@ -1016,7 +1016,7 @@ export default function ConsultantBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInviteModal(false); setInviteEmails(''); setInviteMessage(''); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -1051,7 +1051,7 @@ export default function ConsultantBC() {
                                 <button
                                     type="submit"
                                     disabled={inviteSubmitting}
-                                    className="px-10 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[200px]"
+                                    className="px-10 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-Gantari min-w-[200px] cursor-pointer"
                                 >
                                     {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                                 </button>
@@ -1070,7 +1070,7 @@ export default function ConsultantBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInactiveModal(false); setInactiveIds([]); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -1140,7 +1140,7 @@ export default function ConsultantBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInactiveModal(false); setInactiveIds([]); }}
-                                className="px-10 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[140px]"
+                                className="px-10 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[140px] cursor-pointer"
                             >
                                 Discard
                             </button>
@@ -1148,7 +1148,7 @@ export default function ConsultantBC() {
                                 type="button"
                                 onClick={handleInactive}
                                 disabled={!inactiveIds.length || inactiveSubmitting}
-                                className="px-10 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[140px]"
+                                className="px-10 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-Gantari min-w-[140px] cursor-pointer"
                             >
                                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
                             </button>
@@ -1166,7 +1166,7 @@ export default function ConsultantBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
