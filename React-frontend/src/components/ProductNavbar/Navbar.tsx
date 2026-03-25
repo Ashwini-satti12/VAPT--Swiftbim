@@ -405,7 +405,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {/* Mobile hamburger */}
           <button
-            className="lg:hidden p-1 text-slate-500"
+            className="lg:hidden p-1 text-slate-500 cursor-pointer"
             onClick={onMenuClick}
           >
             <svg
@@ -452,7 +452,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
           <div ref={notificationRef} className="relative">
             <button
               onClick={() => setShowNotifications((p) => !p)}
-              className="relative p-1 text-slate-800 hover:text-black transition-colors"
+              className="relative p-1 text-slate-800 hover:text-black transition-colors cursor-pointer"
             >
               <img
                 src={BellIcon}
@@ -546,7 +546,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                 setIsEditMode(false);
                 setIsEditingActual(false);
               }}
-              className="absolute top-4 left-4 p-2 rounded-lg bg-[#F2F2F2] shrink-0"
+              className="absolute top-4 left-4 p-2 rounded-lg bg-[#F2F2F2] shrink-0 cursor-pointer"
             >
               <img src={CloseIcon} alt="Close" className="w-5 h-5" />
             </button>
@@ -778,14 +778,14 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         setNewPassword("");
                         setPasswordError("");
                       }}
-                      className="px-10 py-2.5 bg-[#EAEAEA] text-[#020202] rounded-[10px] font-bold text-[15px] transition-all hover:bg-gray-200"
+                      className="px-10 py-2.5 bg-[#EAEAEA] text-[#020202] rounded-[10px] font-bold text-[15px] transition-all cursor-pointer"
                     >
                       Discard
                     </button>
                     <button
                       onClick={handleProfileSave}
                       disabled={isLoading}
-                      className="px-10 py-2.5 bg-[#DBE9FE] text-[#101827] rounded-[10px] font-bold text-[15px] transition-all hover:bg-[#c6dbff] disabled:opacity-50"
+                      className="px-10 py-2.5 bg-[#DBE9FE] text-[#101827] rounded-[10px] font-bold text-[15px] transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {isLoading ? "Updating..." : "Update"}
                     </button>
@@ -798,13 +798,13 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
                         setIsEditMode(false);
                         setTimeout(() => setShowLogoutConfirm(true), 150);
                       }}
-                      className="px-10 py-2 bg-[#FFD9D9] text-[#E00100] rounded-md font-medium text-[14px] transition-all"
+                      className="px-10 py-2 bg-[#FFD9D9] text-[#E00100] rounded-md font-medium text-[14px] transition-all cursor-pointer"
                     >
                       Logout
                     </button>
                     <button
                       onClick={() => setIsEditingActual(true)}
-                      className="px-10 py-2 bg-[#DBE9FE] text-[#101827] rounded-md font-medium text-[14px] transition-all"
+                      className="px-10 py-2 bg-[#DBE9FE] text-[#101827] rounded-md font-medium text-[14px] transition-all cursor-pointer"
                     >
                       Update
                     </button>
@@ -829,7 +829,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             {/* X Close Button - top left */}
             <button
               onClick={() => setShowLogoutConfirm(false)}
-              className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center bg-[#F2F2F2] rounded-lg hover:bg-slate-200 transition-colors"
+              className="absolute top-5 left-5 w-9 h-9 flex items-center justify-center bg-[#F2F2F2] rounded-lg cursor-pointer transition-colors"
             >
               <img src={CloseIcon} alt="Close" className="w-4 h-4" />
             </button>
@@ -843,13 +843,13 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="px-8 py-2.5 text-[15px] text-[#353535] rounded-lg font-semibold bg-[#F0F0F0] transition-colors min-w-[110px]"
+                className="px-8 py-2.5 text-[15px] text-[#353535] rounded-lg font-semibold bg-[#F0F0F0] transition-colors min-w-[110px] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleLogout}
-                className="px-8 py-2.5 text-[15px] bg-[#FFE5E5] text-[#E00100] rounded-lg font-semibold transition-colors min-w-[110px]"
+                className="px-8 py-2.5 text-[15px] bg-[#FFE5E5] text-[#E00100] rounded-lg font-semibold transition-colors min-w-[110px] cursor-pointer"
               >
                 Log Out
               </button>

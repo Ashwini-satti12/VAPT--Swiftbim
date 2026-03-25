@@ -1,22 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { getGlobalProfileUrl } from '../../lib/profileHelpers';
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
-import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
-import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
-import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
-import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
-import threedot from "../../assets/ProjectManager/project/threedot.svg"
-import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg";
+import threedot from "../../assets/ProjectManager/project/threedot.svg";
+import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
-
 const nameToId = (name: string, employeesList: Employee[]) => {
-  if (!name || name === "Nothing Selected" || name === "Other") return undefined;
+  if (!name || name === "Nothing Selected" || name === "Other")
+    return undefined;
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
   return emp ? emp.id : name;
@@ -25,9 +25,9 @@ const nameToId = (name: string, employeesList: Employee[]) => {
 const namesToIds = (names: string[], employeesList: Employee[]) => {
   if (!Array.isArray(names)) return undefined;
   return names
-    .map(name => nameToId(name, employeesList))
-    .filter(id => id !== undefined)
-    .join(',');
+    .map((name) => nameToId(name, employeesList))
+    .filter((id) => id !== undefined)
+    .join(",");
 };
 
 function FormSelect({
@@ -52,10 +52,11 @@ function FormSelect({
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
   const handleSelect = (opt: string) => {
@@ -87,16 +88,24 @@ function FormSelect({
     return value === opt;
   };
 
-  const dropdownOptions = options.includes("Other") ? options : [...options, "Other"];
+  const dropdownOptions = options.includes("Other")
+    ? options
+    : [...options, "Other"];
 
   return (
     <div className="relative w-full" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none text-[14px] font-normal border-1 border-transparent focus:border-[#AEACAC52] ${open ? "!border-[#AEACAC52]" : ""}`}
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none text-[14px] font-normal border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${open ? "!border-[#AEACAC52]" : ""}`}
       >
-        <span className={getDisplayValue() !== placeholder ? "text-[#353535]" : "text-[#8B8B8B] font-Gantari"}>
+        <span
+          className={
+            getDisplayValue() !== placeholder
+              ? "text-[#353535]"
+              : "text-[#8B8B8B] font-Gantari"
+          }
+        >
           {getDisplayValue()}
         </span>
         <svg
@@ -105,7 +114,12 @@ function FormSelect({
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
       {open && (
@@ -115,13 +129,21 @@ function FormSelect({
               key={opt}
               type="button"
               onClick={() => handleSelect(opt)}
-              className={`w-full text-left px-4 py-2 text-[14px] transition-colors flex items-center justify-between
+              className={`w-full text-left px-4 py-2 text-[14px] transition-colors flex items-center justify-between cursor-pointer
                 ${isSelected(opt) ? "text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
             >
               <span className="truncate">{opt}</span>
               {isSelected(opt) && showTick && (
-                <svg className="w-4 h-4 text-[#00A300]" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-4 h-4 text-[#00A300]"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>
@@ -205,7 +227,9 @@ export default function ProjectsTD() {
   const [showOtherClient, setShowOtherClient] = useState(false);
   const [otherClientValue, setOtherClientValue] = useState("");
 
-  const [createProjectManager, setCreateProjectManager] = useState<string[]>([]);
+  const [createProjectManager, setCreateProjectManager] = useState<string[]>(
+    [],
+  );
   const [showOtherPM, setShowOtherPM] = useState(false);
   const [otherPMValue, setOtherPMValue] = useState("");
 
@@ -219,7 +243,9 @@ export default function ProjectsTD() {
   const [showOtherBIMLead, setShowOtherBIMLead] = useState(false);
   const [otherBIMLeadValue, setOtherBIMLeadValue] = useState("");
 
-  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>([]);
+  const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState<string[]>(
+    [],
+  );
   const [showOtherBIMCoord, setShowOtherBIMCoord] = useState(false);
   const [otherBIMCoordValue, setOtherBIMCoordValue] = useState("");
   const [createMember, setCreateMember] = useState("");
@@ -235,7 +261,9 @@ export default function ProjectsTD() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
+  const [showProjectView, setShowProjectView] = useState(
+    !!searchParams.get("projectId"),
+  );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
 
@@ -257,7 +285,7 @@ export default function ProjectsTD() {
     null,
   );
   const [editDropdownOpen, setEditDropdownOpen] = useState<
-    'source' | 'pm' | 'bimLead' | 'bimCoord' | null
+    "source" | "pm" | "bimLead" | "bimCoord" | null
   >(null);
   const [createBudgetCeiling, setCreateBudgetCeiling] = useState("");
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
@@ -267,7 +295,9 @@ export default function ProjectsTD() {
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
-  const [clientsList, setClientsList] = useState<Array<{ id: number; fullName?: string; full_name?: string }>>([]);
+  const [clientsList, setClientsList] = useState<
+    Array<{ id: number; fullName?: string; full_name?: string }>
+  >([]);
 
   // All employees for member lookup
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -287,14 +317,16 @@ export default function ProjectsTD() {
     paused: 0,
     completed: 0,
   });
-  const [towerData, setTowerData] = useState<Array<{
-    id: number;
-    name: string;
-    progress: number;
-    completedTasks: number;
-    totalTasks: number;
-    status: 'Approved' | 'Pending' | 'Review';
-  }>>([]);
+  const [towerData, setTowerData] = useState<
+    Array<{
+      id: number;
+      name: string;
+      progress: number;
+      completedTasks: number;
+      totalTasks: number;
+      status: "Approved" | "Pending" | "Review";
+    }>
+  >([]);
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
 
   const panelType = user?.panel_type ?? 3;
@@ -386,11 +418,15 @@ export default function ProjectsTD() {
 
     api
       .get<{ departments?: string[] }>("/api/departments")
-      .then(() => { /* departments data consumed but state was removed */ })
-      .catch(() => { });
+      .then(() => {
+        /* departments data consumed but state was removed */
+      })
+      .catch(() => {});
 
     api
-      .get<{ clients?: Array<{ id: number; fullName?: string; full_name?: string }> }>("/api/clients/from-users")
+      .get<{
+        clients?: Array<{ id: number; fullName?: string; full_name?: string }>;
+      }>("/api/clients/from-users")
       .then(({ data }) => setClientsList(data.clients ?? []))
       .catch(() => setClientsList([]));
   }, []);
@@ -415,7 +451,7 @@ export default function ProjectsTD() {
     }
 
     // Try to find project in the already loaded list for an immediate UI update
-    const existingProject = list.find(p => p.id === id);
+    const existingProject = list.find((p) => p.id === id);
     if (existingProject) {
       setSelectedProjectForView(existingProject);
       setShowProjectView(true);
@@ -427,7 +463,9 @@ export default function ProjectsTD() {
     // Always fetch fresh details to ensure data is up to date, but don't clear existing while loading
     api
       .get<Record<string, unknown>>(`/api/projects/${id}`)
-      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+      .then(({ data }) =>
+        setSelectedProjectForView(mapApiProjectToProject(data)),
+      )
       .catch(() => {
         if (!existingProject) {
           setSearchParams({}, { replace: true });
@@ -448,13 +486,14 @@ export default function ProjectsTD() {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       // Check if click is outside any dropdown
-      if (!target.closest('.dropdown-container')) {
+      if (!target.closest(".dropdown-container")) {
         setEditDropdownOpen(null);
       }
     };
     if (editDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [editDropdownOpen]);
 
@@ -462,13 +501,14 @@ export default function ProjectsTD() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest('.project-menu-container')) {
+      if (!target.closest(".project-menu-container")) {
         setOpenMenuProjectId(null);
       }
     };
     if (openMenuProjectId !== null) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [openMenuProjectId]);
 
@@ -493,7 +533,12 @@ export default function ProjectsTD() {
         total_tasks?: number;
         completed_tasks?: number;
         project_completion_percentage?: number;
-        status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
+        status_counts?: {
+          todo?: number;
+          inprogress?: number;
+          paused?: number;
+          completed?: number;
+        };
         modules?: Array<{
           module_name?: string;
           total_tasks?: number;
@@ -554,7 +599,10 @@ export default function ProjectsTD() {
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
-    api.get<{ milestones: Milestone[] }>(`/api/milestones?project_id=${projectId}`)
+    api
+      .get<{ milestones: Milestone[] }>(
+        `/api/milestones?project_id=${projectId}`,
+      )
       .then(({ data }) => setMilestones(data.milestones || []))
       .catch(() => setMilestones([]))
       .finally(() => setMilestonesLoading(false));
@@ -604,7 +652,7 @@ export default function ProjectsTD() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -615,7 +663,9 @@ export default function ProjectsTD() {
                 </h3>
                 <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
                   <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                    Overall Progress Tracker
+                  </p>
                 </div>
               </div>
             </div>
@@ -639,7 +689,9 @@ export default function ProjectsTD() {
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">To Do Tasks</p>
+                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
+                        To Do Tasks
+                      </p>
                     </div>
                     <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.todo}
@@ -653,7 +705,9 @@ export default function ProjectsTD() {
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
+                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">
+                        In Progress Tasks
+                      </p>
                     </div>
                     <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.inProgress}
@@ -667,7 +721,9 @@ export default function ProjectsTD() {
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold">Paused Tasks</p>
+                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold">
+                        Paused Tasks
+                      </p>
                     </div>
                     <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.paused}
@@ -681,7 +737,9 @@ export default function ProjectsTD() {
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">Completed Tasks</p>
+                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">
+                        Completed Tasks
+                      </p>
                     </div>
                     <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.completed}
@@ -720,7 +778,9 @@ export default function ProjectsTD() {
                                 <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
                                   {tower.name}
                                 </h5>
-                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0 ${statusBg}`}>
+                                <div
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0 ${statusBg}`}
+                                >
                                   <span
                                     className="w-1.5 h-1.5 rounded-full"
                                     style={{ backgroundColor: statusColor }}
@@ -757,7 +817,10 @@ export default function ProjectsTD() {
                                         201 - (tower.progress / 100) * 201
                                       }
                                       strokeLinecap="round"
-                                      style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
+                                      style={{
+                                        transition:
+                                          "stroke-dashoffset 1s ease-in-out",
+                                      }}
                                     />
                                   </svg>
                                   <span className="absolute text-[15px] font-bold text-[#1A1A1A] font-Gantari">
@@ -791,13 +854,15 @@ export default function ProjectsTD() {
                   </div>
                 </div>
 
-
                 <div className="space-y-4">
                   {/* Project Description */}
                   <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8 lg:p-4">
-                    <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                    <h4 className="text-xl font-Gantari font-semibold text-[#000000]">
+                      Project Description
+                    </h4>
                     <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                      {selectedProjectForView.description ?? 'No description available'}
+                      {selectedProjectForView.description ??
+                        "No description available"}
                     </p>
                   </div>
 
@@ -810,11 +875,20 @@ export default function ProjectsTD() {
                       {/* Project Manager */}
                       {(() => {
                         const pmIds = selectedProjectForView.project_manager_id
-                          ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                          ? String(selectedProjectForView.project_manager_id)
+                              .split(",")
+                              .map((id) => id.trim())
+                              .filter(Boolean)
                           : [];
-                        const pmNames = selectedProjectForView.project_manager_name
-                          ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
-                          : [];
+                        const pmNames =
+                          selectedProjectForView.project_manager_name
+                            ? String(
+                                selectedProjectForView.project_manager_name,
+                              )
+                                .split(",")
+                                .map((n) => n.trim())
+                                .filter(Boolean)
+                            : [];
 
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
@@ -890,10 +964,16 @@ export default function ProjectsTD() {
                       {/* BIM Lead */}
                       {(() => {
                         const blIds = selectedProjectForView.lead_id
-                          ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                          ? String(selectedProjectForView.lead_id)
+                              .split(",")
+                              .map((id) => id.trim())
+                              .filter(Boolean)
                           : [];
                         const blNames = selectedProjectForView.lead_name
-                          ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                          ? String(selectedProjectForView.lead_name)
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
                           : [];
 
                         if (blIds.length === 0 && blNames.length === 0) {
@@ -985,9 +1065,17 @@ export default function ProjectsTD() {
                         <div className="flex items-center -space-x-3">
                           {(() => {
                             // Get members from project (IDs can be numeric or string from API)
-                            const rawIds = (selectedProjectForView.members || selectedProjectForView.member)
-                              ? String(selectedProjectForView.members || selectedProjectForView.member).split(',').map(m => m.trim()).filter(Boolean)
-                              : [];
+                            const rawIds =
+                              selectedProjectForView.members ||
+                              selectedProjectForView.member
+                                ? String(
+                                    selectedProjectForView.members ||
+                                      selectedProjectForView.member,
+                                  )
+                                    .split(",")
+                                    .map((m) => m.trim())
+                                    .filter(Boolean)
+                                : [];
                             const memberIds = rawIds.map((m) => {
                               const n = Number(m);
                               return Number.isNaN(n) ? m : n;
@@ -998,14 +1086,18 @@ export default function ProjectsTD() {
                               .map((id) =>
                                 allEmployees.find(
                                   (e) =>
-                                    Number(e.id) === Number(id) || String(e.id) === String(id)
-                                )
+                                    Number(e.id) === Number(id) ||
+                                    String(e.id) === String(id),
+                                ),
                               )
                               .filter(Boolean) as Employee[];
 
                             // Show up to 3 members, then +X for remaining
                             const visibleMembers = projectMembers.slice(0, 3);
-                            const remainingCount = Math.max(0, projectMembers.length - 3);
+                            const remainingCount = Math.max(
+                              0,
+                              projectMembers.length - 3,
+                            );
                             const hasMore = remainingCount > 0;
                             const hasIdsButNoResolved =
                               visibleMembers.length === 0 &&
@@ -1014,7 +1106,10 @@ export default function ProjectsTD() {
 
                             // Helper to get profile image URL
                             const getProfileImageUrl = (emp: Employee) => {
-                              return getGlobalProfileUrl(emp.id, emp.profile_picture);
+                              return getGlobalProfileUrl(
+                                emp.id,
+                                emp.profile_picture,
+                              );
                             };
 
                             const openAllMembersModal = () => {
@@ -1024,43 +1119,47 @@ export default function ProjectsTD() {
 
                             return (
                               <>
-                                {visibleMembers.length > 0 ? (
-                                  visibleMembers.map((emp) => (
-                                    <div
-                                      key={emp.id}
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                      title={emp.full_name || `Employee ${emp.id}`}
-                                    >
-                                      {getProfileImageUrl(emp) ? (
+                                {visibleMembers.length > 0
+                                  ? visibleMembers.map((emp) => (
+                                      <div
+                                        key={emp.id}
+                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                        title={
+                                          emp.full_name || `Employee ${emp.id}`
+                                        }
+                                      >
+                                        {getProfileImageUrl(emp) ? (
+                                          <img
+                                            src={getProfileImageUrl(emp)}
+                                            alt={emp.full_name || "Member"}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {(emp.full_name || `E${emp.id}`)
+                                              .charAt(0)
+                                              .toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  : [1, 2, 3].map((j) => (
+                                      <div
+                                        key={j}
+                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                      >
                                         <img
-                                          src={getProfileImageUrl(emp)}
-                                          alt={emp.full_name || "Member"}
+                                          src={ProfileIcon}
+                                          alt="avatar"
                                           className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src = ProfileIcon;
-                                          }}
                                         />
-                                      ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  [1, 2, 3].map((j) => (
-                                    <div
-                                      key={j}
-                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                    >
-                                      <img
-                                        src={ProfileIcon}
-                                        alt="avatar"
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                  ))
-                                )}
+                                      </div>
+                                    ))}
                                 {(hasMore || hasIdsButNoResolved) && (
                                   <div
                                     role="button"
@@ -1072,7 +1171,7 @@ export default function ProjectsTD() {
                                       openAllMembersModal();
                                     }}
                                     onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
+                                      if (e.key === "Enter" || e.key === " ") {
                                         e.preventDefault();
                                         openAllMembersModal();
                                       }
@@ -1101,7 +1200,9 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Client Name
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.client_name || "N/A"}
                           </span>
@@ -1110,10 +1211,18 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Actual Start Date
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.start_date
-                              ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                              ? new Date(
+                                  selectedProjectForView.start_date,
+                                ).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
                               : "N/A"}
                           </span>
                         </div>
@@ -1121,25 +1230,35 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Total Project Hours
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
-                            {selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "N/A"}
+                            {selectedProjectForView.total_hours
+                              ? `${selectedProjectForView.total_hours}hrs`
+                              : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Budget
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
-                            {selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : "N/A"}
+                            {selectedProjectForView.budget
+                              ? `${selectedProjectForView.budget}$`
+                              : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Total Resources Available
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.resources || "N/A"}
                           </span>
@@ -1150,7 +1269,9 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Location
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.location || "N/A"}
                           </span>
@@ -1159,10 +1280,18 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Actual End Date
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.end_date
-                              ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                              ? new Date(
+                                  selectedProjectForView.end_date,
+                                ).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
                               : "N/A"}
                           </span>
                         </div>
@@ -1170,16 +1299,22 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Hours/Day
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
-                            {selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : "N/A"}
+                            {selectedProjectForView.per_day
+                              ? `${selectedProjectForView.per_day}hrs`
+                              : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Required Resources
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.required_resources || "N/A"}
                           </span>
@@ -1188,7 +1323,9 @@ export default function ProjectsTD() {
                           <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
                             Project Document
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                          <span className="hidden sm:inline text-[#999999] mr-4">
+                            :
+                          </span>
                           <div className="flex items-center gap-3">
                             <span className="text-md font-Gantari font-medium text-[#666666]">
                               No Document Available
@@ -1209,7 +1346,7 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1219,12 +1356,13 @@ export default function ProjectsTD() {
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1
+                  to 09
                 </p>
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1236,33 +1374,49 @@ export default function ProjectsTD() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
               {/* Summary Cards */}
               {(() => {
-                const totalAmount = milestones.reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
-                const paidAmount = milestones.filter(m => (m.status || '').toLowerCase() === 'paid').reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
+                const totalAmount = milestones.reduce(
+                  (sum, m) => sum + Number(m.milestone_amount || 0),
+                  0,
+                );
+                const paidAmount = milestones
+                  .filter((m) => (m.status || "").toLowerCase() === "paid")
+                  .reduce((sum, m) => sum + Number(m.milestone_amount || 0), 0);
                 const pendingAmount = totalAmount - paidAmount;
-                const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
+                const progressPercent =
+                  totalAmount > 0
+                    ? Math.round((paidAmount / totalAmount) * 100)
+                    : 0;
 
                 return (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                     <div className="border border-slate-200 bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
+                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Total Amount
+                      </p>
                       <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {totalAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
+                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Paid Amount
+                      </p>
                       <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {paidAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
+                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Pending Amount
+                      </p>
                       <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {pendingAmount.toLocaleString()}
                       </p>
                     </div>
                     <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
+                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                        Progress
+                      </p>
                       <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {progressPercent}%
                       </p>
@@ -1286,7 +1440,7 @@ export default function ProjectsTD() {
                   </p>
                   <button
                     onClick={() => setShowAddMilestoneModal(true)}
-                    className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors"
+                    className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
                   >
                     <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                     Add Milestone
@@ -1295,62 +1449,134 @@ export default function ProjectsTD() {
               ) : (
                 <div className="space-y-4">
                   {milestones.map((m) => (
-                    <div key={m.id} className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
+                    <div
+                      key={m.id}
+                      className="bg-white border border-slate-100 rounded-[1.25rem] p-6 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"
+                    >
                       <div className="flex-1 min-w-0">
-                        <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">{m.milestone_name}</h5>
+                        <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] mb-1 truncate">
+                          {m.milestone_name}
+                        </h5>
                         <div className="flex items-center gap-6 text-[14px] font-Gantari text-[#999999]">
                           <div className="flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
                             </svg>
-                            <span>Due: {m.due_date ? new Date(m.due_date).toLocaleDateString('en-GB') : '-'}</span>
+                            <span>
+                              Due:{" "}
+                              {m.due_date
+                                ? new Date(m.due_date).toLocaleDateString(
+                                    "en-GB",
+                                  )
+                                : "-"}
+                            </span>
                           </div>
                           {m.notes && (
                             <div className="flex items-center gap-2">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                                />
                               </svg>
-                              <span className="truncate max-w-xs">{m.notes}</span>
+                              <span className="truncate max-w-xs">
+                                {m.notes}
+                              </span>
                             </div>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-8">
                         <div className="text-right">
-                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">${Number(m.milestone_amount).toLocaleString()}</p>
-                          <span className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                          <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
+                            ${Number(m.milestone_amount).toLocaleString()}
+                          </p>
+                          <span
+                            className={`inline-block px-3 py-1 rounded-full text-[12px] font-bold font-Gantari ${m.status === "Paid" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"}`}
+                          >
                             {m.status}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {m.status !== 'Paid' && (
+                          {m.status !== "Paid" && (
                             <button
                               onClick={() => {
-                                api.post(`/api/milestones/${m.id}/mark-paid`)
-                                  .then(() => currentProject?.id && fetchMilestones(currentProject.id))
-                                  .catch(() => { });
+                                api
+                                  .post(`/api/milestones/${m.id}/mark-paid`)
+                                  .then(
+                                    () =>
+                                      currentProject?.id &&
+                                      fetchMilestones(currentProject.id),
+                                  )
+                                  .catch(() => {});
                               }}
-                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                              className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
                               </svg>
                             </button>
                           )}
                           <button
                             onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this milestone?')) {
-                                api.delete(`/api/milestones/${m.id}`)
-                                  .then(() => currentProject?.id && fetchMilestones(currentProject.id))
-                                  .catch(() => { });
+                              if (
+                                window.confirm(
+                                  "Are you sure you want to delete this milestone?",
+                                )
+                              ) {
+                                api
+                                  .delete(`/api/milestones/${m.id}`)
+                                  .then(
+                                    () =>
+                                      currentProject?.id &&
+                                      fetchMilestones(currentProject.id),
+                                  )
+                                  .catch(() => {});
                               }
                             }}
-                            className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
+                            className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
                             title="Delete Milestone"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -1372,7 +1598,7 @@ export default function ProjectsTD() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Create Project
@@ -1394,7 +1620,11 @@ export default function ProjectsTD() {
 
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
-                      ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
+                      ? p.member
+                          .split(",")
+                          .map((m) => m.trim())
+                          .filter(Boolean)
+                          .map(Number)
                       : [];
 
                     const radius = 28;
@@ -1430,7 +1660,8 @@ export default function ProjectsTD() {
                                   strokeDashoffset={offset}
                                   strokeLinecap="round"
                                   style={{
-                                    transition: "stroke-dashoffset 0.8s ease-in-out",
+                                    transition:
+                                      "stroke-dashoffset 0.8s ease-in-out",
                                   }}
                                 />
                               </svg>
@@ -1447,10 +1678,13 @@ export default function ProjectsTD() {
                                     prev === p.id ? null : p.id,
                                   );
                                 }}
-                                className="p-2 rounded-full text-[#8B8B8B] transition-colors"
+                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                               >
-                                <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
-
+                                <img
+                                  src={threedot}
+                                  alt="threeDots"
+                                  className="w-5 h-5 text-[#8B8B8B]"
+                                />
                               </button>
                               <div
                                 className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
@@ -1459,9 +1693,11 @@ export default function ProjectsTD() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setOpenMenuProjectId(null);
-                                    setSearchParams({ projectId: String(p.id) });
+                                    setSearchParams({
+                                      projectId: String(p.id),
+                                    });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >
                                   <img
                                     src={viewIcon}
@@ -1480,9 +1716,13 @@ export default function ProjectsTD() {
                                       setCurrentProject(p);
                                       setShowMilestones(true);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                   >
-                                    <img src={paymentMilestoneIcon} alt="payment milestone" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                    <img
+                                      src={paymentMilestoneIcon}
+                                      alt="payment milestone"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Payment Milestones
                                     </span>
@@ -1495,53 +1735,104 @@ export default function ProjectsTD() {
                                       setOpenMenuProjectId(null);
                                       setSelectedProjectForEdit(p);
                                       setCreateName(p.project_name ?? "");
-                                      setCreateBudget(p.budget ? `${p.budget}` : "Fetching...");
+                                      setCreateBudget(
+                                        p.budget
+                                          ? `${p.budget}`
+                                          : "Fetching...",
+                                      );
                                       setCreateModuleName(p.module_name ?? "");
                                       setCreateClientName(
-                                        clientsList.find((c) => String(c.id) === String(p.client_name))?.fullName ??
-                                        clientsList.find((c) => String(c.id) === String(p.client_name))?.full_name ??
-                                        p.client_name ?? ""
+                                        clientsList.find(
+                                          (c) =>
+                                            String(c.id) ===
+                                            String(p.client_name),
+                                        )?.fullName ??
+                                          clientsList.find(
+                                            (c) =>
+                                              String(c.id) ===
+                                              String(p.client_name),
+                                          )?.full_name ??
+                                          p.client_name ??
+                                          "",
                                       );
-                                      setCreateProjectManager(p.project_manager ? p.project_manager.split(',').map(s => s.trim()) : []);
+                                      setCreateProjectManager(
+                                        p.project_manager
+                                          ? p.project_manager
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                          : [],
+                                      );
                                       setCreateStartDate(p.start_date ?? "");
                                       setCreateEndDate(p.end_date ?? "");
                                       setCreateTotalHours(p.total_hours ?? "");
                                       setCreatePerDay(p.per_day ?? "");
                                       setCreateDepartment(
-                                        p.department === 'Budget Ceiling' || p.department === 'Submission Deadline'
+                                        p.department === "Budget Ceiling" ||
+                                          p.department === "Submission Deadline"
                                           ? p.department
-                                          : '',
+                                          : "",
                                       );
-                                      setCreateBudgetCeiling(p.budget_ceiling ?? "");
+                                      setCreateBudgetCeiling(
+                                        p.budget_ceiling ?? "",
+                                      );
                                       const biddingDate = p.bidding_end_date
-                                        ? p.bidding_end_date.includes('T')
-                                          ? p.bidding_end_date.split('T')[0]
+                                        ? p.bidding_end_date.includes("T")
+                                          ? p.bidding_end_date.split("T")[0]
                                           : p.bidding_end_date
                                         : "";
                                       setCreateBiddingEndDate(biddingDate);
-                                      setCreateBIMLead(p.bim_lead ? p.bim_lead.split(',').map(s => s.trim()) : []);
-                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ? p.bim_co_ordinator.split(',').map(s => s.trim()) : []);
+                                      setCreateBIMLead(
+                                        p.bim_lead
+                                          ? p.bim_lead
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                          : [],
+                                      );
+                                      setCreateBIMCoOrdinator(
+                                        p.bim_co_ordinator
+                                          ? p.bim_co_ordinator
+                                              .split(",")
+                                              .map((s) => s.trim())
+                                          : [],
+                                      );
                                       setCreateMember(p.member ?? "");
                                       setCreateResources(p.resources ?? "");
-                                      setCreateRequiredResources(p.required_resources ?? "");
+                                      setCreateRequiredResources(
+                                        p.required_resources ?? "",
+                                      );
                                       setCreatePriority(p.priority ?? "");
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
                                       setShowEditModal(true);
                                       if (p.client_name) {
-                                        import('../../lib/api').then(({ default: api }) => {
-                                          api.get<{ client_budget: number | null }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
-                                            .then(({ data }) => {
-                                              if (data.client_budget !== null && data.client_budget !== undefined) {
-                                                setCreateBudget(String(data.client_budget));
-                                              }
-                                            });
-                                        });
+                                        import("../../lib/api").then(
+                                          ({ default: api }) => {
+                                            api
+                                              .get<{
+                                                client_budget: number | null;
+                                              }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
+                                              .then(({ data }) => {
+                                                if (
+                                                  data.client_budget !== null &&
+                                                  data.client_budget !==
+                                                    undefined
+                                                ) {
+                                                  setCreateBudget(
+                                                    String(data.client_budget),
+                                                  );
+                                                }
+                                              });
+                                          },
+                                        );
                                       }
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                   >
-                                    <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                    <img
+                                      src={editIcon}
+                                      alt="edit"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Edit
                                     </span>
@@ -1554,9 +1845,13 @@ export default function ProjectsTD() {
                                       setOpenMenuProjectId(null);
                                       setDeleteId(p.id);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                   >
-                                    <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                    <img
+                                      src={deleteIcon}
+                                      alt="delete"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    />
                                     <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Delete
                                     </span>
@@ -1577,17 +1872,30 @@ export default function ProjectsTD() {
                           <div className="flex -space-x-4">
                             {(() => {
                               const projectEmployees = memberIds
-                                .map(id => allEmployees.find(e => Number(e.id) === Number(id)))
+                                .map((id) =>
+                                  allEmployees.find(
+                                    (e) => Number(e.id) === Number(id),
+                                  ),
+                                )
                                 .filter(Boolean) as Employee[];
 
-                              const visibleMembers = projectEmployees.slice(0, 3);
-                              const remainingCount = Math.max(0, projectEmployees.length - 3);
+                              const visibleMembers = projectEmployees.slice(
+                                0,
+                                3,
+                              );
+                              const remainingCount = Math.max(
+                                0,
+                                projectEmployees.length - 3,
+                              );
 
                               return (
                                 <>
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
-                                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                                      ? getGlobalProfileUrl(
+                                          emp.id,
+                                          emp.profile_picture,
+                                        )
                                       : null;
 
                                     return (
@@ -1606,12 +1914,16 @@ export default function ProjectsTD() {
                                             alt={emp.full_name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
-                                              (e.target as HTMLImageElement).src = ProfileIcon;
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
                                             }}
                                           />
                                         ) : (
                                           <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                            {(emp.full_name || 'U').charAt(0).toUpperCase()}
+                                            {(emp.full_name || "U")
+                                              .charAt(0)
+                                              .toUpperCase()}
                                           </div>
                                         )}
                                       </div>
@@ -1632,18 +1944,18 @@ export default function ProjectsTD() {
                               );
                             })()}
                           </div>
-                          
-                          <div className="flex items-center gap-3">
 
+                          <div className="flex items-center gap-3">
                             {p.priority && (
-                                <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                              <div
+                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
+                                  p.priority.toLowerCase() === "high"
                                     ? "bg-[#DD4342]"
                                     : "bg-[#94D6F2]"
-                                    }`}
-                                >
+                                }`}
+                              >
                                 {p.priority}
-                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1669,7 +1981,7 @@ export default function ProjectsTD() {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1693,22 +2005,55 @@ export default function ProjectsTD() {
                         budget: createBudget || undefined,
                         modules: createModuleName || undefined,
                         client_id: (() => {
-                          if (showOtherClient && otherClientValue) return otherClientValue;
+                          if (showOtherClient && otherClientValue)
+                            return otherClientValue;
                           if (!createClientName) return undefined;
-                          const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                          const byName = clientsList.find(
+                            (c) =>
+                              (c.fullName ?? c.full_name) === createClientName,
+                          );
                           if (byName) return byName.id;
-                          if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                          if (/^\d+$/.test(createClientName))
+                            return Number(createClientName);
                           return undefined;
                         })(),
-                        project_manager_id: namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers),
-                        lead_id: namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads),
-                        bim_coordinator_id: namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators),
-                        members: selectedMemberIds.join(',') || createMember || undefined,
+                        project_manager_id: namesToIds(
+                          [
+                            ...createProjectManager,
+                            ...(showOtherPM && otherPMValue
+                              ? [otherPMValue]
+                              : []),
+                          ],
+                          projectManagers,
+                        ),
+                        lead_id: namesToIds(
+                          [
+                            ...createBIMLead,
+                            ...(showOtherBIMLead && otherBIMLeadValue
+                              ? [otherBIMLeadValue]
+                              : []),
+                          ],
+                          bimLeads,
+                        ),
+                        bim_coordinator_id: namesToIds(
+                          [
+                            ...createBIMCoOrdinator,
+                            ...(showOtherBIMCoord && otherBIMCoordValue
+                              ? [otherBIMCoordValue]
+                              : []),
+                          ],
+                          bimCoordinators,
+                        ),
+                        members:
+                          selectedMemberIds.join(",") ||
+                          createMember ||
+                          undefined,
                         department: createDepartment || undefined,
-                        ...(createDepartment === 'Submission Deadline'
+                        ...(createDepartment === "Submission Deadline"
                           ? {
                               budget_ceiling: createBudgetCeiling || undefined,
-                              bidding_end_date: createBiddingEndDate || undefined,
+                              bidding_end_date:
+                                createBiddingEndDate || undefined,
                             }
                           : {}),
                         due_date: createEndDate || undefined,
@@ -1716,7 +2061,8 @@ export default function ProjectsTD() {
                         totalhours: createTotalHours || undefined,
                         perday: createPerDay || undefined,
                         resources: createResources || undefined,
-                        required_resources: createRequiredResources || undefined,
+                        required_resources:
+                          createRequiredResources || undefined,
                         priority: createPriority || undefined,
                         location: createLocation || undefined,
                         description: createDescription || undefined,
@@ -1763,13 +2109,13 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
                     .catch((err) =>
                       setCreateError(
                         err.response?.data?.message ||
-                        "Failed to create project",
+                          "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -1818,7 +2164,11 @@ export default function ProjectsTD() {
                     <FormSelect
                       label="Client Name"
                       placeholder="Nothing selected"
-                      options={clientsList.map((c) => (c.fullName ?? c.full_name ?? "")).filter(Boolean) as string[]}
+                      options={
+                        clientsList
+                          .map((c) => c.fullName ?? c.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
                       value={createClientName}
                       showTick={false}
                       onChange={(v) => {
@@ -1844,51 +2194,69 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() =>
-                          setEditDropdownOpen((o) => (o === 'source' ? null : 'source'))
+                          setEditDropdownOpen((o) =>
+                            o === "source" ? null : "source",
+                          )
                         }
-                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === 'source' ? '!border-[#AEACAC52]' : ''}`}
+                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
                       >
-                        <span className={createDepartment === 'Budget Ceiling' || createDepartment === 'Submission Deadline' ? 'text-gray-700' : 'text-gray-400'}>
-                          {createDepartment === 'Budget Ceiling' ? 'In House' : createDepartment === 'Submission Deadline' ? 'Outsource' : 'Select Source'}
+                        <span
+                          className={
+                            createDepartment === "Budget Ceiling" ||
+                            createDepartment === "Submission Deadline"
+                              ? "text-gray-700"
+                              : "text-gray-400"
+                          }
+                        >
+                          {createDepartment === "Budget Ceiling"
+                            ? "In House"
+                            : createDepartment === "Submission Deadline"
+                              ? "Outsource"
+                              : "Select Source"}
                         </span>
                         <svg
-                          className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === 'source' ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "source" ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </button>
-                      {editDropdownOpen === 'source' && (
+                      {editDropdownOpen === "source" && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('');
+                              setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${!createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             Select Source
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('Budget Ceiling');
+                              setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling" ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             In House
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('Submission Deadline');
+                              setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline" ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             Outsource
                           </button>
@@ -1898,16 +2266,21 @@ export default function ProjectsTD() {
                   </div>
 
                   {/* In House Fields */}
-                  {createDepartment === 'Budget Ceiling' && (
+                  {createDepartment === "Budget Ceiling" && (
                     <>
                       <div className="space-y-2 md:col-span-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Select Project Manager <span className="text-[#DD4342]">*</span>
+                          Select Project Manager{" "}
+                          <span className="text-[#DD4342]">*</span>
                         </label>
                         <FormSelect
                           label="Select Project Manager"
                           placeholder="Nothing Selected"
-                          options={projectManagers.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          options={
+                            projectManagers
+                              .map((e) => e.full_name ?? "")
+                              .filter(Boolean) as string[]
+                          }
                           value={createProjectManager}
                           isMulti={true}
                           onChange={(v) => {
@@ -1928,12 +2301,17 @@ export default function ProjectsTD() {
 
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Select BIM Lead <span className="text-[#DD4342]">*</span>
+                          Select BIM Lead{" "}
+                          <span className="text-[#DD4342]">*</span>
                         </label>
                         <FormSelect
                           label="Select BIM Lead"
                           placeholder="Nothing Selected"
-                          options={bimLeads.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          options={
+                            bimLeads
+                              .map((e) => e.full_name ?? "")
+                              .filter(Boolean) as string[]
+                          }
                           value={createBIMLead}
                           isMulti={true}
                           onChange={(v) => {
@@ -1945,7 +2323,9 @@ export default function ProjectsTD() {
                           <input
                             type="text"
                             value={otherBIMLeadValue}
-                            onChange={(e) => setOtherBIMLeadValue(e.target.value)}
+                            onChange={(e) =>
+                              setOtherBIMLeadValue(e.target.value)
+                            }
                             className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Lead Name"
                           />
@@ -1959,7 +2339,11 @@ export default function ProjectsTD() {
                         <FormSelect
                           label="Select BIM Coordinator"
                           placeholder="Nothing Selected"
-                          options={bimCoordinators.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          options={
+                            bimCoordinators
+                              .map((e) => e.full_name ?? "")
+                              .filter(Boolean) as string[]
+                          }
                           value={createBIMCoOrdinator}
                           isMulti={true}
                           onChange={(v) => {
@@ -1971,7 +2355,9 @@ export default function ProjectsTD() {
                           <input
                             type="text"
                             value={otherBIMCoordValue}
-                            onChange={(e) => setOtherBIMCoordValue(e.target.value)}
+                            onChange={(e) =>
+                              setOtherBIMCoordValue(e.target.value)
+                            }
                             className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Coordinator Name"
                           />
@@ -1981,7 +2367,7 @@ export default function ProjectsTD() {
                   )}
 
                   {/* Outsource Fields */}
-                  {createDepartment === 'Submission Deadline' && (
+                  {createDepartment === "Submission Deadline" && (
                     <>
                       <div className="space-y-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
@@ -1991,20 +2377,30 @@ export default function ProjectsTD() {
                           type="text"
                           className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-[5px] focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum ? 'border-[#DD4342] focus:border-[#DD4342]' : 'border-transparent focus:border-[#AEACAC52]';
+                            const outsourceNum =
+                              parseBudgetValue(createBudgetCeiling);
+                            return outsourceNum > clientNum
+                              ? "border-[#DD4342] focus:border-[#DD4342]"
+                              : "border-transparent focus:border-[#AEACAC52]";
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
+                          onChange={(e) =>
+                            setCreateBudgetCeiling(e.target.value)
+                          }
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
-                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
-                          if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
+                          const outsourceNum =
+                            parseBudgetValue(createBudgetCeiling);
+                          if (
+                            createBudgetCeiling.trim() &&
+                            outsourceNum > clientNum
+                          ) {
                             return (
                               <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
-                                Outsourcing budget is exceeding. It should be less than or equal to client budget.
+                                Outsourcing budget is exceeding. It should be
+                                less than or equal to client budget.
                               </p>
                             );
                           }
@@ -2019,7 +2415,9 @@ export default function ProjectsTD() {
                           type="date"
                           className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
                           value={createBiddingEndDate}
-                          onChange={(e) => setCreateBiddingEndDate(e.target.value)}
+                          onChange={(e) =>
+                            setCreateBiddingEndDate(e.target.value)
+                          }
                         />
                       </div>
                     </>
@@ -2029,14 +2427,14 @@ export default function ProjectsTD() {
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-10 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold transition-all"
+                    className="px-10 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold transition-all cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className="px-10 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold transition-all"
+                    className="px-10 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold transition-all cursor-pointer"
                   >
                     {createSubmitting ? "Creating..." : "Submit"}
                   </button>
@@ -2053,8 +2451,10 @@ export default function ProjectsTD() {
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
             {/* <div className="relative flex items-center justify-center mb-10"> */}
-            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">Delete Project</h3>
-            
+            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Project
+            </h3>
+
             <button
               type="button"
               onClick={() => setDeleteId(null)}
@@ -2065,7 +2465,7 @@ export default function ProjectsTD() {
             </button>
             {/* </div> */}
             {/* Content */}
-           
+
             <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-10 text-center">
               Are you sure, you want to Delete this?
             </p>
@@ -2075,7 +2475,7 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
+                className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Discard
               </button>
@@ -2093,9 +2493,9 @@ export default function ProjectsTD() {
                         setDeleteId(null);
                       }
                     })
-                    .catch(() => { });
+                    .catch(() => {});
                 }}
-                className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
+                className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Yes, Delete
               </button>
@@ -2113,7 +2513,7 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2128,23 +2528,24 @@ export default function ProjectsTD() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!currentProject?.id) return;
-                api.post('/api/milestones', {
-                  project_id: currentProject.id,
-                  milestone_name: milestoneName.trim(),
-                  milestone_amount: milestoneAmount,
-                  due_date: milestoneDueDate,
-                  notes: milestoneNotes.trim(),
-                  action: "add"
-                })
+                api
+                  .post("/api/milestones", {
+                    project_id: currentProject.id,
+                    milestone_name: milestoneName.trim(),
+                    milestone_amount: milestoneAmount,
+                    due_date: milestoneDueDate,
+                    notes: milestoneNotes.trim(),
+                    action: "add",
+                  })
                   .then(() => {
                     setShowAddMilestoneModal(false);
-                    setMilestoneName('');
-                    setMilestoneAmount('');
-                    setMilestoneDueDate('');
-                    setMilestoneNotes('');
+                    setMilestoneName("");
+                    setMilestoneAmount("");
+                    setMilestoneDueDate("");
+                    setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => { });
+                  .catch(() => {});
               }}
               className="space-y-6 px-1"
             >
@@ -2167,7 +2568,8 @@ export default function ProjectsTD() {
                   Amount ($)*
                 </label>
                 <input
-                  type="number" step="0.01"
+                  type="number"
+                  step="0.01"
                   value={milestoneAmount}
                   onChange={(e) => setMilestoneAmount(e.target.value)}
                   className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-Gantari font-medium text-gray-700 placeholder-gray-400"
@@ -2228,13 +2630,13 @@ export default function ProjectsTD() {
                 <button
                   type="button"
                   onClick={() => setShowAddMilestoneModal(false)}
-                  className="px-12 py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all hover:bg-gray-200"
+                  className="px-12 py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="px-12 py-3.5 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-medium text-md transition-all shadow-sm"
+                  className="px-12 py-3.5 rounded-lg bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-medium text-md transition-all cursor-pointer"
                 >
                   Add Milestone
                 </button>
@@ -2277,7 +2679,7 @@ export default function ProjectsTD() {
                   setCreateLocation("");
                   setCreateDescription("");
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2299,30 +2701,60 @@ export default function ProjectsTD() {
                     if (outsourceNum > clientNum) return;
                   }
                   const id = selectedProjectForEdit.id;
-                  setIsEditSubmitting(true);                   api
+                  setIsEditSubmitting(true);
+                  api
                     .patch(`/api/projects/${id}`, {
                       project_name: createName.trim(),
                       budget: createBudget || undefined,
                       modules: createModuleName || undefined,
                       client_id: (() => {
-                        if (showOtherClient && otherClientValue) return otherClientValue;
+                        if (showOtherClient && otherClientValue)
+                          return otherClientValue;
                         if (!createClientName) return undefined;
-                        const byName = clientsList.find((c) => (c.fullName ?? c.full_name) === createClientName);
+                        const byName = clientsList.find(
+                          (c) =>
+                            (c.fullName ?? c.full_name) === createClientName,
+                        );
                         if (byName) return byName.id;
-                        if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                        if (/^\d+$/.test(createClientName))
+                          return Number(createClientName);
                         return undefined;
                       })(),
-                      project_manager_id: namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers),
-                      lead_id: namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads),
-                      bim_coordinator_id: namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators),
+                      project_manager_id: namesToIds(
+                        [
+                          ...createProjectManager,
+                          ...(showOtherPM && otherPMValue
+                            ? [otherPMValue]
+                            : []),
+                        ],
+                        projectManagers,
+                      ),
+                      lead_id: namesToIds(
+                        [
+                          ...createBIMLead,
+                          ...(showOtherBIMLead && otherBIMLeadValue
+                            ? [otherBIMLeadValue]
+                            : []),
+                        ],
+                        bimLeads,
+                      ),
+                      bim_coordinator_id: namesToIds(
+                        [
+                          ...createBIMCoOrdinator,
+                          ...(showOtherBIMCoord && otherBIMCoordValue
+                            ? [otherBIMCoordValue]
+                            : []),
+                        ],
+                        bimCoordinators,
+                      ),
                       members: createMember || undefined,
 
                       department: createDepartment || undefined,
                       ...(isEditSourceOutsource
                         ? {
-                          budget_ceiling: createBudgetCeiling || undefined,
-                          bidding_end_date: createBiddingEndDate || undefined,
-                        }
+                            budget_ceiling: createBudgetCeiling || undefined,
+                            bidding_end_date: createBiddingEndDate || undefined,
+                          }
                         : {}),
                       due_date: createEndDate || undefined,
                       start_date: createStartDate || undefined,
@@ -2352,10 +2784,10 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => { });
+                          .catch(() => {});
                       }
                     })
-                    .catch(() => { })
+                    .catch(() => {})
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"
@@ -2379,7 +2811,8 @@ export default function ProjectsTD() {
                       Client Name
                     </label>
                     <input
-                      type="text" readOnly
+                      type="text"
+                      readOnly
                       className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Client Name"
                       value={createClientName}
@@ -2407,54 +2840,81 @@ export default function ProjectsTD() {
                       <button
                         type="button"
                         onClick={() =>
-                          setEditDropdownOpen((o) => (o === 'source' ? null : 'source'))
+                          setEditDropdownOpen((o) =>
+                            o === "source" ? null : "source",
+                          )
                         }
-                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === 'source' ? '!border-[#AEACAC52]' : ''}`}
+                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === "source" ? "!border-[#AEACAC52]" : ""}`}
                       >
-                        <span className={createDepartment === 'Budget Ceiling' || createDepartment === 'Submission Deadline' ? 'text-gray-700' : 'text-gray-400'}>
-                          {createDepartment === 'Budget Ceiling' ? 'In House' : createDepartment === 'Submission Deadline' ? 'Outsource' : 'Select Source'}
+                        <span
+                          className={
+                            createDepartment === "Budget Ceiling" ||
+                            createDepartment === "Submission Deadline"
+                              ? "text-gray-700"
+                              : "text-gray-400"
+                          }
+                        >
+                          {createDepartment === "Budget Ceiling"
+                            ? "In House"
+                            : createDepartment === "Submission Deadline"
+                              ? "Outsource"
+                              : "Select Source"}
                         </span>
                         <svg
-                          className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === 'source' ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === "source" ? "rotate-180" : ""}`}
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </button>
-                      {editDropdownOpen === 'source' && (
+                      {editDropdownOpen === "source" && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto">
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('');
+                              setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${!createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              !createDepartment
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             Select Source
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('Budget Ceiling');
+                              setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              createDepartment === "Budget Ceiling"
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             In House
                           </button>
                           <button
                             type="button"
                             onClick={() => {
-                              setCreateDepartment('Submission Deadline');
+                              setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'
-                              }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
+                              createDepartment === "Submission Deadline"
+                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
+                                : "text-gray-700"
+                            }`}
                           >
                             Outsource
                           </button>
@@ -2473,7 +2933,9 @@ export default function ProjectsTD() {
                         <FormSelect
                           label="Select Project Manager"
                           placeholder="Select Project Manager"
-                          options={projectManagers.map((pm) => pm.full_name ?? "").filter(Boolean)}
+                          options={projectManagers
+                            .map((pm) => pm.full_name ?? "")
+                            .filter(Boolean)}
                           value={createProjectManager}
                           isMulti={true}
                           onChange={(v) => {
@@ -2498,7 +2960,9 @@ export default function ProjectsTD() {
                         <FormSelect
                           label="Select BIM Lead"
                           placeholder="Select BIM Lead"
-                          options={bimLeads.map((lead) => lead.full_name ?? "").filter(Boolean)}
+                          options={bimLeads
+                            .map((lead) => lead.full_name ?? "")
+                            .filter(Boolean)}
                           value={createBIMLead}
                           isMulti={true}
                           onChange={(v) => {
@@ -2510,7 +2974,9 @@ export default function ProjectsTD() {
                           <input
                             type="text"
                             value={otherBIMLeadValue}
-                            onChange={(e) => setOtherBIMLeadValue(e.target.value)}
+                            onChange={(e) =>
+                              setOtherBIMLeadValue(e.target.value)
+                            }
                             className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Lead Name"
                           />
@@ -2523,7 +2989,9 @@ export default function ProjectsTD() {
                         <FormSelect
                           label="Select BIM Coordinator"
                           placeholder="Select BIM Coordinator"
-                          options={bimCoordinators.map((coord) => coord.full_name ?? "").filter(Boolean)}
+                          options={bimCoordinators
+                            .map((coord) => coord.full_name ?? "")
+                            .filter(Boolean)}
                           value={createBIMCoOrdinator}
                           isMulti={true}
                           onChange={(v) => {
@@ -2535,7 +3003,9 @@ export default function ProjectsTD() {
                           <input
                             type="text"
                             value={otherBIMCoordValue}
-                            onChange={(e) => setOtherBIMCoordValue(e.target.value)}
+                            onChange={(e) =>
+                              setOtherBIMCoordValue(e.target.value)
+                            }
                             className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                             placeholder="Enter BIM Coordinator Name"
                           />
@@ -2555,20 +3025,30 @@ export default function ProjectsTD() {
                           type="text"
                           className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-lg focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum ? 'border-[#DD4342] focus:border-[#DD4342]' : 'border-transparent focus:border-[#AEACAC52]';
+                            const outsourceNum =
+                              parseBudgetValue(createBudgetCeiling);
+                            return outsourceNum > clientNum
+                              ? "border-[#DD4342] focus:border-[#DD4342]"
+                              : "border-transparent focus:border-[#AEACAC52]";
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
+                          onChange={(e) =>
+                            setCreateBudgetCeiling(e.target.value)
+                          }
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
-                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
-                          if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
+                          const outsourceNum =
+                            parseBudgetValue(createBudgetCeiling);
+                          if (
+                            createBudgetCeiling.trim() &&
+                            outsourceNum > clientNum
+                          ) {
                             return (
                               <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
-                                Outsourcing budget is exceeding. It should be less than or equal to client budget.
+                                Outsourcing budget is exceeding. It should be
+                                less than or equal to client budget.
                               </p>
                             );
                           }
@@ -2583,7 +3063,9 @@ export default function ProjectsTD() {
                           type="date"
                           className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
                           value={createBiddingEndDate}
-                          onChange={(e) => setCreateBiddingEndDate(e.target.value)}
+                          onChange={(e) =>
+                            setCreateBiddingEndDate(e.target.value)
+                          }
                         />
                       </div>
                     </>
@@ -2619,14 +3101,22 @@ export default function ProjectsTD() {
                       setCreateLocation("");
                       setCreateDescription("");
                     }}
-                    className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all"
+                    className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
-                    disabled={!!(isEditSubmitting || (isEditSourceOutsource && createBudgetCeiling.trim() && parseBudgetValue(createBudgetCeiling) > parseBudgetValue(createBudget)))}
-                    className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={
+                      !!(
+                        isEditSubmitting ||
+                        (isEditSourceOutsource &&
+                          createBudgetCeiling.trim() &&
+                          parseBudgetValue(createBudgetCeiling) >
+                            parseBudgetValue(createBudget))
+                      )
+                    }
+                    className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}
                   </button>
@@ -2646,7 +3136,7 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2687,7 +3177,9 @@ export default function ProjectsTD() {
                         ) : (
                           <div className="w-14 h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
                             <span className="text-slate-600 font-bold text-lg">
-                              {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                              {(emp.full_name || `E${emp.id}`)
+                                .charAt(0)
+                                .toUpperCase()}
                             </span>
                           </div>
                         )}
@@ -2732,7 +3224,7 @@ export default function ProjectsTD() {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2747,7 +3239,10 @@ export default function ProjectsTD() {
               <div className="flex flex-col items-center">
                 {selectedMember.profile_picture ? (
                   <img
-                    src={getGlobalProfileUrl(selectedMember.id, selectedMember.profile_picture)}
+                    src={getGlobalProfileUrl(
+                      selectedMember.id,
+                      selectedMember.profile_picture,
+                    )}
                     alt={selectedMember.full_name || "Member"}
                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover mb-6"
                     onError={(e) => {
@@ -2757,14 +3252,18 @@ export default function ProjectsTD() {
                 ) : (
                   <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-200 flex items-center justify-center mb-6">
                     <span className="text-slate-600 font-bold text-3xl">
-                      {(selectedMember.full_name || `E${selectedMember.id}`).charAt(0).toUpperCase()}
+                      {(selectedMember.full_name || `E${selectedMember.id}`)
+                        .charAt(0)
+                        .toUpperCase()}
                     </span>
                   </div>
                 )}
 
                 <div className="w-full space-y-4">
                   <div>
-                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Full Name</p>
+                    <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                      Full Name
+                    </p>
                     <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
                       {selectedMember.full_name || "Not Available"}
                     </p>
@@ -2772,7 +3271,9 @@ export default function ProjectsTD() {
 
                   {selectedMember.empid && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Employee ID</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Employee ID
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.empid}
                       </p>
@@ -2781,16 +3282,23 @@ export default function ProjectsTD() {
 
                   {selectedMember.dob && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Birth</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Date of Birth
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.dob).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {new Date(selectedMember.dob).toLocaleDateString(
+                          "en-GB",
+                          { day: "2-digit", month: "2-digit", year: "numeric" },
+                        )}
                       </p>
                     </div>
                   )}
 
                   {selectedMember.phone_number && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Phone Number</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Phone Number
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.phone_number}
                       </p>
@@ -2799,7 +3307,9 @@ export default function ProjectsTD() {
 
                   {selectedMember.email && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Email</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Email
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.email}
                       </p>
@@ -2808,7 +3318,9 @@ export default function ProjectsTD() {
 
                   {selectedMember.user_role && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Role</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Role
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.user_role}
                       </p>
@@ -2817,7 +3329,9 @@ export default function ProjectsTD() {
 
                   {selectedMember.address && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Address</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Address
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.address}
                       </p>
@@ -2826,7 +3340,9 @@ export default function ProjectsTD() {
 
                   {selectedMember.department && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Department</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Department
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
                         {selectedMember.department}
                       </p>
@@ -2835,9 +3351,14 @@ export default function ProjectsTD() {
 
                   {selectedMember.doj && (
                     <div>
-                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">Date of Joining</p>
+                      <p className="text-[14px] font-Gantari font-bold text-[#999999] mb-1">
+                        Date of Joining
+                      </p>
                       <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A]">
-                        {new Date(selectedMember.doj).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {new Date(selectedMember.doj).toLocaleDateString(
+                          "en-GB",
+                          { day: "2-digit", month: "2-digit", year: "numeric" },
+                        )}
                       </p>
                     </div>
                   )}

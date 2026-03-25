@@ -221,7 +221,7 @@ export default function AddTaskTD() {
                     <button
                         type="button"
                         onClick={goBack}
-                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                         title="Back"
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -362,7 +362,7 @@ export default function AddTaskTD() {
                                     onClick={() =>
                                         setOpenFormDropdown((d) => (d === "type_start_time" ? null : "type_start_time"))
                                     }
-                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all"
+                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
                                     aria-expanded={openFormDropdown === "type_start_time"}
                                     aria-haspopup="listbox"
                                     aria-label="Select Start Time"
@@ -397,7 +397,7 @@ export default function AddTaskTD() {
                                     onClick={() =>
                                         setOpenFormDropdown((d) => (d === "type_end_time" ? null : "type_end_time"))
                                     }
-                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all"
+                                    className="flex w-full items-center justify-between rounded-[5px] bg-[#F2F3F4] border border-transparent px-4 py-2 text-left text-[14px] font-Gantari focus:border-[#AEACAC52] outline-none shadow-none transition-all cursor-pointer"
                                     aria-expanded={openFormDropdown === "type_end_time"}
                                     aria-haspopup="listbox"
                                     aria-label="Select End Time"
@@ -505,13 +505,13 @@ export default function AddTaskTD() {
                         <button
                             type="button"
                             onClick={goBack}
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
+                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                         >
                             Discard
                         </button>
                         <button
                             type="submit"
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
+                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                         >
                             Submit
                         </button>

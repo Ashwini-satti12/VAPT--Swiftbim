@@ -435,7 +435,7 @@ export default function TrackerPM() {
                       setSelectedTimeRange(opt);
                       setTimeDropdownOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       selectedTimeRange === opt
                         ? "text-[#353535] bg-[#F2F2F2]"
                         : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
@@ -491,7 +491,7 @@ export default function TrackerPM() {
                       setSelectedStatus(opt);
                       setStatusOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       selectedStatus === opt
                         ? "text-[#353535] bg-[#F2F2F2]"
                         : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
@@ -553,7 +553,7 @@ export default function TrackerPM() {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                   >
                     {opt.label}
                   </button>
@@ -566,7 +566,7 @@ export default function TrackerPM() {
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <svg
               width="24"

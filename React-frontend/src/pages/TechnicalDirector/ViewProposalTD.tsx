@@ -87,7 +87,7 @@ export default function ViewProposalTD() {
                 <button
                     type="button"
                     onClick={() => navigate("/td/proposals")}
-                    className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:opacity-90"
+                    className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                     title="Back to proposals"
                 >
                     <img src={backIcon} alt="Back" className="w-5 h-5" />

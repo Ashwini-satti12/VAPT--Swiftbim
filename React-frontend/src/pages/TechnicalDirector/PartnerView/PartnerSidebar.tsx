@@ -20,7 +20,7 @@ const PartnerSidebar = ({ activeTab, setActiveTab }: PartnerSidebarProps) => {
                 <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`px-4 font-sora text-base justify-center text-center h-auto leading-tight ${activeTab === tab.key
+                    className={`px-4 font-sora text-base justify-center text-center h-auto leading-tight cursor-pointer ${activeTab === tab.key
                         ? "text-[#DD4342] font-bold"
                         : "text-[#333333] font-medium"
                         }`}

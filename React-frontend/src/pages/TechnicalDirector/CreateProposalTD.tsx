@@ -304,7 +304,7 @@ export default function CreateProposalTD() {
         <button
           type="button"
           onClick={() => navigate("/td/proposals")}
-          className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:opacity-90"
+          className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
           title="Back to proposals"
         >
           <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -445,7 +445,7 @@ export default function CreateProposalTD() {
             <div className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <label className="font-bold text-[#353535]">Technology to be Used:</label>
-                <button onClick={handleAddTechRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all"> Add Software</button>
+                <button onClick={handleAddTechRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Software</button>
               </div>
               <div className="rounded-xl border border-[#AEACAC52] overflow-hidden">
                 <table className="w-full text-left border-collapse">
@@ -470,7 +470,7 @@ export default function CreateProposalTD() {
                           />
                         </td>
                         <td className="px-6 py-3 text-center">
-                          <button onClick={() => handleRemoveTechRow(index)} className="text-[#AEACAC] hover:text-[#DD4342] text-xl">✕</button>
+                          <button onClick={() => handleRemoveTechRow(index)} className="text-[#AEACAC] hover:text-[#DD4342] text-xl cursor-pointer">✕</button>
                         </td>
                       </tr>
                     ))}
@@ -514,7 +514,7 @@ export default function CreateProposalTD() {
           <div className="space-y-4 pb-10">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-lg text-[#020202]">6. Payment Terms</h2>
-              <button onClick={handleAddPaymentRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all"> Add Term</button>
+              <button onClick={handleAddPaymentRow} className="text-sm bg-[#DD4342] text-white px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer"> Add Term</button>
             </div>
             <div className="rounded-xl border border-[#AEACAC52] overflow-hidden">
               <table className="w-full text-left border-collapse">
@@ -541,7 +541,7 @@ export default function CreateProposalTD() {
                         <input type="text" value={row.timeline} onChange={e => handlePaymentChange(index, "timeline", e.target.value)} placeholder="2" className="w-full text-center bg-transparent outline-none text-sm text-[#353535]" />
                       </td>
                       <td className="px-6 py-3 text-center">
-                        <button onClick={() => handleRemovePaymentRow(index)} className="text-[#AEACAC] text-xl">✕</button>
+                        <button onClick={() => handleRemovePaymentRow(index)} className="text-[#AEACAC] text-xl cursor-pointer">✕</button>
                       </td>
                     </tr>
                   ))}
@@ -556,14 +556,14 @@ export default function CreateProposalTD() {
           <button
             onClick={handleDiscard}
             disabled={submitting}
-            className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#616161] transition-all disabled:opacity-50"
+            className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#616161] transition-all disabled:opacity-50 cursor-pointer"
           >
             Discard
           </button>
           <button
             onClick={handleCreate}
             disabled={submitting}
-            className="px-6 py-2 rounded-md bg-[#DD4342] text-white shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center gap-3"
+            className="px-6 py-2 rounded-md bg-[#DD4342] text-white shadow-lg shadow-red-100 transition-all disabled:opacity-50 flex items-center gap-3 cursor-pointer"
           >
             {submitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
             {submitting ? "Sending..." : "Send Proposal"}
