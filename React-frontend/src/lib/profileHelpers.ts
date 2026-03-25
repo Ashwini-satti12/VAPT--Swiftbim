@@ -1,5 +1,5 @@
-// const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/';
-const apiBase = import.meta.env.VITE_API_BASE_URL || "https://projectmanagement.swifterz.ae/";
+const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/';
+// const apiBase = import.meta.env.VITE_API_BASE_URL || "https://projectmanagement.swifterz.ae/";
 
 /**
  * Returns a globally accessible profile URL for an employee.

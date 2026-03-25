@@ -26,9 +26,8 @@ interface Employee {
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected") return undefined;
-  const trimmed = name.trim();
-  if (/^\d+$/.test(trimmed)) return Number(trimmed);
-  const emp = employeesList.find((e) => e.full_name === trimmed);
+  if (/^\d+$/.test(name)) return Number(name);
+  const emp = employeesList.find((e) => e.full_name === name);
   return emp ? emp.id : undefined;
 };
 
@@ -38,33 +37,13 @@ const idToName = (id: string | number | undefined, employeesList: Employee[]) =>
   return emp ? emp.full_name : '';
 };
 
-const normalizeCsvDisplay = (s: string | undefined): string =>
-  !s
-    ? ''
-    : s
-        .split(',')
-        .map((x) => x.trim())
-        .filter(Boolean)
-        .join(', ');
-
-const csvIdsToNames = (idsCsv: string | undefined, employeesList: Employee[]): string => {
-  if (!idsCsv?.trim()) return '';
-  const parts = idsCsv.split(',').map((x) => x.trim()).filter(Boolean);
-  const names = parts.map((id) => idToName(id, employeesList)).filter(Boolean);
-  return names.join(', ');
+const firstCsvValue = (value: string | undefined): string => {
+  if (!value) return '';
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)[0] ?? '';
 };
-
-const csvNamesToIds = (text: string | undefined, employeesList: Employee[]): string | undefined => {
-  if (!text?.trim()) return undefined;
-  const segments = text.split(',').map((x) => x.trim()).filter(Boolean);
-  const ids: string[] = [];
-  for (const seg of segments) {
-    const id = nameToId(seg, employeesList);
-    if (id != null) ids.push(String(id));
-  }
-  return ids.length ? ids.join(',') : undefined;
-};
-
 function FormSelect({
   placeholder, options, value, onChange,
 }: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -140,7 +119,6 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;   // path/name of attached file
-  members_names?: string[];
 }
 
 interface Milestone {
@@ -225,7 +203,6 @@ export default function ProjectsPM() {
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-  const [memberLabelById, setMemberLabelById] = useState<Record<number, string>>({});
   const [memberSearch, setMemberSearch] = useState('');
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -314,7 +291,6 @@ export default function ProjectsPM() {
   useEffect(() => {
     if (showCreateModal) {
       setSelectedMemberIds([]);
-      setMemberLabelById({});
     }
   }, [showCreateModal]);
 
@@ -346,7 +322,6 @@ export default function ProjectsPM() {
     setCreateBIMLead('');
     setCreateBIMCoOrdinator('');
     setSelectedMemberIds([]);
-    setMemberLabelById({});
     setCreateResources('');
     setCreateRequiredResources('');
     setCreatePriority('');
@@ -496,9 +471,6 @@ export default function ProjectsPM() {
     bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
     bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
     member: r.members != null ? String(r.members) : undefined,
-    members_names: Array.isArray(r.members_names)
-      ? (r.members_names as unknown[]).map((x) => String(x))
-      : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources: r.required_resources != null ? String(r.required_resources) : undefined,
     location: r.location != null ? String(r.location) : undefined,
@@ -1153,14 +1125,14 @@ export default function ProjectsPM() {
                 const clientId = clientsList.find(c => c.full_name === createClientName)?.id;
                 if (clientId) formData.append('client_id', String(clientId));
 
-                const pmIds = csvNamesToIds(createProjectManager, allEmployees);
-                if (pmIds) formData.append('project_manager_id', pmIds);
+                const pmId = nameToId(createProjectManager, allEmployees);
+                if (pmId) formData.append('project_manager_id', String(pmId));
 
-                const leadIds = csvNamesToIds(createBIMLead, allEmployees);
-                if (leadIds) formData.append('lead_id', leadIds);
+                const leadId = nameToId(createBIMLead, allEmployees);
+                if (leadId) formData.append('lead_id', String(leadId));
 
-                const bcIds = csvNamesToIds(createBIMCoOrdinator, allEmployees);
-                if (bcIds) formData.append('bim_coordinator_id', bcIds);
+                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
+                if (bcId) formData.append('bim_coordinator_id', String(bcId));
 
                 if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
                 if (createDepartment) formData.append('department', createDepartment);
@@ -1476,13 +1448,12 @@ export default function ProjectsPM() {
                     {selectedMemberIds.length === 0 && <span className="text-[14px] text-[#8B8B8B] font-Gantari">Select Members</span>}
                     {selectedMemberIds.map(id => {
                       const emp = allEmployees.find(e => e.id === id);
-                      const label = emp?.full_name ?? memberLabelById[id] ?? `ID ${id}`;
-                      return (
+                      return emp ? (
                         <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
-                          {label}
-                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); setMemberLabelById(prev => { const next = { ...prev }; delete next[id]; return next; }); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
+                          {emp.full_name}
+                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                         </span>
-                      );
+                      ) : null;
                     })}
                     <span className="ml-auto text-[#8B8B8B] text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
                   </div>
@@ -1700,14 +1671,14 @@ export default function ProjectsPM() {
                 const client = clientsList.find(c => String(c.id) === String(createClientName) || c.full_name === createClientName);
                 if (client) formData.append('client_id', String(client.id));
 
-                const pmIds = csvNamesToIds(createProjectManager, allEmployees);
-                if (pmIds) formData.append('project_manager_id', pmIds);
+                const pmId = nameToId(createProjectManager, allEmployees);
+                if (pmId) formData.append('project_manager_id', String(pmId));
 
-                const leadIds = csvNamesToIds(createBIMLead, allEmployees);
-                if (leadIds) formData.append('lead_id', leadIds);
+                const leadId = nameToId(createBIMLead, allEmployees);
+                if (leadId) formData.append('lead_id', String(leadId));
 
-                const bcIds = csvNamesToIds(createBIMCoOrdinator, allEmployees);
-                if (bcIds) formData.append('bim_coordinator_id', bcIds);
+                const bcId = nameToId(createBIMCoOrdinator, allEmployees);
+                if (bcId) formData.append('bim_coordinator_id', String(bcId));
 
                 if (selectedMemberIds.length > 0) formData.append('members', selectedMemberIds.join(','));
                 else if (editMember) formData.append('members', editMember);
@@ -2034,13 +2005,12 @@ export default function ProjectsPM() {
                     {selectedMemberIds.length === 0 && <span className="text-[14px] text-[#8B8B8B] font-Gantari">Select Members</span>}
                     {selectedMemberIds.map(id => {
                       const emp = allEmployees.find(e => e.id === id);
-                      const label = emp?.full_name ?? memberLabelById[id] ?? `ID ${id}`;
-                      return (
+                      return emp ? (
                         <span key={id} className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#353535] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full">
-                          {label}
-                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); setMemberLabelById(prev => { const next = { ...prev }; delete next[id]; return next; }); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
+                          {emp.full_name}
+                          <button type="button" onClick={ev => { ev.stopPropagation(); setSelectedMemberIds(prev => prev.filter(x => x !== id)); }} className="text-gray-400 hover:text-red-500 ml-1">×</button>
                         </span>
-                      );
+                      ) : null;
                     })}
                     <span className="ml-auto text-[#8B8B8B] text-sm">{memberDropdownOpen ? '▲' : '▼'}</span>
                   </div>
@@ -2361,41 +2331,25 @@ export default function ProjectsPM() {
                                     setCreateBudget(p.budget ?? '');
                                     const foundClient = clientsList.find(c => String(c.id) === String(p.client_name));
                                     setCreateClientName(foundClient ? foundClient.full_name : (p.client_name ?? ''));
-                                    const pmName =
-                                      normalizeCsvDisplay(p.project_manager_name) ||
-                                      csvIdsToNames(p.project_manager_id, allEmployees) ||
-                                      normalizeCsvDisplay(p.project_manager);
+                                    const pmName = firstCsvValue(p.project_manager_name) || idToName(firstCsvValue(p.project_manager_id), allEmployees);
                                     setCreateProjectManager(pmName);
                                     setCreateStartDate(p.start_date ? p.start_date.split('T')[0].split(' ')[0] : '');
                                     setCreateEndDate(p.end_date ? p.end_date.split('T')[0].split(' ')[0] : '');
                                     setCreateTotalHours(p.total_hours ?? '');
                                     setCreatePerDay(p.per_day ?? '');
                                     setCreateDepartment(p.department ?? '');
-                                    const blName =
-                                      normalizeCsvDisplay(p.lead_name) ||
-                                      csvIdsToNames(p.lead_id, allEmployees) ||
-                                      csvIdsToNames(p.bim_lead, allEmployees);
+                                    const blName = firstCsvValue(p.lead_name) || idToName(firstCsvValue(p.lead_id), allEmployees);
                                     setCreateBIMLead(blName);
-                                    const bimCoName =
-                                      normalizeCsvDisplay(p.bim_coordinator_name) ||
-                                      csvIdsToNames(p.bim_coordinator_id, allEmployees) ||
-                                      csvIdsToNames(p.bim_co_ordinator, allEmployees);
+                                    const bimCoName = firstCsvValue(p.bim_coordinator_name) || idToName(firstCsvValue(p.bim_coordinator_id), allEmployees);
                                     setCreateBIMCoOrdinator(bimCoName);
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-                                      const rawNames = p.members_names ?? [];
-                                      const fallback: Record<number, string> = {};
-                                      memIds.forEach((mid, i) => {
-                                        const n = rawNames[i];
-                                        if (typeof n === 'string' && n.trim()) fallback[mid] = n.trim();
-                                      });
-                                      setMemberLabelById(fallback);
                                       setSelectedMemberIds(memIds);
+                                      // Also pre-fill single editMember field (for compatibility)
                                       const firstMember = allEmployees.find(e => e.id === memIds[0]);
-                                      setEditMember(firstMember ? firstMember.full_name : (fallback[memIds[0]] ?? ''));
+                                      setEditMember(firstMember ? firstMember.full_name : '');
                                     } else {
                                       setSelectedMemberIds([]);
-                                      setMemberLabelById({});
                                       setEditMember('');
                                     }
                                     setCreateResources(p.resources ?? '');

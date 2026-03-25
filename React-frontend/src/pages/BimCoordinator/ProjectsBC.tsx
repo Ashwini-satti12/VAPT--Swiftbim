@@ -40,47 +40,32 @@ const idToName = (id: string | number | undefined, employeesList: Employee[]) =>
   return emp ? emp.full_name : "";
 };
 
-/** Trim segments and rejoin for consistent comma-separated display */
-const normalizeCsvDisplay = (s: string | undefined): string =>
-  !s
-    ? ""
-    : s
-        .split(",")
-        .map((x) => x.trim())
-        .filter(Boolean)
-        .join(", ");
-
-const csvIdsToNames = (
-  idsCsv: string | undefined,
+const csvToDisplayNamesFromIds = (
+  ids: string | undefined,
   employeesList: Employee[],
 ): string => {
-  if (!idsCsv?.trim()) return "";
-  const parts = idsCsv
+  if (!ids) return "";
+  return ids
     .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const names = parts
-    .map((id) => idToName(id, employeesList))
-    .filter(Boolean);
-  return names.join(", ");
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .map((id) => idToName(id, employeesList) || id)
+    .join(", ");
 };
 
-/** Map comma-separated display names (and/or numeric id tokens) to comma-separated ids */
-const csvNamesToIds = (
-  text: string | undefined,
-  employeesList: Employee[],
-): string | undefined => {
-  if (!text?.trim()) return undefined;
-  const segments = text
+const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
+  if (!value) return "";
+  return value
     .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const ids: string[] = [];
-  for (const seg of segments) {
-    const id = nameToId(seg, employeesList);
-    if (id != null) ids.push(String(id));
-  }
-  return ids.length ? ids.join(",") : undefined;
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (/^\d+$/.test(item)) return item;
+      const id = nameToId(item, employeesList);
+      return id != null ? String(id) : "";
+    })
+    .filter(Boolean)
+    .join(",");
 };
 
 function FormSelect({
@@ -189,7 +174,6 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
-  members_names?: string[];
 }
 
 interface Milestone {
@@ -282,9 +266,6 @@ export default function ProjectsBC() {
   const [bimCoordinators, setBimCoordinators] = useState<string[]>([]);
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-  const [memberLabelById, setMemberLabelById] = useState<
-    Record<number, string>
-  >({});
   const [memberSearch, setMemberSearch] = useState("");
   const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
   const [departments, setDepartments] = useState<string[]>([]);
@@ -346,7 +327,6 @@ export default function ProjectsBC() {
   useEffect(() => {
     if (showCreateModal) {
       setSelectedMemberIds([]);
-      setMemberLabelById({});
     }
   }, [showCreateModal]);
 
@@ -419,10 +399,7 @@ export default function ProjectsBC() {
         : r.department != null
           ? String(r.department)
           : undefined,
-    member: r.members != null ? String(r.members) : undefined,
-    members_names: Array.isArray(r.members_names)
-      ? (r.members_names as unknown[]).map((x) => String(x))
-      : undefined,
+    member: r.members,
     resources: r.resources,
     required_resources: r.required_resources,
     location: r.location,
@@ -1361,23 +1338,22 @@ export default function ProjectsBC() {
                     formData.append("modules", moduleNameTags.join(", "));
                   if (createClientName)
                     formData.append("client_id", createClientName);
-                  const pmIdsCreate = csvNamesToIds(
+                  const pmIdsCreate = nameOrCsvToIdCsv(
                     createProjectManager,
                     allEmployees,
                   );
                   if (pmIdsCreate)
                     formData.append("project_manager_id", pmIdsCreate);
-                  const leadIdsCreate = csvNamesToIds(
+                  const leadIdsCreate = nameOrCsvToIdCsv(
                     createBIMLead,
                     allEmployees,
                   );
                   if (leadIdsCreate) formData.append("lead_id", leadIdsCreate);
-                  const bcIdsCreate = csvNamesToIds(
+                  const bcIdsCreate = nameOrCsvToIdCsv(
                     createBIMCoOrdinator,
                     allEmployees,
                   );
-                  if (bcIdsCreate)
-                    formData.append("bim_coordinator_id", bcIdsCreate);
+                  if (bcIdsCreate) formData.append("bim_coordinator_id", bcIdsCreate);
                   if (selectedMemberIds.length > 0)
                     formData.append("members", selectedMemberIds.join(","));
                   if (createDepartment)
@@ -1708,16 +1684,12 @@ export default function ProjectsBC() {
                       )}
                       {selectedMemberIds.map((id) => {
                         const emp = allEmployees.find((e) => e.id === id);
-                        const label =
-                          emp?.full_name ??
-                          memberLabelById[id] ??
-                          `ID ${id}`;
                         return (
                           <span
                             key={id}
                             className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full"
                           >
-                            {label}
+                            {emp?.full_name || String(id)}
                             <button
                               type="button"
                               onClick={(ev) => {
@@ -1725,11 +1697,6 @@ export default function ProjectsBC() {
                                 setSelectedMemberIds((prev) =>
                                   prev.filter((x) => x !== id),
                                 );
-                                setMemberLabelById((prev) => {
-                                  const next = { ...prev };
-                                  delete next[id];
-                                  return next;
-                                });
                               }}
                               className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
                             >
@@ -2008,14 +1975,14 @@ export default function ProjectsBC() {
                     formData.append("modules", editModuleTags.join(", "));
                   if (createClientName)
                     formData.append("client_id", createClientName);
-                  const pmIds = csvNamesToIds(
+                  const pmIds = nameOrCsvToIdCsv(
                     createProjectManager,
                     allEmployees,
                   );
                   if (pmIds) formData.append("project_manager_id", pmIds);
-                  const leadIds = csvNamesToIds(createBIMLead, allEmployees);
+                  const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
                   if (leadIds) formData.append("lead_id", leadIds);
-                  const bcIds = csvNamesToIds(
+                  const bcIds = nameOrCsvToIdCsv(
                     createBIMCoOrdinator,
                     allEmployees,
                   );
@@ -2398,16 +2365,12 @@ export default function ProjectsBC() {
                       )}
                       {selectedMemberIds.map((id) => {
                         const emp = allEmployees.find((e) => e.id === id);
-                        const label =
-                          emp?.full_name ??
-                          memberLabelById[id] ??
-                          `ID ${id}`;
                         return (
                           <span
                             key={id}
                             className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full"
                           >
-                            {label}
+                            {emp?.full_name || String(id)}
                             <button
                               type="button"
                               onClick={(ev) => {
@@ -2415,11 +2378,6 @@ export default function ProjectsBC() {
                                 setSelectedMemberIds((prev) =>
                                   prev.filter((x) => x !== id),
                                 );
-                                setMemberLabelById((prev) => {
-                                  const next = { ...prev };
-                                  delete next[id];
-                                  return next;
-                                });
                               }}
                               className="text-gray-400 hover:text-red-500 ml-1"
                             >
@@ -2859,14 +2817,13 @@ export default function ProjectsBC() {
                                       );
                                       setCreateClientName(p.client_name ?? "");
                                       const pmDisplay =
-                                        normalizeCsvDisplay(
-                                          p.project_manager_name,
-                                        ) ||
-                                        csvIdsToNames(
+                                        p.project_manager_name ||
+                                        csvToDisplayNamesFromIds(
                                           p.project_manager_id,
                                           allEmployees,
                                         ) ||
-                                        normalizeCsvDisplay(p.project_manager);
+                                        p.project_manager ||
+                                        "";
                                       setCreateProjectManager(pmDisplay);
                                       setCreateStartDate(
                                         p.start_date
@@ -2886,45 +2843,37 @@ export default function ProjectsBC() {
                                       setCreatePerDay(p.per_day ?? "");
                                       setCreateDepartment(p.department ?? "");
                                       const blDisplay =
-                                        normalizeCsvDisplay(p.lead_name) ||
-                                        csvIdsToNames(p.lead_id, allEmployees) ||
-                                        csvIdsToNames(p.bim_lead, allEmployees);
+                                        p.lead_name ||
+                                        csvToDisplayNamesFromIds(
+                                          p.lead_id,
+                                          allEmployees,
+                                        ) ||
+                                        csvToDisplayNamesFromIds(
+                                          p.bim_lead,
+                                          allEmployees,
+                                        ) ||
+                                        "";
                                       setCreateBIMLead(blDisplay);
                                       const bcDisplay =
-                                        normalizeCsvDisplay(
-                                          p.bim_coordinator_name,
-                                        ) ||
-                                        csvIdsToNames(
+                                        p.bim_coordinator_name ||
+                                        csvToDisplayNamesFromIds(
                                           p.bim_coordinator_id,
                                           allEmployees,
                                         ) ||
-                                        csvIdsToNames(
+                                        csvToDisplayNamesFromIds(
                                           p.bim_co_ordinator,
                                           allEmployees,
-                                        );
+                                        ) ||
+                                        "";
                                       setCreateBIMCoOrdinator(bcDisplay);
-                                      const memIds = p.member
-                                        ? p.member
-                                          .split(",")
-                                          .map((m) =>
-                                            parseInt(m.trim(), 10),
-                                          )
-                                          .filter((n) => !isNaN(n))
-                                        : [];
-                                      const rawMemNames =
-                                        p.members_names ?? [];
-                                      const fallback: Record<number, string> =
-                                        {};
-                                      memIds.forEach((mid, i) => {
-                                        const n = rawMemNames[i];
-                                        if (
-                                          typeof n === "string" &&
-                                          n.trim()
-                                        )
-                                          fallback[mid] = n.trim();
-                                      });
-                                      setMemberLabelById(fallback);
-                                      setSelectedMemberIds(memIds);
+                                      setSelectedMemberIds(
+                                        p.member
+                                          ? p.member
+                                            .split(",")
+                                            .map((m) => parseInt(m.trim(), 10))
+                                            .filter((n) => !isNaN(n))
+                                          : [],
+                                      );
                                       setCreateResources(p.resources ?? "");
                                       setCreateRequiredResources(p.required_resources ?? "");
                                       setCreatePriority(p.priority ?? "");
