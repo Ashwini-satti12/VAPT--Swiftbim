@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
@@ -25,6 +25,49 @@ interface Employee {
   vendor_type?: string;
   profile_picture?: string;
 }
+
+const nameToId = (name: string, employeesList: Employee[]) => {
+  if (!name || name === "Nothing Selected") return undefined;
+  const trimmed = name.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  const emp = employeesList.find((e) => e.full_name === trimmed);
+  return emp ? emp.id : undefined;
+};
+
+const idToName = (id: string | number | undefined, employeesList: Employee[]) => {
+  if (id === undefined || id === null || id === "") return "";
+  const emp = employeesList.find((e) => String(e.id) === String(id).trim());
+  return emp ? emp.full_name : "";
+};
+
+const csvToDisplayNamesFromIds = (
+  ids: string | undefined,
+  employeesList: Employee[],
+): string => {
+  if (!ids) return "";
+  return ids
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .map((id) => idToName(id, employeesList) || id)
+    .join(", ");
+};
+
+const nameOrCsvToIdCsv = (value: string, employeesList: Employee[]): string => {
+  if (!value) return "";
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      if (/^\d+$/.test(item)) return item;
+      const id = nameToId(item, employeesList);
+      return id != null ? String(id) : "";
+    })
+    .filter(Boolean)
+    .join(",");
+};
+
 function FormSelect({
   placeholder,
   options,
@@ -144,6 +187,7 @@ interface Milestone {
 
 export default function ProjectsBC() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,10 +204,6 @@ export default function ProjectsBC() {
   const [createTaskTags, _setCreateTaskTags] = useState<string[]>([]);
   const [_createTaskInput, _setCreateTaskInput] = useState("");
   const [editPriority, setEditPriority] = useState("");
-  const [editDepartment, setEditDepartment] = useState("");
-  const [editProjectManager, setEditProjectManager] = useState("");
-  const [editBIMLead, setEditBIMLead] = useState("");
-  const [editBIMCoOrd, _setEditBIMCoOrd] = useState("");
   const [editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
@@ -243,24 +283,32 @@ export default function ProjectsBC() {
         ]);
         if (isMounted) {
           const empData: Employee[] = empRes.data.employees || [];
-          // setEmployees(empData);
+          const roleOf = (e: Employee) =>
+            String(e.user_role || "")
+              .toLowerCase()
+              .trim();
           setProjectManagers(
             empData
-              .filter(
-                (e) =>
-                  e.user_role === "Project Manager" ||
-                  e.user_role === "BIM Project Manager",
-              )
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes("project manager");
+              })
               .map((e) => e.full_name),
           );
           setBimLeads(
             empData
-              .filter((e) => e.user_role === "BIM Lead")
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes("bim lead");
+              })
               .map((e) => e.full_name),
           );
           setBimCoordinators(
             empData
-              .filter((e) => e.user_role === "BIM Coordinator")
+              .filter((e) => {
+                const role = roleOf(e);
+                return role.includes("coordinator");
+              })
               .map((e) => e.full_name),
           );
           setAllEmployees(empData);
@@ -314,20 +362,44 @@ export default function ProjectsBC() {
     budget: r.budget,
     module_name: r.modules,
     client_name: r.client_name,
-    project_manager: r.project_manager_id,
-    project_manager_id: r.project_manager_id,
-    project_manager_name: r.project_manager_name,
-    bim_lead: r.lead_id,
-    lead_id: r.lead_id,
-    lead_name: r.lead_name ?? r.bim_lead_name,
-    bim_co_ordinator: r.bim_coordinator_id,
-    bim_coordinator_id: r.bim_coordinator_id,
-    bim_coordinator_name: r.bim_coordinator_name,
+    project_manager:
+      r.project_manager_name != null
+        ? String(r.project_manager_name)
+        : r.project_manager_id != null
+          ? String(r.project_manager_id)
+          : undefined,
+    project_manager_id:
+      r.project_manager_id != null ? String(r.project_manager_id) : undefined,
+    project_manager_name:
+      r.project_manager_name != null
+        ? String(r.project_manager_name)
+        : undefined,
+    bim_lead: r.lead_id != null ? String(r.lead_id) : undefined,
+    lead_id: r.lead_id != null ? String(r.lead_id) : undefined,
+    lead_name:
+      r.lead_name != null
+        ? String(r.lead_name)
+        : r.bim_lead_name != null
+          ? String(r.bim_lead_name)
+          : undefined,
+    bim_co_ordinator:
+      r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_id:
+      r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_name:
+      r.bim_coordinator_name != null
+        ? String(r.bim_coordinator_name)
+        : undefined,
     start_date: r.start_date,
     end_date: r.end_date ?? r.due_date,
     total_hours: r.totalhours,
     per_day: r.perday,
-    department: r.department,
+    department:
+      r.department_name != null
+        ? String(r.department_name)
+        : r.department != null
+          ? String(r.department)
+          : undefined,
     member: r.members,
     resources: r.resources,
     required_resources: r.required_resources,
@@ -439,31 +511,7 @@ export default function ProjectsBC() {
     api
       .get<Record<string, unknown>>(`/api/projects/${id}`)
       .then(({ data }) => {
-        const p = data as any;
-        setSelectedProjectForView({
-          id: p.id,
-          project_name: p.project_name,
-          progress: p.progress ?? 0,
-          total_tasks: p.total_tasks ?? 0,
-          completed_tasks: p.completed_tasks ?? 0,
-          priority: p.priority ?? "Normal",
-          budget: p.budget,
-          module_name: p.modules,
-          client_name: p.client_id,
-          project_manager: p.project_manager_id,
-          start_date: p.start_date,
-          end_date: p.due_date,
-          total_hours: p.totalhours,
-          per_day: p.perday,
-          department: p.department,
-          bim_lead: p.lead_id,
-          bim_co_ordinator: p.bim_coordinator_id,
-          member: p.members,
-          resources: p.resources,
-          required_resources: p.required_resources,
-          location: p.location,
-          description: p.description,
-        });
+        setSelectedProjectForView(mapApiProjectToProject(data));
       })
       .catch(() => {
         if (!existingProject) {
@@ -520,6 +568,7 @@ export default function ProjectsBC() {
                 {/* Total Tasks */}
                 <button
                   type="button"
+                  onClick={() => navigate('/bc/teamtasks' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                   className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                 >
                   <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Total Tasks</p>
@@ -531,6 +580,7 @@ export default function ProjectsBC() {
                 {/* Completed Tasks */}
                 <button
                   type="button"
+                  onClick={() => navigate('/bc/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                   className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                 >
                   <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">Completed Tasks</p>
@@ -542,6 +592,7 @@ export default function ProjectsBC() {
                 {/* To Do Tasks */}
                 <button
                   type="button"
+                  onClick={() => navigate('/bc/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                   className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                 >
                   <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">To Do Tasks</p>
@@ -553,6 +604,7 @@ export default function ProjectsBC() {
                 {/* In Progress Tasks */}
                 <button
                   type="button"
+                  onClick={() => navigate('/bc/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                   className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                 >
                   <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
@@ -1291,11 +1343,22 @@ export default function ProjectsBC() {
                     formData.append("modules", moduleNameTags.join(", "));
                   if (createClientName)
                     formData.append("client_id", createClientName);
-                  if (createProjectManager)
-                    formData.append("project_manager_id", createProjectManager);
-                  if (createBIMLead) formData.append("lead_id", createBIMLead);
-                  if (createBIMCoOrdinator)
-                    formData.append("bim_coordinator_id", createBIMCoOrdinator);
+                  const pmIdsCreate = nameOrCsvToIdCsv(
+                    createProjectManager,
+                    allEmployees,
+                  );
+                  if (pmIdsCreate)
+                    formData.append("project_manager_id", pmIdsCreate);
+                  const leadIdsCreate = nameOrCsvToIdCsv(
+                    createBIMLead,
+                    allEmployees,
+                  );
+                  if (leadIdsCreate) formData.append("lead_id", leadIdsCreate);
+                  const bcIdsCreate = nameOrCsvToIdCsv(
+                    createBIMCoOrdinator,
+                    allEmployees,
+                  );
+                  if (bcIdsCreate) formData.append("bim_coordinator_id", bcIdsCreate);
                   if (selectedMemberIds.length > 0)
                     formData.append("members", selectedMemberIds.join(","));
                   if (createDepartment)
@@ -1365,22 +1428,15 @@ export default function ProjectsBC() {
                             const allProjects = res.data.projects ?? [];
                             const userId = user?.id;
                             const filtered = userId
-                              ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.bim_coordinator_id) ===
-                                  String(userId),
-                              )
+                              ? allProjects.filter((p: any) => {
+                                  if (!p.bim_coordinator_id) return false;
+                                  return String(p.bim_coordinator_id)
+                                    .split(",")
+                                    .map((s: string) => s.trim())
+                                    .includes(String(userId));
+                                })
                               : allProjects;
-                            setList(
-                              filtered.map((r: any) => ({
-                                id: r.id,
-                                project_name: r.project_name,
-                                progress: r.progress ?? 0,
-                                total_tasks: r.total_tasks ?? 0,
-                                completed_tasks: r.completed_tasks ?? 0,
-                                priority: r.priority ?? "Normal",
-                              })),
-                            );
+                            setList(filtered.map(mapApiProjectToProject));
                           })
                           .catch(() => { });
                       }
@@ -1633,12 +1689,12 @@ export default function ProjectsBC() {
                       )}
                       {selectedMemberIds.map((id) => {
                         const emp = allEmployees.find((e) => e.id === id);
-                        return emp ? (
+                        return (
                           <span
                             key={id}
                             className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full"
                           >
-                            {emp.full_name}
+                            {emp?.full_name || String(id)}
                             <button
                               type="button"
                               onClick={(ev) => {
@@ -1652,7 +1708,7 @@ export default function ProjectsBC() {
                               ×
                             </button>
                           </span>
-                        ) : null;
+                        );
                       })}
                       <span className="ml-auto text-gray-400 text-sm">
                         {memberDropdownOpen ? "▲" : "▼"}
@@ -1912,16 +1968,6 @@ export default function ProjectsBC() {
                   e.preventDefault();
                   if (!selectedProjectForEdit) return;
                   setIsEditSubmitting(true);
-                  // Helper: convert a name to its employee ID; if already a number, use as-is
-                  const editNameToId = (
-                    name: string,
-                  ): number | string | undefined => {
-                    if (!name) return undefined;
-                    const asNum = parseInt(name, 10);
-                    if (!isNaN(asNum)) return asNum;
-                    const emp = allEmployees.find((e) => e.full_name === name);
-                    return emp ? emp.id : name;
-                  };
                   const membersPayload =
                     selectedMemberIds.length > 0
                       ? selectedMemberIds.join(",")
@@ -1934,12 +1980,18 @@ export default function ProjectsBC() {
                     formData.append("modules", editModuleTags.join(", "));
                   if (createClientName)
                     formData.append("client_id", createClientName);
-                  const pmId = editNameToId(createProjectManager);
-                  if (pmId) formData.append("project_manager_id", String(pmId));
-                  const leadId = editNameToId(createBIMLead);
-                  if (leadId) formData.append("lead_id", String(leadId));
-                  const bcId = editNameToId(createBIMCoOrdinator);
-                  if (bcId) formData.append("bim_coordinator_id", String(bcId));
+                  const pmIds = nameOrCsvToIdCsv(
+                    createProjectManager,
+                    allEmployees,
+                  );
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+                  const leadIds = nameOrCsvToIdCsv(createBIMLead, allEmployees);
+                  if (leadIds) formData.append("lead_id", leadIds);
+                  const bcIds = nameOrCsvToIdCsv(
+                    createBIMCoOrdinator,
+                    allEmployees,
+                  );
+                  if (bcIds) formData.append("bim_coordinator_id", bcIds);
                   if (membersPayload) formData.append("members", membersPayload);
                   if (createDepartment)
                     formData.append("department", createDepartment);
@@ -1986,13 +2038,20 @@ export default function ProjectsBC() {
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
                           )
-                          .then((res) =>
-                            setList(
-                              (res.data.projects ?? []).map(
-                                mapApiProjectToProject,
-                              ),
-                            ),
-                          )
+                          .then((res) => {
+                            const allProjects = res.data.projects ?? [];
+                            const userId = user?.id;
+                            const filtered = userId
+                              ? allProjects.filter((p: any) => {
+                                  if (!p.bim_coordinator_id) return false;
+                                  return String(p.bim_coordinator_id)
+                                    .split(",")
+                                    .map((s: string) => s.trim())
+                                    .includes(String(userId));
+                                })
+                              : allProjects;
+                            setList(filtered.map(mapApiProjectToProject));
+                          })
                           .catch(() => { });
                       }
                     })
@@ -2249,8 +2308,8 @@ export default function ProjectsBC() {
                       label="Department"
                       placeholder="Select Department"
                       options={departments}
-                      value={editDepartment}
-                      onChange={setEditDepartment}
+                      value={createDepartment}
+                      onChange={setCreateDepartment}
                     />
                   </div>
 
@@ -2263,8 +2322,8 @@ export default function ProjectsBC() {
                       label="Project Manager"
                       placeholder="Select Project Manager"
                       options={projectManagers}
-                      value={editProjectManager}
-                      onChange={setEditProjectManager}
+                      value={createProjectManager}
+                      onChange={setCreateProjectManager}
                     />
                   </div>
 
@@ -2277,8 +2336,8 @@ export default function ProjectsBC() {
                       label="BIM Lead"
                       placeholder="Select BIM Lead"
                       options={bimLeads}
-                      value={editBIMLead}
-                      onChange={setEditBIMLead}
+                      value={createBIMLead}
+                      onChange={setCreateBIMLead}
                     />
                   </div>
 
@@ -2290,7 +2349,7 @@ export default function ProjectsBC() {
                     <input
                       type="text"
                       readOnly
-                      value={editBIMCoOrd}
+                      value={createBIMCoOrdinator}
                       className="w-full px-4 py-2 text-[14px] text-gray-500 bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari cursor-not-allowed focus:outline-none"
                     />
                   </div>
@@ -2311,12 +2370,12 @@ export default function ProjectsBC() {
                       )}
                       {selectedMemberIds.map((id) => {
                         const emp = allEmployees.find((e) => e.id === id);
-                        return emp ? (
+                        return (
                           <span
                             key={id}
                             className="inline-flex items-center gap-1 bg-white border border-gray-200 text-[#333] text-[14px] font-Gantari font-medium px-2 py-0.5 rounded-full"
                           >
-                            {emp.full_name}
+                            {emp?.full_name || String(id)}
                             <button
                               type="button"
                               onClick={(ev) => {
@@ -2330,7 +2389,7 @@ export default function ProjectsBC() {
                               ×
                             </button>
                           </span>
-                        ) : null;
+                        );
                       })}
                       <span className="ml-auto text-gray-400 text-sm">
                         {memberDropdownOpen ? "▲" : "▼"}
@@ -2762,14 +2821,56 @@ export default function ProjectsBC() {
                                           : [],
                                       );
                                       setCreateClientName(p.client_name ?? "");
-                                      setCreateProjectManager(p.project_manager ?? "");
-                                      setCreateStartDate(p.start_date ?? "");
-                                      setCreateEndDate(p.end_date ?? "");
+                                      const pmDisplay =
+                                        p.project_manager_name ||
+                                        csvToDisplayNamesFromIds(
+                                          p.project_manager_id,
+                                          allEmployees,
+                                        ) ||
+                                        p.project_manager ||
+                                        "";
+                                      setCreateProjectManager(pmDisplay);
+                                      setCreateStartDate(
+                                        p.start_date
+                                          ? String(p.start_date)
+                                            .split("T")[0]
+                                            .split(" ")[0]
+                                          : "",
+                                      );
+                                      setCreateEndDate(
+                                        p.end_date
+                                          ? String(p.end_date)
+                                            .split("T")[0]
+                                            .split(" ")[0]
+                                          : "",
+                                      );
                                       setCreateTotalHours(p.total_hours ?? "");
                                       setCreatePerDay(p.per_day ?? "");
                                       setCreateDepartment(p.department ?? "");
-                                      setCreateBIMLead(p.bim_lead ?? "");
-                                      setCreateBIMCoOrdinator(p.bim_co_ordinator ?? "");
+                                      const blDisplay =
+                                        p.lead_name ||
+                                        csvToDisplayNamesFromIds(
+                                          p.lead_id,
+                                          allEmployees,
+                                        ) ||
+                                        csvToDisplayNamesFromIds(
+                                          p.bim_lead,
+                                          allEmployees,
+                                        ) ||
+                                        "";
+                                      setCreateBIMLead(blDisplay);
+                                      const bcDisplay =
+                                        p.bim_coordinator_name ||
+                                        csvToDisplayNamesFromIds(
+                                          p.bim_coordinator_id,
+                                          allEmployees,
+                                        ) ||
+                                        csvToDisplayNamesFromIds(
+                                          p.bim_co_ordinator,
+                                          allEmployees,
+                                        ) ||
+                                        "";
+                                      setCreateBIMCoOrdinator(bcDisplay);
                                       setSelectedMemberIds(
                                         p.member
                                           ? p.member
@@ -2781,6 +2882,7 @@ export default function ProjectsBC() {
                                       setCreateResources(p.resources ?? "");
                                       setCreateRequiredResources(p.required_resources ?? "");
                                       setCreatePriority(p.priority ?? "");
+                                      setEditPriority(p.priority ?? "");
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
                                       const tasksArr = p.tasks

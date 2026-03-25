@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { FaPlus, FaEllipsisV } from "react-icons/fa";
 import { VscEye } from "react-icons/vsc";
@@ -36,6 +37,8 @@ interface Team {
 }
 
 export default function VendorBimLeadTeamTasks() {
+    const [searchParams] = useSearchParams();
+    const projectFilter = searchParams.get("project");
     const [tasks, setTasks] = useState<Task[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -99,7 +102,8 @@ export default function VendorBimLeadTeamTasks() {
     const filteredTasks = tasks.filter(t => {
         const matchesStatus = activeTab === "All" || t.status === activeTab;
         const matchesEmployee = selectedEmployeeFilter === "All Employees" || t.assigned_to_name === selectedEmployeeFilter;
-        return matchesStatus && matchesEmployee;
+        const matchesProject = !projectFilter || t.project_name === projectFilter;
+        return matchesStatus && matchesEmployee && matchesProject;
     });
 
     const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];

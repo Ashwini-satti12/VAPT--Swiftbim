@@ -708,6 +708,60 @@ export default function MytaskBM() {
     const [modules, setModules] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Filter and UI status
+    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
+    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const navigate = useNavigate();
+
+    // Form and local state
+    const [addTaskForm, setAddTaskForm] = useState({
+        projectName: "",
+        module: "",
+        taskName: "",
+        type: "",
+        actualStartDate: "",
+        actualEndDate: "",
+        startTime: "",
+        dueTime: "",
+        assignTo: "",
+        description: "",
+        checklist: "",
+    });
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
+    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
+
+    // Refs for dropdowns and menus
+    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
+    const formProjectMenuRef = useRef<HTMLDivElement>(null);
+    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
+    const formModuleMenuRef = useRef<HTMLDivElement>(null);
+    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
+    const formTypeMenuRef = useRef<HTMLDivElement>(null);
+    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
+    const formAssignMenuRef = useRef<HTMLDivElement>(null);
+    const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
+    const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
+    const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
+    const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
+
+    const dropdownsContainerRef = useRef<HTMLDivElement>(null);
+    const employeeTriggerRef = useRef<HTMLButtonElement>(null);
+    const employeeMenuRef = useRef<HTMLDivElement>(null);
+    const projectsTriggerRef = useRef<HTMLButtonElement>(null);
+    const projectsMenuRef = useRef<HTMLDivElement>(null);
+    const showTriggerRef = useRef<HTMLButtonElement>(null);
+    const showMenuRef = useRef<HTMLDivElement>(null);
+    const periodTriggerRef = useRef<HTMLButtonElement>(null);
+    const periodMenuRef = useRef<HTMLDivElement>(null);
+
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
             return ["Select Employee", ...employees.map((e) => e.full_name)];
@@ -755,29 +809,6 @@ export default function MytaskBM() {
         });
     };
 
-    const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
-    const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
-    const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
-    const navigate = useNavigate();
-    const [addTaskForm, setAddTaskForm] = useState({
-        projectName: "",
-        module: "",
-        taskName: "",
-        type: "",
-        actualStartDate: "",
-        actualEndDate: "",
-        startTime: "",
-        dueTime: "",
-        assignTo: "",
-        description: "",
-        checklist: "",
-    });
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const openEditTask = (task: Task) => {
         setAddTaskForm(taskToFormValues(task));
@@ -825,32 +856,6 @@ export default function MytaskBM() {
             checklist: "",
         });
     };
-    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-    const [openFormDropdown, setOpenFormDropdown] =
-        useState<FormDropdownId>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
-    const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
-    const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
-    const formAssignMenuRef = useRef<HTMLDivElement>(null);
-    const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
-    const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
-    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
-
-    const dropdownsContainerRef = useRef<HTMLDivElement>(null);
-    const employeeTriggerRef = useRef<HTMLButtonElement>(null);
-    const employeeMenuRef = useRef<HTMLDivElement>(null);
-    const projectsTriggerRef = useRef<HTMLButtonElement>(null);
-    const projectsMenuRef = useRef<HTMLDivElement>(null);
-    const showTriggerRef = useRef<HTMLButtonElement>(null);
-    const showMenuRef = useRef<HTMLDivElement>(null);
-    const periodTriggerRef = useRef<HTMLButtonElement>(null);
-    const periodMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (openDropdown === null) return;
