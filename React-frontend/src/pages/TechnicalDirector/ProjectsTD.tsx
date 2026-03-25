@@ -632,7 +632,7 @@ export default function ProjectsTD() {
                   {/* To Do Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/teamtask?status=todo')}
+                    onClick={() => navigate('/td/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
@@ -646,7 +646,7 @@ export default function ProjectsTD() {
                   {/* In Progress Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/teamtask?status=in_progress')}
+                    onClick={() => navigate('/td/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -660,7 +660,7 @@ export default function ProjectsTD() {
                   {/* Paused Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/teamtask?status=paused')}
+                    onClick={() => navigate('/td/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -674,7 +674,7 @@ export default function ProjectsTD() {
                   {/* Completed Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/teamtask?status=completed')}
+                    onClick={() => navigate('/td/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
