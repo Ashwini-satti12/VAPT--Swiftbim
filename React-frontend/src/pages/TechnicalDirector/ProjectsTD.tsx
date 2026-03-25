@@ -1994,31 +1994,32 @@ export default function ProjectsTD() {
       {/* Delete confirmation */}
       {deleteId !== null && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full p-12 relative flex flex-col items-center">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
+            {/* <div className="relative flex items-center justify-center mb-10"> */}
+            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">Delete Project</h3>
+            
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
               <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
-
+            {/* </div> */}
             {/* Content */}
-            <h3 className="text-[28px] font-Gantari font-bold text-[#1A1A1A] mt-4 mb-3">
-              Delete Project
-            </h3>
-            <p className="text-[18px] font-Gantari font-bold text-[#353535] mb-10 text-center">
+           
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-10 text-center">
               Are you sure, you want to Delete this?
             </p>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 mb-6">
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="px-12 py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all hover:bg-gray-200"
+                className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
               >
                 Discard
               </button>
@@ -2038,7 +2039,7 @@ export default function ProjectsTD() {
                     })
                     .catch(() => { });
                 }}
-                className="px-12 py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[16px] transition-all hover:bg-[#FFDEDE]"
+                className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
               >
                 Yes, Delete
               </button>

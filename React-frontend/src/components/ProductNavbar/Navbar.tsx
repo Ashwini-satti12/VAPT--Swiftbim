@@ -20,6 +20,7 @@ interface UserProfile {
 }
 
 const SEARCH_PARAM_KEY = "q";
+const LEGACY_SEARCH_PARAM_KEY = "search";
 
 interface NavbarProps {
   onMenuClick?: () => void;
@@ -285,13 +286,22 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     e.preventDefault();
     const next = new URLSearchParams(searchParams);
     const value = localSearch.trim().toLowerCase();
-    if (value) next.set(SEARCH_PARAM_KEY, value);
-    else next.delete(SEARCH_PARAM_KEY);
+    if (value) {
+      next.set(SEARCH_PARAM_KEY, value);
+      next.set(LEGACY_SEARCH_PARAM_KEY, value);
+    } else {
+      next.delete(SEARCH_PARAM_KEY);
+      next.delete(LEGACY_SEARCH_PARAM_KEY);
+    }
     setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
-    setLocalSearch((searchParams.get(SEARCH_PARAM_KEY) || "").toLowerCase());
+    const currentSearch =
+      searchParams.get(SEARCH_PARAM_KEY) ||
+      searchParams.get(LEGACY_SEARCH_PARAM_KEY) ||
+      "";
+    setLocalSearch(currentSearch.toLowerCase());
   }, [searchParams]);
 
   const handleSearchChange = (value: string) => {
@@ -300,8 +310,13 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
 
     const next = new URLSearchParams(searchParams);
     const trimmed = normalized.trim();
-    if (trimmed) next.set(SEARCH_PARAM_KEY, trimmed);
-    else next.delete(SEARCH_PARAM_KEY);
+    if (trimmed) {
+      next.set(SEARCH_PARAM_KEY, trimmed);
+      next.set(LEGACY_SEARCH_PARAM_KEY, trimmed);
+    } else {
+      next.delete(SEARCH_PARAM_KEY);
+      next.delete(LEGACY_SEARCH_PARAM_KEY);
+    }
     setSearchParams(next, { replace: true });
   };
 

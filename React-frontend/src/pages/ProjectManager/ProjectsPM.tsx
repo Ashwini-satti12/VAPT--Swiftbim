@@ -2461,7 +2461,7 @@ export default function ProjectsPM() {
       {/* Delete confirmation (Keep as modal) */}
       {deleteId !== null && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl max-w-xl w-full p-8 md:p-12 relative flex flex-col items-center">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
             <button
               type="button"
@@ -2473,17 +2473,17 @@ export default function ProjectsPM() {
             </button>
 
             {/* Content */}
-            <h3 className="text-[22px] md:text-[28px] font-Gantari font-bold text-[#1A1A1A] mt-6 md:mt-4 mb-3">Delete Project</h3>
-            <p className="text-[15px] md:text-[18px] font-Gantari font-bold text-[#353535] mb-8 md:mb-10 text-center">
+            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">Delete Project</h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
               Are you sure, you want to Delete this?
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-gray-200"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
               >
                 Discard
               </button>
@@ -2498,7 +2498,7 @@ export default function ProjectsPM() {
                     })
                     .catch(() => { setDeleteId(null); });
                 }}
-                className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#FFDEDE]"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
               >
                 Yes, Delete
               </button>
