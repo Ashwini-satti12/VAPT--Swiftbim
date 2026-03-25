@@ -83,7 +83,7 @@ export function TimePickerWheel({
               key={h}
               type="button"
               onClick={() => handleSelect(h, undefined, undefined)}
-              className={`py-1.5 text-center text-sm transition-colors ${
+              className={`py-1.5 text-center text-sm transition-colors cursor-pointer ${
                 hour12 === h
                   ? "font-bold text-black"
                   : "text-[#9CA3AF] hover:text-[#6B7280]"
@@ -101,7 +101,7 @@ export function TimePickerWheel({
               key={m}
               type="button"
               onClick={() => handleSelect(undefined, m, undefined)}
-              className={`py-1.5 text-center text-sm transition-colors ${
+              className={`py-1.5 text-center text-sm transition-colors cursor-pointer ${
                 minute === m
                   ? "font-bold text-black"
                   : "text-[#9CA3AF] hover:text-[#6B7280]"
@@ -118,7 +118,7 @@ export function TimePickerWheel({
               key={a}
               type="button"
               onClick={() => handleSelect(undefined, undefined, a)}
-              className={`py-1.5 text-center text-sm transition-colors ${
+              className={`py-1.5 text-center text-sm transition-colors cursor-pointer ${
                 ampm === a
                   ? "font-bold text-black"
                   : "text-[#9CA3AF] hover:text-[#6B7280]"
@@ -134,7 +134,7 @@ export function TimePickerWheel({
           <button
             type="button"
             onClick={onClose}
-            className="text-sm font-medium text-[#353535] hover:text-black"
+            className="text-sm font-medium text-[#353535] hover:text-black cursor-pointer"
           >
             Done
           </button>

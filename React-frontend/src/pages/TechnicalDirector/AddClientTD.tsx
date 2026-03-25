@@ -58,7 +58,7 @@ export default function AddClientTD() {
           <button
             type="button"
             onClick={() => navigate('/td/clients')}
-            className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+            className="p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
             title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -201,14 +201,14 @@ export default function AddClientTD() {
             <button
               type="button"
               onClick={() => navigate('/td/clients')}
-              className="w-32 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all"
+              className="w-32 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all cursor-pointer"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-32 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all disabled:opacity-50"
+              className="w-32 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all disabled:opacity-50 cursor-pointer"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>

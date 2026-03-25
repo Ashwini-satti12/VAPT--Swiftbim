@@ -169,7 +169,7 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${styleType === "header"
             ? "px-3 py-1.5 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
             : styleType === "table"
               ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
@@ -203,7 +203,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-[14px] font-medium font-Gantari transition-colors ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'} hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors`}
+                className={`w-full text-left px-4 py-2.5 text-[14px] font-medium font-Gantari transition-colors cursor-pointer ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'} hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors`}
               >
                 {option}
               </button>
@@ -639,7 +639,7 @@ export default function EmployeesPM() {
                   <button
                     type="button"
                     onClick={() => setActiveView('add')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Add Consultant
@@ -647,7 +647,7 @@ export default function EmployeesPM() {
                   <button
                     type="button"
                     onClick={() => setActiveView('invite')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Invite
@@ -655,7 +655,7 @@ export default function EmployeesPM() {
                   <button
                     type="button"
                     onClick={exportCsv}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <img src={exportIcon} alt="Export" className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     CSV
@@ -663,7 +663,7 @@ export default function EmployeesPM() {
                   <button
                     type="button"
                     onClick={() => setActiveView('inactive')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     Manage Inactive
                   </button>
@@ -676,14 +676,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
                   <FiMenu className="w-5 h-5 sm:w-6 h-6" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('card')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
                   <FiGrid className="w-5 h-5 sm:w-6 h-6" />
                 </button>
@@ -697,7 +697,7 @@ export default function EmployeesPM() {
                     value={selectedShow === 'Show' ? 'Show' : selectedShow}
                     onChange={(val) => setSelectedShow(val)}
                     placeholder="Show"
-                    className="flex-1 sm:min-w-[120px]"
+                    className="flex-1 sm:min-w-[120px] cursor-pointer"
                     styleType="header"
                   />
                 )}
@@ -707,7 +707,7 @@ export default function EmployeesPM() {
                   value={typeFilter === 'All' ? 'Type' : typeFilter}
                   onChange={(val) => setTypeFilter(val)}
                   placeholder="Type"
-                  className="flex-1 sm:min-w-[120px]"
+                  className="flex-1 sm:min-w-[120px] cursor-pointer"
                   styleType="header"
                 />
                 <CustomDropdown
@@ -719,7 +719,7 @@ export default function EmployeesPM() {
                     setStatusFilter(nextStatus);
                   }}
                   placeholder="Status"
-                  className="flex-1 sm:min-w-[120px]"
+                  className="flex-1 sm:min-w-[120px] cursor-pointer"
                   styleType="header"
                 />
               </div>
@@ -795,19 +795,19 @@ export default function EmployeesPM() {
                     <div className="flex flex-wrap items-center gap-3">
                       <button 
                         onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                       </button>
                       <button 
                         onClick={() => navigate('/chat')}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                       </button>
                       <button 
                         onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                       </button>
@@ -820,7 +820,7 @@ export default function EmployeesPM() {
                       <button
                         type="button"
                         onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-[5px] text-[13px] sm:text-[14px] font-Gantari cursor-pointer"
                       >
                         <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                       </button>
@@ -850,7 +850,7 @@ export default function EmployeesPM() {
                               active: emp.active === 'active' ? 'Active' : 'Deactivate',
                             });
                           }}
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[13px] sm:text-[14px] font-Gantari cursor-pointer"
                         >
                           <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                         </button>
@@ -931,19 +931,19 @@ export default function EmployeesPM() {
                           <div className="flex items-center justify-center gap-3">
                             <button 
                               onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                             >
                               <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                             </button>
                             <button 
                               onClick={() => navigate('/chat')}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                             >
                               <img src={messageIcon} className="w-5 h-5" alt="Message" />
                             </button>
                             <button 
                               onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
                             >
                               <img src={callIcon} className="w-5 h-5" alt="Call" />
                             </button>
@@ -953,6 +953,7 @@ export default function EmployeesPM() {
                           <div className="inline-block min-w-[140px]">
                             <CustomDropdown
                               options={['Active', 'Deactivate']}
+                              className="cursor-pointer"
                               value={emp.active === 'active' ? 'Active' : 'Deactivate'}
                               onChange={(val) => handleStatusToggle(emp.id, val)}
                               placeholder="Status"
@@ -976,7 +977,7 @@ export default function EmployeesPM() {
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <FiChevronDown className="w-5 h-5 rotate-90" />
                   </button>
@@ -984,7 +985,7 @@ export default function EmployeesPM() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all ${currentPage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
+                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${currentPage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
                     >
                       {String(page).padStart(2, '0')}
                     </button>
@@ -992,7 +993,7 @@ export default function EmployeesPM() {
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors"
+                    className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <FiChevronDown className="w-5 h-5 -rotate-90" />
                   </button>
@@ -1015,7 +1016,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setAddError(''); }}
-                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1129,6 +1130,7 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                     <CustomDropdown
                       options={['Trainee', 'Consultant',]}
+                      className="cursor-pointer"
                       value={form.type}
                       onChange={(val) => setForm((f: any) => ({ ...f, type: val }))}
                       placeholder="Select Type"
@@ -1153,7 +1155,7 @@ export default function EmployeesPM() {
                         Browse File
                         <input
                           type="file"
-                          className="hidden"
+                          className="hidden cursor-pointer"
                           accept=".jpg,.jpeg"
                           onChange={(e) => setForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                         />
@@ -1178,14 +1180,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1202,7 +1204,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); }}
-                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1269,6 +1271,7 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Role</label>
                     <CustomDropdown
                       options={ROLE_OPTIONS}
+                      className="cursor-pointer"
                       value={editForm.user_role}
                       onChange={(val) => setEditForm((f: any) => ({ ...f, user_role: val }))}
                       placeholder="Select Role"
@@ -1278,6 +1281,7 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Department</label>
                     <CustomDropdown
                       options={departmentOptions}
+                      className="cursor-pointer"
                       value={editForm.department}
                       onChange={(val) => setEditForm((f: any) => ({ ...f, department: val }))}
                       placeholder="Select Department"
@@ -1323,6 +1327,7 @@ export default function EmployeesPM() {
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
                   <CustomDropdown
                     options={['Employee', 'Trainee' ]}
+                    className="cursor-pointer"
                     value={editForm.user_type}
                     onChange={(val) => setEditForm((f: any) => ({ ...f, user_type: val }))}
                     placeholder="Select Type"
@@ -1357,7 +1362,7 @@ export default function EmployeesPM() {
                       Browse File
                       <input
                         type="file"
-                        className="hidden"
+                        className="hidden cursor-pointer"
                         accept=".jpg,.jpeg"
                         onChange={(e) => setEditForm((f: any) => ({ ...f, profile_picture: e.target.files ? e.target.files[0] : null }))}
                       />
@@ -1413,14 +1418,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); }}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1437,7 +1442,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1472,7 +1477,7 @@ export default function EmployeesPM() {
                 <button
                   type="submit"
                   disabled={inviteSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px]"
+                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                 </button>
@@ -1490,7 +1495,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1558,7 +1563,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px]"
+                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px] cursor-pointer"
               >
                 Discard
               </button>
@@ -1566,7 +1571,7 @@ export default function EmployeesPM() {
                 type="button"
                 onClick={handleInactive}
                 disabled={!inactiveIds.length || inactiveSubmitting}
-                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px]"
+                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
               >
                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>
@@ -1584,7 +1589,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>

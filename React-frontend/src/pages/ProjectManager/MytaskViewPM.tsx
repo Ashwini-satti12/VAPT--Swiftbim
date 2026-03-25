@@ -270,7 +270,7 @@ export default function MytaskViewPM() {
               type="button"
               disabled={updatingStatus}
               onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50"
+              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50 cursor-pointer"
               aria-expanded={statusDropdownOpen}
               aria-haspopup="listbox"
             >
@@ -289,7 +289,7 @@ export default function MytaskViewPM() {
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 cursor-pointer ${statusDisplay === opt.value
                       ? "bg-slate-50 font-medium"
                       : ""
                       }`}
@@ -394,7 +394,7 @@ export default function MytaskViewPM() {
                       setSelectedImage(null);
                       setSelectedImagePreview(null);
                     }}
-                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10"
+                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10 cursor-pointer"
                   >
                     <FiX className="w-4 h-4 text-slate-600" />
                   </button>
@@ -416,7 +416,7 @@ export default function MytaskViewPM() {
                 type="button"
                 disabled={submittingWork}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer"
               >
                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                 <span className="mr-2">Select Image</span>
@@ -425,7 +425,7 @@ export default function MytaskViewPM() {
                 type="button"
                 disabled={!selectedImage || submittingWork}
                 onClick={handleImageSubmit}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50"
+                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer"
               >
                 <FiCheck className="w-4 h-4 text-[#008F22]" />
                 {submittingWork ? "Submitting..." : "Submit Image"}

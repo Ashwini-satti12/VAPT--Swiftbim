@@ -58,7 +58,7 @@ export default function ClientViewTD() {
                     <button
                         type="button"
                         onClick={() => navigate('/td/clients')}
-                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A]"
+                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] cursor-pointer"
                     >
                         Back to Clients
                     </button>
@@ -96,7 +96,7 @@ export default function ClientViewTD() {
                     <button
                         type="button"
                         onClick={() => navigate('/td/clients')}
-                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                        className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                         title="Back"
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />

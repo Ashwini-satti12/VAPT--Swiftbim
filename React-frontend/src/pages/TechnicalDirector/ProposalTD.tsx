@@ -140,7 +140,7 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[140px]"
+              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[140px] cursor-pointer"
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 {selectedShowEntries === 'show' ? (
@@ -169,7 +169,7 @@ export default function ProposalTD() {
                     key={opt.value}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#8B8B8B]' : 'text-[#8B8B8B]'} hover:bg-[#F2F2F2] hover:text-[#353535]`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? 'text-[#8B8B8B]' : 'text-[#8B8B8B]'} hover:bg-[#F2F2F2] hover:text-[#353535]`}
                   >
                     {opt.label}
                   </button>
@@ -244,7 +244,7 @@ export default function ProposalTD() {
                               })
                             }
                             disabled={!!bid.proposal_exists}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
                                 bid.proposal_exists 
                                 ? 'cursor-not-allowed opacity-50' 
                                 : ' '
@@ -265,7 +265,7 @@ export default function ProposalTD() {
                             }
                             disabled={!bid.proposal_exists}
                             title="View Proposal"
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
                                 !bid.proposal_exists 
                                 ? 'cursor-not-allowed opacity-50' 
                                 : ''
