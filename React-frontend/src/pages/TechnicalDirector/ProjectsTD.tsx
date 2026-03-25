@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 import api from "../../lib/api";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
@@ -187,6 +188,7 @@ interface Employee {
   user_type?: string;
   address?: string;
   department?: string;
+  active?: string | null;
 }
 
 export default function ProjectsTD() {
@@ -357,11 +359,12 @@ export default function ProjectsTD() {
       .get<{ employees?: Employee[] }>("/api/employees")
       .then(({ data }) => {
         const allEmp = data.employees ?? [];
+        const selectable = allEmp.filter(isEmployeeActiveForProjectAssignment);
         setAllEmployees(allEmp);
         setEmployees(allEmp);
-        setProjectManagers(allEmp.filter((e) => e.user_role === "Project Manager"));
-        setBimLeads(allEmp.filter((e) => e.user_role === "BIM Lead"));
-        setBimCoordinators(allEmp.filter((e) => e.user_role === "BIM Coordinator"));
+        setProjectManagers(selectable.filter((e) => e.user_role === "Project Manager"));
+        setBimLeads(selectable.filter((e) => e.user_role === "BIM Lead"));
+        setBimCoordinators(selectable.filter((e) => e.user_role === "BIM Coordinator"));
       })
       .catch(() => {
         setAllEmployees([]);
@@ -628,7 +631,7 @@ export default function ProjectsTD() {
               /* Project View Content */
               <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
                 {/* Task Status Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                   {/* To Do Tasks */}
                   <button
                     type="button"
@@ -654,20 +657,6 @@ export default function ProjectsTD() {
                     </div>
                     <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.inProgress}
-                    </p>
-                  </button>
-
-                  {/* Paused Tasks */}
-                  <button
-                    type="button"
-                    onClick={() => navigate('/teamtask?status=paused')}
-                    className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold">Paused Tasks</p>
-                    </div>
-                    <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                      {loadingTaskStats ? "..." : taskStats.paused}
                     </p>
                   </button>
 
@@ -781,7 +770,7 @@ export default function ProjectsTD() {
                         })
                       ) : (
                         <div className="col-span-full text-center py-8 text-gray-500">
-                          No tower/module data available
+                          Currently, no modules have been added.
                         </div>
                       )}
                     </div>
