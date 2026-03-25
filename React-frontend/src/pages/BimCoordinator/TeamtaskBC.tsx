@@ -69,7 +69,14 @@ export default function TeamtaskBC() {
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-    const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(
+    searchParams.get("project") || null
+  );
+
+  useEffect(() => {
+    const proj = searchParams.get("project");
+    if (proj) setSelectedProject(proj);
+  }, [searchParams]);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
