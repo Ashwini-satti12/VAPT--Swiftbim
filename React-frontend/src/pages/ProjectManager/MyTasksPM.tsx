@@ -251,6 +251,7 @@ function TaskCard({
   onOpenInvolvedList?: (involved: Employee[]) => void;
 }) {
   const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
+  void [employees, onOpenMemberProfile, onOpenInvolvedList];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 

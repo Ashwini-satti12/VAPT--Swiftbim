@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import api from "../../lib/api";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -209,6 +210,7 @@ interface Employee {
   user_type?: string;
   address?: string;
   department?: string;
+  active?: string | null;
 }
 
 export default function ProjectsTD() {
@@ -389,15 +391,12 @@ export default function ProjectsTD() {
       .get<{ employees?: Employee[] }>("/api/employees")
       .then(({ data }) => {
         const allEmp = data.employees ?? [];
+        const selectable = allEmp.filter(isEmployeeActiveForProjectAssignment);
         setAllEmployees(allEmp);
         setEmployees(allEmp);
-        setProjectManagers(
-          allEmp.filter((e) => e.user_role === "Project Manager"),
-        );
-        setBimLeads(allEmp.filter((e) => e.user_role === "BIM Lead"));
-        setBimCoordinators(
-          allEmp.filter((e) => e.user_role === "BIM Coordinator"),
-        );
+        setProjectManagers(selectable.filter((e) => e.user_role === "Project Manager"));
+        setBimLeads(selectable.filter((e) => e.user_role === "BIM Lead"));
+        setBimCoordinators(selectable.filter((e) => e.user_role === "BIM Coordinator"));
       })
       .catch(() => {
         setAllEmployees([]);
@@ -615,13 +614,6 @@ export default function ProjectsTD() {
     }
   }, [showMilestones, currentProject?.id]);
 
-  // Helper function to get employee name by ID
-  const getEmployeeName = (id: string | number | undefined): string => {
-    if (!id) return "";
-    const emp = employees.find((e) => e.id === Number(id));
-    return emp?.full_name || "";
-  };
-
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((p) => {
     if (!searchQuery) return true;
@@ -689,11 +681,11 @@ export default function ProjectsTD() {
               /* Project View Content */
               <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
                 {/* Task Status Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                   {/* To Do Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate("/teamtask?status=todo")}
+                    onClick={() => navigate('/td/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
@@ -709,7 +701,7 @@ export default function ProjectsTD() {
                   {/* In Progress Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate("/teamtask?status=in_progress")}
+                    onClick={() => navigate('/td/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -725,7 +717,7 @@ export default function ProjectsTD() {
                   {/* Paused Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate("/teamtask?status=paused")}
+                    onClick={() => navigate('/td/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -741,7 +733,7 @@ export default function ProjectsTD() {
                   {/* Completed Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate("/teamtask?status=completed")}
+                    onClick={() => navigate('/td/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -855,7 +847,7 @@ export default function ProjectsTD() {
                         })
                       ) : (
                         <div className="col-span-full text-center py-8 text-gray-500">
-                          No tower/module data available
+                          Currently, no modules have been added.
                         </div>
                       )}
                     </div>
@@ -900,77 +892,71 @@ export default function ProjectsTD() {
 
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                                <span className="text-slate-600 font-semibold">
-                                  PM
-                                </span>
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                                  Not Assigned
-                                </p>
-                                <p className="text-sm font-Gantari text-[#616161] truncate">
-                                  Project Manager
-                                </p>
+                            <div className="min-w-0">
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                              <div className="flex items-center -space-x-3">
+                                <div
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                  title="Not assigned"
+                                >
+                                  <span className="text-slate-600 text-xs font-bold">PM</span>
+                                </div>
                               </div>
                             </div>
                           );
                         }
 
                         const maxCount = Math.max(pmIds.length, pmNames.length);
+                        const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = pmIds[i];
+                          const pName = pmNames[i];
+                          const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                          const dName = pmEmp?.full_name || pName || "Unknown";
+                          const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
+                          return { key: i, dName, url };
+                        });
+                        const visiblePm = pmEntries.slice(0, 3);
+                        const pmRemaining = Math.max(0, pmEntries.length - 3);
+                        const pmOverflowTitle =
+                          pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+
                         return (
-                          <div
-                            className={`flex flex-col gap-3 ${maxCount > 1 ? "max-h-[140px] overflow-y-auto pr-2 custom-scrollbar" : ""}`}
-                          >
-                            <p className="text-sm font-Gantari text-[#616161] mb-1">
-                              {maxCount > 1
-                                ? "Project Managers"
-                                : "Project Manager"}
+                          <div className="min-w-0">
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              {maxCount > 1 ? "Project Managers" : "Project Manager"}
                             </p>
-                            {Array.from({ length: maxCount }).map((_, i) => {
-                              const pId = pmIds[i];
-                              const pName = pmNames[i];
-                              const pm = pId
-                                ? allEmployees.find(
-                                    (e: any) => String(e.id) === pId,
-                                  )
-                                : null;
-                              const dName = pm?.full_name || pName || "Unknown";
-                              const url = pm?.profile_picture
-                                ? getGlobalProfileUrl(pm.id, pm.profile_picture)
-                                : null;
-                              return (
+                            <div className="flex items-center -space-x-3">
+                              {visiblePm.map((entry) => (
                                 <div
-                                  key={i}
-                                  className="flex items-center gap-3"
+                                  key={entry.key}
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                  title={entry.dName}
                                 >
-                                  {url ? (
+                                  {entry.url ? (
                                     <img
-                                      src={url}
-                                      className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
-                                      alt={dName}
+                                      src={entry.url}
+                                      className="w-full h-full object-cover"
+                                      alt=""
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          ProfileIcon;
+                                        (e.target as HTMLImageElement).src = ProfileIcon;
                                       }}
                                     />
                                   ) : (
-                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
-                                      <span className="text-xs font-bold text-slate-600">
-                                        {dName.charAt(0).toUpperCase()}
-                                      </span>
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {entry.dName.charAt(0).toUpperCase()}
                                     </div>
                                   )}
-                                  <p
-                                    className="text-md font-Gantari font-semibold text-[#000000] truncate"
-                                    title={dName}
-                                  >
-                                    {dName}
-                                  </p>
                                 </div>
-                              );
-                            })}
+                              ))}
+                              {pmRemaining > 0 && (
+                                <div
+                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none"
+                                  title={pmOverflowTitle}
+                                >
+                                  +{pmRemaining}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}
@@ -992,75 +978,71 @@ export default function ProjectsTD() {
 
                         if (blIds.length === 0 && blNames.length === 0) {
                           return (
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                                <span className="text-slate-600 font-semibold">
-                                  BL
-                                </span>
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                                  Not Assigned
-                                </p>
-                                <p className="text-sm font-Gantari text-[#616161] truncate">
-                                  BIM Lead
-                                </p>
+                            <div className="min-w-0">
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                              <div className="flex items-center -space-x-3">
+                                <div
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
+                                  title="Not assigned"
+                                >
+                                  <span className="text-slate-600 text-xs font-bold">BL</span>
+                                </div>
                               </div>
                             </div>
                           );
                         }
 
                         const maxCount = Math.max(blIds.length, blNames.length);
+                        const blEntries = Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = blIds[i];
+                          const pName = blNames[i];
+                          const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                          const dName = blEmp?.full_name || pName || "Unknown";
+                          const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
+                          return { key: i, dName, url };
+                        });
+                        const visibleBl = blEntries.slice(0, 3);
+                        const blRemaining = Math.max(0, blEntries.length - 3);
+                        const blOverflowTitle =
+                          blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+
                         return (
-                          <div
-                            className={`flex flex-col gap-3 ${maxCount > 1 ? "max-h-[140px] overflow-y-auto pr-2 custom-scrollbar" : ""}`}
-                          >
-                            <p className="text-sm font-Gantari text-[#616161] mb-1">
+                          <div className="min-w-0">
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
                               {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                             </p>
-                            {Array.from({ length: maxCount }).map((_, i) => {
-                              const pId = blIds[i];
-                              const pName = blNames[i];
-                              const bl = pId
-                                ? allEmployees.find(
-                                    (e: any) => String(e.id) === pId,
-                                  )
-                                : null;
-                              const dName = bl?.full_name || pName || "Unknown";
-                              const url = bl?.profile_picture
-                                ? getGlobalProfileUrl(bl.id, bl.profile_picture)
-                                : null;
-                              return (
+                            <div className="flex items-center -space-x-3">
+                              {visibleBl.map((entry) => (
                                 <div
-                                  key={i}
-                                  className="flex items-center gap-3"
+                                  key={entry.key}
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                  title={entry.dName}
                                 >
-                                  {url ? (
+                                  {entry.url ? (
                                     <img
-                                      src={url}
-                                      className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
-                                      alt={dName}
+                                      src={entry.url}
+                                      className="w-full h-full object-cover"
+                                      alt=""
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src =
-                                          ProfileIcon;
+                                        (e.target as HTMLImageElement).src = ProfileIcon;
                                       }}
                                     />
                                   ) : (
-                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
-                                      <span className="text-xs font-bold text-slate-600">
-                                        {dName.charAt(0).toUpperCase()}
-                                      </span>
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {entry.dName.charAt(0).toUpperCase()}
                                     </div>
                                   )}
-                                  <p
-                                    className="text-md font-Gantari font-semibold text-[#000000] truncate"
-                                    title={dName}
-                                  >
-                                    {dName}
-                                  </p>
                                 </div>
-                              );
-                            })}
+                              ))}
+                              {blRemaining > 0 && (
+                                <div
+                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none"
+                                  title={blOverflowTitle}
+                                >
+                                  +{blRemaining}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}

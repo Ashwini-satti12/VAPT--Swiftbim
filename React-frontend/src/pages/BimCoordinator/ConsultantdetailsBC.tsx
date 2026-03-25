@@ -14,7 +14,10 @@ interface EmployeeDetailType {
     doj?: string;
     dob?: string;
     active?: string;
+    profile_picture?: string;
 }
+
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 export default function ConsultantdetailsBC() {
     const { id } = useParams<{ id: string }>();
@@ -27,24 +30,38 @@ export default function ConsultantdetailsBC() {
     }, [id]);
 
     if (loading) return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" /></div>;
-    if (!emp) return <div className="text-center py-12 text-slate-500">Consultant not found. <Link to="/bc/consultants" className="text-[#3d3399] hover:underline">Back to Consultants</Link></div>;
+    if (!emp) return <div className="text-center py-12 text-slate-500">Consultant not found. <Link to="/bc/consultants" className="text-[#3d3399] hover:underline cursor-pointer">Back to Consultants</Link></div>;
 
     const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-');
 
     return (
         <div className="space-y-4">
-            <Link to="/bc/consultants" className="text-[#3d3399] hover:underline text-sm font-medium">&larr; Back to Consultants</Link>
+            <Link to="/bc/consultants" className="text-[#3d3399] hover:underline text-sm font-medium cursor-pointer">&larr; Back to Consultants</Link>
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399]">{(emp.full_name || '?').charAt(0).toUpperCase()}</div>
+                        <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399] overflow-hidden">
+                            {emp.profile_picture ? (
+                                <img 
+                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture)} 
+                                    alt={emp.full_name} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = emp.full_name?.charAt(0).toUpperCase() || '?';
+                                    }}
+                                />
+                            ) : (
+                                (emp.full_name || '?').charAt(0).toUpperCase()
+                            )}
+                        </div>
                         <div>
                             <h2 className="text-xl font-semibold text-slate-800">{emp.full_name ?? 'Consultant'}</h2>
                             <p className="text-slate-500">{emp.email}</p>
                             <span className={`inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${emp.active === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{emp.active || 'inactive'}</span>
                         </div>
                     </div>
-                    <Link to={`/bc/consultants?edit=${emp.id}`} className="px-4 py-2 rounded-lg border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10">Edit</Link>
+                    <Link to={`/bc/consultants?edit=${emp.id}`} className="px-4 py-2 rounded-lg border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10 cursor-pointer">Edit</Link>
                 </div>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div><dt className="text-slate-500">Employee ID</dt><dd className="font-medium text-slate-800">{emp.empid ?? '-'}</dd></div>

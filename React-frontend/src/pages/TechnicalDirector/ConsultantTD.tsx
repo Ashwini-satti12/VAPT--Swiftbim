@@ -5,6 +5,7 @@ import { FiPlus, FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
+
 // Get API base URL for image URLs
 const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || '';
@@ -38,6 +39,8 @@ interface Employee {
   accountnumber?: string;
   Allpannel?: string;
 }
+
+
 
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
@@ -174,17 +177,16 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${styleType === "header"
-            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
-            : styleType === "table"
-              ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+          ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+          : styleType === "table"
+            ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={`whitespace-nowrap ${
-            styleType === "header" || styleType === "form"
-              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
-              : ""
+        <span className={`whitespace-nowrap ${styleType === "header" || styleType === "form"
+            ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+            : ""
           }`}>
           {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
             <>
@@ -414,18 +416,26 @@ export default function ConsultantTD() {
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((emp: Employee) => {
-    const matchesSearch = !searchQuery || 
-      (emp.full_name || "").toLowerCase().includes(searchQuery) || 
-      (emp.email || "").toLowerCase().includes(searchQuery) || 
+    const matchesSearch = !searchQuery ||
+      (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+      (emp.email || "").toLowerCase().includes(searchQuery) ||
       (emp.user_role || "").toLowerCase().includes(searchQuery) ||
       (emp.department || "").toLowerCase().includes(searchQuery) ||
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
 
-    if (statusFilter === 'All') return true;
-    const currentStatus = (emp.active || '').toLowerCase();
-    if (statusFilter === 'Active') return currentStatus === 'active';
-    if (statusFilter === 'deactive') return currentStatus !== 'active';
+    if (statusFilter !== 'All') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+      if (statusFilter === 'deactive' && currentStatus === 'active') return false;
+    }
+
+    if (typeFilter !== 'All') {
+      const currentType = (emp.user_type || '').toLowerCase();
+      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+    }
+
     return true;
   });
 
@@ -731,7 +741,7 @@ export default function ConsultantTD() {
                   <FiGrid className="w-5 h-5 sm:w-6 h-6" />
                 </button>
               </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {viewMode === 'table' && (
                   <CustomDropdown
                     options={SHOW_OPTIONS}
@@ -1520,3 +1530,5 @@ export default function ConsultantTD() {
     </div>
   );
 }
+
+

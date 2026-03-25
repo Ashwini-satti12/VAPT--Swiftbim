@@ -19,9 +19,8 @@ import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg'
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
-import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
-
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+// import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+// const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
   id: number;
   full_name: string;

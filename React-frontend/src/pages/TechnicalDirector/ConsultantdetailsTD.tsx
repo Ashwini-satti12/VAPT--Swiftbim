@@ -14,7 +14,10 @@ interface EmployeeDetailType {
     doj?: string;
     dob?: string;
     active?: string;
+    profile_picture?: string;
 }
+
+import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
 export default function ConsultantdetailsTD() {
     const { id } = useParams<{ id: string }>();
@@ -37,7 +40,21 @@ export default function ConsultantdetailsTD() {
             <div className="bg-white rounded-xl border border-slate-200 p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399]">{(emp.full_name || '?').charAt(0).toUpperCase()}</div>
+                        <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399] overflow-hidden">
+                            {emp.profile_picture ? (
+                                <img 
+                                    src={getGlobalProfileUrl(emp.id, emp.profile_picture)} 
+                                    alt={emp.full_name} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = emp.full_name?.charAt(0).toUpperCase() || '?';
+                                    }}
+                                />
+                            ) : (
+                                (emp.full_name || '?').charAt(0).toUpperCase()
+                            )}
+                        </div>
                         <div>
                             <h2 className="text-xl font-semibold text-slate-800">{emp.full_name ?? 'Consultant'}</h2>
                             <p className="text-slate-500">{emp.email}</p>
