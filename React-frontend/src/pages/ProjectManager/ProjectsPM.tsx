@@ -565,12 +565,8 @@ export default function ProjectsPM() {
               {/* Total Tasks */}
               <button
                 type="button"
-<<<<<<< HEAD
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors cursor-pointer"
-=======
                 onClick={() => navigate('/teamtask' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
->>>>>>> 4f0396f5d0dfe27071e97ba3181a97ea359f8c4f
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Total Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
@@ -593,12 +589,8 @@ export default function ProjectsPM() {
               {/* To Do Tasks */}
               <button
                 type="button"
-<<<<<<< HEAD
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors cursor-pointer"
-=======
                 onClick={() => navigate('/teamtask?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
->>>>>>> 4f0396f5d0dfe27071e97ba3181a97ea359f8c4f
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">To Do Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
@@ -609,12 +601,8 @@ export default function ProjectsPM() {
               {/* In Progress Tasks */}
               <button
                 type="button"
-<<<<<<< HEAD
-                className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-default focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors cursor-pointer"
-=======
                 onClick={() => navigate('/teamtask?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
                 className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
->>>>>>> 4f0396f5d0dfe27071e97ba3181a97ea359f8c4f
               >
                 <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
                 <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
