@@ -54,63 +54,63 @@ const Resources = ({ vendor }: Props) => {
 
                     <div className="grid grid-cols-2 gap-x-12 gap-y-6">
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Name</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Name</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.name}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Years of experience</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Years of experience</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.years_of_experience}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Designation</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Designation</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.designation}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Discipline</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Discipline</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.discipline}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Role</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Role</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.role}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Expertise</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Expertise</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.expertise}
                             </div>
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Software</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Software</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.software}
                             </div>
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Projects Worked On</label>
-                            <div className="text-sm text-[#353535] font-gantari bg-[#F2F2F2] p-3 rounded-md min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Projects Worked On</label>
+                            <div className="text-[14px] text-[#353535] font-Gantari bg-[#F2F2F2] px-4 py-2 rounded-[5px] min-h-[44px] flex items-center">
                                 {profile.projects_worked_on}
                             </div>
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-1">Certificates & Projects</label>
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-1">Certificates & Projects</label>
                             {/* The backend might return a path string or JSON array, handling basic string for now based on typical output */}
                             <div className="mt-1">
                                 <FileLink fileName={profile.certifications} label="Certificates" />

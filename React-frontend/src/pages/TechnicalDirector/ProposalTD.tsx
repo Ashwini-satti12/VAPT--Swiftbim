@@ -82,8 +82,9 @@ export default function ProposalTD() {
 
   const getStatusBadge = (status: string) => {
     const s = (status || '').toLowerCase();
-    if (s === 'accepted') return 'bg-[#E6F4EA] text-[#1E7E34]';
+    if (s === 'accepted') return 'bg-[#E1F6EB] text-[#008F22]';
     if (s === 'pending' || s === 'active') return 'bg-[#EAF0FB] text-[#1967D2]';
+    if (s === 'rejected') return 'bg-[#FFD9D9] text-[#E00100]';
     return 'bg-[#F2F2F2] text-[#616161]';
   };
 
@@ -139,26 +140,28 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[140px]"
             >
-              {selectedShowEntries === 'show' ? (
-                <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
-              ) : (
-                <>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                </>
-              )}
+              <div className="flex items-center gap-2 overflow-hidden">
+                {selectedShowEntries === 'show' ? (
+                  <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
+                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                  </>
+                )}
+              </div>
               <img
                 src={ArrowDown}
                 alt="arrow"
-                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
               />
             </button>
             {showEntriesOpen && (
               <div
                 ref={dropdownContentRef}
-                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-full py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {showEntriesOptions.map(opt => (
@@ -166,7 +169,7 @@ export default function ProposalTD() {
                     key={opt.value}
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#8B8B8B]' : 'text-[#8B8B8B]'} hover:bg-[#F2F2F2] hover:text-[#353535]`}
                   >
                     {opt.label}
                   </button>
@@ -196,13 +199,13 @@ export default function ProposalTD() {
             <table className="min-w-full border-collapse">
               <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                 <tr className="border-b border-gray-100 bg-white">
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                  <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Bid Amount</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Timeline</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                  <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -214,17 +217,17 @@ export default function ProposalTD() {
                       : bid.status;
                   return (
                     <tr key={bid.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
-                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                      <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.project_name}</td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <div className="text-sm font-semibold text-[#353535] font-gantari">{bid.vendor_name}</div>
+                        <div className="text-[14px] text-[#353535] font-gantari">{bid.vendor_name}</div>
                       </td>
-                      <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                         {formatCurrency(bid.bid_amount)}
                       </td>
-                      <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
+                      <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{bid.timeline || "—"}</td>
                       <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(displayStatus)}`}>
+                        <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-gantari ${getStatusBadge(displayStatus)}`}>
                           {getStatusLabel(displayStatus)}
                         </span>
                       </td>
@@ -241,10 +244,10 @@ export default function ProposalTD() {
                               })
                             }
                             disabled={!!bid.proposal_exists}
-                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
                                 bid.proposal_exists 
                                 ? 'cursor-not-allowed opacity-50' 
-                                : 'hover:bg-[#c23b3a]'
+                                : ' '
                             }`}
                           >
                             <img src={viewIcon} alt="" className="w-4 h-4 object-contain" />
@@ -262,10 +265,10 @@ export default function ProposalTD() {
                             }
                             disabled={!bid.proposal_exists}
                             title="View Proposal"
-                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 ${
                                 !bid.proposal_exists 
                                 ? 'cursor-not-allowed opacity-50' 
-                                : 'hover:bg-[#c23b3a]'
+                                : ''
                             }`}
                           >
                             <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />

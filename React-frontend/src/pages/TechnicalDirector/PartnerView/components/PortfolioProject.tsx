@@ -54,56 +54,56 @@ const PortfolioProject = ({ vendor }: Props) => {
 
                     <div className="grid grid-cols-2 gap-x-12 gap-y-6">
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Project Name</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Project Name</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_name || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Client</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Client</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_client || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Sector</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Sector</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_sector || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Role</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Role</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_role || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Tools Used</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Tools Used</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_tools || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Duration</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Duration</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_duration || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Year</label>
-                            <div className="bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Year</label>
+                            <div className="bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center">
                                 {proj.project_year || '—'}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Project Files</label>
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Project Files</label>
                             <div className="mt-1 space-y-1">
                                 {Array.isArray(proj.project_files) && proj.project_files.length > 0
                                     ? proj.project_files.map((f, fi) => <FileLink key={fi} fileName={f} />)
@@ -113,8 +113,8 @@ const PortfolioProject = ({ vendor }: Props) => {
                         </div>
 
                         <div className="col-span-2">
-                            <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Description</label>
-                            <div className="bg-[#F2F2F2] p-4 rounded-md text-sm text-[#353535] font-gantari min-h-[80px] overflow-y-auto">
+                            <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Description</label>
+                            <div className="bg-[#F2F2F2] p-4 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[80px] overflow-y-auto">
                                 {proj.project_description || '—'}
                             </div>
                         </div>

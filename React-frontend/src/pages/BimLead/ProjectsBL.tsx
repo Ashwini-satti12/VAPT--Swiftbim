@@ -9,8 +9,9 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
-import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 interface Employee {
   id: number;
@@ -66,13 +67,13 @@ function FormSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none"
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none ${open ? "!border-[#AEACAC52]" : ""}`}
       >
         <span
           className={
             value
-              ? "text-[#000000] font-medium text-[16px]"
-              : "text-gray-400 font-medium text-[16px]"
+              ? "text-[#353535] font-medium"
+              : "text-[#8B8B8B] font-medium"
           }
         >
           {value || placeholder}
@@ -92,7 +93,7 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-30 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto">
           {options.map((opt) => (
             <button
               key={opt}
@@ -101,8 +102,8 @@ function FormSelect({
                 onChange(opt);
                 setOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-[16px] font-medium transition-colors  
-                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#333333]"}`}
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors  
+                ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
             >
               {opt}
             </button>
@@ -121,15 +122,23 @@ interface Project {
   completed_tasks?: number;
   budget?: string;
   module_name?: string;
+  client_id?: string;
   client_name?: string;
   project_manager?: string;
+  project_manager_id?: string;
+  project_manager_name?: string;
   start_date?: string;
   end_date?: string;
   total_hours?: string;
   per_day?: string;
+  client_id?: number;
   department?: string;
   bim_lead?: string;
+  lead_id?: string;
+  lead_name?: string;
   bim_co_ordinator?: string;
+  bim_coordinator_id?: string;
+  bim_coordinator_name?: string;
   member?: string;
   resources?: string;
   required_resources?: string;
@@ -138,6 +147,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  client_id?: number | string;
 }
 
 interface Milestone {
@@ -344,10 +354,9 @@ export default function ProjectsBL() {
     budget: r.budget != null ? String(r.budget) : undefined,
     module_name: r.modules != null ? String(r.modules) : undefined,
     client_name: r.client_name != null ? String(r.client_name) : undefined,
-    project_manager:
-      r.project_manager_name != null
-        ? String(r.project_manager_name)
-        : undefined,
+    project_manager: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
+    project_manager_id: r.project_manager_id != null ? String(r.project_manager_id) : undefined,
+    project_manager_name: r.project_manager_name != null ? String(r.project_manager_name) : undefined,
     start_date: r.start_date != null ? String(r.start_date) : undefined,
     end_date:
       r.end_date != null
@@ -360,10 +369,11 @@ export default function ProjectsBL() {
     department:
       r.department_name != null ? String(r.department_name) : undefined,
     bim_lead: r.lead_name != null ? String(r.lead_name) : undefined,
-    bim_co_ordinator:
-      r.bim_coordinator_name != null
-        ? String(r.bim_coordinator_name)
-        : undefined,
+    lead_id: r.lead_id != null ? String(r.lead_id) : undefined,
+    lead_name: r.lead_name != null ? String(r.lead_name) : undefined,
+    bim_co_ordinator: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
+    bim_coordinator_id: r.bim_coordinator_id != null ? String(r.bim_coordinator_id) : undefined,
+    bim_coordinator_name: r.bim_coordinator_name != null ? String(r.bim_coordinator_name) : undefined,
     member: r.members != null ? String(r.members) : undefined,
     resources: r.resources != null ? String(r.resources) : undefined,
     required_resources:
@@ -399,11 +409,14 @@ export default function ProjectsBL() {
         const allProjects = res.data.projects ?? [];
         const userId = user?.id;
         const filtered = userId
-          ? allProjects.filter((p: any) => String(p.lead_id) === String(userId))
+          ? allProjects.filter((p: any) => {
+              if (!p.lead_id) return false;
+              return String(p.lead_id).split(',').map(s => s.trim()).includes(String(userId));
+            })
           : allProjects;
         setList(filtered.map(mapApiProjectToProject));
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -457,33 +470,33 @@ export default function ProjectsBL() {
     <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Project View Header */}
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowProjectView(false);
-                setSelectedProjectForView(null);
-                setSearchParams({}, { replace: true });
-              }}
-              className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
-              title="Close"
-            >
-              <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
-            </button>
-            <div className="min-w-0">
-              <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
-                {selectedProjectForView?.project_name ?? "Loading..."}
-              </h3>
-              <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
-                  Overall Progress Tracker
-                </p>
+          <div className="flex flex-col h-full bg-white">
+            {/* Project View Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProjectView(false);
+                  setSelectedProjectForView(null);
+                  setSearchParams({}, { replace: true });
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                title="Close"
+              >
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
+                  {selectedProjectForView?.project_name ?? "Loading..."}
+                </h3>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                    Overall Progress Tracker
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
@@ -501,7 +514,7 @@ export default function ProjectsBL() {
                   {Math.max(
                     0,
                     (selectedProjectForView.total_tasks ?? 0) -
-                      (selectedProjectForView.completed_tasks ?? 0),
+                    (selectedProjectForView.completed_tasks ?? 0),
                   )}
                 </p>
               </button>
@@ -669,302 +682,182 @@ export default function ProjectsBL() {
               <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
                 Team Overview
               </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                {/* Project Manager */}
-                {(() => {
-                  const pmVal = selectedProjectForView.project_manager;
-                  const projectManager = pmVal
-                    ? allEmployees.find(
-                        (e) =>
-                          Number(e.id) === Number(pmVal) ||
-                          e.full_name === pmVal,
-                      )
-                    : null;
-                  const pmProfileUrl = projectManager?.profile_picture
-                    ? getGlobalProfileUrl(
-                        projectManager.id,
-                        projectManager.profile_picture,
-                      )
-                    : null;
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
+                {/* Project Manager(s) */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Project Manager</p>
+                  {(() => {
+                    const pmIds = selectedProjectForView.project_manager_id
+                      ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                      : [];
+                    const pmNames = selectedProjectForView.project_manager_name
+                      ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                      : [];
 
-                  return (
-                    <div className="flex items-center gap-4">
-                      {pmProfileUrl ? (
-                        <img
-                          src={pmProfileUrl}
-                          className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                          alt={projectManager?.full_name || "PM"}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ProfileIcon;
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                          <span className="text-slate-600 font-semibold">
-                            {(projectManager?.full_name || "PM")
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
+                    if (pmIds.length === 0 && pmNames.length === 0) {
+                      return (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                            <span className="text-slate-600 font-semibold">PM</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
+                          </div>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                          {projectManager?.full_name || "Not Assigned"}
-                        </p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">
-                          Project Manager
-                        </p>
+                      );
+                    }
+
+                    const maxCount = Math.max(pmIds.length, pmNames.length);
+                    return (
+                      <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                        {Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = pmIds[i];
+                          const pName = pmNames[i];
+                          const pm = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                          const dName = pm?.full_name || pName || "Unknown";
+                          const url = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              {url ? (
+                                <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                  <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                              <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+                </div>
 
-                {/* BIM Lead */}
-                {(() => {
-                  const bimVal = selectedProjectForView.bim_lead;
-                  const bimLead = bimVal
-                    ? allEmployees.find(
-                        (e) =>
-                          Number(e.id) === Number(bimVal) ||
-                          e.full_name === bimVal,
-                      )
-                    : null;
-                  const bimProfileUrl = bimLead?.profile_picture
-                    ? getGlobalProfileUrl(bimLead.id, bimLead.profile_picture)
-                    : null;
+                {/* BIM Lead(s) */}
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">BIM Lead</p>
+                  {(() => {
+                    const blIds = selectedProjectForView.lead_id
+                      ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                      : [];
+                    const blNames = selectedProjectForView.lead_name
+                      ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                      : [];
 
-                  return (
-                    <div className="flex items-center gap-4">
-                      {bimProfileUrl ? (
-                        <img
-                          src={bimProfileUrl}
-                          className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                          alt={bimLead?.full_name || "BIM Lead"}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = ProfileIcon;
-                          }}
-                        />
-                      ) : (
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                          <span className="text-slate-600 font-bold">
-                            {(bimLead?.full_name || "BL")
-                              .charAt(0)
-                              .toUpperCase()}
-                          </span>
+                    if (blIds.length === 0 && blNames.length === 0) {
+                      return (
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                            <span className="text-slate-600 font-semibold">BL</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
+                          </div>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                          {bimLead?.full_name || "Not Assigned"}
-                        </p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">
-                          BIM Lead
-                        </p>
+                      );
+                    }
+
+                    const maxCount = Math.max(blIds.length, blNames.length);
+                    return (
+                      <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                        {Array.from({ length: maxCount }).map((_, i) => {
+                          const pId = blIds[i];
+                          const pName = blNames[i];
+                          const bl = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                          const dName = bl?.full_name || pName || "Unknown";
+                          const url = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
+                          return (
+                            <div key={i} className="flex items-center gap-3">
+                              {url ? (
+                                <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                  <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                              <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
+                </div>
 
                 {/* Department Involved */}
-                <div className="min-w-0">
-                  <p className="text-md font-Gantari font-semibold text-[#000000]">
-                    Department Involved
-                  </p>
-                  <p className="text-sm font-Gantari text-[#616161] truncate">
-                    {selectedProjectForView.department || "N/A"}
-                  </p>
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                  <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
                 </div>
 
                 {/* Members Involved */}
-                <div>
-                  <p className="text-[16px] md:text-[18px] font-Gantari font-bold text-[#000000] mb-2">
-                    Members Involved
-                  </p>
-                  <div className="flex -space-x-3">
-                    {(() => {
-                      const memberIds = selectedProjectForView.member
-                        ? selectedProjectForView.member
-                            .split(",")
-                            .map((m) => m.trim())
-                            .filter(Boolean)
-                            .map(Number)
-                        : [];
+                <div className="flex flex-col gap-3">
+                  <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                  {(() => {
+                    const memberIdsForView = selectedProjectForView.member
+                      ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                      : [];
+                    
+                    if (memberIdsForView.length === 0) {
+                      return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                    }
 
-                      const projectMembers = memberIds
-                        .map((id) =>
-                          allEmployees.find((e) => Number(e.id) === Number(id)),
-                        )
-                        .filter(Boolean) as Employee[];
-
-                      const visibleMembers = projectMembers.slice(0, 3);
-                      const remainingCount = Math.max(
-                        0,
-                        projectMembers.length - 3,
-                      );
-
-                      const getProfileImageUrl = (emp: Employee) => {
-                        return getGlobalProfileUrl(emp.id, emp.profile_picture);
-                      };
-
-                      return (
-                        <>
-                          {visibleMembers.length > 0
-                            ? visibleMembers.map((emp) => {
-                                const profileUrl = getProfileImageUrl(emp);
-                                return (
-                                  <div
-                                    key={emp.id}
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                    title={
-                                      emp.full_name || `Employee ${emp.id}`
-                                    }
-                                    onClick={() => {
-                                      setSelectedMember(emp);
-                                      setShowMemberProfileModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && emp) {
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }
-                                    }}
-                                  >
-                                    {profileUrl ? (
-                                      <img
-                                        src={profileUrl}
-                                        alt={emp.full_name || "Member"}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).src =
-                                            ProfileIcon;
-                                        }}
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                        {(emp.full_name || `E${emp.id}`)
-                                          .charAt(0)
-                                          .toUpperCase()}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })
-                            : [1, 2, 3].map((j) => (
-                                <div
-                                  key={j}
-                                  role="button"
-                                  tabIndex={0}
-                                  className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  title="Click to see involved members"
-                                  onClick={() => {
-                                    const fallback =
-                                      memberIds.length > 0
-                                        ? memberIds.map((id) => ({
-                                            id,
-                                            full_name: `#${id}`,
-                                            employee_id: "",
-                                            email: "",
-                                            phone: "",
-                                            user_role: "",
-                                          }))
-                                        : [];
-                                    setAllMembersList(
-                                      projectMembers.length > 0
-                                        ? projectMembers
-                                        : (fallback as unknown as Employee[]),
-                                    );
-                                    setShowAllMembersModal(true);
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                      e.preventDefault();
-                                      const fallback =
-                                        memberIds.length > 0
-                                          ? memberIds.map((id) => ({
-                                              id,
-                                              full_name: `#${id}`,
-                                              employee_id: "",
-                                              email: "",
-                                              phone: "",
-                                              user_role: "",
-                                            }))
-                                          : [];
-                                      setAllMembersList(
-                                        projectMembers.length > 0
-                                          ? projectMembers
-                                          : (fallback as unknown as Employee[]),
-                                      );
-                                      setShowAllMembersModal(true);
-                                    }
-                                  }}
-                                >
-                                  <img
-                                    src={ProfileIcon}
-                                    alt="avatar"
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ))}
-                          {(remainingCount > 0 ||
-                            (visibleMembers.length === 0 &&
-                              projectMembers.length === 0 &&
-                              memberIds.length > 0)) && (
+                    return (
+                      <div className="flex flex-wrap items-center -space-x-4">
+                        {memberIdsForView.slice(0, 3).map((id, j) => {
+                          const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                          const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                          return (
                             <div
+                              key={j}
                               role="button"
                               tabIndex={0}
-                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                              title="Click to see all members"
-                              onClick={() => {
-                                const fallback =
-                                  memberIds.length > 0
-                                    ? memberIds.map((id) => ({
-                                        id,
-                                        full_name: `#${id}`,
-                                        employee_id: "",
-                                        email: "",
-                                        phone: "",
-                                        user_role: "",
-                                      }))
-                                    : [];
-                                setAllMembersList(
-                                  projectMembers.length > 0
-                                    ? projectMembers
-                                    : (fallback as unknown as Employee[]),
-                                );
-                                setShowAllMembersModal(true);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  const fallback =
-                                    memberIds.length > 0
-                                      ? memberIds.map((id) => ({
-                                          id,
-                                          full_name: `#${id}`,
-                                          employee_id: "",
-                                          email: "",
-                                          phone: "",
-                                          user_role: "",
-                                        }))
-                                      : [];
-                                  setAllMembersList(
-                                    projectMembers.length > 0
-                                      ? projectMembers
-                                      : (fallback as unknown as Employee[]),
-                                  );
-                                  setShowAllMembersModal(true);
-                                }
-                              }}
+                              className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                              title={emp?.full_name}
+                              onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                              onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
                             >
-                              +{remainingCount || memberIds.length}
+                              {url ? (
+                                <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                              )}
                             </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
+                          );
+                        })}
+                        {memberIdsForView.length > 3 && (
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const emps = memberIdsForView
+                                .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                .filter(Boolean) as Employee[];
+                              setAllMembersList(emps);
+                              setShowAllMembersModal(true);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                const emps = memberIdsForView
+                                  .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                  .filter(Boolean) as Employee[];
+                                setAllMembersList(emps);
+                                setShowAllMembersModal(true);
+                              }
+                            }}
+                            title="Click to see all members"
+                          >
+                            +{memberIdsForView.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -997,12 +890,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.start_date
                         ? new Date(
-                            selectedProjectForView.start_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.start_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -1066,12 +959,12 @@ export default function ProjectsBL() {
                     <span className="text-md font-Gantari font-medium text-[#666666]">
                       {selectedProjectForView.end_date
                         ? new Date(
-                            selectedProjectForView.end_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
+                          selectedProjectForView.end_date,
+                        ).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                        })
                         : "N/A"}
                     </span>
                   </div>
@@ -1125,22 +1018,10 @@ export default function ProjectsBL() {
                         setShowMemberProfileModal(false);
                         setSelectedMember(null);
                       }}
-                      className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                       title="Close"
                     >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={3}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                     </button>
                     <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                       Member Profile
@@ -1235,22 +1116,10 @@ export default function ProjectsBL() {
                   <button
                     type="button"
                     onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-6 top-6 p-2.5 rounded-[10px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                     title="Close"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                   </button>
                   <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center">
                     All Members ({allMembersList.length})
@@ -1309,37 +1178,34 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showMilestones && currentProject ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Milestones Header */}
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col h-full bg-white">
+            {/* Milestones Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                title="Back"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <div>
-                <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1
-                  to 09
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
                 </p>
               </div>
+              <button
+                onClick={() => setShowAddMilestoneModal(true)}
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
+                title="Add Milestone"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Add Milestone
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddMilestoneModal(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
-              title="Add Milestone"
-            >
-              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-              Add Milestone
-            </button>
-          </div>
 
           {/* Milestones Content - No Scroll Version */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
@@ -1492,7 +1358,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }}
                             className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                             title="Mark as Paid"
@@ -1526,7 +1392,7 @@ export default function ProjectsBL() {
                                     currentProject?.id &&
                                     fetchMilestones(currentProject.id),
                                 )
-                                .catch(() => {});
+                                .catch(() => { });
                             }
                           }}
                           className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
@@ -1555,36 +1421,24 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showCreateModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowCreateModal(false);
-                setCreateError("");
-              }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors hover:bg-gray-200"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex flex-col h-full bg-white">
+            {/* Create Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateError("");
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#000000]">
-              Add New Project
-            </h3>
-          </div>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+                Add New Project
+              </h3>
+            </div>
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -1660,9 +1514,9 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(
                             filtered.map((r: any) => ({
@@ -1675,7 +1529,7 @@ export default function ProjectsBL() {
                             })),
                           );
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
                   .catch((err) =>
@@ -1685,7 +1539,7 @@ export default function ProjectsBL() {
                   )
                   .finally(() => setCreateSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-8 lg:px-20 py-5 space-y-6 md:space-y-8"
+              className="max-w-[1174px] mx-auto px-0 py-5 space-y-6 md:space-y-8"
             >
               {createError && (
                 <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">
@@ -1693,7 +1547,7 @@ export default function ProjectsBL() {
                 </p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6 px-4">
                 {/* ── Project Name ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
@@ -1704,7 +1558,7 @@ export default function ProjectsBL() {
                     required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
@@ -1717,7 +1571,7 @@ export default function ProjectsBL() {
                     required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
@@ -1741,7 +1595,7 @@ export default function ProjectsBL() {
                         setModuleNameInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1802,7 +1656,7 @@ export default function ProjectsBL() {
                         setCreateTaskInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -1883,7 +1737,7 @@ export default function ProjectsBL() {
                     required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -1897,7 +1751,7 @@ export default function ProjectsBL() {
                     required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -1911,7 +1765,7 @@ export default function ProjectsBL() {
                     required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
@@ -1926,7 +1780,7 @@ export default function ProjectsBL() {
                     required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
@@ -2075,7 +1929,7 @@ export default function ProjectsBL() {
                     required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
@@ -2090,7 +1944,7 @@ export default function ProjectsBL() {
                     required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
@@ -2119,7 +1973,7 @@ export default function ProjectsBL() {
                     required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
@@ -2135,7 +1989,7 @@ export default function ProjectsBL() {
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
@@ -2229,14 +2083,14 @@ export default function ProjectsBL() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-10 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="px-10 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
                 >
                   {createSubmitting ? "Creating..." : "Submit"}
                 </button>
@@ -2245,36 +2099,24 @@ export default function ProjectsBL() {
           </div>
         </div>
       ) : showEditModal ? (
-        <div className="flex flex-col h-full bg-white">
-          {/* Edit Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
-            <button
-              type="button"
-              onClick={() => {
-                setShowEditModal(false);
-                resetFormFields();
-              }}
-              className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 p-2.5 md:p-3.5 rounded-xl bg-[#F2F2F2] text-gray-800 transition-colors"
-              title="Close"
-            >
-              <svg
-                className="w-5 h-5 md:w-6 md:h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+          <div className="flex flex-col h-full bg-white">
+            {/* Edit Project Header */}
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false);
+                  resetFormFields();
+                }}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <h3 className="text-[20px] md:text-[26px] font-Gantari font-semibold text-[#1A1A1A]">
-              Edit Details
-            </h3>
-          </div>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
+                Edit Project Details
+              </h3>
+            </div>
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -2354,19 +2196,19 @@ export default function ProjectsBL() {
                           const userId = user?.id;
                           const filtered = userId
                             ? allProjects.filter(
-                                (p: any) =>
-                                  String(p.lead_id) === String(userId),
-                              )
+                              (p: any) =>
+                                String(p.lead_id) === String(userId),
+                            )
                             : allProjects;
                           setList(filtered.map(mapApiProjectToProject));
                         })
-                        .catch(() => {});
+                        .catch(() => { });
                     }
                   })
-                  .catch(() => {})
+                  .catch(() => { })
                   .finally(() => setIsEditSubmitting(false));
               }}
-              className="max-w-5xl mx-auto px-2 md:px-6 lg:px-10 space-y-6 md:space-y-8"
+              className="mx-auto px-4 space-y-6 md:space-y-8"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
                 {/* Project Name */}
@@ -2379,7 +2221,7 @@ export default function ProjectsBL() {
                     required
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Name"
                   />
                 </div>
@@ -2394,7 +2236,7 @@ export default function ProjectsBL() {
                     required
                     value={createBudget}
                     onChange={(e) => setCreateBudget(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Budget"
                   />
                 </div>
@@ -2417,7 +2259,7 @@ export default function ProjectsBL() {
                         setEditModuleInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Modules Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -2478,7 +2320,7 @@ export default function ProjectsBL() {
                         setEditTaskInput("");
                       }
                     }}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Task Name"
                   />
                   <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
@@ -2530,7 +2372,7 @@ export default function ProjectsBL() {
                     type="text"
                     readOnly
                     value={createClientName}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-gray-500 cursor-not-allowed focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] cursor-not-allowed opacity-70"
                     placeholder="Enter Client Name"
                   />
                 </div>
@@ -2559,7 +2401,7 @@ export default function ProjectsBL() {
                     required
                     value={createStartDate}
                     onChange={(e) => setCreateStartDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -2573,7 +2415,7 @@ export default function ProjectsBL() {
                     required
                     value={createEndDate}
                     onChange={(e) => setCreateEndDate(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
 
@@ -2587,7 +2429,7 @@ export default function ProjectsBL() {
                     required
                     value={createTotalHours}
                     onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Total Hours"
                   />
                 </div>
@@ -2602,7 +2444,7 @@ export default function ProjectsBL() {
                     required
                     value={createPerDay}
                     onChange={(e) => setCreatePerDay(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
                   />
                 </div>
@@ -2769,7 +2611,7 @@ export default function ProjectsBL() {
                     required
                     value={createLocation}
                     onChange={(e) => setCreateLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Project Location"
                   />
                 </div>
@@ -2784,7 +2626,7 @@ export default function ProjectsBL() {
                     required
                     value={createResources}
                     onChange={(e) => setCreateResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Actual Resources"
                   />
                 </div>
@@ -2799,7 +2641,7 @@ export default function ProjectsBL() {
                     required
                     value={createRequiredResources}
                     onChange={(e) => setCreateRequiredResources(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Required Resources"
                   />
                 </div>
@@ -2815,7 +2657,7 @@ export default function ProjectsBL() {
                     rows={4}
                     value={createDescription}
                     onChange={(e) => setCreateDescription(e.target.value)}
-                    className="w-full px-4 py-3 bg-[#F2F3F4] rounded-[5px] text-[16px] font-Gantari font-medium text-[#000000] placeholder-gray-400 resize-none focus:outline-none"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                     placeholder="Type Project Description"
                   />
                 </div>
@@ -2995,18 +2837,18 @@ export default function ProjectsBL() {
               {title}
             </h2>
             {canCreate && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    resetFormFields();
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
-                >
-                  <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                  Create Project
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  resetFormFields();
+                  setShowCreateModal(true);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
+              >
+                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+                Create Project
+              </button>
+            )}
           </div>
 
           {/* Dashboard Content with Scrollbar */}
@@ -3160,9 +3002,9 @@ export default function ProjectsBL() {
                                     setEditModuleTags(
                                       p.module_name
                                         ? p.module_name
-                                            .split(",")
-                                            .map((m) => m.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((m) => m.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
@@ -3179,17 +3021,17 @@ export default function ProjectsBL() {
                                     setEditTaskTags(
                                       p.tasks
                                         ? p.tasks
-                                            .split(",")
-                                            .map((t) => t.trim())
-                                            .filter(Boolean)
+                                          .split(",")
+                                          .map((t) => t.trim())
+                                          .filter(Boolean)
                                         : [],
                                     );
 
                                     const docs = p.document_attachment
                                       ? p.document_attachment
-                                          .split(",")
-                                          .map((s) => s.trim())
-                                          .filter(Boolean)
+                                        .split(",")
+                                        .map((s) => s.trim())
+                                        .filter(Boolean)
                                       : [];
                                     setExistingFiles(docs);
                                     setRemovedFiles([]);
@@ -3282,19 +3124,19 @@ export default function ProjectsBL() {
                             );
                           })()}
                         </div>
-                        
+
                         <div className="flex items-center gap-3">
 
-                            {p.priority && (
-                                <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
-                                    ? "bg-[#DD4342]"
-                                    : "bg-[#94D6F2]"
-                                    }`}
-                                >
-                                {p.priority}
-                                </div>
-                            )}
+                          {p.priority && (
+                            <div
+                              className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
+                                }`}
+                            >
+                              {p.priority}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3309,43 +3151,31 @@ export default function ProjectsBL() {
       {/* Delete confirmation (Keep as modal) */}
       {deleteId !== null && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl max-w-xl w-full p-8 md:p-12 relative flex flex-col items-center">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-6 md:left-10 top-6 md:top-10 p-2 md:p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
 
             {/* Content */}
-            <h3 className="text-[22px] md:text-[28px] font-Gantari font-bold text-[#1A1A1A] mt-6 md:mt-4 mb-3">
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
               Delete Project
             </h3>
-            <p className="text-[15px] md:text-[18px] font-Gantari font-bold text-[#353535] mb-8 md:mb-10 text-center">
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
               Are you sure, you want to Delete this?
             </p>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-gray-200"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
               >
                 Discard
               </button>
@@ -3363,7 +3193,7 @@ export default function ProjectsBL() {
                       setDeleteId(null);
                     });
                 }}
-                className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#FFDEDE]"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
               >
                 Yes, Delete
               </button>
@@ -3380,22 +3210,10 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2.5 md:p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
                 Add Payment Milestone
@@ -3424,7 +3242,7 @@ export default function ProjectsBL() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-5 md:space-y-6 px-1"
             >

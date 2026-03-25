@@ -10,8 +10,9 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestone from "../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
-import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 
 interface Employee {
@@ -109,22 +110,25 @@ interface Project {
   module_name?: string;
   client_name?: string;
   project_manager?: string;
+  project_manager_id?: string;
+  project_manager_name?: string;
   start_date?: string;
   end_date?: string;
   total_hours?: string;
   per_day?: string;
   department?: string;
   bim_lead?: string;
+  lead_id?: string;
+  lead_name?: string;
   bim_co_ordinator?: string;
+  bim_coordinator_id?: string;
+  bim_coordinator_name?: string;
   member?: string;
   resources?: string;
   required_resources?: string;
   priority?: string;
   location?: string;
   description?: string;
-  project_manager_name?: string;
-  bim_lead_name?: string;
-  bim_coordinator_name?: string;
   tasks?: string;
   document_attachment?: string;
 }
@@ -159,8 +163,8 @@ export default function ProjectsBC() {
   const [editDepartment, setEditDepartment] = useState("");
   const [editProjectManager, setEditProjectManager] = useState("");
   const [editBIMLead, setEditBIMLead] = useState("");
-  const [editBIMCoOrd, setEditBIMCoOrd] = useState("");
-  const [editMember, setEditMember] = useState("");
+  const [editBIMCoOrd, _setEditBIMCoOrd] = useState("");
+  const [editMember, _setEditMember] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [createProjectManager, setCreateProjectManager] = useState("");
   const [createStartDate, setCreateStartDate] = useState("");
@@ -185,10 +189,10 @@ export default function ProjectsBC() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
-  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
-  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  const [_showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [_allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [_showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [_selectedMember, setSelectedMember] = useState<Employee | null>(null);
   const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
   const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
 
@@ -311,10 +315,13 @@ export default function ProjectsBC() {
     module_name: r.modules,
     client_name: r.client_name,
     project_manager: r.project_manager_id,
+    project_manager_id: r.project_manager_id,
     project_manager_name: r.project_manager_name,
     bim_lead: r.lead_id,
-    bim_lead_name: r.bim_lead_name,
+    lead_id: r.lead_id,
+    lead_name: r.lead_name ?? r.bim_lead_name,
     bim_co_ordinator: r.bim_coordinator_id,
+    bim_coordinator_id: r.bim_coordinator_id,
     bim_coordinator_name: r.bim_coordinator_name,
     start_date: r.start_date,
     end_date: r.end_date ?? r.due_date,
@@ -375,9 +382,10 @@ export default function ProjectsBC() {
         const allProjects = res.data.projects ?? [];
         const userId = user?.id;
         const filtered = userId
-          ? allProjects.filter(
-            (p: any) => String(p.bim_coordinator_id) === String(userId),
-          )
+          ? allProjects.filter((p: any) => {
+              if (!p.bim_coordinator_id) return false;
+              return String(p.bim_coordinator_id).split(',').map(s => s.trim()).includes(String(userId));
+            })
           : allProjects;
         setList(filtered.map(mapApiProjectToProject));
       })
@@ -480,7 +488,7 @@ export default function ProjectsBC() {
         {showProjectView && selectedProjectForView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
@@ -488,18 +496,17 @@ export default function ProjectsBC() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView.project_name ?? "Prestige Park Grove"}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
                   <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
                     Overall Progress Tracker
                   </p>
@@ -689,213 +696,184 @@ export default function ProjectsBC() {
                 <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
                   Team Overview
                 </h4>
-                {(() => {
-                  const getEmpName = (val?: string) => {
-                    if (!val) return "N/A";
-                    const id = parseInt(val, 10);
-                    if (isNaN(id)) return val;
-                    const emp = allEmployees.find((e) => e.id === id);
-                    return emp ? emp.full_name : val;
-                  };
-                  const memberIdsForView = selectedProjectForView.member
-                    ? selectedProjectForView.member
-                      .split(",")
-                      .map((s) => parseInt(s.trim(), 10))
-                      .filter((n) => !isNaN(n))
-                    : [];
-                  const memberNames = memberIdsForView.map((id) => {
-                    const emp = allEmployees.find((e) => e.id === id);
-                    return emp ? emp.full_name : `#${id}`;
-                  });
-                  const pmName = getEmpName(
-                    selectedProjectForView.project_manager,
-                  );
-                  const blName = getEmpName(selectedProjectForView.bim_lead);
-                  return (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                      <div className="flex items-center gap-4">
-                        {(() => {
-                          const pm = allEmployees.find(
-                            (e) =>
-                              String(e.id) ===
-                              String(selectedProjectForView.project_manager) ||
-                              e.full_name ===
-                              selectedProjectForView.project_manager,
-                          );
-                          const pmProfileUrl = pm?.profile_picture
-                            ? getGlobalProfileUrl(pm.id, pm.profile_picture)
-                            : null;
-                          return pmProfileUrl ? (
-                            <img
-                              src={pmProfileUrl}
-                              className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover"
-                              alt="PM"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                              <img
-                                src={ProfileIcon}
-                                className="w-6 h-6"
-                                alt="PM"
-                              />
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
+                  {/* Project Manager(s) */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">Project Manager</p>
+                    {(() => {
+                      const pmIds = selectedProjectForView.project_manager_id
+                        ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                        : [];
+                      const pmNames = selectedProjectForView.project_manager_name
+                        ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                        : [];
+
+                      if (pmIds.length === 0 && pmNames.length === 0) {
+                        return (
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                              <span className="text-slate-600 font-semibold">PM</span>
                             </div>
-                          );
-                        })()}
-                        <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                            {pmName}
-                          </p>
-                          <p className="text-sm font-Gantari text-[#616161] truncate">
-                            Project Manager
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        {(() => {
-                          const bl = allEmployees.find(
-                            (e) =>
-                              String(e.id) ===
-                              String(selectedProjectForView.bim_lead) ||
-                              e.full_name === selectedProjectForView.bim_lead,
-                          );
-                          const blProfileUrl = bl?.profile_picture
-                            ? getGlobalProfileUrl(bl.id, bl.profile_picture)
-                            : null;
-                          return blProfileUrl ? (
-                            <img
-                              src={blProfileUrl}
-                              className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm shrink-0 object-cover"
-                              alt="BIM"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                              <img
-                                src={ProfileIcon}
-                                className="w-6 h-6"
-                                alt="BIM"
-                              />
+                            <div className="min-w-0">
+                              <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
                             </div>
-                          );
-                        })()}
-                        <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                            {blName}
-                          </p>
-                          <p className="text-sm font-Gantari text-[#616161] truncate">
-                            BIM Lead
-                          </p>
+                          </div>
+                        );
+                      }
+
+                      const maxCount = Math.max(pmIds.length, pmNames.length);
+                      return (
+                        <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                          {Array.from({ length: maxCount }).map((_, i) => {
+                            const pId = pmIds[i];
+                            const pName = pmNames[i];
+                            const pm = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                            const dName = pm?.full_name || pName || "Unknown";
+                            const url = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                {url ? (
+                                  <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                    <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                )}
+                                <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                      <div>
-                        <p className="text-md font-Gantari font-semibold text-[#000000]">
-                          Department Involved
-                        </p>
-                        <p className="text-sm font-Gantari text-[#616161] truncate">
-                          {selectedProjectForView.department || "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                          Members Involved
-                        </p>
-                        {memberNames.length > 0 ? (
-                          <div className="flex flex-wrap items-center -space-x-4">
-                            {memberIdsForView.slice(0, 3).map((id, j) => {
-                              const emp = allEmployees.find(
-                                (e) =>
-                                  Number(e.id) === Number(id) ||
-                                  String(e.id) === String(id),
-                              );
-                              const url = emp?.profile_picture
-                                ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                                : null;
-                              return (
-                                <div
-                                  key={j}
-                                  role="button"
-                                  tabIndex={0}
-                                  className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  title={emp?.full_name}
-                                  onClick={() => {
-                                    if (emp) {
-                                      setSelectedMember(emp);
-                                      setShowMemberProfileModal(true);
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && emp) {
-                                      setSelectedMember(emp);
-                                      setShowMemberProfileModal(true);
-                                    }
-                                  }}
-                                >
-                                  {url ? (
-                                    <img
-                                      src={url}
-                                      alt={emp?.full_name}
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <img
-                                      src={ProfileIcon}
-                                      alt={emp?.full_name}
-                                      className="p-2 w-full h-full object-cover"
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })}
-                            {memberNames.length > 3 && (
+                      );
+                    })()}
+                  </div>
+
+                  {/* BIM Lead(s) */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">BIM Lead</p>
+                    {(() => {
+                      const blIds = selectedProjectForView.lead_id
+                        ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                        : [];
+                      const blNames = selectedProjectForView.lead_name
+                        ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                        : [];
+
+                      if (blIds.length === 0 && blNames.length === 0) {
+                        return (
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                              <span className="text-slate-600 font-semibold">BL</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-Gantari text-[#616161] truncate">Not Assigned</p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const maxCount = Math.max(blIds.length, blNames.length);
+                      return (
+                        <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                          {Array.from({ length: maxCount }).map((_, i) => {
+                            const pId = blIds[i];
+                            const pName = blNames[i];
+                            const bl = pId ? allEmployees.find(e => String(e.id) === pId) : null;
+                            const dName = bl?.full_name || pName || "Unknown";
+                            const url = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
+                            return (
+                              <div key={i} className="flex items-center gap-3">
+                                {url ? (
+                                  <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                    <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                )}
+                                <p className="text-sm font-Gantari text-[#616161] truncate" title={dName}>{dName}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Department Involved */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                    <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                  </div>
+
+                  {/* Members Involved */}
+                  <div className="flex flex-col gap-3">
+                    <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                    {(() => {
+                      const memberIdsForView = selectedProjectForView.member
+                        ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                        : [];
+                      
+                      if (memberIdsForView.length === 0) {
+                        return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                      }
+
+                      return (
+                        <div className="flex flex-wrap items-center -space-x-4">
+                          {memberIdsForView.slice(0, 3).map((id, j) => {
+                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            return (
                               <div
+                                key={j}
                                 role="button"
                                 tabIndex={0}
-                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                onClick={(e) => {
+                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                title={emp?.full_name}
+                                onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                              >
+                                {url ? (
+                                  <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                )}
+                              </div>
+                            );
+                          })}
+                          {memberIdsForView.length > 3 && (
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const emps = memberIdsForView
+                                  .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                  .filter(Boolean) as Employee[];
+                                setAllMembersList(emps);
+                                setShowAllMembersModal(true);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
                                   e.preventDefault();
-                                  e.stopPropagation();
                                   const emps = memberIdsForView
-                                    .map((id) =>
-                                      allEmployees.find(
-                                        (e) =>
-                                          Number(e.id) === Number(id) ||
-                                          String(e.id) === String(id),
-                                      ),
-                                    )
+                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
                                     .filter(Boolean) as Employee[];
                                   setAllMembersList(emps);
                                   setShowAllMembersModal(true);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
-                                    e.preventDefault();
-                                    const emps = memberIdsForView
-                                      .map((id) =>
-                                        allEmployees.find(
-                                          (e) =>
-                                            Number(e.id) === Number(id) ||
-                                            String(e.id) === String(id),
-                                        ),
-                                      )
-                                      .filter(Boolean) as Employee[];
-                                    setAllMembersList(emps);
-                                    setShowAllMembersModal(true);
-                                  }
-                                }}
-                                title="Click to see all members"
-                              >
-                                +{memberNames.length - 3}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-[14px] font-Gantari font-bold text-[#999999]">
-                            N/A
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                                }
+                              }}
+                              title="Click to see all members"
+                            >
+                              +{memberIdsForView.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
               </div>
 
               {/* Project Details Section */}
@@ -1049,28 +1027,26 @@ export default function ProjectsBC() {
         ) : showMilestones && currentProject ? (
           <div className="flex flex-col h-full bg-white">
             {/* Milestones Header */}
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones(false)}
-                  className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                >
-                  <img src={backIcon} alt="Close" className="w-5 h-5" />
-                </button>
-                <div>
-                  <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
-                    Payment Milestones
-                  </h3>
-                  <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                    {currentProject?.project_name ?? "Prestige Park Grove"}
-                    _Tower 1 to 09
-                  </p>
-                </div>
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                  Payment Milestones
+                </h3>
+                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                </p>
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm transition-colors"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1286,22 +1262,21 @@ export default function ProjectsBC() {
         ) : showCreateModal ? (
           <div className="flex flex-col h-full bg-white">
             {/* Create Project Header */}
-            <div className="relative flex items-center justify-between px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-                title="Back"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Add New Project
               </h3>
-              <div className="w-10" />
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-10 pb-10 min-h-0">
               <form
@@ -1918,19 +1893,18 @@ export default function ProjectsBC() {
         ) : showEditModal ? (
           <div className="flex flex-col h-full bg-white">
             {/* Edit Project Header */}
-            <div className="relative flex items-center justify-between px-4 md:px-6 py-6 md:py-8 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
-                title="Back"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5" />
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Edit Project Details
               </h3>
-              <div className="w-10" />
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-10 pb-10 min-h-0">
               <form
@@ -2730,8 +2704,8 @@ export default function ProjectsBC() {
                               </button>
                               <div
                                 className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-[100] ${openMenuProjectId === p.id
-                                    ? "opacity-100 scale-100 visible"
-                                    : "opacity-0 scale-95 invisible"
+                                  ? "opacity-100 scale-100 visible"
+                                  : "opacity-0 scale-95 invisible"
                                   }`}
                               >
                                 <button
@@ -2977,8 +2951,8 @@ export default function ProjectsBC() {
                           {p.priority && (
                             <div
                               className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === "High"
-                                  ? "bg-[#DD4342]"
-                                  : "bg-[#94D6F2]"
+                                ? "bg-[#DD4342]"
+                                : "bg-[#94D6F2]"
                                 }`}
                             >
                               {p.priority}
@@ -2997,43 +2971,31 @@ export default function ProjectsBC() {
         {/* Delete confirmation (Keep as modal) */}
         {deleteId !== null && (
           <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-2xl max-w-xl w-full p-8 md:p-12 relative flex flex-col items-center">
+            <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
               {/* Close Button */}
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="absolute left-6 md:left-10 top-6 md:top-10 p-2 md:p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
 
               {/* Content */}
-              <h3 className="text-[22px] md:text-[28px] font-Gantari font-bold text-[#1A1A1A] mt-6 md:mt-4 mb-3">
+              <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">
                 Delete Project
               </h3>
-              <p className="text-[15px] md:text-[18px] font-Gantari font-bold text-[#353535] mb-8 md:mb-10 text-center">
+              <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
                 Are you sure, you want to Delete this?
               </p>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                 <button
                   type="button"
                   onClick={() => setDeleteId(null)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-gray-200"
+                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
                 >
                   Discard
                 </button>
@@ -3051,7 +3013,7 @@ export default function ProjectsBC() {
                         setDeleteId(null);
                       });
                   }}
-                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#FFDEDE]"
+                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
                 >
                   Yes, Delete
                 </button>
@@ -3068,22 +3030,10 @@ export default function ProjectsBC() {
                 <button
                   type="button"
                   onClick={() => setShowAddMilestoneModal(false)}
-                  className="absolute left-0 p-2.5 md:p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                  className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                   title="Close"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
                 </button>
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] text-center px-12">
                   Add Payment Milestone

@@ -285,7 +285,7 @@ export default function EditConsultantBL() {
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
                     </button>
                     <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
-                        Edit Details
+                        Edit Consultant Details
                     </h3>
                     <div className="w-10" />
                 </div>

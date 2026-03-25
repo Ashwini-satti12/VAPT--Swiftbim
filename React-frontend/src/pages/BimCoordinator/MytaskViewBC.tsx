@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from '../../assets/ProjectManager/MyTask/Upload.svg';
 import ImageIcon from '../../assets/ProjectManager/MyTask/image.svg';
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 
 interface Task {
     id: number;
@@ -72,7 +73,7 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
         bg: "bg-orange-100 text-orange-800 rounded-full",
     },
     in_progress: {
-        label: "In Progress",
+        label: "Inprogress",
         dot: "bg-sky-500",
         bg: "bg-sky-100 text-sky-800",
     },
@@ -94,8 +95,8 @@ const STATUS_STYLE: Record<StatusKey, { label: string; dot: string; bg: string }
 };
 
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
-    { value: "approved", label: "Approved" },
-    { value: "rejected", label: "Rejected" },
+    { value: "in_progress", label: "Inprogress" },
+    { value: "completed", label: "Completed" },
 ];
 
 export default function MytaskViewBC() {
@@ -126,7 +127,7 @@ export default function MytaskViewBC() {
     const handleStatusUpdate = async (newStatus: StatusKey) => {
         if (!task || updatingStatus) return;
         setUpdatingStatus(true);
-        const backendStatus = newStatus === "approved" ? "Approved" : "Rejected";
+        const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
         try {
             await api.patch(`/api/tasks/${task.id}/status`, {
@@ -242,10 +243,9 @@ export default function MytaskViewBC() {
             <div className="flex items-center justify-between px-6 py-4">
                 <Link
                     to="/bc/mytasks"
-                    className="p-1 rounded-lg text-black hover:bg-slate-100"
-                    aria-label="Close"
+                    className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 >
-                    <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
+                    <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </Link>
                 <h1 className="flex-1 text-center text-2xl font-semibold text-black">
                     {task.task_name || "Task Name"}

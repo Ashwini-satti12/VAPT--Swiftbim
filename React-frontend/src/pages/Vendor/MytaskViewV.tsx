@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
@@ -117,7 +117,7 @@ const STATUS_STYLE: Record<
     bg: "bg-orange-100 text-orange-800 rounded-full",
   },
   in_progress: {
-    label: "In Progress",
+    label: "Inprogress",
     dot: "bg-sky-500",
     bg: "bg-sky-100 text-sky-800",
   },
@@ -140,7 +140,7 @@ const STATUS_STYLE: Record<
 
 // For vendor view, allow the user to move task to In Progress or Completed.
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
-  { value: "in_progress", label: "In Progress" },
+  { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
 ];
 
@@ -187,10 +187,8 @@ export default function MytaskViewV() {
 
   const handleStatusUpdate = async (newStatus: StatusKey) => {
     if (!task || updatingStatus) return;
-    if (newStatus !== "in_progress" && newStatus !== "completed") return;
     setUpdatingStatus(true);
-    const backendStatus =
-      newStatus === "in_progress" ? "InProgress" : "Completed";
+    const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
     try {
       if (fromTeamTask) {

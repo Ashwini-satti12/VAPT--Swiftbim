@@ -8,16 +8,16 @@ interface Props {
 
 const ContactPerson = ({ vendor, editable = false, onChange }: Props) => {
     const inputClass =
-        'w-full bg-white border border-gray-200 p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/30';
+        'w-full bg-[#F2F2F2] border-none px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] focus:outline-none focus:ring-2 focus:ring-[#DE3D3A]/30 placeholder:text-[#8B8B8B] placeholder:text-[14px]';
     const readonlyClass =
-        'bg-[#F2F2F2] p-3 rounded-md text-sm text-[#353535] font-gantari min-h-[44px] flex items-center';
+        'bg-[#F2F2F2] px-4 py-2 rounded-[5px] text-[14px] text-[#353535] font-Gantari min-h-[44px] flex items-center';
 
     return (
         <div className="animate-fade-in">
 
             <div className="grid grid-cols-2 gap-x-12 gap-y-8 max-w-4xl">
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Name</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Name</label>
                     {editable ? (
                         <input
                             className={inputClass}
@@ -30,7 +30,7 @@ const ContactPerson = ({ vendor, editable = false, onChange }: Props) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Designation</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Designation</label>
                     {editable ? (
                         <input
                             className={inputClass}
@@ -43,7 +43,7 @@ const ContactPerson = ({ vendor, editable = false, onChange }: Props) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Email</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Email</label>
                     {editable ? (
                         <input
                             className={inputClass}
@@ -56,7 +56,7 @@ const ContactPerson = ({ vendor, editable = false, onChange }: Props) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Phone Number</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Phone Number</label>
                     {editable ? (
                         <input
                             className={inputClass}
@@ -69,7 +69,7 @@ const ContactPerson = ({ vendor, editable = false, onChange }: Props) => {
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold font-gantari text-[#12141D] mb-2">Alternate Phone Number</label>
+                    <label className="block text-[16px] font-semibold font-Gantari text-[#12141D] mb-2">Alternate Phone Number</label>
                     {editable ? (
                         <input
                             className={inputClass}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
+import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
@@ -30,6 +31,7 @@ type FormDropdownId = "project" | "module" | "type" | "assignTo" | "type_start_t
 interface Employee {
     id: number;
     full_name: string;
+    profile_picture?: string;
 }
 
 interface Project {
@@ -276,6 +278,43 @@ function formatFileSize(bytes: number): string {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
+
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    return `${apiBaseUrl}${urlPath}`;
+};
+
 function AttachmentPreviewItem({
     file,
     onRemove,
@@ -350,6 +389,10 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
+    assigned_to?: number;
+    uploaderid?: number;
+    assigned_profile_picture?: string;
+    uploader_profile_picture?: string;
     Approval?: string;
     created_at?: string;
     Actual_start_time?: string;
@@ -425,7 +468,14 @@ function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const progress = task.progress ?? 0;
+    const progress =
+        task.progress !== undefined
+            ? task.progress
+            : status === "todo"
+                ? 0
+                : status === "in_progress"
+                    ? 50
+                    : 100;
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -558,15 +608,70 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {[1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0"
-                                title="Assignee"
-                            />
-                        ))}
+                        {/* Assigned To Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
+                        >
+                            {task.assigned_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
+                                    alt="Assignee"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.assigned_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Uploader Profile */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned by: ${task.uploader_full_name || "System"}`}
+                        >
+                            {task.uploader_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
+                                    alt="Uploader"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.uploader_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
                     </div>
-                    <span className="text-xs text-slate-500">+4</span>
                 </div>
                 <Link
                     to={`/tasks/${task.id}`}

@@ -253,6 +253,7 @@ interface Task {
     assigned_full_name?: string;
     uploader_full_name?: string;
     assigned_to?: number;
+    uploaderid?: number;
     vendor_id?: number;
     assigned_profile_picture?: string;
     uploader_profile_picture?: string;
@@ -484,8 +485,15 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const style = STATUS_STYLE[status];
-    // Status-based progress: Todo=0%, In Progress=50%, Completed=100%
-    const progress = status === "todo" ? 0 : status === "in_progress" ? 50 : 100;
+    // Progress bar based on task.progress from API if available
+    const progress =
+        task.progress !== undefined
+            ? task.progress
+            : status === "todo"
+                ? 0
+                : status === "in_progress"
+                    ? 50
+                    : 100;
     const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -605,33 +613,69 @@ function TaskCard({
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {/* Show only the assignee's avatar/name for this task */}
-                        {task.assigned_full_name && (
-                            (() => {
-                                const src =
-                                    task.assigned_to != null && task.assigned_profile_picture
-                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
-                                        : task.assigned_profile_picture
-                                            ? getProfileUrl(task.assigned_profile_picture)
-                                            : "";
-                                return (
-                                    <div
-                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={task.assigned_full_name}
-                                    >
-                                        {src ? (
-                                            <img
-                                                src={src}
-                                                alt={task.assigned_full_name}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span>{task.assigned_full_name[0]}</span>
-                                        )}
-                                    </div>
-                                );
-                            })()
-                        )}
+                        {/* Assigned To avatar */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
+                        >
+                            {task.assigned_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)}
+                                    alt="Assignee"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.assigned_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Uploader avatar */}
+                        <div
+                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            title={`Assigned by: ${task.uploader_full_name || "System"}`}
+                        >
+                            {task.uploader_profile_picture ? (
+                                <img
+                                    src={getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)}
+                                    alt="Uploader"
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = getProfileUrl(task.uploader_profile_picture);
+                                        target.onerror = () => {
+                                            target.style.display = "none";
+                                            const parent = target.parentElement;
+                                            if (parent) {
+                                                const span = document.createElement("span");
+                                                span.className = "text-[10px] font-bold text-[#DD4342]";
+                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                parent.appendChild(span);
+                                            }
+                                        };
+                                    }}
+                                />
+                            ) : (
+                                <span className="text-[10px] font-bold text-[#DD4342]">
+                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <Link
@@ -961,10 +1005,9 @@ export default function TeamtaskV() {
             return;
         }
         setLoadingRecentTasks(true);
-        api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-            params: { condition: "1" },
-        })
-            .then((res) => {
+            api.get<{ tasks?: Task[]; vendor_tasks?: Task[] }>("/api/tasks", {
+                params: { condition: isTeam ? "1" : "0", employeeid: "all" },
+            }).then((res) => {
                 const tasks = res.data.tasks ?? [];
                 setRecentTasks(tasks.slice(0, 10));
                 setTasklistOpen(true);
@@ -985,7 +1028,10 @@ export default function TeamtaskV() {
     useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
-        if (isTeam) params.condition = "1";
+        if (isTeam) {
+            params.condition = "1";
+            params.employeeid = "all";
+        }
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),

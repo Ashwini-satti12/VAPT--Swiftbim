@@ -52,7 +52,7 @@ const Certificates = ({ vendor }: Props) => {
                 {/* Quality / ISO Certifications */}
                 {certs.length > 0 && (
                     <div className="flex flex-col gap-3">
-                        <h4 className="font-semibold text-[#12141D] font-gantari">Quality Certifications</h4>
+                        <h4 className="text-[16px] font-semibold text-[#12141D] font-Gantari">Quality Certifications</h4>
                         {certs.map((cert: string, index: number) => (
                             <FileLink
                                 key={index}
@@ -66,7 +66,7 @@ const Certificates = ({ vendor }: Props) => {
                 {/* Legal Documents */}
                 {vendor.nda_agreement_file && (
                     <div className={`flex flex-col gap-3 ${certs.length > 0 ? 'mt-2 border-t pt-4' : ''}`}>
-                        <h4 className="font-semibold text-[#12141D] font-gantari">Legal Documents</h4>
+                        <h4 className="text-[16px] font-semibold text-[#12141D] font-Gantari">Legal Documents</h4>
                         <FileLink fileName={vendor.nda_agreement_file} label="NDA Agreement" />
                     </div>
                 )}

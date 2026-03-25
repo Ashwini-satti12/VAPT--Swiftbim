@@ -86,14 +86,6 @@ export default function AddConsultantBL() {
   });
   const COUNTRY_CODES = ['+91', '+1', '+44', '+971', '+65', '+81'];
 
-  const getTodayInputDate = (): string => {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
   // As requested: cannot select "from yesterday" => allow up to (today - 2 days)
   const dobMaxDate = (() => {
     const d = new Date();

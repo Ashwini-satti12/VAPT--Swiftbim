@@ -9,15 +9,16 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg"
 import threedot from "../../assets/ProjectManager/project/threedot.svg"
-import backIcon from "../../assets/TechnicalDirector/back icon.svg"
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg"
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other") return undefined;
   if (/^\d+$/.test(name)) return Number(name);
   const emp = employeesList.find((e) => e.full_name === name);
-  return emp ? emp.id : undefined;
+  return emp ? emp.id : name;
 };
 
 const namesToIds = (names: string[], employeesList: Employee[]) => {
@@ -140,6 +141,8 @@ interface Project {
   module_name?: string;
   client_name?: string;
   project_manager?: string;
+  project_manager_id?: string;
+  project_manager_name?: string;
   start_date?: string;
   end_date?: string;
   total_hours?: string;
@@ -147,8 +150,12 @@ interface Project {
   client_id?: number;
   department?: string;
   bim_lead?: string;
+  lead_id?: string;
+  lead_name?: string;
   bim_co_ordinator?: string;
+  bim_coordinator_id?: string;
   member?: string;
+  members?: string;
   resources?: string;
   required_resources?: string;
   priority?: string;
@@ -254,7 +261,7 @@ export default function ProjectsTD() {
   const [createBiddingEndDate, setCreateBiddingEndDate] = useState("");
 
   // Employee data for dropdowns
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [_employees, setEmployees] = useState<Employee[]>([]);
   const [projectManagers, setProjectManagers] = useState<Employee[]>([]);
   const [bimLeads, setBimLeads] = useState<Employee[]>([]);
   const [bimCoordinators, setBimCoordinators] = useState<Employee[]>([]);
@@ -320,6 +327,8 @@ export default function ProjectsTD() {
       module_name: str(r.modules),
       client_name: str(r.client_name),
       project_manager: str(r.project_manager_name),
+      project_manager_id: str(r.project_manager_id),
+      project_manager_name: str(r.project_manager_name),
       start_date: d(r.start_date),
       end_date: d(r.end_date) ?? d(r.due_date),
       total_hours: str(r.totalhours),
@@ -330,8 +339,12 @@ export default function ProjectsTD() {
       budget_ceiling: str(r.budget_ceiling),
       bidding_end_date: str(r.bidding_end_date),
       bim_lead: str(r.lead_name),
+      lead_id: str(r.lead_id),
+      lead_name: str(r.lead_name),
       bim_co_ordinator: str(r.bim_coordinator_name),
+      bim_coordinator_id: str(r.bim_coordinator_id),
       member: str(r.members),
+      members: str(r.members),
       priority: str(r.priority),
       location: str(r.location),
       description: str(r.description),
@@ -587,7 +600,7 @@ export default function ProjectsTD() {
         {showProjectView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6 md:py-2 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
@@ -595,20 +608,18 @@ export default function ProjectsTD() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="p-3 md:p-2 rounded-xl bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <img src={backIcon} alt="Back" className="w-5 h-5 mx-0.5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <div className="min-w-0">
-                <h3 className="text-[20px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
-                <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
-                    Overall Progress Tracker
-                  </p>
+                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
                 </div>
               </div>
             </div>
@@ -802,80 +813,100 @@ export default function ProjectsTD() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
                       {/* Project Manager */}
                       {(() => {
-                        const projectManagerIdentifier = selectedProjectForView.project_manager;
-                        const projectManager = projectManagerIdentifier
-                          ? allEmployees.find(e => Number(e.id) === Number(projectManagerIdentifier) || e.full_name === projectManagerIdentifier)
-                          : null;
-                        const pmProfileUrl = projectManager?.profile_picture
-                          ? getGlobalProfileUrl(projectManager.id, projectManager.profile_picture)
-                          : null;
+                        const pmIds = selectedProjectForView.project_manager_id
+                          ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                          : [];
+                        const pmNames = selectedProjectForView.project_manager_name
+                          ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                          : [];
 
-                        return (
-                          <div className="flex items-center gap-4">
-                            {pmProfileUrl ? (
-                              <img
-                                src={pmProfileUrl}
-                                className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                                alt={projectManager?.full_name || "PM"}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = ProfileIcon;
-                                }}
-                              />
-                            ) : (
+                        if (pmIds.length === 0 && pmNames.length === 0) {
+                          return (
+                            <div className="flex items-center gap-4">
                               <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                                <span className="text-slate-600 font-semibold">
-                                  {(projectManager?.full_name || "PM").charAt(0).toUpperCase()}
-                                </span>
+                                <span className="text-slate-600 font-semibold">PM</span>
                               </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                                {projectManager?.full_name || "Not Assigned"}
-                              </p>
-                              <p className="text-sm font-Gantari text-[#616161] truncate">
-                                Project Manager
-                              </p>
+                              <div className="min-w-0">
+                                <p className="text-md font-Gantari font-semibold text-[#000000] truncate">Not Assigned</p>
+                                <p className="text-sm font-Gantari text-[#616161] truncate">Project Manager</p>
+                              </div>
                             </div>
+                          );
+                        }
+
+                        const maxCount = Math.max(pmIds.length, pmNames.length);
+                        return (
+                          <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                            <p className="text-sm font-Gantari text-[#616161] mb-1">{maxCount > 1 ? "Project Managers" : "Project Manager"}</p>
+                            {Array.from({ length: maxCount }).map((_, i) => {
+                              const pId = pmIds[i];
+                              const pName = pmNames[i];
+                              const pm = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                              const dName = pm?.full_name || pName || "Unknown";
+                              const url = pm?.profile_picture ? getGlobalProfileUrl(pm.id, pm.profile_picture) : null;
+                              return (
+                                <div key={i} className="flex items-center gap-3">
+                                  {url ? (
+                                    <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                      <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <p className="text-md font-Gantari font-semibold text-[#000000] truncate" title={dName}>{dName}</p>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })()}
 
                       {/* BIM Lead */}
                       {(() => {
-                        const bimLeadIdentifier = selectedProjectForView.bim_lead;
-                        const bimLead = bimLeadIdentifier
-                          ? allEmployees.find(e => Number(e.id) === Number(bimLeadIdentifier) || e.full_name === bimLeadIdentifier)
-                          : null;
-                        const bimProfileUrl = bimLead?.profile_picture
-                          ? getGlobalProfileUrl(bimLead.id, bimLead.profile_picture)
-                          : null;
+                        const blIds = selectedProjectForView.lead_id
+                          ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                          : [];
+                        const blNames = selectedProjectForView.lead_name
+                          ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                          : [];
 
-                        return (
-                          <div className="flex items-center gap-4">
-                            {bimProfileUrl ? (
-                              <img
-                                src={bimProfileUrl}
-                                className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm object-cover shrink-0"
-                                alt={bimLead?.full_name || "BIM Lead"}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = ProfileIcon;
-                                }}
-                              />
-                            ) : (
+                        if (blIds.length === 0 && blNames.length === 0) {
+                          return (
+                            <div className="flex items-center gap-4">
                               <div className="w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center shrink-0">
-                                <span className="text-slate-600 font-bold">
-                                  {(bimLead?.full_name || "BL").charAt(0).toUpperCase()}
-                                </span>
+                                <span className="text-slate-600 font-semibold">BL</span>
                               </div>
-                            )}
-                            <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] truncate">
-                                {bimLead?.full_name || "Not Assigned"}
-                              </p>
-                              <p className="text-sm font-Gantari text-[#616161] truncate">
-                                BIM Lead
-                              </p>
+                              <div className="min-w-0">
+                                <p className="text-md font-Gantari font-semibold text-[#000000] truncate">Not Assigned</p>
+                                <p className="text-sm font-Gantari text-[#616161] truncate">BIM Lead</p>
+                              </div>
                             </div>
+                          );
+                        }
+
+                        const maxCount = Math.max(blIds.length, blNames.length);
+                        return (
+                          <div className={`flex flex-col gap-3 ${maxCount > 1 ? 'max-h-[140px] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+                            <p className="text-sm font-Gantari text-[#616161] mb-1">{maxCount > 1 ? "BIM Leads" : "BIM Lead"}</p>
+                            {Array.from({ length: maxCount }).map((_, i) => {
+                              const pId = blIds[i];
+                              const pName = blNames[i];
+                              const bl = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                              const dName = bl?.full_name || pName || "Unknown";
+                              const url = bl?.profile_picture ? getGlobalProfileUrl(bl.id, bl.profile_picture) : null;
+                              return (
+                                <div key={i} className="flex items-center gap-3">
+                                  {url ? (
+                                    <img src={url} className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200" alt={dName} onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0 border border-slate-200">
+                                      <span className="text-xs font-bold text-slate-600">{dName.charAt(0).toUpperCase()}</span>
+                                    </div>
+                                  )}
+                                  <p className="text-md font-Gantari font-semibold text-[#000000] truncate" title={dName}>{dName}</p>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })()}
@@ -898,8 +929,8 @@ export default function ProjectsTD() {
                         <div className="flex items-center -space-x-3">
                           {(() => {
                             // Get members from project (IDs can be numeric or string from API)
-                            const rawIds = selectedProjectForView.member
-                              ? selectedProjectForView.member.split(',').map(m => m.trim()).filter(Boolean)
+                            const rawIds = (selectedProjectForView.members || selectedProjectForView.member)
+                              ? String(selectedProjectForView.members || selectedProjectForView.member).split(',').map(m => m.trim()).filter(Boolean)
                               : [];
                             const memberIds = rawIds.map((m) => {
                               const n = Number(m);
@@ -1118,28 +1149,26 @@ export default function ProjectsTD() {
         ) : showMilestones && currentProject ? (
           <div className="flex flex-col h-full bg-white">
             {/* Milestones Header */}
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-6">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestones(false)}
-                  className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
-                >
-                  <img src={backIcon} alt="Close" className="w-5 h-5" />
-                </button>
-                <div>
-                  <h3 className="text-xl font-Gantari font-bold text-[#1A1A1A]">
-                    Payment Milestones
-                  </h3>
-                  <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                    {currentProject.project_name ?? "Prestige Park Grove"}
-                    _Tower 1 to 09
-                  </p>
-                </div>
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+              <button
+                type="button"
+                onClick={() => setShowMilestones(false)}
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                title="Close"
+              >
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                  Payment Milestones
+                </h3>
+                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+                </p>
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[16px] shadow-sm transition-colors"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1577,29 +1606,17 @@ export default function ProjectsTD() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
           <div className="bg-white rounded-2xl border-2 border-gray-100 max-w-4xl w-full flex flex-col max-h-[85vh] overflow-hidden shadow-xl">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-8 py-6">
+            <div className="relative flex items-center justify-center px-8 py-6 border-b border-gray-100">
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="absolute left-6 p-2 rounded-lg bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
                 Add New Project
@@ -1632,6 +1649,12 @@ export default function ProjectsTD() {
                         bim_coordinator_id: namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators),
                         members: selectedMemberIds.join(',') || createMember || undefined,
                         department: createDepartment || undefined,
+                        ...(createDepartment === 'Submission Deadline'
+                          ? {
+                              budget_ceiling: createBudgetCeiling || undefined,
+                              bidding_end_date: createBiddingEndDate || undefined,
+                            }
+                          : {}),
                         due_date: createEndDate || undefined,
                         start_date: createStartDate || undefined,
                         totalhours: createTotalHours || undefined,
@@ -1759,81 +1782,192 @@ export default function ProjectsTD() {
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">
-                      Select Project Manager <span className="text-[#DD4342]">*</span>
+                      Select Source <span className="text-[#DD4342]">*</span>
                     </label>
-                    <FormSelect
-                      label="Select Project Manager"
-                      placeholder="Nothing Selected"
-                      options={projectManagers.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
-                      value={createProjectManager}
-                      isMulti={true}
-                      onChange={(v) => {
-                        setCreateProjectManager(v);
-                        setShowOtherPM(v.includes("Other"));
-                      }}
-                    />
-                    {showOtherPM && (
-                      <input
-                        type="text"
-                        value={otherPMValue}
-                        onChange={(e) => setOtherPMValue(e.target.value)}
-                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                        placeholder="Enter Project Manager Name"
-                      />
-                    )}
+                    <div className="relative dropdown-container">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditDropdownOpen((o) => (o === 'source' ? null : 'source'))
+                        }
+                        className={`w-full flex items-center justify-between px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-left cursor-pointer ${editDropdownOpen === 'source' ? '!border-[#AEACAC52]' : ''}`}
+                      >
+                        <span className={createDepartment === 'Budget Ceiling' || createDepartment === 'Submission Deadline' ? 'text-gray-700' : 'text-gray-400'}>
+                          {createDepartment === 'Budget Ceiling' ? 'In House' : createDepartment === 'Submission Deadline' ? 'Outsource' : 'Select Source'}
+                        </span>
+                        <svg
+                          className={`w-4 h-4 text-[#8B8B8B] shrink-0 transition-transform ${editDropdownOpen === 'source' ? 'rotate-180' : ''}`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {editDropdownOpen === 'source' && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${!createDepartment ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                          >
+                            Select Source
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('Budget Ceiling');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Budget Ceiling' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                          >
+                            In House
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCreateDepartment('Submission Deadline');
+                              setEditDropdownOpen(null);
+                            }}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari hover:bg-[#F4F5F7] ${createDepartment === 'Submission Deadline' ? 'bg-[#E2EEFF] text-[#1D7AFC]' : 'text-gray-700'}`}
+                          >
+                            Outsource
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* BIM Lead & BIM Coordinator */}
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">
-                      Select BIM Lead <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <FormSelect
-                      label="Select BIM Lead"
-                      placeholder="Nothing Selected"
-                      options={bimLeads.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
-                      value={createBIMLead}
-                      isMulti={true}
-                      onChange={(v) => {
-                        setCreateBIMLead(v);
-                        setShowOtherBIMLead(v.includes("Other"));
-                      }}
-                    />
-                    {showOtherBIMLead && (
-                      <input
-                        type="text"
-                        value={otherBIMLeadValue}
-                        onChange={(e) => setOtherBIMLeadValue(e.target.value)}
-                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                        placeholder="Enter BIM Lead Name"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">
-                      Select BIM Coordinator
-                    </label>
-                    <FormSelect
-                      label="Select BIM Coordinator"
-                      placeholder="Nothing Selected"
-                      options={bimCoordinators.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
-                      value={createBIMCoOrdinator}
-                      isMulti={true}
-                      onChange={(v) => {
-                        setCreateBIMCoOrdinator(v);
-                        setShowOtherBIMCoord(v.includes("Other"));
-                      }}
-                    />
-                    {showOtherBIMCoord && (
-                      <input
-                        type="text"
-                        value={otherBIMCoordValue}
-                        onChange={(e) => setOtherBIMCoordValue(e.target.value)}
-                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                        placeholder="Enter BIM Coordinator Name"
-                      />
-                    )}
-                  </div>
+                  {/* In House Fields */}
+                  {createDepartment === 'Budget Ceiling' && (
+                    <>
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Select Project Manager <span className="text-[#DD4342]">*</span>
+                        </label>
+                        <FormSelect
+                          label="Select Project Manager"
+                          placeholder="Nothing Selected"
+                          options={projectManagers.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          value={createProjectManager}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateProjectManager(v);
+                            setShowOtherPM(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherPM && (
+                          <input
+                            type="text"
+                            value={otherPMValue}
+                            onChange={(e) => setOtherPMValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter Project Manager Name"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Select BIM Lead <span className="text-[#DD4342]">*</span>
+                        </label>
+                        <FormSelect
+                          label="Select BIM Lead"
+                          placeholder="Nothing Selected"
+                          options={bimLeads.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          value={createBIMLead}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateBIMLead(v);
+                            setShowOtherBIMLead(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherBIMLead && (
+                          <input
+                            type="text"
+                            value={otherBIMLeadValue}
+                            onChange={(e) => setOtherBIMLeadValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter BIM Lead Name"
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Select BIM Coordinator
+                        </label>
+                        <FormSelect
+                          label="Select BIM Coordinator"
+                          placeholder="Nothing Selected"
+                          options={bimCoordinators.map((e) => e.full_name ?? "").filter(Boolean) as string[]}
+                          value={createBIMCoOrdinator}
+                          isMulti={true}
+                          onChange={(v) => {
+                            setCreateBIMCoOrdinator(v);
+                            setShowOtherBIMCoord(v.includes("Other"));
+                          }}
+                        />
+                        {showOtherBIMCoord && (
+                          <input
+                            type="text"
+                            value={otherBIMCoordValue}
+                            onChange={(e) => setOtherBIMCoordValue(e.target.value)}
+                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                            placeholder="Enter BIM Coordinator Name"
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Outsource Fields */}
+                  {createDepartment === 'Submission Deadline' && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Outsourcing Budget
+                        </label>
+                        <input
+                          type="text"
+                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-[5px] focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                            const clientNum = parseBudgetValue(createBudget);
+                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                            return outsourceNum > clientNum ? 'border-[#DD4342] focus:border-[#DD4342]' : 'border-transparent focus:border-[#AEACAC52]';
+                          })()}`}
+                          placeholder="Enter Outsourcing Budget"
+                          value={createBudgetCeiling}
+                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
+                        />
+                        {(() => {
+                          const clientNum = parseBudgetValue(createBudget);
+                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                          if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
+                            return (
+                              <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
+                                Outsourcing budget is exceeding. It should be less than or equal to client budget.
+                              </p>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Bidding End Date
+                        </label>
+                        <input
+                          type="date"
+                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
+                          value={createBiddingEndDate}
+                          onChange={(e) => setCreateBiddingEndDate(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
@@ -1860,43 +1994,32 @@ export default function ProjectsTD() {
       {/* Delete confirmation */}
       {deleteId !== null && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-xl w-full p-12 relative flex flex-col items-center">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
+            {/* <div className="relative flex items-center justify-center mb-10"> */}
+            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">Delete Project</h3>
+            
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-10 top-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
             </button>
-
+            {/* </div> */}
             {/* Content */}
-            <h3 className="text-[28px] font-Gantari font-bold text-[#1A1A1A] mt-4 mb-3">
-              Delete Project
-            </h3>
-            <p className="text-[18px] font-Gantari font-bold text-[#353535] mb-10 text-center">
+           
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-10 text-center">
               Are you sure, you want to Delete this?
             </p>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 mb-6">
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="px-12 py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[16px] transition-all hover:bg-gray-200"
+                className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
               >
                 Discard
               </button>
@@ -1916,7 +2039,7 @@ export default function ProjectsTD() {
                     })
                     .catch(() => { });
                 }}
-                className="px-12 py-3.5 rounded-[5px] bg-[#FFEBEC] text-[#DD4342] font-Gantari font-bold text-[16px] transition-all hover:bg-[#FFDEDE]"
+                className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
               >
                 Yes, Delete
               </button>
@@ -1934,22 +2057,10 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-3 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 Add Payment Milestone
@@ -2082,7 +2193,7 @@ export default function ProjectsTD() {
         <div className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             {/* Modal Header */}
-            <div className="relative flex items-center justify-center px-10 py-8">
+            <div className="relative flex items-center justify-center px-10 py-8 border-b border-gray-100">
               <button
                 type="button"
                 onClick={() => {
@@ -2095,14 +2206,14 @@ export default function ProjectsTD() {
                   setCreateBudget("");
                   setCreateModuleName("");
                   setCreateClientName("");
-                  setCreateProjectManager("");
+                  setCreateProjectManager([]);
                   setCreateStartDate("");
                   setCreateEndDate("");
                   setCreateTotalHours("");
                   setCreatePerDay("");
                   setCreateDepartment("");
-                  setCreateBIMLead("");
-                  setCreateBIMCoOrdinator("");
+                  setCreateBIMLead([]);
+                  setCreateBIMCoOrdinator([]);
                   setCreateMember("");
                   setCreateResources("");
                   setCreateRequiredResources("");
@@ -2110,25 +2221,13 @@ export default function ProjectsTD() {
                   setCreateLocation("");
                   setCreateDescription("");
                 }}
-                className="absolute left-10 p-3 rounded-[5px] bg-[#F2F2F2]  text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-semibold text-[#000000]">
-                Edit Details
+                Edit Project Details
               </h3>
             </div>
 
@@ -2449,14 +2548,14 @@ export default function ProjectsTD() {
                       setCreateBudget("");
                       setCreateModuleName("");
                       setCreateClientName("");
-                      setCreateProjectManager("");
+                      setCreateProjectManager([]);
                       setCreateStartDate("");
                       setCreateEndDate("");
                       setCreateTotalHours("");
                       setCreatePerDay("");
                       setCreateDepartment("");
-                      setCreateBIMLead("");
-                      setCreateBIMCoOrdinator("");
+                      setCreateBIMLead([]);
+                      setCreateBIMCoOrdinator([]);
                       setCreateMember("");
                       setCreateResources("");
                       setCreateRequiredResources("");
@@ -2491,22 +2590,10 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})
@@ -2589,25 +2676,13 @@ export default function ProjectsTD() {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
                 title="Close"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                Member Profile
+                View Details
               </h3>
             </div>
 

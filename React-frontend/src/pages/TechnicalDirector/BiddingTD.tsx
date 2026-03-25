@@ -164,13 +164,13 @@ export default function BiddingTD() {
                         <table className="min-w-full border-collapse">
                             <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                                 <tr className="border-b border-gray-100 bg-white">
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Outsourcing Budget</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Bidding End Date</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Bids</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Outsourcing Budget</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Bidding End Date</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Total Bids</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
+                                    <th className="px-3 py-4 text-center text-[16px] font-semibold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
@@ -180,25 +180,25 @@ export default function BiddingTD() {
                                     const slNo = (selectedRange.start + index + 1).toString().padStart(2, '0');
                                     return (
                                         <tr key={project.id} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {project.project_name}
                                             </td>
-                                            <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {formatBudget(project.budget_ceiling || project.outsource_budget)}
                                             </td>
-                                            <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {project.bid_deadline
                                                     ? new Date(project.bid_deadline).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
                                                     : '—'}
                                             </td>
                                             <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-gantari`}>
+                                                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-[14px] font-gantari`}>
                                                     {project.total_bids ?? 0}
                                                 </span>
                                             </td>
                                             <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(project.computed_status || project.status)}`}>
+                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-[14px] font-bold font-gantari ${getStatusBadge(project.computed_status || project.status)}`}>
                                                     {label}
                                                 </span>
                                             </td>

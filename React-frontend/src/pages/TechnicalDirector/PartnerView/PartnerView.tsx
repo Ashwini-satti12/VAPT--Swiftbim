@@ -73,27 +73,25 @@ const PartnerView = () => {
     if (!vendor) return <div className="p-8 text-center">Partner not found</div>;
 
     return (
-        <div className="bg-white font-inter flex flex-col h-screen overflow-hidden">
+        <div className="bg-white font-Gantari flex flex-col h-screen overflow-hidden">
             {/* Toast Notifications Container */}
             <Toaster />
 
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                <div className="flex-1 min-h-0 flex flex-col p-2">
                     {/* Header */}
                     <div className="grid grid-cols-3 items-center mb-8 shrink-0">
                         {/* Left: Back button */}
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
-                            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium text-lg"
-                            style={{ fontFamily: 'Montserrat, sans-serif' }}
+                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-10 h-10"
                         >
                             <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
-                            Back
                         </button>
 
                         {/* Centre: Title */}
-                        <h3 className="text-[26px] md:text-md font-bold font-sora text-[#12141D] text-center whitespace-nowrap">
+                        <h3 className="text-[24px] font-semibold font-Gantari text-[#12141D] text-center whitespace-nowrap">
                             View Partner Details
                         </h3>
 
@@ -101,14 +99,14 @@ const PartnerView = () => {
                         <div className="flex gap-3 justify-end"></div>
                     </div>
 
-                    <div className="flex gap-8 items-start">
+                    <div className="flex-1 flex gap-8 items-stretch min-h-0">
                         {/* Sidebar */}
                         <div className="w-1/4 max-w-[240px] flex-shrink-0">
                             <PartnerSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
                         </div>
 
                         {/* Content Area */}
-                        <div className="flex-1 bg-white rounded-lg min-h-[400px] min-w-0">
+                        <div className="flex-1 bg-white rounded-lg min-h-0 overflow-y-auto custom-scrollbar pr-4">
                             {renderContent()}
                         </div>
                     </div>

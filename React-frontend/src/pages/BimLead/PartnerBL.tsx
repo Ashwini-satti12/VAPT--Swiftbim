@@ -33,7 +33,7 @@ export default function PartnerBL() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 mb-4">
                 <div>
-                    <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Partners</h2>
+                    <h2 className="text-[24px] font-semibold text-[#12141D] font-Gantari">Partners</h2>
                 </div>
             </div>
 
@@ -56,7 +56,7 @@ export default function PartnerBL() {
                                     </h3>
 
                                     <p className="text-[13px] font-Gantari font-medium text-[#9E9E9E] mb-1">
-                                        Director Name
+                                        Vendor Name
                                     </p>
                                     <p className="text-[16px] font-bold text-[#000000] font-Gantari leading-snug">
                                         {partner.contact_name || '—'}
