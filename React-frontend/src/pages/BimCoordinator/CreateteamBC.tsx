@@ -72,7 +72,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
             <div className="absolute top-6 right-6" ref={menuRef}>
                 <button
                     onClick={() => setShowMenu(!showMenu)}
-                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+                    className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
                 >
                     <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
                 </button>
@@ -84,7 +84,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                                 onViewDetails(team);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
                         >
                             <img src={viewIcon} alt="View" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                             <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">View</span>
@@ -94,7 +94,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                                 onEdit(team);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
                         >
                             <img src={editIcon} alt="Edit" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                             <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
@@ -104,7 +104,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                                 onDelete(team.team_id);
                                 setShowMenu(false);
                             }}
-                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+                            className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
                         >
                             <img src={deleteIcon} alt="Delete" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                             <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
@@ -190,7 +190,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                 </div>
                 <button
                     onClick={() => onViewDetails(team)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 mt-5"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 mt-5 cursor-pointer"
                 >
                     Details
                     <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
@@ -389,7 +389,7 @@ export default function CreateteamBC() {
                 <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">Team Workspace</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
-                    className="flex items-center gap-2 rounded-lg bg-[#DD4342] px-6 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95"
+                    className="flex items-center gap-2 rounded-lg bg-[#DD4342] px-6 py-2 text-sm font-medium text-white shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
                     <PlusIcon className="w-5 h-5 stroke-[2.5]" />
                     New Team
@@ -440,7 +440,7 @@ export default function CreateteamBC() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
                         <button
                             onClick={() => setShowAddModal(false)}
-                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#353535] hover:bg-[#E0E0E0] transition-colors z-10"
+                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#353535] hover:bg-[#E0E0E0] transition-colors z-10 cursor-pointer"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
@@ -584,14 +584,14 @@ export default function CreateteamBC() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-12 py-2.5 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all hover:bg-[#E8E8E8] active:scale-[0.98] font-Gantari"
+                                    className="px-12 py-2.5 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all hover:bg-[#E8E8E8] active:scale-[0.98] font-Gantari cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-12 py-2.5 rounded-lg bg-[#DD4342] text-white text-[16px] font-medium transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.98] font-Gantari shadow-sm"
+                                    className={`px-12 py-2.5 rounded-lg bg-[#DD4342] text-white text-[16px] font-medium transition-all hover:opacity-90 active:scale-[0.98] font-Gantari shadow-sm ${submitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                                 >
                                     {submitting ? 'Submitting...' : 'Submit'}
                                 </button>
@@ -605,7 +605,7 @@ export default function CreateteamBC() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-[564px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
                         <button
                             onClick={() => setShowEditModal(false)}
-                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#353535] hover:bg-[#E0E0E0] transition-colors z-10"
+                            className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#353535] hover:bg-[#E0E0E0] transition-colors z-10 cursor-pointer"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                         </button>
@@ -748,14 +748,14 @@ export default function CreateteamBC() {
                                 <button
                                     type="button"
                                     onClick={() => setShowEditModal(false)}
-                                    className="px-12 py-2.5 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all hover:bg-[#E8E8E8] active:scale-[0.98] font-Gantari"
+                                    className="px-12 py-2.5 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all hover:bg-[#E8E8E8] active:scale-[0.98] font-Gantari cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-12 py-2.5 rounded-lg bg-[#DD4342] text-white text-[16px] font-medium transition-all hover:opacity-90 disabled:opacity-50 active:scale-[0.98] font-Gantari shadow-sm"
+                                    className={`px-12 py-2.5 rounded-lg bg-[#DD4342] text-white text-[16px] font-medium transition-all hover:opacity-90 active:scale-[0.98] font-Gantari shadow-sm ${submitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                                 >
                                     {submitting ? 'Updating...' : 'Update'}
                                 </button>
@@ -770,7 +770,7 @@ export default function CreateteamBC() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full p-8 animate-in zoom-in-95 duration-200 relative max-h-[90vh] flex flex-col my-auto overflow-y-auto no-scrollbar shrink-0">
                         <button
                             onClick={() => setShowDetailsModal(false)}
-                            className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                            className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors cursor-pointer"
                         >
                             <XMarkIcon className="w-6 h-6 stroke-2" />
                         </button>
@@ -835,7 +835,7 @@ export default function CreateteamBC() {
                             <button
                                 type="button"
                                 onClick={() => setShowAllMembersModal(false)}
-                                className="absolute left-10 p-2 rounded-lg bg-[#F2F2F2] hover:bg-gray-100 text-gray-800 transition-colors"
+                                className="absolute left-10 p-2 rounded-lg bg-[#F2F2F2] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                                 title="Close"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -909,7 +909,7 @@ export default function CreateteamBC() {
                             <button
                                 type="button"
                                 onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
-                                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                                 title="Close"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

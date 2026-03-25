@@ -29,7 +29,7 @@ import whiteTeamReportIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whitet
 import chatIcon from '../../assets/SidebarIcons/PMSidebarIcons/chat.svg';
 import whiteChatIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whitechat.svg';
 
-const HIDE_CLIENTS_ROLES = ['BIM Lead', 'BIM Coordinator'];
+// const HIDE_CLIENTS_ROLES = ['BIM Lead', 'BIM Coordinator'];
 
 export interface NavItem {
   name: string;
@@ -54,7 +54,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const userRole = user?.user_role || '';
   const isManagement = panelType === 1;
   const isTeamLeader = panelType === 2;
-  const showClients = isManagement && !HIDE_CLIENTS_ROLES.includes(userRole);
+  // const showClients = isManagement && !HIDE_CLIENTS_ROLES.includes(userRole);
 
   const isTechnicalDirector = userRole === 'Technical Director';
   const isBimLead = userRole === 'BIM Lead';

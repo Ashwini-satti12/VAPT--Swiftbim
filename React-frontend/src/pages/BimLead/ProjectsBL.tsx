@@ -122,7 +122,7 @@ interface Project {
   completed_tasks?: number;
   budget?: string;
   module_name?: string;
-  client_id?: string;
+  client_id?: number | string;
   client_name?: string;
   project_manager?: string;
   project_manager_id?: string;
@@ -131,7 +131,6 @@ interface Project {
   end_date?: string;
   total_hours?: string;
   per_day?: string;
-  client_id?: number;
   department?: string;
   bim_lead?: string;
   lead_id?: string;
@@ -147,7 +146,6 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
-  client_id?: number | string;
 }
 
 interface Milestone {
