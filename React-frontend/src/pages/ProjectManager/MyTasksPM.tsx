@@ -52,6 +52,7 @@ interface Employee {
   phone?: string;
   user_role?: string;
   profile_picture?: string;
+  active?: string | null;
 }
 
 interface Project {

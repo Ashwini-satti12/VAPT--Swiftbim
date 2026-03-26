@@ -15,6 +15,7 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -296,6 +297,7 @@ interface Employee {
     id: number;
     full_name?: string;
     name?: string;
+  active?: string;
 }
 
 interface Project {
@@ -1002,11 +1004,11 @@ export default function TeamtaskEV() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -1019,9 +1021,9 @@ export default function TeamtaskEV() {
             });
         }
 
-        const validEmployees = employees.filter((e) => (e.full_name || e.name) && involvedNames.has((e.full_name || e.name) as string));
+        const validEmployees = employees.filter((e) => (e.full_name || e.name) && involvedNames.has((e.full_name || e.name) as string) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1062,6 +1064,7 @@ export default function TeamtaskEV() {
     }, [isTeam, statusFilter]);
 
     const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
         .filter((e) => (e.full_name || e.name || "").trim() !== "")
         .map((e) => ({
             value: e.full_name || e.name || "",

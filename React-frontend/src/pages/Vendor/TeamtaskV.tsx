@@ -18,6 +18,7 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -337,6 +338,7 @@ const getProfileUrl = (path: string | undefined): string => {
 export interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 export interface Project {
@@ -1097,11 +1099,11 @@ export default function TeamtaskV() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -1114,9 +1116,9 @@ export default function TeamtaskV() {
             });
         }
 
-        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1126,7 +1128,9 @@ export default function TeamtaskV() {
     ];
     const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
     const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
-    const modalAssignOptions = employeesForAssignDropdown.map((e) => ({
+    const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
+        .map((e) => ({
         value: e.full_name,
         label: e.full_name,
     }));

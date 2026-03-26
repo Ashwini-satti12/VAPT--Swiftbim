@@ -13,6 +13,7 @@ import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -27,6 +28,7 @@ export type FormDropdownId =
 interface Employee {
   id: number;
   full_name: string;
+  active?: string;
 }
 
 interface Project {

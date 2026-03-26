@@ -16,6 +16,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -307,6 +308,7 @@ interface Task {
 interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 interface Project {
@@ -1076,6 +1078,7 @@ export default function TeamtaskPMV() {
     }, [isTeam, statusFilter]);
 
     const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
         .filter((e) => (e.full_name || "").trim() !== "")
         .map((e) => ({ value: e.full_name, label: e.full_name }));
 
