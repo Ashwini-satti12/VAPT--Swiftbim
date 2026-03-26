@@ -595,7 +595,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
                 type="button"
                 onClick={() => handleNavClick(item.path)}
                 disabled={isNavigating}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${active
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium cursor-pointer ${active
                   ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
                   : "text-slate-700 hover:bg-white/20 hover:text-black"
                   } ${isNavigating ? "opacity-90" : ""}`}
@@ -625,7 +625,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         <button
           type="button"
           onClick={() => setShowLogoutModal(true)}
-          className="flex w-full bg-transparent backdrop-blur-md items-center font-semibold font-gantari justify-center gap-3 px-4 py-3 rounded-lg border border-[rgba(89,89,89,0.2)] text-[#E00100] transition-all shadow-lg active:scale-95"
+          className="flex w-full bg-transparent backdrop-blur-md items-center font-semibold font-gantari justify-center gap-3 px-4 py-3 rounded-lg border border-[rgba(89,89,89,0.2)] text-[#E00100] transition-all shadow-lg active:scale-95 cursor-pointer"
         >
           <ArrowRightOnRectangleIcon className="w-6 h-6 text-[#E00100]" />
           <span>Log Out</span>
@@ -638,7 +638,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
             {/* Close Button */}
             <button
               onClick={() => setShowLogoutModal(false)}
-              className="absolute top-6 left-6 p-1.5 bg-[#F2F2F2] rounded-lg text-black hover:bg-slate-200 transition-colors"
+              className="absolute top-6 left-6 p-1.5 bg-[#F2F2F2] rounded-lg text-black cursor-pointer"
             >
               <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
             </button>
@@ -654,13 +654,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={() => setShowLogoutModal(false)}
-                  className="px-6 py-2 bg-[#F2F2F2] text-slate-700 rounded-md text-base font-semibold hover:bg-slate-200 transition-all min-w-[120px]"
+                  className="px-6 py-2 bg-[#F2F2F2] text-slate-700 rounded-md text-base font-semibold transition-all min-w-[120px] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="px-6 py-2 bg-[#FFE5E5] text-[#E00100] rounded-md text-base font-semibold hover:bg-red-100 transition-all min-w-[120px]"
+                  className="px-6 py-2 bg-[#FFE5E5] text-[#E00100] rounded-md text-base font-semibold transition-all min-w-[120px] cursor-pointer"
                 >
                   Logout
                 </button>

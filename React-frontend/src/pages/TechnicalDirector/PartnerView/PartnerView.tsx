@@ -85,7 +85,7 @@ const PartnerView = () => {
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
-                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-10 h-10"
+                            className="flex items-center justify-center p-2 rounded-[5px] bg-[#F2F2F2] transition-colors w-10 h-10 cursor-pointer"
                         >
                             <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
                         </button>

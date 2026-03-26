@@ -45,7 +45,7 @@ export function AttachmentPreviewModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+            className="p-1.5 rounded-lg text-slate-500 cursor-pointer"
             aria-label="Close"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,10 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
-import {
-  PlusIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../assets/ProjectManager/CreateTeam/three dots.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -120,7 +117,7 @@ function TeamCard({
       <div className="absolute top-6 right-6" ref={menuRef}>
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+          className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
         >
           <img
             src={threeDotsIcon}
@@ -136,7 +133,7 @@ function TeamCard({
                 onViewDetails(team);
                 setShowMenu(false);
               }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
             >
               <img
                 src={viewIcon}
@@ -152,7 +149,7 @@ function TeamCard({
                 onEdit(team);
                 setShowMenu(false);
               }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
             >
               <img
                 src={editIcon}
@@ -168,7 +165,7 @@ function TeamCard({
                 onDelete(team.team_id);
                 setShowMenu(false);
               }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
             >
               <img
                 src={deleteIcon}
@@ -265,7 +262,7 @@ function TeamCard({
         </div>
         <button
           onClick={() => onViewDetails(team)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2"
+          className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 cursor-pointer"
         >
           Details
           <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
@@ -472,7 +469,9 @@ export default function CreateteamTD() {
         leader: editForm.leader,
         employee: editForm.employee.join(","),
         project_lead: editForm.project_lead || 0,
-        project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
+        project_id: editForm.project_id
+          ? Number(editForm.project_id)
+          : undefined,
       })
       .then(({ data }) => {
         if (data.success) {
@@ -499,16 +498,18 @@ export default function CreateteamTD() {
     );
   }
 
-  const searchQuery = searchParams.get('q')?.toLowerCase() || "";
-  
-  const filteredTeams = teams.filter(t => {
-      if (!searchQuery) return true;
-      const tName = (t.team_name || t.teamname || "").toLowerCase();
-      const pName = (t.project_name || "").toLowerCase();
-      const lName = (t.leader_name || getEmpName(t.leader) || "").toLowerCase();
-      return tName.includes(searchQuery) ||
-             pName.includes(searchQuery) ||
-             lName.includes(searchQuery);
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
+  const filteredTeams = teams.filter((t) => {
+    if (!searchQuery) return true;
+    const tName = (t.team_name || t.teamname || "").toLowerCase();
+    const pName = (t.project_name || "").toLowerCase();
+    const lName = (t.leader_name || getEmpName(t.leader) || "").toLowerCase();
+    return (
+      tName.includes(searchQuery) ||
+      pName.includes(searchQuery) ||
+      lName.includes(searchQuery)
+    );
   });
 
   const displayTeams =
@@ -531,7 +532,7 @@ export default function CreateteamTD() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0 cursor-pointer"
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-sm font-medium text-[#616161] font-gantari">
@@ -570,7 +571,7 @@ export default function CreateteamTD() {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
                   >
                     {opt.label}
                   </button>
@@ -584,7 +585,7 @@ export default function CreateteamTD() {
               setShowMemberDropdown(false);
               setShowAddModal(true);
             }}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 active:scale-95"
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 cursor-pointer"
           >
             <PlusIcon className="w-5 h-5 stroke-[3]" />
             New Team
@@ -639,7 +640,7 @@ export default function CreateteamTD() {
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-visible my-auto">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B]  transition-colors"
+              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B]  transition-colors cursor-pointer"
             >
               <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -776,7 +777,7 @@ export default function CreateteamTD() {
                                 setLeaderSearchQuery("");
                                 setShowLeaderDropdown(false);
                               }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
                             >
                               {e.full_name}
                             </button>
@@ -881,14 +882,14 @@ export default function CreateteamTD() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98]"
+                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98] cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? "Submitting..." : "Submit"}
                 </button>
@@ -903,7 +904,7 @@ export default function CreateteamTD() {
             {/* Close button in top left as per image */}
             <button
               onClick={() => setShowEditModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors"
+              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors cursor-pointer"
             >
               <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -1042,7 +1043,7 @@ export default function CreateteamTD() {
                                 setLeaderSearchQuery("");
                                 setShowLeaderDropdown(false);
                               }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
+                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
                             >
                               {e.full_name}
                             </button>
@@ -1149,14 +1150,14 @@ export default function CreateteamTD() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98]"
+                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? "Updating..." : "Update"}
                 </button>
@@ -1171,7 +1172,7 @@ export default function CreateteamTD() {
           <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
             <button
               onClick={() => setShowDetailsModal(false)}
-              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors z-10"
+              className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors z-10 cursor-pointer"
             >
               <XMarkIcon className="w-6 h-6 stroke-2" />
             </button>
@@ -1203,12 +1204,8 @@ export default function CreateteamTD() {
                   </h4>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                      {
-                        (
-                          selectedTeam.leader_name ||
-                          getEmpName(selectedTeam.leader)
-                        )?.[0] ?? ""
-                      }
+                      {(selectedTeam.leader_name ||
+                        getEmpName(selectedTeam.leader))?.[0] ?? ""}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800">
@@ -1270,7 +1267,7 @@ export default function CreateteamTD() {
               <button
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 title="Close"
               >
                 <svg
@@ -1370,7 +1367,7 @@ export default function CreateteamTD() {
                   setShowMemberProfileModal(false);
                   setSelectedMember(null);
                 }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 title="Close"
               >
                 <svg

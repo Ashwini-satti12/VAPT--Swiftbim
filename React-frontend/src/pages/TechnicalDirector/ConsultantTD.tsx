@@ -5,6 +5,7 @@ import { FiPlus, FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
+
 // Get API base URL for image URLs
 const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || '';
@@ -38,6 +39,8 @@ interface Employee {
   accountnumber?: string;
   Allpannel?: string;
 }
+
+
 
 const getProfileUrl = (path: string | undefined): string => {
   if (!path || path.trim() === "") return "";
@@ -175,16 +178,15 @@ function CustomDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
-            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
-            : styleType === "table"
-              ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-              : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+          ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+          : styleType === "table"
+            ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={`whitespace-nowrap ${
-            styleType === "header" || styleType === "form"
-              ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
-              : ""
+        <span className={`whitespace-nowrap ${styleType === "header" || styleType === "form"
+            ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+            : ""
           }`}>
           {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
             <>
@@ -217,7 +219,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
               >
                 {option}
               </button>
@@ -414,18 +416,26 @@ export default function ConsultantTD() {
 
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = list.filter((emp: Employee) => {
-    const matchesSearch = !searchQuery || 
-      (emp.full_name || "").toLowerCase().includes(searchQuery) || 
-      (emp.email || "").toLowerCase().includes(searchQuery) || 
+    const matchesSearch = !searchQuery ||
+      (emp.full_name || "").toLowerCase().includes(searchQuery) ||
+      (emp.email || "").toLowerCase().includes(searchQuery) ||
       (emp.user_role || "").toLowerCase().includes(searchQuery) ||
       (emp.department || "").toLowerCase().includes(searchQuery) ||
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
 
-    if (statusFilter === 'All') return true;
-    const currentStatus = (emp.active || '').toLowerCase();
-    if (statusFilter === 'Active') return currentStatus === 'active';
-    if (statusFilter === 'deactive') return currentStatus !== 'active';
+    if (statusFilter !== 'All') {
+      const currentStatus = (emp.active || '').toLowerCase();
+      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
+      if (statusFilter === 'deactive' && currentStatus === 'active') return false;
+    }
+
+    if (typeFilter !== 'All') {
+      const currentType = (emp.user_type || '').toLowerCase();
+      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
+      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+    }
+
     return true;
   });
 
@@ -673,16 +683,16 @@ export default function ConsultantTD() {
             {/* ROW 1 */}
             <div className="flex flex-col lg:flex-row lg:justify-between">
               <div className="flex-1 min-w-0">
-                <h2 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari truncate">
-                  Consultant
-                </h2>
+                <h1 className="text-[24px] font-medium text-[#000000] font-Gantari">
+                  Consultants
+                </h1>
               </div>
               {canAdd && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <button
                     type="button"
                     onClick={() => navigate('/td/consultants/add')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Add Consultant
@@ -690,7 +700,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={() => setActiveView('invite')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Invite
@@ -698,7 +708,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={exportCsv}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     <img src={exportIcon} alt="Export" className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     CSV
@@ -706,7 +716,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={() => setActiveView('deactive')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
                   >
                     Manage deactive
                   </button>
@@ -719,19 +729,19 @@ export default function ConsultantTD() {
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
                   <FiMenu className="w-5 h-5 sm:w-6 h-6" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('card')}
-                  className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
                   <FiGrid className="w-5 h-5 sm:w-6 h-6" />
                 </button>
               </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
                 {viewMode === 'table' && (
                   <CustomDropdown
                     options={SHOW_OPTIONS}
@@ -765,7 +775,7 @@ export default function ConsultantTD() {
                     setStatusFilter(nextStatus);
                   }}
                   placeholder="Status"
-                  className="flex-1 sm:min-w-[120px]"
+                  className="flex-1 sm:min-w-[120px] "
                   styleType="header"
                 />
               </div>
@@ -839,10 +849,10 @@ export default function ConsultantTD() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-[18px] sm:text-[22px] font-Gantari font-semibold text-[#F2F2F2] leading-tight tracking-tight truncate">
+                            <h3 className="text-[18px] sm:text-[20px] font-Gantari font-medium text-[#F2F2F2] leading-tight tracking-tight truncate">
                               {toCamelCase(emp.full_name)}
                             </h3>
-                            <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1 truncate">
+                            <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1">
                               {emp.user_role || 'Consultant'}
                             </p>
                           </div>
@@ -855,19 +865,19 @@ export default function ConsultantTD() {
                         <div className="flex flex-wrap items-center gap-3">
                           <button
                             onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={mailIcon} alt="Mail" className="w-4 h-4" /> Mail
                           </button>
                           <button
                             onClick={() => navigate('/td/chat')}
-                            className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                            className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={messageIcon} alt="Message" className="w-4 h-4" /> Message
                           </button>
                           <button
                             onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                            className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                           >
                             <img src={callIcon} alt="Call" className="w-4 h-4" /> Call
                           </button>
@@ -880,7 +890,7 @@ export default function ConsultantTD() {
                           <button
                             type="button"
                             onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                            className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                            className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                           >
                             <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
                           </button>
@@ -911,7 +921,7 @@ export default function ConsultantTD() {
                                   active: emp.active === 'active' ? 'Active' : 'Deactivate',
                                 });
                               }}
-                              className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                              className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                             >
                               <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
                             </button>
@@ -996,19 +1006,19 @@ export default function ConsultantTD() {
                                   <div className="flex items-center justify-center gap-3">
                                     <button
                                       onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
-                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                     </button>
                                     <button
                                       onClick={() => navigate('/td/chat')}
-                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                     </button>
                                     <button
                                       onClick={() => window.location.href = `tel:${emp.phone_number || ''}`}
-                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF]"
+                                      className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
                                     >
                                       <img src={callIcon} className="w-5 h-5" alt="Call" />
                                     </button>
@@ -1048,7 +1058,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                className="p-2 rounded-lg bg-[#F2F2F2] text-[#616161] transition-all"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
                 title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1273,14 +1283,14 @@ export default function ConsultantTD() {
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); setSearchParams({}); }}
-                  className="w-full sm:w-auto px-14 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px]transition-all"
+                  className="w-full sm:w-auto px-14 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px]transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px]  transition-all"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px]  transition-all cursor-pointer"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1297,7 +1307,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1332,7 +1342,7 @@ export default function ConsultantTD() {
                 <button
                   type="submit"
                   disabled={inviteSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px]"
+                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                 </button>
@@ -1350,7 +1360,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1418,7 +1428,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setdeactiveIds([]); }}
-                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px]"
+                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px] cursor-pointer"
               >
                 Discard
               </button>
@@ -1426,7 +1436,7 @@ export default function ConsultantTD() {
                 type="button"
                 onClick={handledeactive}
                 disabled={!deactiveIds.length || deactiveSubmitting}
-                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px]"
+                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
               >
                 {deactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>
@@ -1444,7 +1454,7 @@ export default function ConsultantTD() {
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
@@ -1520,3 +1530,5 @@ export default function ConsultantTD() {
     </div>
   );
 }
+
+

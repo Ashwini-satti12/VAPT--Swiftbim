@@ -496,14 +496,14 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     <button
                                         type="button"
                                         onClick={startVideoCall}
-                                        className="p-2 bg-[#F2F2F2] rounded-full hover:bg-slate-100 cursor-pointer"
+                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
                                         aria-label="Video call"
                                     >
                                         <img src={videoIcon} alt="video" className="w-4 h-4" />
                                     </button>
                                     <button
                                         type="button"
-                                        className="p-2 bg-[#F2F2F2] rounded-full hover:bg-slate-100 cursor-pointer"
+                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
                                         aria-label="Report"
                                     >
                                         <img src={alertIcon} alt="alert" className="w-4 h-4" />
@@ -590,17 +590,17 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         style={{ left: contextMenu.x, top: contextMenu.y }}
                                     >
                                         <button type="button" onClick={() => setContextMenu(null)}
-                                            className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 text-left transition-colors">
+                                            className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <span className="text-slate-500 group-hover:text-red-600"><IconReply /></span>
                                             Reply
                                         </button>
                                         <button type="button"
                                             onClick={() => { const m = messages.find((x) => x.id === contextMenu.messageId); if (m) handleCopy(m.text); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconCopy /> Copy
                                         </button>
                                         <button type="button" onClick={() => setContextMenu(null)}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconForward /> Forward
                                         </button>
                                     </div>,

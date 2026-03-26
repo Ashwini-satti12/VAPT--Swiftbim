@@ -447,7 +447,7 @@ export default function TeamReportTD() {
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -517,7 +517,7 @@ export default function TeamReportTD() {
                                 setEmployeeOpen(o => !o);
                                 setTeamOpen(false);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer border-0"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer border-0 "
                         >
                             <span className={`text-sm font-medium font-gantari ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {employee === 'All' ? 'Employee' : employee}
@@ -542,7 +542,7 @@ export default function TeamReportTD() {
                                             setEmployee(opt);
                                             setEmployeeOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${employee === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${employee === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt === 'All' ? 'Employee' : opt}
                                     </button>
@@ -585,7 +585,7 @@ export default function TeamReportTD() {
                                             setTeam(opt);
                                             setTeamOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${team === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${team === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt === 'All' ? 'Team' : opt}
                                     </button>
@@ -626,7 +626,7 @@ export default function TeamReportTD() {
                                         key={opt.value}
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium cursor-pointer font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </button>
