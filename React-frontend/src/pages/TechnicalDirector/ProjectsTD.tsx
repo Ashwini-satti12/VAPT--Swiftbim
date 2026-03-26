@@ -407,8 +407,11 @@ export default function ProjectsTD() {
       });
 
     // Fetch projects - use data directly from projects table
+    const status = searchParams.get("status");
     api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
+      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params: { status: status || undefined }
+      })
       .then(({ data }) => {
         const projects = (data.projects ?? []).map(mapApiProjectToProject);
         setList(projects);

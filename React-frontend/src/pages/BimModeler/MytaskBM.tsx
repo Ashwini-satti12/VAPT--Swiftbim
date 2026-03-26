@@ -804,9 +804,11 @@ export default function MytaskBM() {
         newStatus: "todo" | "in_progress" | "completed" | "approved" | "rejected"
     ) => {
         const label = statusToLabel(newStatus);
-        api.patch(`/api/tasks/${taskId}`, { status: label }).then(() => {
-            setList(prev => prev.map(t => t.id === taskId ? { ...t, status: label } : t));
-        });
+        const backendStatus = newStatus.replace(/\s+/g, '');
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: backendStatus })
+            .then(() => {
+                setList(prev => prev.map(t => t && t.id === taskId ? { ...t, status: label } : t));
+            });
     };
 
 
@@ -821,17 +823,13 @@ export default function MytaskBM() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/bm/mytasks/view", { state: { task } });
+        navigate(`/tasks/${task.id}`);
     };
 
     const confirmDeleteTask = () => {
         if (deleteTaskId !== null) {
-            api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-                const params: Record<string, string> = {};
-                if (statusFilter) params.status = statusFilter;
-                if (isTeam) params.condition = "1";
-                api.get<{ tasks?: Task[] }>("/api/tasks", { params })
-                    .then(res => setList(res.data.tasks ?? []));
+            api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`).then(() => {
+                setList(prev => prev.filter(t => t.id !== deleteTaskId));
             }).finally(() => {
                 setDeleteTaskId(null);
             });

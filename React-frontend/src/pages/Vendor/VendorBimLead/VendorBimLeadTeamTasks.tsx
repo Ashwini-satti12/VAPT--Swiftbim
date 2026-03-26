@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
+import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import { FaPlus, FaEllipsisV } from "react-icons/fa";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
@@ -45,6 +47,7 @@ export default function VendorBimLeadTeamTasks() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("All");
+    const navigate = useNavigate();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -92,8 +95,25 @@ export default function VendorBimLeadTeamTasks() {
     };
 
     const handleStatusChange = (taskId: number, newStatus: string) => {
-        api.patch(`/api/vendors/vendor-team-tasks/${taskId}`, { status: newStatus })
-            .then(() => fetchData());
+        setTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+        );
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
+            .then(() => toast.success("Status updated"))
+            .catch(() => {
+                toast.error("Failed to update status");
+                fetchData();
+            });
+    };
+
+    const handleDelete = (taskId: number) => {
+        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        api.delete(`/api/vendors/vendor-tasks/${taskId}`)
+            .then(() => {
+                setTasks((prev) => prev.filter((t) => t.id !== taskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => toast.error("Failed to delete task"));
     };
 
     const outlineEmployeeFilters = ["All Employees", ...new Set(tasks.map(t => t.assigned_to_name).filter(Boolean))];
@@ -172,11 +192,11 @@ export default function VendorBimLeadTeamTasks() {
                                     </button>
                                     {openMenuTaskId === task.id && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
-                                            <button onClick={() => { setSelectedTask(task); setShowViewModal(true); setOpenMenuTaskId(null); }}
+                                            <button onClick={() => { navigate(`/tasks/${task.id}`); setOpenMenuTaskId(null); }}
                                                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-[#DD4342] font-semibold text-sm transition-colors"><VscEye /> View Details</button>
                                             <button onClick={() => setOpenMenuTaskId(null)}
                                                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-[#DD4342] font-semibold text-sm transition-colors"><BiEdit /> Edit</button>
-                                            <button onClick={() => setOpenMenuTaskId(null)}
+                                            <button onClick={() => { handleDelete(task.id); setOpenMenuTaskId(null); }}
                                                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-red-500 font-semibold text-sm transition-colors"><RiDeleteBin5Fill /> Delete</button>
                                         </div>
                                     )}

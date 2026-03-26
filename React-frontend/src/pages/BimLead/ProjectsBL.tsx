@@ -404,8 +404,11 @@ export default function ProjectsBL() {
   }, [showMilestones, currentProject?.id]);
 
   useEffect(() => {
+    const status = searchParams.get('status');
     api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
+      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params: { status: status || undefined }
+      })
       .then((res) => {
         const allProjects = res.data.projects ?? [];
         const userId = user?.id;

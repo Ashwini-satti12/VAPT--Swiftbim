@@ -129,10 +129,10 @@ function FormDropdown({
 
   const filteredOptions = searchable
     ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          opt.value === "", // always keep placeholder
-      )
+      (opt) =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        opt.value === "", // always keep placeholder
+    )
     : options;
 
   return (
@@ -241,16 +241,16 @@ function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first && (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "").trim().toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first && (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "").trim().toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
 
   const listMaxHeight = `${maxVisibleItems * 40}px`;
@@ -527,229 +527,229 @@ function normalizeStatus(
 
 
 function TaskCard({
-    task,
-    status,
-    onViewTask,
-    onEditTask,
-    onDeleteTask,
+  task,
+  status,
+  onViewTask,
+  onEditTask,
+  onDeleteTask,
 }: {
-    task: Task;
-    status: "todo" | "in_progress" | "completed";
-    onViewTask?: (task: Task) => void;
-    onEditTask?: (task: Task) => void;
-    onDeleteTask?: (task: Task) => void;
+  task: Task;
+  status: "todo" | "in_progress" | "completed";
+  onViewTask?: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (task: Task) => void;
 }) {
-    const progress = typeof task.progress === "number" ? task.progress : (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
-    const [menuOpen, setMenuOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
+  const progress = typeof task.progress === "number" ? task.progress : (status === "todo" ? 0 : status === "in_progress" ? 50 : 100);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        if (!menuOpen) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-                setMenuOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [menuOpen]);
-
-    const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
-            e.preventDefault();
-            return;
-        }
-        e.dataTransfer.setData("taskId", String(task.id));
-        e.dataTransfer.effectAllowed = "move";
-        e.dataTransfer.setData("text/plain", task.task_name || "Task");
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
     };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
-    const isCompleted = status === "completed";
+  const handleDragStart = (e: React.DragEvent) => {
+    if (status === "completed") {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData("taskId", String(task.id));
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", task.task_name || "Task");
+  };
 
-    return (
-        <div
-            draggable={!isCompleted}
-            onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
-        >
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-slate-900 text-xl truncate">
-                    {task.task_name || "Task Name"}
-                </h4>
-                <div className="relative" ref={menuRef}>
-                    <button
-                        type="button"
-                        draggable={false}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen((prev) => !prev);
-                        }}
-                        className="p-0.5 rounded cursor-pointer"
-                        aria-label="More options"
-                        aria-expanded={menuOpen}
-                    >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
-                    </button>
-                    {menuOpen && (
-                        <div
-                            className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+  const isCompleted = status === "completed";
+
+  return (
+    <div
+      draggable={!isCompleted}
+      onDragStart={handleDragStart}
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h4 className="font-semibold text-slate-900 text-xl truncate">
+          {task.task_name || "Task Name"}
+        </h4>
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            draggable={false}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((prev) => !prev);
+            }}
+            className="p-0.5 rounded cursor-pointer"
+            aria-label="More options"
+            aria-expanded={menuOpen}
+          >
+            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+          </button>
+          {menuOpen && (
+            <div
+              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
-                            role="menu"
-                        >
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onViewTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={viewIcon}
-                                    alt="view"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    View
-                                </span>
-                            </button>
-                            {!isCompleted && (
-                                <>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            onEditTask?.(task);
-                                        }}
-                                    >
-                                        <img
-                                            src={editIcon}
-                                            alt="edit"
-                                            className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                        />
-                                        <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                            Edit
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                        onClick={() => {
-                                            setMenuOpen(false);
-                                            onDeleteTask?.(task);
-                                        }}
-                                    >
-                                        <img
-                                            src={deleteIcon}
-                                            alt="delete"
-                                            className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                        />
-                                        <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                            Delete
-                                        </span>
-                                    </button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
-
-                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">
-                    {progress}%
-                </span>
-            </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
-                <div
-                    className="h-full rounded-full bg-slate-500"
-                    style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onViewTask?.(task);
+                }}
+              >
+                <img
+                  src={viewIcon}
+                  alt="view"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
+                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                  View
+                </span>
+              </button>
+              {!isCompleted && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEditTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={editIcon}
+                      alt="edit"
+                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Edit
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDeleteTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={deleteIcon}
+                      alt="delete"
+                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Delete
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1">
-                    <div className="flex -space-x-2">
-                        {/* Assigned To avatar */}
-                        {task.assigned_full_name &&
-                            (() => {
-                                const src =
-                                    task.assigned_to != null && task.assigned_profile_picture
-                                        ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
-                                        : task.assigned_profile_picture
-                                            ? getProfileUrl(task.assigned_profile_picture)
-                                            : "";
-                                const initials = task.assigned_full_name
-                                    .split(" ")
-                                    .filter(Boolean)
-                                    .map((p) => p[0])
-                                    .join("")
-                                    .slice(0, 2)
-                                    .toUpperCase();
-                                return (
-                                    <div
-                                        className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={`Assigned To: ${task.assigned_full_name}`}
-                                    >
-                                        {src ? (
-                                            <img src={src} alt={task.assigned_full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span>{initials}</span>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-                        {/* Assigned By avatar */}
-                        {task.uploader_full_name &&
-                            (() => {
-                                const src =
-                                    task.uploaderid != null && task.uploader_profile_picture
-                                        ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
-                                        : task.uploader_profile_picture
-                                            ? getProfileUrl(task.uploader_profile_picture)
-                                            : "";
-                                const initials = task.uploader_full_name
-                                    .split(" ")
-                                    .filter(Boolean)
-                                    .map((p) => p[0])
-                                    .join("")
-                                    .slice(0, 2)
-                                    .toUpperCase();
-                                return (
-                                    <div
-                                        className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                        title={`Assigned By: ${task.uploader_full_name}`}
-                                    >
-                                        {src ? (
-                                            <img src={src} alt={task.uploader_full_name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span>{initials}</span>
-                                        )}
-                                    </div>
-                                );
-                            })()}
-                    </div>
-                </div>
-                <Link
-                    to="/td/mytasks/view"
-                    state={{ task, from: "teamtask" }}
-                    draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
-                >
-                    Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
-            </div>
+          )}
         </div>
-    );
+      </div>
+      <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
+        <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+
+        <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+      </div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="text-xs text-slate-600">Progress</span>
+        <span className="text-xs font-medium text-slate-700">
+          {progress}%
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+        <div
+          className="h-full rounded-full bg-slate-500"
+          style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <div className="flex -space-x-2">
+            {/* Assigned To avatar */}
+            {task.assigned_full_name &&
+              (() => {
+                const src =
+                  task.assigned_to != null && task.assigned_profile_picture
+                    ? getGlobalProfileUrl(task.assigned_to, task.assigned_profile_picture)
+                    : task.assigned_profile_picture
+                      ? getProfileUrl(task.assigned_profile_picture)
+                      : "";
+                const initials = task.assigned_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned To: ${task.assigned_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.assigned_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+            {/* Assigned By avatar */}
+            {task.uploader_full_name &&
+              (() => {
+                const src =
+                  task.uploaderid != null && task.uploader_profile_picture
+                    ? getGlobalProfileUrl(task.uploaderid, task.uploader_profile_picture)
+                    : task.uploader_profile_picture
+                      ? getProfileUrl(task.uploader_profile_picture)
+                      : "";
+                const initials = task.uploader_full_name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((p) => p[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    title={`Assigned By: ${task.uploader_full_name}`}
+                  >
+                    {src ? (
+                      <img src={src} alt={task.uploader_full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
+                  </div>
+                );
+              })()}
+          </div>
+        </div>
+        <Link
+          to="/td/mytasks/view"
+          state={{ task, from: "teamtask" }}
+          draggable={false}
+          className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+        >
+          Details
+          <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+        </Link>
+      </div>
+    </div>
+  );
 }
 
 const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
@@ -883,12 +883,12 @@ export default function TeamtaskPM() {
     // Search Filter
     const searchQuery = searchParams.get('q')?.toLowerCase() || "";
     if (searchQuery) {
-        const matchesSearch = (t.task_name || "").toLowerCase().includes(searchQuery) ||
-            (t.project_name || "").toLowerCase().includes(searchQuery) ||
-            (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
-            (t.module || "").toLowerCase().includes(searchQuery) ||
-            (t.type || "").toLowerCase().includes(searchQuery);
-        if (!matchesSearch) return false;
+      const matchesSearch = (t.task_name || "").toLowerCase().includes(searchQuery) ||
+        (t.project_name || "").toLowerCase().includes(searchQuery) ||
+        (t.assigned_full_name || t.assign_to || "").toLowerCase().includes(searchQuery) ||
+        (t.module || "").toLowerCase().includes(searchQuery) ||
+        (t.type || "").toLowerCase().includes(searchQuery);
+      if (!matchesSearch) return false;
     }
 
     // Employee filter
@@ -959,11 +959,11 @@ export default function TeamtaskPM() {
     });
 
     // Backend update
-    api.patch(`/api/tasks/${taskId}/status`, { 
-        status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-        projectId 
+    api.patch(`/api/tasks/${taskId}/status`, {
+      status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+      projectId
     }).catch(err => {
-        console.error("Failed to update task status:", err);
+      console.error("Failed to update task status:", err);
     });
   };
 
@@ -1347,79 +1347,79 @@ export default function TeamtaskPM() {
       {/* Task columns scrollable area */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
-          }}
-        >
-          {displayedTasksByStatus.todo.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="todo"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
-          }}
-        >
-          {displayedTasksByStatus.in_progress.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="in_progress"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
-        </div>
-        <div
-          className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            const taskId = Number(e.dataTransfer.getData("taskId"));
-            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-          }}
-        >
-          {displayedTasksByStatus.completed.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              status="completed"
-              onViewTask={openViewTask}
-              onEditTask={openEditTask}
-              onDeleteTask={openDeleteTask}
-            />
-          ))}
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "todo");
+            }}
+          >
+            {displayedTasksByStatus.todo.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="todo"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "in_progress");
+            }}
+          >
+            {displayedTasksByStatus.in_progress.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="in_progress"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
+          <div
+            className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const taskId = Number(e.dataTransfer.getData("taskId"));
+              if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+            }}
+          >
+            {displayedTasksByStatus.completed.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                status="completed"
+                onViewTask={openViewTask}
+                onEditTask={openEditTask}
+                onDeleteTask={openDeleteTask}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* Delete Task confirmation modal */}
+      {/* Delete Task confirmation modal */}
       {deleteTaskId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
@@ -1645,11 +1645,11 @@ export default function TeamtaskPM() {
                         (p) => p.project_name === addTaskForm.projectName,
                       )?.tasks
                         ? projects
-                            .find(
-                              (p) => p.project_name === addTaskForm.projectName,
-                            )!
-                            .tasks!.split(",")
-                            .map((t) => ({ value: t.trim(), label: t.trim() }))
+                          .find(
+                            (p) => p.project_name === addTaskForm.projectName,
+                          )!
+                          .tasks!.split(",")
+                          .map((t) => ({ value: t.trim(), label: t.trim() }))
                         : []),
                     ]}
                     value={addTaskForm.taskName}

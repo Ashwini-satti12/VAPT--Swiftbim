@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { VscEye } from "react-icons/vsc";
 import { BiEdit } from "react-icons/bi";
@@ -118,15 +119,21 @@ export default function ProjectsV() {
 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-    const fetchProjects = () => {
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
+    const [searchParams] = useSearchParams();
+    const statusFilter = searchParams.get("status");
+
+    const fetchProjects = (status?: string | null) => {
+        const params: any = {};
+        if (status) params.status = status;
+
+        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
             .then(({ data }) => setList(data.projects ?? []))
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
-        fetchProjects();
+        fetchProjects(statusFilter);
 
         // Fetch all employees once (used for team member selection, etc.)
         api.get<{ employees?: Employee[] }>("/api/employees")
