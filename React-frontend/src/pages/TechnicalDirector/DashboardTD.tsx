@@ -840,6 +840,18 @@ export default function DashboardTD() {
                                             )}
                                             alt=""
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.style.display = 'none';
+                                              const parent = target.parentElement;
+                                              if (parent) {
+                                                const initials = person.full_name?.slice(0, 2).toUpperCase() || "?";
+                                                const fallback = document.createElement('div');
+                                                fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]";
+                                                fallback.innerText = initials;
+                                                parent.appendChild(fallback);
+                                              }
+                                            }}
                                           />
                                         ) : (
                                           <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
