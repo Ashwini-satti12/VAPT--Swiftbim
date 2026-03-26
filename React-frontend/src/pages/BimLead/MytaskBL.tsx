@@ -383,6 +383,7 @@ interface Task {
     Approval?: string;
     created_at?: string;
     Actual_start_time?: string;
+    projectid?: number;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -730,8 +731,20 @@ export default function MytaskBL() {
         newStatus: "todo" | "in_progress" | "completed" | "approved" | "rejected"
     ) => {
         const label = statusToLabel(newStatus);
-        api.patch(`/api/tasks/${taskId}`, { status: label }).then(() => {
-            setList(prev => prev.map(t => t.id === taskId ? { ...t, status: label } : t));
+        
+        // Find task to get projectId if possible
+        const task = list.find(t => t.id === taskId);
+        const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
+
+        // Visual update immediately
+        setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
+
+        // Backend update
+        api.patch(`/api/tasks/${taskId}/status`, { 
+            status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+            projectId 
+        }).catch(err => {
+            console.error("Failed to update task status:", err);
         });
     };
 

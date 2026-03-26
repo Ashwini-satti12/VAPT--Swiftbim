@@ -923,6 +923,13 @@ export default function TeamtaskPM() {
     newStatus: "todo" | "in_progress" | "completed",
   ) => {
     const label = statusToLabel(newStatus);
+
+    // Find task to get projectId if possible
+    const task = merged.find(t => t.id === taskId);
+    const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
+
+    // Visual update immediately
+    setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
     setLocalTasks((prev) => {
       const idx = prev.findIndex((t) => t.id === taskId);
       if (idx >= 0) {
@@ -933,6 +940,14 @@ export default function TeamtaskPM() {
       const fromList = list.find((t) => t.id === taskId);
       if (fromList) return [{ ...fromList, status: label }, ...prev];
       return prev;
+    });
+
+    // Backend update
+    api.patch(`/api/tasks/${taskId}/status`, { 
+        status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+        projectId 
+    }).catch(err => {
+        console.error("Failed to update task status:", err);
     });
   };
 

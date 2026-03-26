@@ -1,4 +1,5 @@
 from datetime import date, datetime, time, timedelta
+from typing import Any
 from decimal import Decimal
 from flask import Blueprint, request, jsonify, g
 from db import get_db
@@ -53,7 +54,7 @@ def stats():
     user_role = (getattr(g, "user_role", None) or "").strip()
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
 
     # BIM Coordinator: only projects where they are coordinator or in members
     if user_role in MANAGEMENT_ROLES:
@@ -84,12 +85,20 @@ def stats():
             row = cur.fetchone()
             return (row or {}).get("total_tasks") or 0
 
+        # Define params based on role for the JOIN query (matching _involved_where)
+        if user_role == "BIM Coordinator":
+            t_params = (company_id, uid, uid, task_status)
+        elif user_role == "BIM Modeler":
+            t_params = (company_id, uid, task_status)
+        else:
+            t_params = (company_id, uid, uid, uid, uid, uid, uid, task_status)
+
         try:
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
                     INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
                     WHERE t.status = %s""",
-                params,
+                t_params,
             )
             row = cur.fetchone()
             return (row or {}).get("total_tasks") or 0
@@ -168,7 +177,6 @@ def stats():
             row = cur.fetchone()
             return (row or {}).get("total_projects") or 0
 
-    from datetime import date
     today = date.today().isoformat()
     # keeping totaltoday as is
     cur.execute(
@@ -206,7 +214,7 @@ def priority_tasks():
     user_role = (getattr(g, "user_role", None) or "").strip()
     today = date.today().isoformat()
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
 
     # Same role-based "involved projects" as stats: tasks in projects the user is involved in
     if user_role in MANAGEMENT_ROLES:
@@ -267,7 +275,7 @@ def priority_tasks():
     rows = cur.fetchall()
     tasks = []
     for r in rows:
-        d = _serialize_row(dict(r))
+        d: Any = _serialize_row(dict(r))
         # Build involved persons: assignee + uploader (dedupe by id)
         involved = []
         if d.get("assigned_to") and d.get("assigned_full_name"):
@@ -293,7 +301,7 @@ def priority_tasks():
 def list_events():
     """Company events (from events table) for Events & Notice section."""
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     try:
         cur.execute(
             "SELECT id, title, detials AS details, date, start_time, end_time, location FROM events WHERE Company_id = %s ORDER BY date ASC",
@@ -306,10 +314,11 @@ def list_events():
     for r in rows:
         d = dict(r)
         for k in ("date", "start_time", "end_time"):
-            if d.get(k) and hasattr(d[k], "isoformat"):
-                d[k] = d[k].isoformat()
-            elif d.get(k) and hasattr(d[k], "strftime"):
-                d[k] = d[k].strftime("%H:%M") if "time" in k else d[k].isoformat()
+            val = d.get(k)
+            if isinstance(val, (datetime, date, time)):
+                d[k] = val.isoformat() if hasattr(val, 'isoformat') else str(val)
+            elif isinstance(val, timedelta):
+                d[k] = _time_to_hhmmss(val)
         events.append(d)
     return jsonify({"events": events})
 
@@ -319,7 +328,7 @@ def list_events():
 def list_announcements():
     """Company announcements for dashboard."""
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
     try:
         cur.execute(
             "SELECT id, announcement_title AS title, announcement_content AS content, announcement_date AS date FROM announcements WHERE Company_id = %s ORDER BY announcement_date ASC",
@@ -331,7 +340,8 @@ def list_announcements():
     announcements = []
     for r in rows:
         d = dict(r)
-        if d.get("date") and hasattr(d["date"], "isoformat"):
-            d["date"] = d["date"].isoformat()
+        val = d.get("date")
+        if isinstance(val, (datetime, date)):
+            d["date"] = val.isoformat()
         announcements.append(d)
     return jsonify({"announcements": announcements})

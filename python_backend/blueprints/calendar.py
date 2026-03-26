@@ -14,7 +14,9 @@ def events():
     if not selected_date:
         selected_date = datetime.now().strftime("%Y-%m-%d")
     try:
-        dt = datetime.strptime(selected_date[:10], "%Y-%m-%d")
+        # selected_date is guaranteed to be a string at this point (from strftime or request.args.get)
+        # We slice to 10 chars to ensure it's just 'YYYY-MM-DD'
+        dt = datetime.strptime(str(selected_date)[:10], "%Y-%m-%d")
     except ValueError:
         return jsonify({"success": False, "message": "Invalid date"}), 400
     month_day = dt.strftime("%m-%d")
@@ -26,8 +28,10 @@ def events():
         """SELECT id, full_name, dob, doj, profile_picture, Company_id,
                   YEAR(CURDATE()) - YEAR(doj) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(doj, '%m%d')) AS working_years
            FROM employee
-           WHERE DATE_FORMAT(dob, '%m-%d') = %(md)s OR DATE_FORMAT(doj, '%m-%d') = %(md)s""",
-        {"md": month_day},
+           WHERE (DATE_FORMAT(dob, '%m-%d') = %(md)s OR DATE_FORMAT(doj, '%m-%d') = %(md)s)
+             AND active = 'active'
+             AND Company_id = %(cid)s""",
+        {"md": month_day, "cid": g.company_id},
     )
     rows = cur.fetchall()
     events_list = []
