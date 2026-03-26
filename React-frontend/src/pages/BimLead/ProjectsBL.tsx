@@ -69,7 +69,7 @@ function FormSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none ${open ? "!border-[#AEACAC52]" : ""}`}
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${open ? "!border-[#AEACAC52]" : ""}`}
       >
         <span
           className={
@@ -104,7 +104,7 @@ function FormSelect({
                 onChange(opt);
                 setOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors  
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer  
                 ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
             >
               {opt}
@@ -481,7 +481,7 @@ export default function ProjectsBL() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000]"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -1043,7 +1043,7 @@ export default function ProjectsBL() {
                         setShowMemberProfileModal(false);
                         setSelectedMember(null);
                       }}
-                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+                      className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
                       title="Close"
                     >
                       <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1141,7 +1141,7 @@ export default function ProjectsBL() {
                   <button
                     type="button"
                     onClick={() => setShowAllMembersModal(false)}
-                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+                    className="absolute left-4 top-4 md:top-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
                     title="Close"
                   >
                     <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1209,7 +1209,7 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1224,7 +1224,7 @@ export default function ProjectsBL() {
               </div>
               <button
                 onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors"
+                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm hover:bg-[#c93a39] transition-colors cursor-pointer"
                 title="Add Milestone"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1302,7 +1302,7 @@ export default function ProjectsBL() {
                 </p>
                 <button
                   onClick={() => setShowAddMilestoneModal(true)}
-                  className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors"
+                  className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Add Milestone
@@ -1385,7 +1385,7 @@ export default function ProjectsBL() {
                                 )
                                 .catch(() => { });
                             }}
-                            className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+                            className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                             title="Mark as Paid"
                           >
                             <svg
@@ -1420,7 +1420,7 @@ export default function ProjectsBL() {
                                 .catch(() => { });
                             }
                           }}
-                          className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors"
+                          className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
                           title="Delete Milestone"
                         >
                           <svg
@@ -1455,7 +1455,7 @@ export default function ProjectsBL() {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -1653,7 +1653,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="text-gray-400 transition-colors leading-none"
+                            className="text-gray-400 transition-colors leading-none cursor-pointer"
                           >
                             x
                           </button>
@@ -1714,7 +1714,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="text-gray-400 transition-colors leading-none"
+                            className="text-gray-400 transition-colors leading-none cursor-pointer"
                           >
                             x
                           </button>
@@ -1859,7 +1859,7 @@ export default function ProjectsBL() {
                     Select Members <span className="text-[#DD4342]">*</span>
                   </label>
                   <div
-                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center"
+                    className="w-full min-h-[48px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] cursor-pointer flex flex-wrap gap-2 items-center cursor-pointer"
                     onClick={() => setMemberDropdownOpen((o) => !o)}
                   >
                     {selectedMemberIds.length === 0 && (
@@ -1883,7 +1883,7 @@ export default function ProjectsBL() {
                                 prev.filter((x) => x !== id),
                               );
                             }}
-                            className="text-gray-400 hover:text-red-500 ml-1"
+                            className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
                           >
                             ×
                           </button>
@@ -2031,7 +2031,7 @@ export default function ProjectsBL() {
                         ? `${createFiles.length} file(s) selected`
                         : "Choose Files"}
                     </div>
-                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap">
+                    <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[16px] cursor-pointer transition-colors whitespace-nowrap cursor-pointer">
                       Browse File
                       <input
                         type="file"
@@ -2081,7 +2081,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <svg
                               className="w-4 h-4"
@@ -2109,14 +2109,14 @@ export default function ProjectsBL() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={createSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer disabled:cursor-not-allowed"
                 >
                   {createSubmitting ? "Creating..." : "Submit"}
                 </button>
@@ -2134,7 +2134,7 @@ export default function ProjectsBL() {
                   setShowEditModal(false);
                   resetFormFields();
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all"
+                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -2318,7 +2318,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="text-gray-400 transition-colors leading-none"
+                            className="text-gray-400 transition-colors leading-none cursor-pointer"
                           >
                             x
                           </button>
@@ -2379,7 +2379,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="text-gray-400 transition-colors leading-none"
+                            className="text-gray-400 transition-colors leading-none cursor-pointer"
                           >
                             x
                           </button>
@@ -2566,7 +2566,7 @@ export default function ProjectsBL() {
                                 prev.filter((x) => x !== id),
                               );
                             }}
-                            className="text-gray-400 hover:text-red-500 ml-1"
+                            className="text-gray-400 hover:text-red-500 ml-1 cursor-pointer"
                           >
                             ×
                           </button>
@@ -2757,7 +2757,7 @@ export default function ProjectsBL() {
                               );
                               setRemovedFiles((prev) => [...prev, file]);
                             }}
-                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <svg
                               className="w-4 h-4"
@@ -2811,7 +2811,7 @@ export default function ProjectsBL() {
                                 prev.filter((_, i) => i !== idx),
                               )
                             }
-                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                           >
                             <svg
                               className="w-4 h-4"
@@ -2841,14 +2841,14 @@ export default function ProjectsBL() {
                   onClick={() => {
                     setShowEditModal(false);
                   }}
-                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all"
+                  className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={isEditSubmitting}
-                  className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isEditSubmitting ? "Updating..." : "Update Project"}
                 </button>
@@ -2870,7 +2870,7 @@ export default function ProjectsBL() {
                   resetFormFields();
                   setShowCreateModal(true);
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
               >
                 <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                 Create Project
@@ -2942,7 +2942,7 @@ export default function ProjectsBL() {
                                   prev === p.id ? null : p.id,
                                 );
                               }}
-                              className="p-2 rounded-full text-[#8B8B8B] transition-colors"
+                              className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                             >
                               <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
                             </button>
@@ -2956,7 +2956,7 @@ export default function ProjectsBL() {
                                   setOpenMenuId(null);
                                   setSearchParams({ projectId: String(p.id) });
                                 }}
-                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                               >
                                 <img
                                   src={viewIcon}
@@ -2975,7 +2975,7 @@ export default function ProjectsBL() {
                                     setCurrentProject(p);
                                     setShowMilestones(true);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >
                                   <img src={paymentMilestone} alt="payment milestone" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                   <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
@@ -3066,7 +3066,7 @@ export default function ProjectsBL() {
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >
                                   <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                   <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
@@ -3081,7 +3081,7 @@ export default function ProjectsBL() {
                                     setDeleteId(p.id);
                                     setOpenMenuId(null);
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 >
                                   <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
                                   <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
@@ -3183,7 +3183,7 @@ export default function ProjectsBL() {
             <button
               type="button"
               onClick={() => setDeleteId(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
               title="Close"
             >
               <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -3202,7 +3202,7 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => setDeleteId(null)}
-                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Discard
               </button>
@@ -3220,7 +3220,7 @@ export default function ProjectsBL() {
                       setDeleteId(null);
                     });
                 }}
-                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Yes, Delete
               </button>
@@ -3237,7 +3237,7 @@ export default function ProjectsBL() {
               <button
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
+                className="absolute left-0 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
                 title="Close"
               >
                 <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
@@ -3354,13 +3354,13 @@ export default function ProjectsBL() {
                 <button
                   type="button"
                   onClick={() => setShowAddMilestoneModal(false)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-gray-200"
+                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#F1F1F1] text-[#666666] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-gray-200 cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#D5E6FF] shadow-sm"
+                  className="w-full sm:w-auto px-10 md:px-12 py-3 md:py-3.5 rounded-[5px] bg-[#E2EEFF] text-[#1D7AFC] font-Gantari font-bold text-[15px] md:text-[16px] transition-all hover:bg-[#D5E6FF] shadow-sm cursor-pointer"
                 >
                   Add Milestone
                 </button>

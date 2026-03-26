@@ -265,7 +265,7 @@ export default function TeamReportBL() {
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -325,7 +325,7 @@ export default function TeamReportBL() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1">
                                 {employeeOptions.map(opt => (
                                     <button key={opt} type="button" onClick={() => { setEmployee(opt); setEmployeeOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
                                         {opt === 'All' ? 'Employee' : opt}
                                     </button>
                                 ))}
@@ -349,7 +349,7 @@ export default function TeamReportBL() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
                                 {teamOptions.map(opt => (
                                     <button key={opt} type="button" onClick={() => { setTeam(opt); setTeamOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
                                         {opt === 'All' ? 'Team' : opt}
                                     </button>
                                 ))}

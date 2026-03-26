@@ -470,7 +470,7 @@ export default function ManageLeave() {
                                                 setSelectedShowEntries(opt.value);
                                                 setShowEntriesOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                            className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
                                         >
                                             {opt.label}
                                         </button>
@@ -482,7 +482,7 @@ export default function ManageLeave() {
                     <button
                         type="button"
                         onClick={() => setApplyModalOpen(true)}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm cursor-pointer"
                     >
                         Apply Leave
                     </button>
@@ -536,7 +536,7 @@ export default function ManageLeave() {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleView(row)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#DD4342] text-white rounded-md font-medium shadow-sm transition-opacity"
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#DD4342] text-white rounded-md font-medium shadow-sm transition-opacity cursor-pointer"
                                                     >
                                                         <img src={viewIcon} alt="" className="w-[16px] h-[16px] shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
@@ -546,14 +546,14 @@ export default function ManageLeave() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleEdit(row)}
-                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#E8E8E8] text-[#353535] hover:bg-[#D2D2D2] transition-colors"
+                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#E8E8E8] text-[#353535] hover:bg-[#D2D2D2] transition-colors cursor-pointer"
                                                             >
                                                                 Edit
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDelete(row)}
-                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#C62828] text-white hover:bg-[#B71C1C] transition-colors"
+                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#C62828] text-white hover:bg-[#B71C1C] transition-colors cursor-pointer"
                                                             >
                                                                 Delete
                                                             </button>
@@ -586,7 +586,7 @@ export default function ManageLeave() {
                                 <button
                                     type="button"
                                     onClick={handleCloseModal}
-                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535]"
+                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535] cursor-pointer"
                                     aria-label="Close"
                                 >
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -624,7 +624,7 @@ export default function ManageLeave() {
                                 <button
                                     type="button"
                                     onClick={() => setLeaveTypeOpen((o) => !o)}
-                                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-md border text-left flex items-center justify-between focus:outline-none focus:ring-0 min-h-[42px] text-sm text-[#353535] transition-colors ${leaveTypeOpen ? 'border-[#D2D2D2]' : 'border-gray-200'} focus:border-[#D2D2D2]`}
+                                    className={`w-full px-4 py-2.5 bg-[#F2F3F4] rounded-md border text-left flex items-center justify-between focus:outline-none focus:ring-0 min-h-[42px] text-sm text-[#353535] transition-colors cursor-pointer ${leaveTypeOpen ? 'border-[#D2D2D2]' : 'border-gray-200'} focus:border-[#D2D2D2]`}
                                 >
                                     <span className={`text-sm ${leaveType ? 'text-[#353535] font-medium' : 'text-[#8B8B8B]'}`}>
                                         {leaveType || 'Nothing selected'}
@@ -647,7 +647,7 @@ export default function ManageLeave() {
                                                 setLeaveTypeId(null);
                                                 setLeaveTypeOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${!leaveType ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${!leaveType ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
                                         >
                                             Nothing selected
                                         </button>
@@ -663,7 +663,7 @@ export default function ManageLeave() {
                                                         setLeaveTypeId(null);
                                                         setLeaveTypeOpen(false);
                                                     }}
-                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                    className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${
                                                         isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
                                                     }`}
                                                 >
@@ -685,7 +685,7 @@ export default function ManageLeave() {
                                                             setLeaveTypeId(type.id);
                                                             setLeaveTypeOpen(false);
                                                         }}
-                                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${
                                                             isSelected
                                                                 ? 'text-black bg-[#F0F2F7]'
                                                                 : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
@@ -705,7 +705,7 @@ export default function ManageLeave() {
                                                 setLeaveTypeId(0);
                                                 setLeaveTypeOpen(false);
                                             }}
-                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors ${
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${
                                                 leaveTypeId === 0 ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'
                                             }`}
                                         >
@@ -780,7 +780,7 @@ export default function ManageLeave() {
                             <div className="pt-4 flex justify-center">
                                 <button
                                     type="submit"
-                                    className="px-8 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm"
+                                    className="px-8 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm cursor-pointer"
                                 >
                                     Submit
                                 </button>
@@ -805,7 +805,7 @@ export default function ManageLeave() {
                                 <button
                                     type="button"
                                     onClick={handleCloseEditModal}
-                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535]"
+                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535] cursor-pointer"
                                     aria-label="Close"
                                 >
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -998,13 +998,13 @@ export default function ManageLeave() {
                                 <button
                                     type="button"
                                     onClick={handleCloseEditModal}
-                                    className="px-6 py-2.5 rounded-md bg-[#F2F2F2] text-[#353535] text-sm font-medium hover:bg-[#E0E0E0] transition-colors"
+                                    className="px-6 py-2.5 rounded-md bg-[#F2F2F2] text-[#353535] text-sm font-medium hover:bg-[#E0E0E0] transition-colors cursor-pointer"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm"
+                                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-gantari font-medium transition-all shadow-sm cursor-pointer"
                                 >
                                     Update
                                 </button>
@@ -1029,7 +1029,7 @@ export default function ManageLeave() {
                             <button
                                 type="button"
                                 onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
-                                className="absolute left-4 top-6 p-1.5 rounded bg-[#E0E0E0] hover:bg-gray-300 transition-colors text-black"
+                                className="absolute left-4 top-6 p-1.5 rounded bg-[#E0E0E0] hover:bg-gray-300 transition-colors text-black cursor-pointer"
                                 aria-label="Close"
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

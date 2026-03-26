@@ -180,17 +180,17 @@ function CustomDropdown({
         className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
           ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={`whitespace-nowrap ${styleType === "header" || styleType === "form"
+        <span className={` ${styleType === "header" || styleType === "form"
             ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
             : ""
           }`}>
           {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
             <>
-              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="text-[14px]">{placeholder}:</span>{" "}
               <span className="font-semibold">{toCamelCase(value)}</span>
             </>
           ) : (
@@ -200,31 +200,49 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-2.5 h-2.5 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : ""}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : ""}`}
         />
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
-          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-            {styleType === "header" && (
-              <div className="px-4 py-2 text-[14px] font-bold text-[#8B8B8B] bg-[#F9F9F9] border-b border-[#F0F0F0]">
-                {placeholder}
-              </div>
-            )}
-            {options.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+        <div className={`absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
+          {styleType === "table" ? (
+            <div className="flex flex-col py-2">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-6 py-3 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+              {styleType === "header" && (
+                <div className="px-4 py-2 text-[14px] font-bold text-[#8B8B8B] bg-[#F9F9F9] border-b border-[#F0F0F0]">
+                  {placeholder}
+                </div>
+              )}
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -692,7 +710,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={() => navigate('/td/consultants/add')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Add Consultant
@@ -700,7 +718,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={() => setActiveView('invite')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     Invite
@@ -708,7 +726,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={exportCsv}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     <img src={exportIcon} alt="Export" className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                     CSV
@@ -716,7 +734,7 @@ export default function ConsultantTD() {
                   <button
                     type="button"
                     onClick={() => setActiveView('deactive')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                   >
                     Manage deactive
                   </button>
@@ -933,18 +951,18 @@ export default function ConsultantTD() {
                 )}
               </div>
             ) : (
-              <div className="px-4 pb-12">
+              <div className="px-4">
                 <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
-                  <div className="overflow-x-auto overflow-y-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-320px)] pb-4">
+                  <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
                     <table className="min-w-full border-collapse">
-                      <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                      <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                         <tr className="border-b border-gray-100 bg-white">
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Emp ID</th>
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Consultant Name</th>
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Email ID</th>
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Contact Info</th>
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
+                          <th className="px-3 py-4 text-center text-base font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">

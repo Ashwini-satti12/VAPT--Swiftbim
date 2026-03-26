@@ -103,7 +103,7 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -146,7 +146,7 @@ function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+                                 className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -215,7 +215,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -271,7 +271,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                 className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -312,7 +312,7 @@ function AttachmentPreviewItem({
             <button
                 type="button"
                 onClick={() => onPreviewClick?.(file)}
-                className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90"
+                className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90 cursor-pointer"
             >
                 {previewUrl ? (
                     <img
@@ -335,7 +335,7 @@ function AttachmentPreviewItem({
             <button
                 type="button"
                 onClick={onRemove}
-                className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
+                className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
                 aria-label={`Remove ${file.name}`}
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -370,6 +370,7 @@ interface Task {
     Approval?: string;
     created_at?: string;
     Actual_start_time?: string;
+    projectid?: number;
 }
 
 interface Employee {
@@ -508,7 +509,7 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100"
+                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -523,7 +524,7 @@ function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onViewTask?.(task);
@@ -541,7 +542,7 @@ function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onEditTask?.(task);
@@ -559,7 +560,7 @@ function TaskCard({
                             <button
                                 type="button"
                                 role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                 onClick={() => {
                                     setMenuOpen(false);
                                     onDeleteTask?.(task);
@@ -660,7 +661,7 @@ function TaskCard({
                     to="/bl/mytasks/view"
                     state={{ task, from: "teamtask" }}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
                 >
                     Details
                     <img src={Arrow} alt="Arrow" className="w-2 h-2" />
@@ -863,6 +864,13 @@ export default function TeamtaskBL() {
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
         const label = statusToLabel(newStatus);
+        
+        // Find task to get projectId if possible
+        const task = merged.find(t => t.id === taskId);
+        const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
+
+        // Visual update immediately
+        setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
         setLocalTasks((prev) => {
             const idx = prev.findIndex((t) => t.id === taskId);
             if (idx >= 0) {
@@ -873,6 +881,15 @@ export default function TeamtaskBL() {
             const fromList = list.find((t) => t.id === taskId);
             if (fromList) return [{ ...fromList, status: label }, ...prev];
             return prev;
+        });
+
+        // Backend update
+        api.patch(`/api/tasks/${taskId}/status`, { 
+            status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+            projectId 
+        }).catch(err => {
+            console.error("Failed to update task status:", err);
+            // Optionally revert local state on error
         });
     };
 
@@ -1163,7 +1180,7 @@ export default function TeamtaskBL() {
                                 });
                                 setAddTaskModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
+                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1175,7 +1192,7 @@ export default function TeamtaskBL() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">To Do</span>
 
@@ -1191,7 +1208,7 @@ export default function TeamtaskBL() {
                                 ? pathname
                                 : `${pathname}?status=in_progress`
                         }
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
 
@@ -1207,7 +1224,7 @@ export default function TeamtaskBL() {
                                 ? pathname
                                 : `${pathname}?status=completed`
                         }
-                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">Completed</span>
 
@@ -1302,7 +1319,7 @@ export default function TeamtaskBL() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1333,14 +1350,14 @@ export default function TeamtaskBL() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
                             >
                                 Yes, Delete
                             </button>
@@ -1357,7 +1374,7 @@ export default function TeamtaskBL() {
                             <button
                                 type="button"
                                 onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1385,7 +1402,7 @@ export default function TeamtaskBL() {
                                 e.preventDefault();
                                 const isEditing = editingTaskId !== null;
                                 const existing = isEditing
-                                    ? list.find((t) => t.id === editingTaskId)
+                                    ? merged.find((t) => t.id === editingTaskId)
                                     : null;
 
                                 const payload = {
@@ -1426,14 +1443,18 @@ export default function TeamtaskBL() {
                                         due_time: payload.dueTime
                                     }).then(() => {
                                         handleFiles(existing.id);
-                                        api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                                        const params: Record<string, string> = { condition: isTeam ? "1" : "0" };
+                                        if (statusFilter) params.status = statusFilter;
+                                        api.get<{ tasks?: Task[] }>("/api/tasks", { params })
                                             .then(res => setList(res.data.tasks ?? []));
                                     });
                                 } else {
-                                    api.post('/api/tasks', payload).then(res => {
+                                    api.post<{ success: boolean; task_id: number }>('/api/tasks', payload).then(res => {
                                         if (res.data.success && res.data.task_id) {
                                             handleFiles(res.data.task_id);
-                                            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
+                                            const params: Record<string, string> = { condition: isTeam ? "1" : "0" };
+                                            if (statusFilter) params.status = statusFilter;
+                                            api.get<{ tasks?: Task[] }>("/api/tasks", { params })
                                                 .then(r => setList(r.data.tasks ?? []));
                                         }
                                     });
@@ -1516,7 +1537,7 @@ export default function TeamtaskBL() {
                                         {editingTaskId === null && (
                                             <button
                                                 type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                 className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                             >
                                                 Tasklist
                                             </button>
@@ -1601,7 +1622,7 @@ export default function TeamtaskBL() {
                                                     d === "type_start_time" ? null : "type_start_time",
                                                 )
                                             }
-                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
                                         >
                                             <span className={addTaskForm.startTime ? "text-[#353535]" : "text-[#616161]"}>
                                                 {formatTimeForDisplay(addTaskForm.startTime)}
@@ -1630,7 +1651,7 @@ export default function TeamtaskBL() {
                                                     d === "type_end_time" ? null : "type_end_time",
                                                 )
                                             }
-                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm"
+                                            className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
                                         >
                                             <span className={addTaskForm.dueTime ? "text-[#353535]" : "text-[#616161]"}>
                                                 {formatTimeForDisplay(addTaskForm.dueTime)}
@@ -1765,16 +1786,16 @@ export default function TeamtaskBL() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                     className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] cursor-pointer"
                                 >
-                  Submit
-                </button>
+                                    Submit
+                                </button>
               </div>
             </form>
           </div>

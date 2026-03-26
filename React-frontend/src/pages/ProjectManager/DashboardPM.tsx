@@ -234,7 +234,7 @@ export default function DashboardPM() {
           </Link>
           {/* In-Progress Tasks */}
           <Link 
-            to="/tasks"
+            to="/teamtask"
             className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
@@ -242,7 +242,7 @@ export default function DashboardPM() {
           </Link>
           {/* Completed Tasks */}
           <Link 
-            to="/tasks"
+            to="/teamtask"
             className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline"
           >
             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>

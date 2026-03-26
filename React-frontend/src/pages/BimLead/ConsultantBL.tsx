@@ -168,7 +168,7 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${
+        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${
           styleType === "header"
             ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
             : styleType === "table"
@@ -205,7 +205,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
               >
                 {option}
               </button>
@@ -449,7 +449,7 @@ export default function ConsultantBL() {
               <button
                 type="button"
                 onClick={() => navigate("/bl/consultants/add")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100 cursor-pointer"
               >
                 <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                 Add Consultant
@@ -457,7 +457,7 @@ export default function ConsultantBL() {
               <button
                 type="button"
                 onClick={() => setShowInviteModal(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100 cursor-pointer"
               >
                 <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
                 Invite
@@ -465,7 +465,7 @@ export default function ConsultantBL() {
               <button
                 type="button"
                 onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100 cursor-pointer"
               >
                 <img
                   src={exportIcon}
@@ -477,7 +477,7 @@ export default function ConsultantBL() {
               <button
                 type="button"
                 onClick={() => setShowInactiveModal(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap shadow-sm shadow-red-100 cursor-pointer"
               >
                 Manage Inactive
               </button>
@@ -490,14 +490,14 @@ export default function ConsultantBL() {
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`p-2 rounded-full transition-all ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
             >
               <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
             <button
               type="button"
               onClick={() => setViewMode("card")}
-              className={`p-2 rounded-full transition-all ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
             >
               <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -626,7 +626,7 @@ export default function ConsultantBL() {
                             "_blank",
                           )
                         }
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" />{" "}
                         Mail
@@ -634,7 +634,7 @@ export default function ConsultantBL() {
                       <button
                         type="button"
                         onClick={() => navigate("/chat")}
-                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img
                           src={messageIcon}
@@ -648,7 +648,7 @@ export default function ConsultantBL() {
                         onClick={() =>
                           (window.location.href = `tel:${emp.phone_number || ""}`)
                         }
-                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-lg text-[#12141D] text-[12px] sm:text-[13px] font-semibold font-Gantari cursor-pointer"
                       >
                         <img src={callIcon} alt="Call" className="w-4 h-4" />{" "}
                         Call
@@ -665,7 +665,7 @@ export default function ConsultantBL() {
                           setSelectedEmployee(emp);
                           setShowDetailsModal(true);
                         }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-lg text-[12px] sm:text-[14px] font-Gantari cursor-pointer"
                       >
                         <img
                           src={eyeIcon}
@@ -680,7 +680,7 @@ export default function ConsultantBL() {
                           onClick={() =>
                             navigate(`/bl/consultants/${emp.id}/edit`)
                           }
-                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg text-[12px] sm:text-[14px] font-Gantari cursor-pointer"
                         >
                           <img
                             src={editIcon}
@@ -800,7 +800,7 @@ export default function ConsultantBL() {
                                   "_blank",
                                 )
                               }
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors cursor-pointer"
                             >
                               <img
                                 src={mailIcon}
@@ -810,7 +810,7 @@ export default function ConsultantBL() {
                             </button>
                             <button
                               onClick={() => navigate("/chat")}
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors cursor-pointer"
                             >
                               <img
                                 src={messageIcon}
@@ -822,7 +822,7 @@ export default function ConsultantBL() {
                               onClick={() =>
                                 (window.location.href = `tel:${emp.phone_number || ""}`)
                               }
-                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors"
+                              className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] hover:bg-[#d0e2ff] transition-colors cursor-pointer"
                             >
                               <img
                                 src={callIcon}
@@ -870,7 +870,7 @@ export default function ConsultantBL() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors border-r border-slate-200 disabled:opacity-50"
+                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors border-r border-slate-200 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 <FiChevronDown className="w-4 h-4 rotate-90" />
                 Prev
@@ -890,7 +890,7 @@ export default function ConsultantBL() {
                   <button
                     key={page}
                     onClick={() => setCurrentPage(page)}
-                    className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors ${currentPage === page ? "text-white bg-[#DD4342]" : "text-[#6B6B6B] hover:bg-slate-100"}`}
+                    className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors cursor-pointer ${currentPage === page ? "text-white bg-[#DD4342]" : "text-[#6B6B6B] hover:bg-slate-100"}`}
                   >
                     {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
                   </button>
@@ -902,7 +902,7 @@ export default function ConsultantBL() {
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 Next
                 <FiChevronDown className="w-4 h-4 -rotate-90" />
@@ -924,7 +924,7 @@ export default function ConsultantBL() {
                     setInviteEmails("");
                     setInviteMessage("");
                   }}
-                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
@@ -970,7 +970,7 @@ export default function ConsultantBL() {
                   <button
                     type="submit"
                     disabled={inviteSubmitting}
-                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px]"
+                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer disabled:cursor-not-allowed"
                   >
                     {inviteSubmitting ? "Sending..." : "Send Invitations"}
                   </button>
@@ -992,7 +992,7 @@ export default function ConsultantBL() {
                     setShowInactiveModal(false);
                     setInactiveIds([]);
                   }}
-                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                  className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
@@ -1093,7 +1093,7 @@ export default function ConsultantBL() {
                     setShowInactiveModal(false);
                     setInactiveIds([]);
                   }}
-                  className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px]"
+                  className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px] cursor-pointer"
                 >
                   Discard
                 </button>
@@ -1101,7 +1101,7 @@ export default function ConsultantBL() {
                   type="button"
                   onClick={handleInactive}
                   disabled={!inactiveIds.length || inactiveSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px]"
+                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer disabled:cursor-not-allowed"
                 >
                   {inactiveSubmitting ? "Updating..." : "Update Status"}
                 </button>
@@ -1119,7 +1119,7 @@ export default function ConsultantBL() {
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                className="absolute left-0 p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
