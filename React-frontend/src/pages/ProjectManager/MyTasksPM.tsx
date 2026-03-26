@@ -124,7 +124,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -180,7 +180,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
               >
                 {opt}
               </button>
@@ -304,7 +304,7 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-0.5 rounded hover:bg-slate-100"
+            className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
@@ -318,7 +318,7 @@ function TaskCard({
                 <button
                   type="button"
                   role="menuitem"
-                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                   onClick={() => {
                     setMenuOpen(false);
                     onViewTask?.(task);
@@ -338,7 +338,7 @@ function TaskCard({
                     <button
                       type="button"
                       role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                       onClick={() => {
                         setMenuOpen(false);
                         onEditTask?.(task);
@@ -356,7 +356,7 @@ function TaskCard({
                     <button
                       type="button"
                       role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group"
+                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                       onClick={() => {
                         setMenuOpen(false);
                         onDeleteTask?.(task);
@@ -769,7 +769,7 @@ export default function MyTasksPM() {
             <button
               type="button"
               onClick={() => navigate("/tasks/add")}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
             >
               <img src={AddBtn} alt="Add" className="h-5 w-5" />
               Add task
@@ -926,7 +926,7 @@ export default function MyTasksPM() {
               <button
                 type="button"
                 onClick={() => setDeleteTaskId(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
                 aria-label="Close"
               >
                 <svg
@@ -957,14 +957,14 @@ export default function MyTasksPM() {
               <button
                 type="button"
                 onClick={() => setDeleteTaskId(null)}
-                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteTask}
-                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
               >
                 Yes, Delete
               </button>
@@ -981,7 +981,7 @@ export default function MyTasksPM() {
               <button
                 type="button"
                 onClick={() => { setShowMemberProfileModal(false); setSelectedMember(null); }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 title="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1048,7 +1048,7 @@ export default function MyTasksPM() {
               <button
                 type="button"
                 onClick={() => { setShowInvolvedModal(false); setInvolvedList([]); }}
-                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors"
+                className="absolute left-10 p-2.5 rounded-[5px] bg-[#F8F9FA] hover:bg-gray-100 text-gray-800 transition-colors cursor-pointer"
                 title="Close"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

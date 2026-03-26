@@ -447,7 +447,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     key={contact.id}
                                     type="button"
                                     onClick={() => setSelectedContact(contact)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border border-[#AEACAC] rounded-lg mt-2 ${selectedContact?.id === contact.id ? "bg-[#F2F2F2]" : "hover:bg-slate-50"}`}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border border-[#AEACAC] rounded-lg mt-2 cursor-pointer ${selectedContact?.id === contact.id ? "bg-[#F2F2F2]" : "hover:bg-slate-50"}`}
                                 >
                                     <div className="relative shrink-0">
                                         <Avatar name={contact.name} src={getGlobalProfileUrl(contact.id, contact.profile_picture) || undefined} />
@@ -496,14 +496,14 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     <button
                                         type="button"
                                         onClick={startVideoCall}
-                                        className="p-2 bg-[#F2F2F2] rounded-full hover:bg-slate-100"
+                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
                                         aria-label="Video call"
                                     >
                                         <img src={videoIcon} alt="video" className="w-4 h-4" />
                                     </button>
                                     <button
                                         type="button"
-                                        className="p-2 bg-[#F2F2F2] rounded-full hover:bg-slate-100"
+                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
                                         aria-label="Report"
                                     >
                                         <img src={alertIcon} alt="alert" className="w-4 h-4" />
@@ -590,17 +590,17 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         style={{ left: contextMenu.x, top: contextMenu.y }}
                                     >
                                         <button type="button" onClick={() => setContextMenu(null)}
-                                            className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 text-left transition-colors">
+                                            className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <span className="text-slate-500 group-hover:text-red-600"><IconReply /></span>
                                             Reply
                                         </button>
                                         <button type="button"
                                             onClick={() => { const m = messages.find((x) => x.id === contextMenu.messageId); if (m) handleCopy(m.text); }}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconCopy /> Copy
                                         </button>
                                         <button type="button" onClick={() => setContextMenu(null)}
-                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 text-left transition-colors">
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconForward /> Forward
                                         </button>
                                     </div>,
@@ -627,7 +627,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                 <AttachmentPreview file={file} />
                                                 <span className="truncate max-w-[120px] py-1.5 pr-1" title={file.name}>{file.name}</span>
                                                 <button type="button" onClick={() => removeAttachment(index)}
-                                                    className="shrink-0 p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-700 m-0.5"
+                                                    className="shrink-0 p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-slate-700 m-0.5 cursor-pointer"
                                                     aria-label={`Remove ${file.name}`}>
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -653,7 +653,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         <IconPaperclip />
                                     </label>
                                     <button type="button" onClick={sendMessage} disabled={sending}
-                                        className="flex items-center justify-center w-20 h-10 rounded-lg bg-[#F2F2F2] cursor-pointer transition-colors gap-1 disabled:opacity-50"
+                                        className="flex items-center justify-center w-20 h-10 rounded-lg bg-[#F2F2F2] cursor-pointer transition-colors gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                         aria-label="Send">
                                         <span className="text-xs text-black">Send</span>
                                         <img src={sendIcon} alt="send" className="w-5 h-5" />
@@ -680,7 +680,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     Allow camera and microphone in your browser settings, then try again.
                                 </p>
                                 <button type="button" onClick={() => setVideoCallError(null)}
-                                    className="px-4 py-2 rounded-xl bg-slate-600 hover:bg-slate-500 text-white">
+                                    className="px-4 py-2 rounded-xl bg-slate-600 hover:bg-slate-500 text-white cursor-pointer">
                                     OK
                                 </button>
                             </div>
@@ -691,7 +691,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         Video call with {selectedContact?.name}
                                     </span>
                                     <button type="button" onClick={endVideoCall}
-                                        className="text-slate-400 hover:text-white text-sm" aria-label="Close">
+                                        className="text-slate-400 hover:text-white text-sm cursor-pointer" aria-label="Close">
                                         ✕
                                     </button>
                                 </div>
@@ -723,7 +723,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 <div className="flex items-center justify-center gap-4 py-3 bg-slate-800/80">
                                     {/* Mute mic */}
                                     <button type="button" onClick={toggleMuteAudio}
-                                        className={`p-3 rounded-full ${isMutedAudio ? "bg-red-600" : "bg-slate-600"} hover:opacity-90 text-white`}
+                                        className={`p-3 rounded-full ${isMutedAudio ? "bg-red-600" : "bg-slate-600"} hover:opacity-90 text-white cursor-pointer`}
                                         aria-label={isMutedAudio ? "Unmute microphone" : "Mute microphone"}>
                                         {isMutedAudio ? (
                                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -738,7 +738,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     </button>
                                     {/* End call */}
                                     <button type="button" onClick={endVideoCall}
-                                        className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white"
+                                        className="p-3 rounded-full bg-red-600 hover:bg-red-700 text-white cursor-pointer"
                                         aria-label="End call">
                                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                             <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
@@ -746,7 +746,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     </button>
                                     {/* Mute video */}
                                     <button type="button" onClick={toggleMuteVideo}
-                                        className={`p-3 rounded-full ${isMutedVideo ? "bg-red-600" : "bg-slate-600"} hover:opacity-90 text-white`}
+                                        className={`p-3 rounded-full ${isMutedVideo ? "bg-red-600" : "bg-slate-600"} hover:opacity-90 text-white cursor-pointer`}
                                         aria-label={isMutedVideo ? "Turn on camera" : "Turn off camera"}>
                                         {isMutedVideo ? (
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

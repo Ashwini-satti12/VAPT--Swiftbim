@@ -208,7 +208,7 @@ export default function ClientBL() {
                     <button
                         type="button"
                         onClick={() => setShowAddModal(true)}
-                        className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100"
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-[#E14B4B] text-white font-semibold transition shadow-md shadow-red-100 cursor-pointer"
                     >
                         <img src={plusIcon} alt="Add" className="w-5 h-5 object-contain" />
                         Add Client
@@ -258,15 +258,15 @@ export default function ClientBL() {
                                 <div className="p-6 space-y-6 flex-1 flex flex-col">
                                     {/* Quick Action Block Buttons */}
                                     <div className="grid grid-cols-3 gap-3">
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors" title="Mail">
+                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Mail">
                                             <img src={mailIcon} alt="Mail" className="w-5 h-5 object-contain" />
                                             <span className="text-sm font-bold text-[#12141D]">Mail</span>
                                         </button>
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors" title="Message">
+                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Message">
                                             <img src={messageIcon} alt="Message" className="w-5 h-5 object-contain" />
                                             <span className="text-sm font-bold text-[#12141D]">Message</span>
                                         </button>
-                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors" title="Call">
+                                        <button className="flex items-center justify-center gap-2 py-3 rounded-lg bg-[#DBE9FE] hover:bg-[#c9deff] transition-colors cursor-pointer" title="Call">
                                             <img src={callIcon} alt="Call" className="w-5 h-5 object-contain" />
                                             <span className="text-sm font-bold text-[#12141D]">Call</span>
                                         </button>
@@ -279,7 +279,7 @@ export default function ClientBL() {
                                         <button
                                             type="button"
                                             onClick={() => openView(c.id)}
-                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm"
+                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#DD4342] text-[#F2F2F2] font-gantari text-sm transition shadow-sm cursor-pointer"
                                         >
                                             <img src={viewIcon} alt="View" className="w-5 h-5 object-contain" />
                                             View
@@ -287,7 +287,7 @@ export default function ClientBL() {
                                         <button
                                             type="button"
                                             onClick={() => openEdit(c.id)}
-                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent"
+                                            className="flex items-center justify-center gap-2 py-3.5 rounded-md bg-[#F2F2F2] text-[#353535] font-gantari text-sm transition border border-transparent cursor-pointer"
                                         >
                                             <img src={editIcon} alt="Edit" className="w-5 h-5 object-contain" />
                                             Edit
@@ -308,7 +308,7 @@ export default function ClientBL() {
                             <button
                                 type="button"
                                 onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
+                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
@@ -454,14 +454,14 @@ export default function ClientBL() {
                                     <button
                                         type="button"
                                         onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px]"
+                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px] cursor-pointer"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={addSubmitting}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px]"
+                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px] cursor-pointer disabled:cursor-not-allowed"
                                     >
                                         {addSubmitting ? 'Submitting...' : 'Submit'}
                                     </button>
@@ -480,7 +480,7 @@ export default function ClientBL() {
                             <button
                                 type="button"
                                 onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80"
+                                className="absolute left-6 top-6 w-7 h-7 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>
@@ -624,14 +624,14 @@ export default function ClientBL() {
                                     <button
                                         type="button"
                                         onClick={() => { setEditId(null); setSearchParams({}); }}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px]"
+                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#353535] bg-[#F2F2F2] hover:bg-gray-200 transition text-[16px] cursor-pointer"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px]"
+                                        className="w-32 py-2.5 rounded-[5px] font-gantari font-semibold text-[#000000] bg-[#D5E6FF] hover:bg-[#c4deff] transition disabled:opacity-50 text-[16px] cursor-pointer disabled:cursor-not-allowed"
                                     >
                                         {editSubmitting ? 'Submitting...' : 'Submit'}
                                     </button>
@@ -650,7 +650,7 @@ export default function ClientBL() {
                             <button
                                 type="button"
                                 onClick={() => { setViewId(null); setViewClient(null); }}
-                                className="absolute left-6 top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80"
+                                className="absolute left-6 top-6 w-8 h-8 flex items-center justify-center transition hover:opacity-80 cursor-pointer"
                             >
                                 <img src={closeIcon} alt="Close" className="w-full h-full object-contain" />
                             </button>

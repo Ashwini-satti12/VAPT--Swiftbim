@@ -341,7 +341,7 @@ export default function TimesheetPM() {
           <button
             onClick={handleDownload}
             disabled={filteredList.length === 0}
-            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <svg
               width="20"
@@ -439,7 +439,7 @@ export default function TimesheetPM() {
                 setEmployeeOpen((o) => !o);
                 setTeamOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer cursor-pointer"
             >
               <span
                 className={`text-sm font-medium ${employee !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
@@ -474,7 +474,7 @@ export default function TimesheetPM() {
                       setEmployee(opt);
                       setEmployeeOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       employee === opt
                         ? "text-[#353535] bg-gray-50"
                         : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
@@ -496,7 +496,7 @@ export default function TimesheetPM() {
                 setTeamOpen((o) => !o);
                 setEmployeeOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer cursor-pointer"
             >
               <span
                 className={`text-sm font-medium ${team !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
@@ -531,7 +531,7 @@ export default function TimesheetPM() {
                       setTeam(opt);
                       setTeamOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       team === opt
                         ? "text-[#353535] bg-gray-50"
                         : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
@@ -552,7 +552,7 @@ export default function TimesheetPM() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer cursor-pointer"
             >
               <span className="text-sm font-medium text-[#353535] font-gantari">
                 Show:
@@ -593,7 +593,7 @@ export default function TimesheetPM() {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
+                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
                   >
                     {opt.label}
                   </button>
