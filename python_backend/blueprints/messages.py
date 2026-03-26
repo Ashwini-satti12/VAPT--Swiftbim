@@ -168,7 +168,12 @@ def get_contacts():
                            OR (m.outgoing = e.id AND m.client_id_incoming = %s)
                     ) AS last_msg_time,
                     (
-                        SELECT m2.messages
+                        SELECT CASE 
+                            WHEN TRIM(m2.messages) != "" THEN m2.messages
+                            WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
+                                CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                            ELSE ""
+                        END
                         FROM messages m2
                         WHERE
                               (m2.incoming = e.id AND m2.client_id_outgoing = %s)
@@ -196,7 +201,13 @@ def get_contacts():
         cur.execute(
             """SELECT e.id, e.full_name, e.user_role, e.profile_picture, e.status,
                       MAX(m.date) AS last_msg_time,
-                      (SELECT m2.messages FROM messages m2
+                      (SELECT CASE 
+                               WHEN TRIM(m2.messages) != "" THEN m2.messages
+                               WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
+                                   CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                               ELSE ""
+                            END
+                       FROM messages m2
                        WHERE ((m2.outgoing = %s AND m2.incoming = e.id)
                               OR (m2.outgoing = e.id AND m2.incoming = %s))
                        ORDER BY m2.date DESC LIMIT 1) AS last_message
@@ -245,7 +256,14 @@ def get_contacts():
             # Find last message between this employee and the client.
             cur.execute(
                 """
-                    SELECT messages, date
+                    SELECT 
+                        CASE 
+                            WHEN TRIM(messages) != "" THEN messages
+                            WHEN attachments IS NOT NULL AND attachments != "[]" AND attachments != "null" THEN 
+                                CASE WHEN attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                            ELSE ""
+                        END AS messages, 
+                        date
                     FROM messages
                     WHERE
                           (incoming = %s AND client_id_outgoing = %s)
