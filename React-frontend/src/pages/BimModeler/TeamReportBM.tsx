@@ -313,7 +313,16 @@ export default function TeamReportBM() {
                         <span className={`text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg 
+                            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const input = e.currentTarget.nextElementSibling as HTMLInputElement;
+                                if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (err) { input.focus(); }
+                                }
+                            }}
+                        >
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -334,7 +343,16 @@ export default function TeamReportBM() {
                         <span className={`text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg 
+                            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const input = e.currentTarget.nextElementSibling as HTMLInputElement;
+                                if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (err) { input.focus(); }
+                                }
+                            }}
+                        >
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
