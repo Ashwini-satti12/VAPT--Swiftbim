@@ -223,10 +223,10 @@ export default function VendorBimLeadDashboard() {
     };
 
     const kpiCards = [
-        { label: 'Active Opportunities', value: stats.active_opportunities },
-        { label: 'Total Bids Submitted', value: stats.bids_submitted },
-        { label: 'Proposals Awaiting', value: stats.proposals_awaiting },
-        { label: 'Active Projects', value: stats.active_projects },
+        { label: 'Active Opportunities', value: stats.active_opportunities, link: '/vendor-bim-lead/opportunities' },
+        { label: 'Total Bids Submitted', value: stats.bids_submitted, link: '/vendor-bim-lead/mybids' },
+        { label: 'Proposals Awaiting', value: stats.proposals_awaiting, link: '/vendor-bim-lead/opportunities' },
+        { label: 'Active Projects', value: stats.active_projects, link: '/vendor-bim-lead/projects?status=Active' },
     ];
 
     if (loading) {
@@ -240,12 +240,12 @@ export default function VendorBimLeadDashboard() {
     return (
         <div className="flex flex-col lg:h-full lg:overflow-hidden">
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-                <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">BIM Lead Dashboard</h1>
+                <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors">
-                            <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
-                            <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
+                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-lg border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors">
+                            <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
+                            <p className="text-[20px] sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold leading-none">{card.value}</p>
                         </div>
                     ))}
                 </div>

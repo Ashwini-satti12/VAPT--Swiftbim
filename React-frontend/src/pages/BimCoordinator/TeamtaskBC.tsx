@@ -6,9 +6,9 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
-import { 
-    TaskDropdown, 
-    TaskCard, 
+import {
+    TaskDropdown,
+    TaskCard,
     type Task,
     type Employee,
     type Project
@@ -38,7 +38,7 @@ export default function TeamtaskBC() {
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
     const statusFilter = searchParams.get("status") || searchParams.get("taskstatus");
-    
+
     const STORAGE_KEY = "bc_teamTask_localTasks";
     const DELETED_IDS_KEY = "bc_teamTask_deletedIds";
 
@@ -69,41 +69,41 @@ export default function TeamtaskBC() {
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
-  const [selectedProject, setSelectedProject] = useState<string | null>(
-    searchParams.get("project") || null
-  );
+    const [selectedProject, setSelectedProject] = useState<string | null>(
+        searchParams.get("project") || null
+    );
 
-  useEffect(() => {
-    const proj = searchParams.get("project");
-    if (proj) setSelectedProject(proj);
-  }, [searchParams]);
+    useEffect(() => {
+        const proj = searchParams.get("project");
+        if (proj) setSelectedProject(proj);
+    }, [searchParams]);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
-    
+
     const navigate = useNavigate();
 
     const employeeOptions = useMemo(() => {
         const raw = Array.isArray(employees) ? employees : [];
         const baseOptions = ["Select Employee", "Show All"];
-        
+
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
             return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
-        
+
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
             return [...baseOptions, ...raw.map((e) => e.full_name)];
         }
-        
+
         const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
         const filtered = raw.filter(emp => {
             const name = (emp.full_name || "").trim();
             const idStr = String(emp.id);
             return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
         });
-        
+
         return [...baseOptions, ...filtered.map(e => e.full_name)];
     }, [employees, projects, selectedProject]);
     const projectOptions = ["Select Projects", ...projects.map(p => p.project_name)];
@@ -113,7 +113,7 @@ export default function TeamtaskBC() {
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
         const label = newStatus === "todo" ? "To Do" : newStatus === "in_progress" ? "In Progress" : "Completed";
-        
+
         // Find task to get projectId if possible
         const task = merged.find(t => t.id === taskId);
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
@@ -133,9 +133,9 @@ export default function TeamtaskBC() {
         });
 
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, { 
+        api.patch(`/api/tasks/${taskId}/status`, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-            projectId 
+            projectId
         }).catch(err => {
             console.error("Failed to update task status:", err);
         });
@@ -210,7 +210,7 @@ export default function TeamtaskBC() {
         ...localTasks,
         ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
     ];
-    
+
     const allTasks = merged.filter((t) => {
         if (deletedIds.includes(t.id)) return false;
         // Employee filter
@@ -259,7 +259,7 @@ export default function TeamtaskBC() {
             limitStart = parseInt(parts[0], 10) - 1;
             limitEnd = parseInt(parts[1], 10);
         } else {
-             limitEnd = parseInt(selectedShow, 10) || 50;
+            limitEnd = parseInt(selectedShow, 10) || 50;
         }
     }
 

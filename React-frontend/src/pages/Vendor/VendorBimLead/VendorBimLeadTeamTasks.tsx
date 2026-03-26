@@ -10,6 +10,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 interface Task {
     id: number;
@@ -34,6 +35,7 @@ interface Project {
 interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 interface Team {
@@ -50,6 +52,7 @@ export default function VendorBimLeadTeamTasks() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("All");
+    const navigate = useNavigate();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -97,8 +100,25 @@ export default function VendorBimLeadTeamTasks() {
     };
 
     const handleStatusChange = (taskId: number, newStatus: string) => {
-        api.patch(`/api/vendors/vendor-team-tasks/${taskId}`, { status: newStatus })
-            .then(() => fetchData());
+        setTasks((prev) =>
+            prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+        );
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
+            .then(() => toast.success("Status updated"))
+            .catch(() => {
+                toast.error("Failed to update status");
+                fetchData();
+            });
+    };
+
+    const handleDelete = (taskId: number) => {
+        if (!window.confirm("Are you sure you want to delete this task?")) return;
+        api.delete(`/api/vendors/vendor-tasks/${taskId}`)
+            .then(() => {
+                setTasks((prev) => prev.filter((t) => t.id !== taskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => toast.error("Failed to delete task"));
     };
 
     const outlineEmployeeFilters = ["All Employees", ...new Set(tasks.map(t => t.assigned_to_name).filter(Boolean))];

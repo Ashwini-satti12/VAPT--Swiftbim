@@ -249,6 +249,7 @@ export default function DashboardV() {
             barColor: '#DE3D3A',
             label: 'Active Opportunities',
             percent: 75,
+            link: '/v/opportunities'
         },
         {
             title: 'Bids\nSubmitted',
@@ -256,6 +257,7 @@ export default function DashboardV() {
             barColor: '#3B82F6',
             label: 'Total Bids Submitted',
             percent: 50,
+            link: '/v/mybids'
         },
         {
             title: 'Proposals\nAwaiting',
@@ -263,6 +265,7 @@ export default function DashboardV() {
             barColor: '#E47E00',
             label: 'Proposals Awaiting',
             percent: 30,
+            link: '/v/proposals'
         },
         {
             title: 'Active\nProjects',
@@ -270,6 +273,7 @@ export default function DashboardV() {
             barColor: '#00882E',
             label: 'Active Projects',
             percent: 20,
+            link: '/v/projects?status=Active'
         },
     ];
 

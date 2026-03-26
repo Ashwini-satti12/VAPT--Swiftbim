@@ -73,6 +73,7 @@ export function formatTimeForDisplay(value: string): string {
 export interface Employee {
   id: number;
   full_name: string;
+  active?: string | null;
 }
 
 export interface Project {

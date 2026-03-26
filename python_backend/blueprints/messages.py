@@ -3,6 +3,9 @@ from db import get_db
 from auth_middleware import project_app_required, client_required, get_token, decode_token
 import mysql.connector as mysql_connector
 from datetime import datetime
+import os
+import uuid
+import json
 
 bp = Blueprint("messages", __name__, url_prefix="/api/messages")
 chat_bp = Blueprint("chat", __name__, url_prefix="/api/chat")
@@ -165,7 +168,12 @@ def get_contacts():
                            OR (m.outgoing = e.id AND m.client_id_incoming = %s)
                     ) AS last_msg_time,
                     (
-                        SELECT m2.messages
+                        SELECT CASE 
+                            WHEN TRIM(m2.messages) != "" THEN m2.messages
+                            WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
+                                CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                            ELSE ""
+                        END
                         FROM messages m2
                         WHERE
                               (m2.incoming = e.id AND m2.client_id_outgoing = %s)
@@ -193,7 +201,13 @@ def get_contacts():
         cur.execute(
             """SELECT e.id, e.full_name, e.user_role, e.profile_picture, e.status,
                       MAX(m.date) AS last_msg_time,
-                      (SELECT m2.messages FROM messages m2
+                      (SELECT CASE 
+                               WHEN TRIM(m2.messages) != "" THEN m2.messages
+                               WHEN m2.attachments IS NOT NULL AND m2.attachments != "[]" AND m2.attachments != "null" THEN 
+                                   CASE WHEN m2.attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                               ELSE ""
+                            END
+                       FROM messages m2
                        WHERE ((m2.outgoing = %s AND m2.incoming = e.id)
                               OR (m2.outgoing = e.id AND m2.incoming = %s))
                        ORDER BY m2.date DESC LIMIT 1) AS last_message
@@ -242,7 +256,14 @@ def get_contacts():
             # Find last message between this employee and the client.
             cur.execute(
                 """
-                    SELECT messages, date
+                    SELECT 
+                        CASE 
+                            WHEN TRIM(messages) != "" THEN messages
+                            WHEN attachments IS NOT NULL AND attachments != "[]" AND attachments != "null" THEN 
+                                CASE WHEN attachments LIKE '%"type": "image"%' THEN "[Image]" ELSE "[Attachment]" END
+                            ELSE ""
+                        END AS messages, 
+                        date
                     FROM messages
                     WHERE
                           (incoming = %s AND client_id_outgoing = %s)
@@ -306,7 +327,8 @@ def get_conversation(contact_id):
                        messages AS message,
                        date,
                        sender_type,
-                       message_status
+                       message_status,
+                       attachments
                 FROM messages
                 WHERE
                   (
@@ -352,7 +374,7 @@ def get_conversation(contact_id):
         if is_employee_contact:
             cur.execute(
                 """SELECT messages_id AS id, incoming, outgoing, messages AS message,
-                          date, sender_type, message_status
+                          date, sender_type, message_status, attachments
                    FROM messages
                    WHERE (
                        (outgoing = %s AND incoming = %s)
@@ -377,7 +399,8 @@ def get_conversation(contact_id):
                            messages AS message,
                            date,
                            sender_type,
-                           message_status
+                           message_status,
+                           attachments
                     FROM messages
                     WHERE
                       (
@@ -415,6 +438,14 @@ def get_conversation(contact_id):
         if d.get("date") and hasattr(d["date"], "isoformat"):
             d["date"] = d["date"].isoformat()
 
+        # Deserialize attachments JSON if stored as a string
+        raw_att = d.get("attachments")
+        if raw_att and isinstance(raw_att, str):
+            try:
+                d["attachments"] = json.loads(raw_att)
+            except Exception:
+                d["attachments"] = None
+
         # Normalized sender field to match client portal API:
         # - For client portal, 'client' rows are from the logged-in user.
         # - For employee portal, 'employee' rows are from the logged-in user.
@@ -431,13 +462,51 @@ def get_conversation(contact_id):
 @chat_bp.route("/send", methods=["POST"])
 @_chat_auth_required
 def send_message():
-    """Send a message to a contact. Body: { to_id, message }"""
-    data = request.get_json() or request.form
-    to_id = data.get("to_id")
-    message_text = (data.get("message") or "").strip()
+    """Send a message to a contact.
 
-    if not to_id or not message_text:
-        return jsonify({"success": False, "message": "to_id and message are required"}), 400
+    Accepts both:
+      - JSON body: { to_id, message }
+      - multipart/form-data: to_id, message (optional), attachments[] (files)
+    """
+    # Determine content type to decide how to parse the request
+    is_multipart = request.content_type and "multipart" in request.content_type
+
+    if is_multipart:
+        to_id = request.form.get("to_id")
+        message_text = (request.form.get("message") or "").strip()
+    else:
+        data = request.get_json() or request.form
+        to_id = data.get("to_id")
+        message_text = (data.get("message") or "").strip()
+
+    # Handle file uploads (multipart only)
+    uploaded_files = []
+    if is_multipart:
+        files = request.files.getlist("attachments") or request.files.getlist("attachments[]")
+        if files:
+            upload_root = current_app.config.get("UPLOAD_FOLDER", "uploads")
+            chat_upload_dir = os.path.join(upload_root, "chat")
+            os.makedirs(chat_upload_dir, exist_ok=True)
+            for f in files:
+                if not f or not f.filename:
+                    continue
+                ext = os.path.splitext(f.filename)[1].lower()
+                filename = f"{uuid.uuid4().hex}{ext}"
+                filepath = os.path.join(chat_upload_dir, filename)
+                f.save(filepath)
+                # Derive MIME type category for rendering on frontend
+                mime = (f.content_type or "").lower()
+                att_type = "image" if mime.startswith("image/") else "file"
+                uploaded_files.append({
+                    "url": filename,
+                    "name": f.filename,
+                    "type": att_type,
+                })
+
+    attachments_json = json.dumps(uploaded_files) if uploaded_files else None
+
+    if not to_id or (not message_text and not uploaded_files):
+        return jsonify({"success": False, "message": "to_id and message or attachments are required"}), 400
 
     sender_type = g.chat_user_type  # 'employee' or 'client'
     user_id = g.chat_user_id
@@ -471,9 +540,10 @@ def send_message():
                     sender_type,
                     message_status,
                     date,
-                    Company_id
+                    Company_id,
+                    attachments
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                VALUES (%s, %s, %s, %s, %s, %s, 0, NOW(), %s, %s)
             """,
             (
                 employee_id,
@@ -483,6 +553,7 @@ def send_message():
                 message_text,
                 "client",
                 company_id,
+                attachments_json,
             ),
         )
     else:
@@ -505,11 +576,12 @@ def send_message():
                         sender_type,
                         message_status,
                         date,
-                        Company_id
+                        Company_id,
+                        attachments
                     )
-                    VALUES (%s, %s, %s, %s, 0, NOW(), %s)
+                    VALUES (%s, %s, %s, %s, 0, NOW(), %s, %s)
                 """,
-                (to_id, user_id, message_text, sender_type, company_id),
+                (to_id, user_id, message_text, sender_type, company_id, attachments_json),
             )
         else:
             # Employee → client.
@@ -527,9 +599,10 @@ def send_message():
                         sender_type,
                         message_status,
                         date,
-                        Company_id
+                        Company_id,
+                        attachments
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, 0, NOW(), %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, 0, NOW(), %s, %s)
                 """,
                 (
                     "",
@@ -539,6 +612,7 @@ def send_message():
                     message_text,
                     "employee",
                     company_id,
+                    attachments_json,
                 ),
             )
 
@@ -565,7 +639,8 @@ def get_new_messages(contact_id, last_id):
                        outgoing,
                        messages AS message,
                        date,
-                       sender_type
+                       sender_type,
+                       attachments
                 FROM messages
                 WHERE messages_id > %s
                   AND (
@@ -609,7 +684,7 @@ def get_new_messages(contact_id, last_id):
         if is_employee_contact:
             cur.execute(
                 """SELECT messages_id AS id, incoming, outgoing, messages AS message,
-                          date, sender_type
+                          date, sender_type, attachments
                    FROM messages
                    WHERE messages_id > %s
                      AND (
@@ -632,7 +707,8 @@ def get_new_messages(contact_id, last_id):
                            outgoing,
                            messages AS message,
                            date,
-                           sender_type
+                           sender_type,
+                           attachments
                     FROM messages
                     WHERE messages_id > %s
                       AND (
@@ -671,6 +747,14 @@ def get_new_messages(contact_id, last_id):
         d = dict(r)
         if d.get("date") and hasattr(d["date"], "isoformat"):
             d["date"] = d["date"].isoformat()
+
+        # Deserialize attachments JSON if stored as a string
+        raw_att = d.get("attachments")
+        if raw_att and isinstance(raw_att, str):
+            try:
+                d["attachments"] = json.loads(raw_att)
+            except Exception:
+                d["attachments"] = None
 
         sender_type = (d.get("sender_type") or "").lower()
         if g.chat_user_type == "client":

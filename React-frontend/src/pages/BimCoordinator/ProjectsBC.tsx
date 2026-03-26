@@ -451,8 +451,11 @@ export default function ProjectsBC() {
   }, [showProjectView, selectedProjectForView?.id]);
 
   useEffect(() => {
+    const status = searchParams.get('status');
     api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
+      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params: { status: status || undefined }
+      })
       .then((res) => {
         const allProjects = res.data.projects ?? [];
         const userId = user?.id;
@@ -793,24 +796,49 @@ export default function ProjectsBC() {
                         <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
                           {maxCount > 1 ? "Project Managers" : "Project Manager"}
                         </p>
-                        <div className="flex items-center -space-x-3">
-                          {visiblePm.map((entry) => (
-                            <div key={entry.key} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0" title={entry.dName}>
-                              {entry.url ? (
-                                <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                        {maxCount === 1 ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                              {visiblePm[0].url ? (
+                                <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                  {entry.dName.charAt(0).toUpperCase()}
+                                  {visiblePm[0].dName.charAt(0).toUpperCase()}
                                 </div>
                               )}
                             </div>
-                          ))}
-                          {pmRemaining > 0 && (
-                            <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none" title={pmOverflowTitle}>
-                              +{pmRemaining}
-                            </div>
-                          )}
-                        </div>
+                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center -space-x-3">
+                            {visiblePm.map((entry) => (
+                              <div key={entry.key} className="relative group shrink-0">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                  {entry.url ? (
+                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {entry.dName.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  {entry.dName}
+                                </div>
+                              </div>
+                            ))}
+                            {pmRemaining > 0 && (
+                              <div className="relative group shrink-0">
+                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                  +{pmRemaining}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  {pmOverflowTitle}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -856,24 +884,49 @@ export default function ProjectsBC() {
                         <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
                           {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                         </p>
-                        <div className="flex items-center -space-x-3">
-                          {visibleBl.map((entry) => (
-                            <div key={entry.key} className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0" title={entry.dName}>
-                              {entry.url ? (
-                                <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                        {maxCount === 1 ? (
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                              {visibleBl[0].url ? (
+                                <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                  {entry.dName.charAt(0).toUpperCase()}
+                                  {visibleBl[0].dName.charAt(0).toUpperCase()}
                                 </div>
                               )}
                             </div>
-                          ))}
-                          {blRemaining > 0 && (
-                            <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none" title={blOverflowTitle}>
-                              +{blRemaining}
-                            </div>
-                          )}
-                        </div>
+                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center -space-x-3">
+                            {visibleBl.map((entry) => (
+                              <div key={entry.key} className="relative group shrink-0">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                  {entry.url ? (
+                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                      {entry.dName.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  {entry.dName}
+                                </div>
+                              </div>
+                            ))}
+                            {blRemaining > 0 && (
+                              <div className="relative group shrink-0">
+                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                  +{blRemaining}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  {blOverflowTitle}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
@@ -896,56 +949,91 @@ export default function ProjectsBC() {
                         return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
                       }
 
-                      return (
+                      return memberIdsForView.length === 1 ? (
+                        <div className="flex items-center gap-3">
+                          {(() => {
+                            const id = memberIdsForView[0];
+                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                            return (
+                              <>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                >
+                                  {url ? (
+                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                  )}
+                                </div>
+                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                  {emp?.full_name || "Unknown"}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
                         <div className="flex flex-wrap items-center -space-x-4">
                           {memberIdsForView.slice(0, 3).map((id, j) => {
                             const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
                             const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                             return (
-                              <div
-                                key={j}
-                                role="button"
-                                tabIndex={0}
-                                className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                title={emp?.full_name}
-                                onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                              >
-                                {url ? (
-                                  <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                )}
+                              <div key={j} className="relative group shrink-0">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                >
+                                  {url ? (
+                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                  )}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  {emp?.full_name || "Unknown"}
+                                </div>
                               </div>
                             );
                           })}
                           {memberIdsForView.length > 3 && (
-                            <div
-                              role="button"
-                              tabIndex={0}
-                              className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const emps = memberIdsForView
-                                  .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
-                                  .filter(Boolean) as Employee[];
-                                setAllMembersList(emps);
-                                setShowAllMembersModal(true);
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
+                            <div className="relative group shrink-0">
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                onClick={(e) => {
                                   e.preventDefault();
+                                  e.stopPropagation();
                                   const emps = memberIdsForView
                                     .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
                                     .filter(Boolean) as Employee[];
                                   setAllMembersList(emps);
                                   setShowAllMembersModal(true);
-                                }
-                              }}
-                              title="Click to see all members"
-                            >
-                              +{memberIdsForView.length - 3}
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    const emps = memberIdsForView
+                                      .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                      .filter(Boolean) as Employee[];
+                                    setAllMembersList(emps);
+                                    setShowAllMembersModal(true);
+                                  }
+                                }}
+                              >
+                                +{memberIdsForView.length - 3}
+                              </div>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                Click to see all members
+                              </div>
                             </div>
                           )}
                         </div>

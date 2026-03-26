@@ -14,6 +14,7 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
@@ -52,9 +53,11 @@ function formatTimeForDisplay(value: string): string {
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | "type_start_time" | "type_end_time" | null;
 
-interface Employee {
+export interface Employee {
     id: number;
     full_name: string;
+    profile_picture?: string;
+    active?: string | null;
 }
 
 interface Project {
@@ -691,11 +694,11 @@ export default function MytaskBL() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -708,9 +711,9 @@ export default function MytaskBL() {
             });
         }
 
-        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -823,7 +826,7 @@ export default function MytaskBL() {
         if (!raw) return all;
         const tokens = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
 
-        return all.filter((emp) => {
+        return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
             const name = (emp.full_name || "").trim();
             const idStr = String(emp.id);
             return tokens.some((t: string) => t === idStr || t.toLowerCase() === name.toLowerCase());

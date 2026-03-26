@@ -31,6 +31,7 @@ type MessageItem = {
     text: string;
     sender: "user" | "contact";
     time: string;
+    rawDate: string;
     attachments?: MessageAttachment[];
 };
 
@@ -41,8 +42,15 @@ interface ChatPanelProps {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function parseDateSafe(isoOrDate: string | Date): Date {
+    if (isoOrDate instanceof Date) return isoOrDate;
+    // MySQL uses "YYYY-MM-DD HH:MM:SS", browsers prefer "T" separator
+    const normalized = typeof isoOrDate === "string" ? isoOrDate.replace(" ", "T") : isoOrDate;
+    return new Date(normalized);
+}
+
 function formatTime(isoOrDate: string | Date): string {
-    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    const d = parseDateSafe(isoOrDate);
     if (isNaN(d.getTime())) return "";
     return d.toLocaleTimeString("en-US", {
         hour: "numeric",
@@ -52,7 +60,7 @@ function formatTime(isoOrDate: string | Date): string {
 }
 
 function formatDate(isoOrDate: string | Date): string {
-    const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+    const d = parseDateSafe(isoOrDate);
     if (isNaN(d.getTime())) return "";
     return d.toLocaleDateString("en-GB", {
         day: "numeric",
@@ -61,14 +69,36 @@ function formatDate(isoOrDate: string | Date): string {
     });
 }
 
-/** Show time if today, else show short date */
+/** Returns "Today", "Yesterday", or formatted date */
+function getHeaderDate(isoOrDate: string | Date): string {
+    const d = parseDateSafe(isoOrDate);
+    if (isNaN(d.getTime())) return "";
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    if (isToday) return "Today";
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+    if (isYesterday) return "Yesterday";
+
+    return formatDate(d);
+}
+
+/** Show time if today, else show short date or "Yesterday" */
 function formatContactTime(iso: string | null | undefined): string {
     if (!iso) return "";
-    const d = new Date(iso);
+    const d = parseDateSafe(iso);
     if (isNaN(d.getTime())) return "";
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
     if (isToday) return formatTime(d);
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = d.toDateString() === yesterday.toDateString();
+    if (isYesterday) return "Yesterday";
+
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
@@ -125,16 +155,23 @@ function Avatar({ name, src, className = "w-10 h-10" }: { name: string; src?: st
 }
 
 function AttachmentPreview({ file }: { file: File }) {
-    const [url, setUrl] = useState<string | null>(null);
+    // Create the object URL once and clean it up on unmount.
+    // Using a lazy useState initializer avoids the RAF race condition
+    // that breaks preview in React StrictMode dev builds.
+    const isImage = file.type.startsWith("image/");
+    const [url] = useState<string | null>(() =>
+        isImage ? URL.createObjectURL(file) : null
+    );
     useEffect(() => {
-        if (!file.type.startsWith("image/")) return;
-        const u = URL.createObjectURL(file);
-        const id = requestAnimationFrame(() => setUrl(u));
-        return () => { cancelAnimationFrame(id); URL.revokeObjectURL(u); };
-    }, [file]);
-    if (!file.type.startsWith("image/"))
+        // Revoke the blob URL when the component unmounts to free memory.
+        return () => { if (url) URL.revokeObjectURL(url); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    if (!isImage)
         return <span className="w-10 h-10 shrink-0 bg-slate-200 flex items-center justify-center rounded-l-lg"><IconPaperclip /></span>;
-    if (!url) return <span className="w-12 h-12 shrink-0 bg-slate-200 animate-pulse" />;
+    if (!url)
+        return <span className="w-12 h-12 shrink-0 bg-slate-200 animate-pulse" />;
     return (
         <span className="w-12 h-12 shrink-0 bg-slate-200 flex items-center justify-center overflow-hidden">
             <img src={url} alt="" className="w-full h-full object-cover" />
@@ -209,7 +246,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const loadConversation = useCallback(async (contactId: number) => {
         setMessagesLoading(true);
         try {
-            const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string }> }>(
+            const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string; attachments?: MessageAttachment[] | null }> }>(
                 `/api/chat/conversation/${contactId}`
             );
             // Use Number() comparison to avoid type mismatch (DB may return string, auth returns number)
@@ -219,6 +256,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                 text: m.message ?? "",
                 sender: Number(m.outgoing) === myId ? "user" : "contact",
                 time: formatTime(m.date),
+                rawDate: m.date,
+                attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
             }));
             setMessages(mapped);
             if (mapped.length > 0) {
@@ -247,7 +286,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         pollIntervalRef.current = setInterval(async () => {
             const lastId = lastMessageIdRef.current;
             try {
-                const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string }> }>(
+                const { data } = await api.get<{ messages: Array<{ id: number; outgoing: number; message: string; date: string; attachments?: MessageAttachment[] | null }> }>(
                     `/api/chat/conversation/${selectedContact.id}/since/${lastId}`
                 );
                 const myId = Number(user?.id);
@@ -258,6 +297,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                         text: m.message ?? "",
                         sender: Number(m.outgoing) === myId ? "user" : "contact",
                         time: formatTime(m.date),
+                        rawDate: m.date,
+                        attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
                     }));
                     setMessages((prev) => {
                         const existingIds = new Set(prev.map((x) => x.id));
@@ -301,10 +342,16 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.currentTarget.files;
-        if (!files?.length) return;
-        setAttachments((prev) => [...prev, ...Array.from(files)]);
-        e.currentTarget.value = "";
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        
+        const fileArray = Array.from(files);
+        setAttachments((prev) => [...prev, ...fileArray]);
+        
+        // Safely clear the input using the ref so the same file can be selected again
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     };
 
     const removeAttachment = (index: number) => setAttachments((prev) => prev.filter((_, i) => i !== index));
@@ -324,28 +371,49 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
 
         setSending(true);
         const messageAttachments = buildAttachmentsFromFiles(attachments);
+        const now = new Date();
         const optimisticMsg: MessageItem = {
             id: `optimistic-${Date.now()}`,
-            text: text || "(attachment)",
+            text: text || "",
             sender: "user",
-            time: formatTime(new Date()),
+            time: formatTime(now),
+            rawDate: now.toISOString(),
             attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
         };
         setMessages((prev) => [...prev, optimisticMsg]);
         setInputMessage("");
+        const filesToUpload = [...attachments];
         setAttachments([]);
 
         try {
-            const { data } = await api.post<{ success: boolean; id: number }>("/api/chat/send", {
-                to_id: selectedContact.id,
-                message: text || "(attachment)",
-            });
-            if (data.success && data.id) {
-                // Replace optimistic message with confirmed id
+            let newId = 0;
+
+            if (filesToUpload.length > 0) {
+                // Use multipart/form-data to upload files along with the message.
+                // Do NOT set Content-Type manually — axios sets it automatically
+                // with the correct boundary when FormData is passed.
+                const formData = new FormData();
+                formData.append("to_id", String(selectedContact.id));
+                formData.append("message", text || "");
+                filesToUpload.forEach((f) => formData.append("attachments", f));
+                const { data } = await api.post<{ success: boolean; id: number }>("/api/chat/send", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+                if (data.success && data.id) newId = data.id;
+            } else {
+                // Plain JSON for text-only messages (unchanged behaviour)
+                const { data } = await api.post<{ success: boolean; id: number }>("/api/chat/send", {
+                    to_id: selectedContact.id,
+                    message: text,
+                });
+                if (data.success && data.id) newId = data.id;
+            }
+
+            if (newId) {
                 setMessages((prev) =>
-                    prev.map((m) => m.id === optimisticMsg.id ? { ...m, id: String(data.id) } : m)
+                    prev.map((m) => m.id === optimisticMsg.id ? { ...m, id: String(newId) } : m)
                 );
-                lastMessageIdRef.current = data.id;
+                lastMessageIdRef.current = newId;
             }
         } catch {
             // Keep optimistic msg in UI even on failure
@@ -399,8 +467,6 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const filteredContacts = contacts.filter((c) =>
         c.name.toLowerCase().includes(search.toLowerCase())
     );
-
-    const today = formatDate(new Date());
 
     // ── Render ───────────────────────────────────────────────────────────────────
     return (
@@ -511,14 +577,8 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 </div>
                             </div>
 
-                            {/* Messages area */}
+                             {/* Messages area */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
-                                <div className="flex items-center gap-3 my-4">
-                                    <div className="flex-1 h-px bg-slate-200" />
-                                    <span className="text-xs font-medium text-slate-500">{today}</span>
-                                    <div className="flex-1 h-px bg-slate-200" />
-                                </div>
-
                                 {messagesLoading ? (
                                     <div className="flex items-center justify-center py-12">
                                         <div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
@@ -526,58 +586,83 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 ) : messages.length === 0 ? (
                                     <p className="text-center text-sm text-slate-400 py-8">No messages yet. Say hello! 👋</p>
                                 ) : (
-                                    messages.map((msg) => (
-                                        <div
-                                            key={msg.id}
-                                            className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                                        >
-                                            {/* Avatar for contact messages */}
-                                            {msg.sender === "contact" && (
-                                                <Avatar
-                                                    name={selectedContact?.name || ""}
-                                                    src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
-                                                    className="w-7 h-7 shrink-0 mb-1"
-                                                />
-                                            )}
-                                            <div
-                                                className={`relative max-w-[70%] rounded-2xl px-4 py-2.5 select-text cursor-context-menu ${msg.sender === "user"
-                                                        ? "bg-[#1D4ED8] text-white rounded-br-sm"
-                                                        : "bg-[#F3F4F6] text-slate-900 rounded-bl-sm"
-                                                    }`}
-                                                onContextMenu={(e) => handleContextMenu(e, msg.id)}
-                                            >
-                                                {msg.attachments && msg.attachments.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2 mb-2">
-                                                        {msg.attachments.map((att, i) =>
-                                                            att.type === "image" && att.url ? (
-                                                                <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
-                                                                    className="block rounded-lg overflow-hidden border border-slate-200 max-w-[200px] max-h-[160px]">
-                                                                    <img src={att.url} alt={att.name} className="w-full h-auto object-cover" />
-                                                                </a>
-                                                            ) : (
-                                                                <div key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm ${msg.sender === "user" ? "bg-blue-700/60 text-blue-100" : "bg-slate-300/80 text-slate-800"
-                                                                    }`}>
-                                                                    <IconPaperclip />
-                                                                    <span className="truncate max-w-[140px]" title={att.name}>{att.name}</span>
-                                                                </div>
-                                                            )
-                                                        )}
+                                    messages.map((msg, index) => {
+                                        const prevMsg = messages[index - 1];
+                                        const showDateSeparator = !prevMsg || 
+                                            parseDateSafe(msg.rawDate).toDateString() !== 
+                                            parseDateSafe(prevMsg.rawDate).toDateString();
+                                        
+                                        return (
+                                            <div key={msg.id} className="space-y-4">
+                                                {showDateSeparator && (
+                                                    <div className="flex items-center gap-3 my-6 first:mt-2">
+                                                        <div className="flex-1 h-px bg-slate-200" />
+                                                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                            {getHeaderDate(msg.rawDate)}
+                                                        </span>
+                                                        <div className="flex-1 h-px bg-slate-200" />
                                                     </div>
                                                 )}
-                                                {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
-                                                <p className={`text-[10px] mt-1 text-right ${msg.sender === "user" ? "text-blue-200" : "text-slate-400"
-                                                    }`}>{msg.time}</p>
+                                                <div
+                                                    className={`flex items-end gap-2 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                                                >
+                                                    {/* Avatar for contact messages */}
+                                                    {msg.sender === "contact" && (
+                                                        <Avatar
+                                                            name={selectedContact?.name || ""}
+                                                            src={selectedContact ? getGlobalProfileUrl(selectedContact.id, selectedContact.profile_picture) || undefined : undefined}
+                                                            className="w-7 h-7 shrink-0 mb-1"
+                                                        />
+                                                    )}
+                                                    <div
+                                                        className={`relative max-w-[70%] rounded-2xl px-3 py-2 select-text cursor-context-menu ${msg.sender === "user"
+                                                                ? "bg-white text-slate-800 border border-slate-200 shadow-sm rounded-br-sm"
+                                                                : "bg-[#F3F4F6] text-slate-900 rounded-bl-sm"
+                                                            }`}
+                                                        onContextMenu={(e) => handleContextMenu(e, msg.id)}
+                                                    >
+                                                        {msg.attachments && msg.attachments.length > 0 && (
+                                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                                {msg.attachments.map((att, i) => {
+                                                                    const baseUrl = (api.defaults.baseURL || "").replace(/\/$/, "");
+                                                                    const rawUrl = att.url || "";
+                                                                    let fileUrl = rawUrl;
+                                                                    if (!rawUrl.startsWith("blob:")) {
+                                                                        const path = rawUrl.startsWith("/uploads/chat/") ? rawUrl : `/uploads/chat/${rawUrl}`;
+                                                                        fileUrl = `${baseUrl}${path}`;
+                                                                    }
+                                                                    return att.type === "image" && att.url ? (
+                                                                        <a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer"
+                                                                            className="block rounded-lg overflow-hidden border border-slate-200 max-w-[200px] max-h-[160px]">
+                                                                            <img src={fileUrl} alt={att.name} className="w-full h-auto object-cover" />
+                                                                        </a>
+                                                                    ) : (
+                                                                        <a key={i} href={fileUrl} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm hover:opacity-90 transition-opacity cursor-pointer shadow-sm ${msg.sender === "user" ? "bg-blue-50 text-[#1D4ED8] border border-blue-100" : "bg-white border border-slate-200 text-slate-700"
+                                                                            }`}>
+                                                                            <IconPaperclip />
+                                                                            <span className="truncate max-w-[140px]" title={att.name}>{att.name}</span>
+                                                                        </a>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                        {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
+                                                        <p className={`text-[10px] mt-1 text-right ${msg.sender === "user" ? "text-gray-400" : "text-gray-500"
+                                                            }`}>{msg.time}</p>
+                                                    </div>
+                                                    {/* Avatar for user messages */}
+                                                    {msg.sender === "user" && (
+                                                        <Avatar
+                                                            name={user?.full_name || "You"}
+                                                            src={currentUserAvatarUrl || undefined}
+                                                            className="w-7 h-7 shrink-0 mb-1"
+                                                        />
+                                                    )}
+                                                </div>
                                             </div>
-                                            {/* Avatar for user messages */}
-                                            {msg.sender === "user" && (
-                                                <Avatar
-                                                    name={user?.full_name || "You"}
-                                                    src={currentUserAvatarUrl || undefined}
-                                                    className="w-7 h-7 shrink-0 mb-1"
-                                                />
-                                            )}
-                                        </div>
-                                    ))
+                                        );
+                                    })
+
                                 )}
                                 <div ref={messagesEndRef} />
                             </div>
@@ -587,7 +672,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 createPortal(
                                     <div
                                         className="fixed z-[9999] bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 min-w-[160px]"
-                                        style={{ left: contextMenu.x, top: contextMenu.y }}
+                                        style={{ left: contextMenu!.x, top: contextMenu!.y }}
                                     >
                                         <button type="button" onClick={() => setContextMenu(null)}
                                             className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
@@ -595,7 +680,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                             Reply
                                         </button>
                                         <button type="button"
-                                            onClick={() => { const m = messages.find((x) => x.id === contextMenu.messageId); if (m) handleCopy(m.text); }}
+                                            onClick={() => { const m = messages.find((x) => x.id === contextMenu!.messageId); if (m) handleCopy(m.text); }}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconCopy /> Copy
                                         </button>
@@ -610,7 +695,6 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                             {/* Message input */}
                             <div className="p-4 border-t border-slate-200 bg-[#FFFFFF] flex-shrink-0">
                                 <input
-                                    id="chat-file-attach-input"
                                     ref={fileInputRef}
                                     type="file"
                                     multiple
@@ -618,6 +702,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     className="sr-only"
                                     onChange={handleFileChange}
                                     aria-label="Attach files"
+                                    tabIndex={-1}
                                 />
                                 {attachments.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mb-2" role="list" aria-label="Attached files">
@@ -647,11 +732,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
                                         disabled={sending}
                                     />
-                                    <label htmlFor="chat-file-attach-input"
+                                    <button type="button" onClick={() => fileInputRef.current?.click()}
                                         className="p-1.5 rounded-full bg-[#F2F2F2] hover:bg-slate-200/80 cursor-pointer inline-flex items-center justify-center"
                                         aria-label="Attach files">
                                         <IconPaperclip />
-                                    </label>
+                                    </button>
                                     <button type="button" onClick={sendMessage} disabled={sending}
                                         className="flex items-center justify-center w-20 h-10 rounded-lg bg-[#F2F2F2] cursor-pointer transition-colors gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                         aria-label="Send">

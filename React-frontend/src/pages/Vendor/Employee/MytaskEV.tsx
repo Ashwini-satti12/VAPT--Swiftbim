@@ -10,6 +10,7 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -18,6 +19,7 @@ interface Employee {
     id: number;
     full_name?: string;
     name?: string;
+    active?: string | null;
 }
 
 interface Project {
@@ -710,50 +712,7 @@ export default function MytaskEV() {
         pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "v_myTask_localTasks";
-    const DELETED_IDS_KEY = "v_myTask_deletedIds";
-    const STATUS_OVERRIDES_KEY = "v_myTask_statusOverrides";
-    const loadDeletedIds = (): number[] => {
-        try {
-            const raw = localStorage.getItem(DELETED_IDS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed) ? parsed.map(Number).filter((n) => !Number.isNaN(n)) : [];
-        } catch {
-            return [];
-        }
-    };
-    const loadStatusOverrides = (): Record<number, string> => {
-        try {
-            const raw = localStorage.getItem(STATUS_OVERRIDES_KEY);
-            if (!raw) return {};
-            const parsed = JSON.parse(raw);
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-                const out: Record<number, string> = {};
-                for (const [k, v] of Object.entries(parsed)) {
-                    const id = Number(k);
-                    if (!Number.isNaN(id) && typeof v === "string") out[id] = v;
-                }
-                return out;
-            }
-            return {};
-        } catch {
-            return {};
-        }
-    };
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
-    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
-    const [statusOverrides, setStatusOverrides] = useState<Record<number, string>>(loadStatusOverrides);
     const [loading, setLoading] = useState(true);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -767,15 +726,7 @@ export default function MytaskEV() {
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
-    const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
-    const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
-    const merged = [
-        ...safeLocal,
-        ...safeList.filter((t) => t && !safeLocal.some((l) => l && l.id === t.id)),
-    ];
-
-    const allTasksBase = merged.filter((t) => t && t.id != null && !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t) => {
+    const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -806,54 +757,29 @@ export default function MytaskEV() {
     });
 
     const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
-        normalizeStatus(statusOverrides[t.id] ?? t.status);
+        normalizeStatus(t.status);
 
-    const statusToLabel = (
-        s: "todo" | "in_progress" | "completed"
-    ): string => {
-        return s === "todo" ? "To Do" : s === "in_progress" ? "In Progress" : "Completed";
+    const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
+        todo: "Todo",
+        in_progress: "InProgress",
+        completed: "Completed",
     };
 
     const handleMoveTask = (
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed"
     ) => {
-        const label = statusToLabel(newStatus);
-        setStatusOverrides((prev) => ({ ...prev, [taskId]: label }));
-
-        const statusMap = {
-            todo: "Todo",
-            in_progress: "InProgress",
-            completed: "Completed"
-        };
-        const task = list.find((t) => t.id === taskId) ?? safeLocal.find((t) => t.id === taskId);
-
         setList((prev) =>
-            prev.map((t) => (t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
-        );
-        setLocalTasks((prev) =>
-            prev.map((t) => (t.id === taskId ? { ...t, status: label } : t))
+            prev.map((t) => (t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
         );
 
-        api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus], projectId: (task as Task & { projectid?: number; project_id?: number })?.projectid ?? (task as Task & { projectid?: number; project_id?: number })?.project_id })
-            .catch(() => { });
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+            status: statusMap[newStatus],
+        }).catch((err) => {
+            console.error("Failed to update status:", err);
+            toast.error("Failed to update status");
+        });
     };
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
-        } catch {
-            // ignore
-        }
-    }, [deletedIds]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(statusOverrides));
-        } catch {
-            // ignore
-        }
-    }, [statusOverrides]);
 
     const navigate = useNavigate();
     const [addTaskForm, setAddTaskForm] = useState({
@@ -883,21 +809,20 @@ export default function MytaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task } });
+        navigate(`/tasks/${task.id}`);
     };
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-
-        api.delete(`/api/tasks/${deleteTaskId}`)
+        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
             .then(() => {
                 setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-                setDeletedIds((prev) => [...prev, deleteTaskId]);
-                setDeleteTaskId(null);
+                toast.success("Task deleted");
             })
             .catch(() => {
-                // handle error implicitly
+                toast.error("Failed to delete task");
+            })
+            .finally(() => {
                 setDeleteTaskId(null);
             });
     };
@@ -1042,7 +967,7 @@ export default function MytaskEV() {
 
         const validEmployees = rawEmployees.filter((e) => (e?.full_name || e?.name) && involvedNames.has((e?.full_name || e?.name) as string));
 
-        return ["Select Employee", ...validEmployees.map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1071,7 +996,7 @@ export default function MytaskEV() {
         if (!raw) return all;
         const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
         if (tokens.length === 0) return all;
-        return all.filter((emp) => {
+        return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
             const name = ((emp.full_name || emp.name) || "").trim();
             const idStr = String(emp.id);
             return tokens.some((t) => {
