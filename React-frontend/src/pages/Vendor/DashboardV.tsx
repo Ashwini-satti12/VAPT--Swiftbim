@@ -285,11 +285,10 @@ export default function DashboardV() {
         <div className="flex flex-col lg:h-full lg:overflow-hidden">
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-                <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
-                {/* KPI Grid — same style as DashboardTD */}
+                <h1 className="text-[24px] font-semibold font-gantari text-[#000000] mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
                             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
                             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
                         </div>
