@@ -311,7 +311,7 @@ export default function TrackerBL() {
                                             setSelectedTimeRange(opt);
                                             setTimeDropdownOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
                                             selectedTimeRange === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'
                                         }`}
                                     >
@@ -338,7 +338,7 @@ export default function TrackerBL() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1">
                                 {statusOptions.map(opt => (
                                     <button key={opt} type="button" onClick={() => { setSelectedStatus(opt); setStatusOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${selectedStatus === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}>
                                         {opt === '' ? 'Status' : opt}
                                     </button>
                                 ))}
@@ -352,7 +352,7 @@ export default function TrackerBL() {
                     <button
                         onClick={handleDownload}
                         disabled={filteredList.length === 0}
-                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

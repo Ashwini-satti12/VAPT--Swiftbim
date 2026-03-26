@@ -315,7 +315,7 @@ export default function DashboardTD() {
                     </div>
                     {/* In-Progress Tasks */}
                     <div 
-                        onClick={() => navigate('/td/mytasks')}
+                        onClick={() => navigate('/td/teamtasks')}
                         className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
                     >
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
@@ -323,7 +323,7 @@ export default function DashboardTD() {
                     </div>
                     {/* Completed Tasks */}  
                     <div 
-                        onClick={() => navigate('/td/mytasks')}
+                        onClick={() => navigate('/td/teamtasks')}
                         className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
                     >
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>

@@ -57,20 +57,24 @@ def update_status(task_id):
     cur = conn.cursor()
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    if status == "InProgress":
-        cur.execute("UPDATE tasks SET status = %s, start_time = %s WHERE id = %s", (status, now, task_id))
-    elif status == "Completed":
-        cur.execute("UPDATE tasks SET status = %s, end_time = %s WHERE id = %s", (status, now, task_id))
-    elif status == "Pause":
-        cur.execute("UPDATE tasks SET status = %s, Pause = %s WHERE id = %s", (status, now, task_id))
-    elif status == "Continue":
+    status_lower = status.lower().replace(" ", "")
+    
+    if status_lower in ["inprogress", "started"]:
+        cur.execute("UPDATE tasks SET status = 'InProgress', start_time = %s WHERE id = %s", (now, task_id))
+    elif status_lower in ["completed", "done"]:
+        cur.execute("UPDATE tasks SET status = 'Completed', end_time = %s WHERE id = %s", (now, task_id))
+    elif status_lower in ["todo", "new", "pending"]:
+        cur.execute("UPDATE tasks SET status = 'To Do', start_time = NULL, end_time = NULL WHERE id = %s", (task_id,))
+    elif status_lower == "pause":
+        cur.execute("UPDATE tasks SET status = 'Pause', Pause = %s WHERE id = %s", (now, task_id))
+    elif status_lower == "continue":
         cur.execute("UPDATE tasks SET status = 'InProgress', restart = %s WHERE id = %s", (now, task_id))
-    elif status == "Approved":
-        cur.execute("UPDATE tasks SET Approval = %s WHERE id = %s", (status, task_id))
-    elif status == "Rejected":
-        cur.execute("UPDATE tasks SET Approval = %s WHERE id = %s", (status, task_id))
+    elif status_lower == "approved":
+        cur.execute("UPDATE tasks SET Approval = 'Approved' WHERE id = %s", (task_id,))
+    elif status_lower == "rejected":
+        cur.execute("UPDATE tasks SET Approval = 'Rejected' WHERE id = %s", (task_id,))
     else:
-        return jsonify({"success": False, "error": "Invalid status"}), 400
+        return jsonify({"success": False, "error": f"Invalid status: {status}"}), 400
 
     progress = 0
     if project_id:

@@ -294,7 +294,7 @@ export default function TeamReportBM() {
                 <button
                     onClick={handleDownload}
                     disabled={filteredList.length === 0}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md font-gantari font-semibold hover:bg-[#c43a39] transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 15V3M12 15L8 11M12 15L16 11M5 20H19" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -313,7 +313,16 @@ export default function TeamReportBM() {
                         <span className={`text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg 
+                            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const input = e.currentTarget.nextElementSibling as HTMLInputElement;
+                                if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (err) { input.focus(); }
+                                }
+                            }}
+                        >
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -334,7 +343,16 @@ export default function TeamReportBM() {
                         <span className={`text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <svg 
+                            width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                const input = e.currentTarget.nextElementSibling as HTMLInputElement;
+                                if (input && typeof input.showPicker === 'function') {
+                                    try { input.showPicker(); } catch (err) { input.focus(); }
+                                }
+                            }}
+                        >
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -379,7 +397,7 @@ export default function TeamReportBM() {
                                             setEmployee(opt);
                                             setEmployeeOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt 
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${employee === opt 
                                             ? 'text-[#353535] bg-gray-50' 
                                             : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
                                         }`}>
@@ -420,7 +438,7 @@ export default function TeamReportBM() {
                                             setTeam(opt);
                                             setTeamOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt 
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${team === opt 
                                             ? 'text-[#353535] bg-gray-50' 
                                             : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'
                                         }`}>
@@ -462,7 +480,7 @@ export default function TeamReportBM() {
                                         key={opt.value}
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </button>

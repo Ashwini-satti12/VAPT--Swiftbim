@@ -84,7 +84,7 @@ function CustomDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
+                className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${styleType === "header"
                     ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
                     : styleType === "table"
                         ? `px-4 py-2.5 min-w-[140px] rounded-lg border font-bold text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
@@ -118,7 +118,7 @@ function CustomDropdown({
                                     onChange(option);
                                     setIsOpen(false);
                                 }}
-                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors"
+                                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
                             >
                                 {option}
                             </button>
@@ -425,7 +425,7 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100 cursor-pointer"
                                 >
                                     <FiPlus className="text-2xl font-bold text-[#F2F2F2] w-[27px] h-[27px]" />
                                     Add Employee / Trainee
@@ -433,7 +433,7 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={() => setShowInviteModal(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100 cursor-pointer"
                                 >
                                     <FiPlus className="text-2xl font-bold text-[#F2F2F2] w-[27px] h-[27px]" />
                                     Invite
@@ -441,7 +441,7 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={exportCsv}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100 cursor-pointer"
                                 >
                                     <img src={exportIcon} alt="Export" className="w-[27px] h-[27px] object-contain" />
                                     Export to CSV
@@ -449,7 +449,7 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={() => setShowInactiveModal(true)}
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100"
+                                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2]  transition-all shadow-lg shadow-red-100 cursor-pointer"
                                 >
                                     Manage Inactive
                                 </button>
@@ -463,14 +463,14 @@ export default function ConsultantBM() {
                     <button
                         type="button"
                         onClick={() => setViewMode('table')}
-                        className={`p-2 rounded-full transition-all ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                        className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
                     >
                         <FiMenu className="w-6 h-6" />
                     </button>
                     <button
                         type="button"
                         onClick={() => setViewMode('card')}
-                        className={`p-2 rounded-full transition-all ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                        className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-white' : 'bg-[#E0E0E0] text-[#000000]'}`}
                     >
                         <FiGrid className="w-6 h-6" />
                     </button>
@@ -559,13 +559,13 @@ export default function ConsultantBM() {
                                     <div className="p-5 space-y-5">
                                         {/* Contact Buttons */}
                                         <div className="flex items-center gap-5">
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all cursor-pointer">
                                                 <img src={mailIcon} alt="Mail" className="text-xl" /> Mail
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button className="flex-1 flex items-center justify-center gap-3 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all cursor-pointer">
                                                 <img src={messageIcon} alt="Message" className="text-xl" /> Message
                                             </button>
-                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all">
+                                            <button className="flex-1 flex items-center justify-center gap-4 py-3 bg-[#DBE9FE] rounded-[5px] text-[#12141D] text-[14px] font-semibold font-Gantari transition-all cursor-pointer">
                                                 <img src={callIcon} alt="Call" className="text-xl" /> Call
                                             </button>
                                         </div>
@@ -577,7 +577,7 @@ export default function ConsultantBM() {
                                             <button
                                                 type="button"
                                                 onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
-                                                className="flex items-center justify-center gap-3 py-3 bg-[#DD4342] text-white rounded-[5px] text-[14px] font-Gantari"
+                                                className="flex items-center justify-center gap-3 py-3 bg-[#DD4342] text-white rounded-[5px] text-[14px] font-Gantari cursor-pointer"
                                             >
                                                 <img src={eyeIcon} alt="View" className="text-xl" /> View
                                             </button>
@@ -603,7 +603,7 @@ export default function ConsultantBM() {
                                                             roles: emp.Allpannel ? emp.Allpannel.split(',').map(r => r.trim()) : []
                                                         });
                                                     }}
-                                                    className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari"
+                                                    className="flex items-center justify-center gap-3 py-3 bg-[#F2F2F2] text-[#353535] rounded-[5px] text-[14px] font-Gantari cursor-pointer"
                                                 >
                                                     <img src={editIcon} alt="Edit" className="text-xl" /> Edit
                                                 </button>
@@ -656,20 +656,20 @@ export default function ConsultantBM() {
                                                 <td className="px-6 py-4 text-[15px] font-semibold font-Gantari text-[#6B6B6B]">{emp.email}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-3">
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors cursor-pointer">
                                                             <img src={mailIcon} className="w-5 h-5" alt="Mail" />
                                                         </button>
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors cursor-pointer">
                                                             <img src={messageIcon} className="w-5 h-5" alt="Message" />
                                                         </button>
-                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors">
+                                                        <button className="p-2.5 rounded-full bg-[#DBE9FE] hover:bg-[#c6dbff] transition-colors cursor-pointer">
                                                             <img src={callIcon} className="w-5 h-5" alt="Call" />
                                                         </button>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex justify-center">
-                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari ${emp.active === 'active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
+                                                        <button className={`flex items-center justify-between gap-4 px-4 py-2.5 min-w-[140px] rounded-[5px] border font-bold text-[14px] font-Gantari cursor-pointer ${emp.active === 'active' ? 'bg-[#E0FFE8] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFEEEE] border-[#FECACA] text-[#E00100]'}`}>
                                                             {emp.active === 'active' ? 'Active' : 'Deactivate'}
                                                             <FiChevronDown className="w-5 h-5 opacity-70" />
                                                         </button>
@@ -696,7 +696,7 @@ export default function ConsultantBM() {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                                 disabled={currentPage === 1}
-                                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors border-r border-slate-200 disabled:opacity-50"
+                                className={`px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors border-r border-slate-200 disabled:opacity-50 ${currentPage === 1 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                                 <FiChevronDown className="w-4 h-4 rotate-90" />
                                 Prev
@@ -716,7 +716,7 @@ export default function ConsultantBM() {
                                     <button
                                         key={page}
                                         onClick={() => setCurrentPage(page)}
-                                        className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors ${currentPage === page ? 'text-white bg-[#DD4342]' : 'text-[#6B6B6B] hover:bg-slate-100'}`}
+                                        className={`px-5 py-2.5 text-[14px] font-bold border-r border-slate-200 transition-colors cursor-pointer ${currentPage === page ? 'text-white bg-[#DD4342]' : 'text-[#6B6B6B] hover:bg-slate-100'}`}
                                     >
                                         {(page - 1) * 10 + 1}-{Math.min(page * 10, list.length)}
                                     </button>
@@ -726,7 +726,7 @@ export default function ConsultantBM() {
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                                 disabled={currentPage === totalPages || totalPages === 0}
-                                className="px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50"
+                                className={`px-5 py-2.5 flex items-center gap-2 text-[14px] font-semibold text-[#6B6B6B] hover:bg-slate-100 transition-colors disabled:opacity-50 ${currentPage === totalPages || totalPages === 0 ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                                 Next
                                 <FiChevronDown className="w-4 h-4 -rotate-90" />
@@ -744,7 +744,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setShowAddModal(false); setAddError(''); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -906,14 +906,14 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={() => setShowAddModal(false)}
-                                    className="px-8 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[15px] hover:bg-slate-200 transition-all font-Gantari min-w-[120px]"
+                                    className="px-8 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[15px] hover:bg-slate-200 transition-all font-Gantari min-w-[120px] cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={addSubmitting}
-                                    className="px-8 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[15px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[120px]"
+                                    className={`px-8 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[15px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[120px] ${addSubmitting ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
                                     {addSubmitting ? 'Adding...' : 'Submit'}
                                 </button>
@@ -936,7 +936,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInviteModal(false); setInviteEmails(''); setInviteMessage(''); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -971,7 +971,7 @@ export default function ConsultantBM() {
                                 <button
                                     type="submit"
                                     disabled={inviteSubmitting}
-                                    className="px-10 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[200px]"
+                                    className={`px-10 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[200px] ${inviteSubmitting ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
                                     {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                                 </button>
@@ -990,7 +990,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInactiveModal(false); setInactiveIds([]); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -1060,7 +1060,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setShowInactiveModal(false); setInactiveIds([]); }}
-                                className="px-10 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[140px]"
+                                className="px-10 py-2.5 rounded-[5px] bg-[#F2F2F2] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[140px] cursor-pointer"
                             >
                                 Discard
                             </button>
@@ -1068,7 +1068,7 @@ export default function ConsultantBM() {
                                 type="button"
                                 onClick={handleInactive}
                                 disabled={!inactiveIds.length || inactiveSubmitting}
-                                className="px-10 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[140px]"
+                                className={`px-10 py-2.5 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[140px] ${(!inactiveIds.length || inactiveSubmitting) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                             >
                                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
                             </button>
@@ -1086,7 +1086,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setEditId(null); setSearchParams({}); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
@@ -1308,14 +1308,14 @@ export default function ConsultantBM() {
                                 <button
                                     type="button"
                                     onClick={() => { setEditId(null); setSearchParams({}); }}
-                                    className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px]"
+                                    className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-bold text-[16px] hover:bg-slate-200 transition-all font-Gantari min-w-[160px] cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={editSubmitting}
-                                    className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                                    className={`px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] hover:bg-[#b0ccff] disabled:opacity-50 transition-all font-Gantari min-w-[160px] ${editSubmitting ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                 >
                                     {editSubmitting ? 'Submitting...' : 'Submit'}
                                 </button>
@@ -1333,7 +1333,7 @@ export default function ConsultantBM() {
                             <button
                                 type="button"
                                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+                                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
                             >
                                 <FiX className="w-5 h-5 font-bold" />
                             </button>
