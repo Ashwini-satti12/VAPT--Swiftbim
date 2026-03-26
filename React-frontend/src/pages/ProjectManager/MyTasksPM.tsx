@@ -215,6 +215,7 @@ interface Task {
   uploader_profile_picture?: string;
   Approval?: string;
   created_at?: string;
+  projectid?: number;
 }
 
 function normalizeStatus(
@@ -499,7 +500,14 @@ export default function MyTasksPM() {
         in_progress: "InProgress",
         completed: "Completed"
       };
-      await api.patch(`/api/tasks/${taskId}/status`, { status: statusMap[newStatus] });
+      
+      const task = list.find(t => t.id === taskId);
+      const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
+
+      await api.patch(`/api/tasks/${taskId}/status`, { 
+        status: statusMap[newStatus],
+        projectId
+      });
       setList(prev => prev.map(t => t.id === taskId ? { ...t, status: statusMap[newStatus] } : t));
     } catch (error) {
       console.error("Error moving task:", error);
