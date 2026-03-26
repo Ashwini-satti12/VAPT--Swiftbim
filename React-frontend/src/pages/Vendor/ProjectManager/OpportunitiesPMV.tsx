@@ -177,7 +177,7 @@ export default function OpportunitiesPMV() {
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={`px-4 py-2 text-[13px] font-semibold font-gantari whitespace-nowrap transition-colors border-b-2 -mb-px ${activeTab === tab.key
+                            className={`px-4 py-2 text-[13px] font-semibold font-gantari whitespace-nowrap transition-colors border-b-2 -mb-px cursor-pointer ${activeTab === tab.key
                                 ? 'border-[#DE3D3A] text-[#DE3D3A]'
                                 : 'border-transparent text-[#717171] hover:text-[#353535]'
                                 }`}
@@ -203,7 +203,7 @@ export default function OpportunitiesPMV() {
                 </div>
 
                 {/* Filter button */}
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#222] text-white text-[13px] font-semibold font-gantari rounded-lg hover:bg-[#333] transition-colors">
+                <button className="flex items-center gap-2 px-4 py-2 bg-[#222] text-white text-[13px] font-semibold font-gantari rounded-lg hover:bg-[#333] transition-colors cursor-pointer">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M7 12h10M11 20h2" />
                     </svg>
@@ -216,7 +216,7 @@ export default function OpportunitiesPMV() {
                 <div className="mb-4 p-4 bg-[#F0FDF4] border border-[#22C55E]/30 rounded-xl flex items-center gap-3 shrink-0">
                     <span className="text-xl">✅</span>
                     <p className="font-medium font-gantari text-[#14532D] text-sm">Your bid has been submitted successfully!</p>
-                    <button onClick={() => setBidSuccess(null)} className="ml-auto text-[#14532D] hover:text-[#166534]">✕</button>
+                    <button onClick={() => setBidSuccess(null)} className="ml-auto text-[#14532D] hover:text-[#166534] cursor-pointer">✕</button>
                 </div>
             )}
 
@@ -300,7 +300,7 @@ export default function OpportunitiesPMV() {
                                         </p>
                                         <button
                                             onClick={() => setDetailOpportunity(opp)}
-                                            className="flex items-center gap-1 text-[13px] font-semibold text-[#353535] font-gantari hover:text-[#DE3D3A] transition-colors"
+                                            className="flex items-center gap-1 text-[13px] font-semibold text-[#353535] font-gantari hover:text-[#DE3D3A] transition-colors cursor-pointer"
                                         >
                                             Check Details
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +321,7 @@ export default function OpportunitiesPMV() {
                                         ) : isActive ? (
                                             <button
                                                 onClick={() => { setSelectedOpportunity(opp); setBidError(null); }}
-                                                className="text-[12px] font-bold text-white bg-[#DE3D3A] px-3 py-1.5 rounded-lg font-gantari hover:bg-[#c93d3d] transition-colors"
+                                                className="text-[12px] font-bold text-white bg-[#DE3D3A] px-3 py-1.5 rounded-lg font-gantari hover:bg-[#c93d3d] transition-colors cursor-pointer"
                                             >
                                                 Submit Bid
                                             </button>
@@ -352,7 +352,7 @@ export default function OpportunitiesPMV() {
                     <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-xl font-bold text-[#12141D] font-gantari">{detailOpportunity.project_name}</h3>
-                            <button onClick={() => setDetailOpportunity(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+                            <button onClick={() => setDetailOpportunity(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-gantari">
                             {detailOpportunity.host_name && (
@@ -369,11 +369,11 @@ export default function OpportunitiesPMV() {
                             )}
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setDetailOpportunity(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors">Close</button>
+                            <button onClick={() => setDetailOpportunity(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors cursor-pointer">Close</button>
                             {detailOpportunity.status === 'active' && !(detailOpportunity.already_bid || bidSuccess === detailOpportunity.id) && (
                                 <button
                                     onClick={() => { setSelectedOpportunity(detailOpportunity); setDetailOpportunity(null); setBidError(null); }}
-                                    className="flex-1 py-2.5 bg-[#DE3D3A] text-white rounded-lg font-semibold font-gantari text-sm hover:bg-[#c93d3d] transition-colors"
+                                    className="flex-1 py-2.5 bg-[#DE3D3A] text-white rounded-lg font-semibold font-gantari text-sm hover:bg-[#c93d3d] transition-colors cursor-pointer"
                                 >
                                     Submit Bid
                                 </button>
@@ -389,7 +389,7 @@ export default function OpportunitiesPMV() {
                     <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-bold text-[#12141D] font-gantari">Submit Bid</h3>
-                            <button onClick={() => { setSelectedOpportunity(null); setBidError(null); }} className="text-slate-500 hover:text-slate-800 text-2xl leading-none">&times;</button>
+                            <button onClick={() => { setSelectedOpportunity(null); setBidError(null); }} className="text-slate-500 hover:text-slate-800 text-2xl leading-none cursor-pointer">&times;</button>
                         </div>
 
                         <p className="text-sm font-medium text-[#353535] font-gantari mb-6 bg-[#F8F8F8] p-4 rounded-xl">
@@ -449,14 +449,14 @@ export default function OpportunitiesPMV() {
                         <div className="flex gap-3 mt-6">
                             <button
                                 onClick={() => { setSelectedOpportunity(null); setBidError(null); }}
-                                className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors"
+                                className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors cursor-pointer"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleBidSubmit}
                                 disabled={bidSubmitting}
-                                className="flex-1 py-2.5 bg-[#DE3D3A] text-white rounded-lg font-semibold font-gantari text-sm hover:bg-[#c93d3d] transition-colors disabled:opacity-60"
+                                className="flex-1 py-2.5 bg-[#DE3D3A] text-white rounded-lg font-semibold font-gantari text-sm hover:bg-[#c93d3d] transition-colors disabled:opacity-60 cursor-pointer"
                             >
                                 {bidSubmitting ? 'Submitting…' : 'Submit Bid'}
                             </button>

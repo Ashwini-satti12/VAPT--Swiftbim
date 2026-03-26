@@ -79,7 +79,7 @@ export default function MyBidsPMV() {
                             className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari"
                         />
                         {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1">
+                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1 cursor-pointer">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                                 </svg>
@@ -153,7 +153,7 @@ export default function MyBidsPMV() {
                                             </td>
                                             <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
                                                 <button
-                                                    className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100"
+                                                    className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari transition-all bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100 cursor-pointer"
                                                     onClick={() => setDetailBid(bid)}
                                                 >
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@ export default function MyBidsPMV() {
                     <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
                         <div className="flex items-center justify-between mb-5">
                             <h3 className="text-xl font-bold text-[#12141D] font-gantari">Bid Details</h3>
-                            <button onClick={() => setDetailBid(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+                            <button onClick={() => setDetailBid(null)} className="text-slate-400 hover:text-slate-700 text-2xl leading-none cursor-pointer">&times;</button>
                         </div>
                         <div className="flex flex-col gap-3 text-sm font-gantari">
                             <div className="flex gap-2"><span className="text-[#717171] font-medium w-32">Project</span><span className="text-[#353535] font-semibold">{detailBid.project_name || `Opportunity #${detailBid.opportunity_id}`}</span></div>
@@ -194,7 +194,7 @@ export default function MyBidsPMV() {
                             )}
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setDetailBid(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors">Close</button>
+                            <button onClick={() => setDetailBid(null)} className="flex-1 py-2.5 bg-[#F2F2F2] text-[#353535] rounded-lg font-semibold font-gantari text-sm hover:bg-slate-200 transition-colors cursor-pointer">Close</button>
                         </div>
                     </div>
                 </div>

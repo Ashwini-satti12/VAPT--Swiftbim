@@ -289,7 +289,7 @@ export default function DashboardPMV() {
                 {/* KPI Grid — same style as DashboardTD */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0">
+                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer">
                             <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
                             <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
                         </div>
@@ -302,7 +302,7 @@ export default function DashboardPMV() {
                 <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="flex items-center justify-between mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
-                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535]" aria-label="Filter or options">
+                        <button type="button" className="p-1 text-[#717171] hover:text-[#353535] cursor-pointer" aria-label="Filter or options">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
                     </div>
@@ -411,14 +411,14 @@ export default function DashboardPMV() {
 
                         {/* Month & Year navigation */}
                         <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Previous month">
+                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Previous month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
                             <div className="relative min-w-[100px]" ref={monthDropdownRef}>
                                 <button
                                     type="button"
                                     onClick={() => setMonthDropdownOpen((o) => !o)}
-                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent"
+                                    className="flex items-center justify-between gap-1 w-full rounded-md py-2 pl-0 pr-6 text-left text-[13px] font-medium text-slate-800 hover:bg-slate-50 font-gantari border-none bg-transparent cursor-pointer"
                                     aria-expanded={monthDropdownOpen}
                                     aria-haspopup="listbox"
                                     aria-label="Select month"
@@ -444,7 +444,7 @@ export default function DashboardPMV() {
                                                             setDisplayMonth(m);
                                                             setMonthDropdownOpen(false);
                                                         }}
-                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
+                                                        className={`block w-full px-4 py-2.5 text-left text-[13px] font-medium font-gantari transition-colors truncate cursor-pointer ${isSelected ? 'bg-[#2563eb] text-white' : 'text-slate-800 hover:bg-slate-100'}`}
                                                     >
                                                         {name}
                                                     </button>
@@ -457,15 +457,15 @@ export default function DashboardPMV() {
                             <div className="flex items-center">
                                 <span className="min-w-[40px] text-[13px] font-semibold text-slate-700 font-gantari">{displayYear}</span>
                                 <div className="flex flex-col gap-0 -space-y-px">
-                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Next year">
+                                    <button type="button" onClick={() => setDisplayYear((y) => y + 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Next year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z" /></svg>
                                     </button>
-                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none" aria-label="Previous year">
+                                    <button type="button" onClick={() => setDisplayYear((y) => y - 1)} className="py-0 px-0.5 flex items-center justify-center text-slate-700 hover:bg-slate-50 rounded-sm leading-none cursor-pointer" aria-label="Previous year">
                                         <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
                                     </button>
                                 </div>
                             </div>
-                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors" aria-label="Next month">
+                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer" aria-label="Next month">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </button>
                         </div>
@@ -487,7 +487,7 @@ export default function DashboardPMV() {
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors cursor-pointer ${isSelected ? 'text-[#E00100] font-bold' : isOtherMonth ? 'text-[#9CA3AF]' : 'text-black hover:bg-slate-50'}`}
                                                 >
                                                     {cell.day}
                                                 </button>
@@ -505,7 +505,7 @@ export default function DashboardPMV() {
                                         setCelebrationsRequested(true);
                                         setIsCalendarExpanded(!isCalendarExpanded);
                                     }}
-                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
+                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5 cursor-pointer"
                                     aria-label={isCalendarExpanded ? 'Collapse calendar and load celebrations' : 'Expand calendar'}
                                 >
                                     <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
