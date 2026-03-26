@@ -15,7 +15,6 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
-import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
@@ -101,11 +100,19 @@ function FormDropdown({
                 <span className={value ? "text-black" : "text-[#8B8B8B]"}>
                     {displayLabel}
                 </span>
-                <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
+                <svg
+                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
             </button>
             {isOpen && (
                 <div
@@ -207,11 +214,19 @@ function TaskDropdown({
                         (selected ?? label)
                     )}
                 </span>
-                <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
+                <svg
+                    className={`ml-2 w-2.5 h-2.5 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
             </button>
             {isOpen && (
                 <div
@@ -1530,7 +1545,7 @@ export default function TeamtaskPMV() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Project Name
+                                        Project
                                     </label>
                                     <FormDropdown
                                         label="Select Project"
@@ -1560,12 +1575,12 @@ export default function TeamtaskPMV() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Select Module
+                                        Team/Department
                                     </label>
                                     <FormDropdown
-                                        label="Select Module"
+                                        label="Select Team"
                                         options={[
-                                            { value: "", label: "Select Module" },
+                                            { value: "", label: "Select Team" },
                                             ...modalModuleOptions,
                                         ]}
                                         value={addTaskForm.module}
@@ -1586,7 +1601,7 @@ export default function TeamtaskPMV() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name
+                                        Task Name *
                                     </label>
                                     <div className="flex">
                                         <input
@@ -1598,7 +1613,7 @@ export default function TeamtaskPMV() {
                                                     taskName: e.target.value,
                                                 }))
                                             }
-                                            placeholder="Enter Task / Select Task"
+                                            placeholder="Enter task name"
                                             className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
                                                 }`}
                                         />
@@ -1616,15 +1631,15 @@ export default function TeamtaskPMV() {
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Type
+                                            Priority
                                         </label>
                                         <FormDropdown
                                             label="Select Type"
                                             options={[
-                                                { value: "", label: "Select Type" },
-                                                { value: "task", label: "Task" },
-                                                { value: "bug", label: "Bug" },
-                                                { value: "feature", label: "Feature" },
+                                                { value: "", label: "Priority" },
+                                                { value: "Low", label: "Low" },
+                                                { value: "Medium", label: "Medium" },
+                                                { value: "High", label: "High" },
                                             ]}
                                             value={addTaskForm.type}
                                             onChange={(v) =>
