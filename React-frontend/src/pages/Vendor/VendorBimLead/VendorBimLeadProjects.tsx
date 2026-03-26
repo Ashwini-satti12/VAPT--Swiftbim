@@ -108,113 +108,6 @@ export default function VendorBimLeadProjects() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
 
-<<<<<<< HEAD
-    const [searchParams] = useSearchParams();
-    const statusFilter = searchParams.get("status");
-
-    const fetchProjects = (status?: string | null) => {
-        const params: any = {};
-        if (status) params.status = status;
-
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
-            .then(({ data }) => setList(data.projects ?? []))
-            .catch(() => setList([]))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchProjects(statusFilter);
-        api.get<{ employees?: Employee[] }>("/api/employees")
-            .then(({ data }) => {
-                const emps = data.employees ?? [];
-                setAllEmployees(emps);
-                setProjectManagers(emps.filter(e => e.user_role === "Project Manager"));
-                setBimLeads(emps.filter(e => e.user_role === 'BIM Lead'));
-                setBimCoordinators(emps.filter(e => e.user_role === 'BIM Coordinator'));
-            })
-            .catch(() => {
-                setAllEmployees([]);
-                setProjectManagers([]);
-                setBimLeads([]);
-                setBimCoordinators([]);
-            });
-
-        // Fetch clients
-        api.get<{ clients?: any[] }>("/api/clients")
-            .then(({ data }) => setClientsList(data.clients ?? []))
-            .catch(() => setClientsList([]));
-    }, []);
-
-    const nameToId = (name: string, list: Employee[]) => {
-        const found = list.find(e => e.full_name === name);
-        return found ? String(found.id) : "";
-    };
-
-    const idToName = (id: string | number | undefined, list: Employee[]) => {
-        if (!id) return "";
-        const found = list.find(e => e.id === Number(id));
-        return found?.full_name || "";
-    };
-    const getClientNameById = (id: string | number | undefined): string => {
-        if (!id) return "";
-        const found = clientsList.find(c => String(c.id) === String(id));
-        return (found?.fullName || found?.full_name || "") as string;
-    };
-
-    const getClientIdByName = (name: string): number | "" => {
-        if (!name) return "";
-        const found = clientsList.find(c => (c.fullName || c.full_name) === name);
-        return found ? found.id : "";
-    };
-
-    const handleCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        setCreateSubmitting(true);
-        api.post("/api/vendors/vendor-projects", {
-            project_name: createName,
-            budget: createBudget,
-            modules: createModuleName,
-            client_id: getClientIdByName(createClientName),
-            project_manager_id: nameToId(createProjectManager, projectManagers),
-            start_date: createStartDate,
-            due_date: createEndDate,
-            totalhours: createTotalHours,
-            perday: createPerDay,
-            lead_id: nameToId(createBIMLead, bimLeads),
-            bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
-            members: selectedMemberIds.join(","),
-            no_resource: createResources,
-            no_resources_required: createRequiredResources,
-            priority: createPriority,
-            location: createLocation,
-            description: createDescription,
-            deliverables: createDeliverables,
-        })
-            .then(({ data }) => {
-                if (data.success) {
-                    setShowCreateModal(false);
-                    setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
-                    setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate(""); setCreateTotalHours("");
-                    setCreatePerDay(""); setCreateBIMLead(""); setCreateBIMCoOrdinator(""); setSelectedMemberIds([]);
-                    setCreateResources(""); setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
-                    setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
-                    setSuccessMsg("Project created!");
-                    setTimeout(() => setSuccessMsg(null), 3000);
-                    fetchProjects();
-                }
-            })
-            .catch(() => { })
-            .finally(() => setCreateSubmitting(false));
-    };
-
-    const openEdit = (p: Project) => {
-        setEditId(p.id);
-        setCreateName(p.project_name || "");
-        setCreateBudget(p.budget || "");
-        setCreateModuleName(p.modules || "");
-        setCreateClientName(
-            getClientNameById(p.client_id) || (p.client_id ? String(p.client_id) : "")
-=======
   const fetchProjects = () => {
     api
       .get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
@@ -232,7 +125,6 @@ export default function VendorBimLeadProjects() {
         setAllEmployees(emps);
         setProjectManagers(
           emps.filter((e) => e.user_role === "Project Manager"),
->>>>>>> 589469e436cebec2d8f80a4680d2a0dd5fd939e4
         );
         setBimLeads(emps.filter((e) => e.user_role === "BIM Lead"));
         setBimCoordinators(

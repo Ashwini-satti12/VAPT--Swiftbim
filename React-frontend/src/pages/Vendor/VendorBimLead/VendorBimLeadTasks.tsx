@@ -1,13 +1,5 @@
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
-<<<<<<< HEAD
-import { toast } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { FaPlus, FaEllipsisV } from "react-icons/fa";
-import { VscEye } from "react-icons/vsc";
-import { BiEdit } from "react-icons/bi";
-import { RiDeleteBin5Fill } from "react-icons/ri";
-=======
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -17,7 +9,6 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
->>>>>>> 589469e436cebec2d8f80a4680d2a0dd5fd939e4
 
 interface Task {
     id: number;
@@ -48,12 +39,7 @@ export default function VendorBimLeadTasks() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
-    const [activeTab, setActiveTab] = useState("All");
-    const navigate = useNavigate();
-=======
     const [selectedShow, setSelectedShow] = useState("Show");
->>>>>>> 589469e436cebec2d8f80a4680d2a0dd5fd939e4
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -161,75 +147,6 @@ export default function VendorBimLeadTasks() {
     }
 
     return (
-<<<<<<< HEAD
-        <div className="bg-white min-h-full font-gantari p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h2 className="text-[24px] font-semibold text-[#1A1A1A]">Tasks</h2>
-                    <p className="text-sm text-gray-500">Manage and track project tasks</p>
-                </div>
-                <button onClick={() => setShowCreateModal(true)}
-                    className="flex items-center justify-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm">
-                    <FaPlus className="text-xs" />
-                    Create Task
-                </button>
-            </div>
-
-            <div className="flex items-center gap-2 mb-6 border-b border-gray-100 overflow-x-auto custom-scrollbar whitespace-nowrap">
-                {["All", ...statusOptions].map(tab => (
-                    <button key={tab} onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-semibold transition-all border-b-2 ${activeTab === tab ? "border-[#DD4342] text-[#DD4342]" : "border-transparent text-gray-500 hover:text-gray-700"}`}>
-                        {tab}
-                    </button>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredTasks.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-                        <p className="text-gray-500 font-medium">No tasks found for this category.</p>
-                    </div>
-                ) : (
-                    filteredTasks.map(task => (
-                        <div key={task.id} className="bg-white border border-gray-200 rounded-2xl p-5 hover:shadow-lg transition-all group relative">
-                            <div className="flex justify-between items-start mb-4">
-                                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{task.project_name || "Personal"}</span>
-                                <div className="relative">
-                                    <button onClick={() => setOpenMenuTaskId(openMenuTaskId === task.id ? null : task.id)} className="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                                        <FaEllipsisV />
-                                    </button>
-                                    {openMenuTaskId === task.id && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
-                                            <button onClick={() => { navigate(`/tasks/${task.id}`); setOpenMenuTaskId(null); }}
-                                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-[#DD4342] font-semibold text-sm transition-colors"><VscEye /> View Details</button>
-                                            <button onClick={() => setOpenMenuTaskId(null)}
-                                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-[#DD4342] font-semibold text-sm transition-colors"><BiEdit /> Edit</button>
-                                            <button onClick={() => { handleDelete(task.id); setOpenMenuTaskId(null); }}
-                                                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-gray-600 hover:text-red-500 font-semibold text-sm transition-colors"><RiDeleteBin5Fill /> Delete</button>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <h3 className="text-lg font-bold text-[#1A1A1A] mb-2 group-hover:text-[#DD4342] transition-colors">{task.task_name}</h3>
-                            <p className="text-sm text-gray-500 mb-6 line-clamp-2">{task.description || "No description provided."}</p>
-
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                                <div className="flex items-center gap-3">
-                                    <div className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColors[task.priority] || "text-gray-600 bg-gray-50 border-gray-100"}`}>
-                                        {task.priority || "Medium"}
-                                    </div>
-                                    {task.due_date && (
-                                        <span className="text-xs font-semibold text-gray-400">{new Date(task.due_date).toLocaleDateString()}</span>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <select value={task.status} onChange={(e) => handleStatusChange(task.id, e.target.value)}
-                                        className="text-[11px] font-bold bg-[#F2F2F2] border-none rounded-lg px-2 py-1 outline-none cursor-pointer hover:bg-gray-200 transition-colors">
-                                        {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-=======
         <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-gantari">
             <div className="bg-white pb-3 flex-shrink-0 px-6 pt-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -252,7 +169,6 @@ export default function VendorBimLeadTasks() {
                                 alt="arrow"
                                 className="pointer-events-none absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2"
                             />
->>>>>>> 589469e436cebec2d8f80a4680d2a0dd5fd939e4
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
