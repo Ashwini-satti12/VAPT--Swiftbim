@@ -131,10 +131,10 @@ function FormDropdown({
 
   const filteredOptions = searchable
     ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          opt.value === "", // always keep placeholder
-      )
+      (opt) =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        opt.value === "", // always keep placeholder
+    )
     : options;
 
   return (
@@ -243,19 +243,19 @@ function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
   const listMaxHeight = `${maxVisibleItems * 40}px`;
 
@@ -537,8 +537,8 @@ function normalizeStatus(
   s: string | undefined,
   approval?: string,
 ): "todo" | "in_progress" | "completed" {
-  if (approval?.toLowerCase() === "approved") return "completed";
-  if (approval?.toLowerCase() === "rejected") return "completed";
+  if (approval?.toLowerCase() === "in progress") return "in_progress";
+  if (approval?.toLowerCase() === "completed") return "completed";
   if (!s) return "todo";
   const lower = s.toLowerCase().replace(/\s+/g, "_");
   if (lower.includes("progress") || lower === "in_progress")
@@ -641,71 +641,71 @@ function TaskCard({
           >
             <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
           </button>
-            {menuOpen && (
-              <div
-                className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out cursor-pointer ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"} ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
-                role="menu"
+          {menuOpen && (
+            <div
+              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out cursor-pointer ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"} ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+              role="menu"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onViewTask?.(task);
+                }}
               >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onViewTask?.(task);
-                  }}
-                >
-                  <img
-                    src={viewIcon}
-                    alt="view"
-                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                  />
-                  <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                    View
-                  </span>
-                </button>
-                {!isCompleted && (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onEditTask?.(task);
-                      }}
-                    >
-                      <img
-                        src={editIcon}
-                        alt="edit"
-                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      />
-                      <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                        Edit
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        onDeleteTask?.(task);
-                      }}
-                    >
-                      <img
-                        src={deleteIcon}
-                        alt="delete"
-                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                      />
-                      <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                        Delete
-                      </span>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                <img
+                  src={viewIcon}
+                  alt="view"
+                  className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                />
+                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                  View
+                </span>
+              </button>
+              {!isCompleted && (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEditTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={editIcon}
+                      alt="edit"
+                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Edit
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDeleteTask?.(task);
+                    }}
+                  >
+                    <img
+                      src={deleteIcon}
+                      alt="delete"
+                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                    />
+                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                      Delete
+                    </span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
@@ -945,11 +945,11 @@ export default function TeamtaskPM() {
     });
 
     // Backend update
-    api.patch(`/api/tasks/${taskId}/status`, { 
-        status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-        projectId 
+    api.patch(`/api/tasks/${taskId}/status`, {
+      status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
+      projectId
     }).catch(err => {
-        console.error("Failed to update task status:", err);
+      console.error("Failed to update task status:", err);
     });
   };
 
@@ -1164,23 +1164,23 @@ export default function TeamtaskPM() {
   const employeeOptions = useMemo(() => {
     const raw = Array.isArray(employees) ? employees : [];
     const baseOptions = ["Select Employee", "Show All"];
-    
+
     if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All" || selectedProject === "Projects") {
       return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    
+
     const proj = projects.find((p) => p.project_name === selectedProject);
     if (!proj) {
       return [...baseOptions, ...raw.map((e) => e.full_name)];
     }
-    
+
     const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
     const filtered = raw.filter(emp => {
       const name = (emp.full_name || "").trim();
       const idStr = String(emp.id);
       return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
     });
-    
+
     return [...baseOptions, ...filtered.map(e => e.full_name)];
   }, [employees, projects, selectedProject]);
 
@@ -1706,11 +1706,11 @@ export default function TeamtaskPM() {
                         (p) => p.project_name === addTaskForm.projectName,
                       )?.tasks
                         ? projects
-                            .find(
-                              (p) => p.project_name === addTaskForm.projectName,
-                            )!
-                            .tasks!.split(",")
-                            .map((t) => ({ value: t.trim(), label: t.trim() }))
+                          .find(
+                            (p) => p.project_name === addTaskForm.projectName,
+                          )!
+                          .tasks!.split(",")
+                          .map((t) => ({ value: t.trim(), label: t.trim() }))
                         : []),
                     ]}
                     value={addTaskForm.taskName}

@@ -707,32 +707,7 @@ export default function TeamtaskEV() {
         pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "v_teamTask_localTasks";
-    const DELETED_IDS_KEY = "v_teamTask_deletedIds";
-    const loadDeletedIds = (): number[] => {
-        try {
-            const raw = localStorage.getItem(DELETED_IDS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed)
-                ? parsed.map(Number).filter((n) => !Number.isNaN(n))
-                : [];
-        } catch {
-            return [];
-        }
-    };
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
-    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -747,12 +722,7 @@ export default function TeamtaskEV() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
-    const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
-    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t: any) => {
+    const allTasks = list.filter((t) => t && t.id != null).filter((t: any) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -782,47 +752,30 @@ export default function TeamtaskEV() {
         return true;
     });
 
-    const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
-        return s === "todo"
-            ? "To Do"
-            : s === "in_progress"
-                ? "In Progress"
-                : "Completed";
+
+    const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
+        todo: "Todo",
+        in_progress: "InProgress",
+        completed: "Completed",
     };
 
     const handleMoveTask = (
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
-        const label = statusToLabel(newStatus);
-        setLocalTasks((prev) => {
-            const idx = prev.findIndex((t) => t.id === taskId);
-            if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = { ...next[idx], status: label };
-                return next;
-            }
-            const fromList = list.find((t) => t.id === taskId);
-            if (fromList) return [{ ...fromList, status: label }, ...prev];
-            return prev;
+        setList((prev) =>
+            prev.map((t) =>
+                t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
+            ),
+        );
+
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+            status: statusMap[newStatus],
+        }).catch((err) => {
+            console.error("Failed to update status:", err);
+            toast.error("Failed to update status");
         });
     };
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
-        } catch {
-            // ignore quota or parse errors
-        }
-    }, [localTasks]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
-        } catch {
-            // ignore
-        }
-    }, [deletedIds]);
 
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
@@ -851,21 +804,22 @@ export default function TeamtaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/tasks/${task.id}`);
     };
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-        api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0", employeeid: "all" } })
-                .then(res => setList(res.data.tasks ?? []));
-            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeletedIds((prev) =>
-                prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-            );
-        }).finally(() => {
-            setDeleteTaskId(null);
-        });
+        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
+            .then(() => {
+                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => {
+                toast.error("Failed to delete task");
+            })
+            .finally(() => {
+                setDeleteTaskId(null);
+            });
     };
 
     const resetTaskFormAndClose = () => {

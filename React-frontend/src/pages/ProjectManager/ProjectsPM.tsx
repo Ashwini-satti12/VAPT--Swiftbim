@@ -419,7 +419,10 @@ export default function ProjectsPM() {
   };
 
   useEffect(() => {
-    api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
+    const status = searchParams.get('status');
+    api.get<{ projects?: Record<string, unknown>[] }>('/api/projects', {
+      params: { status: status || undefined }
+    })
       .then(res => {
         const allProjects = (res.data.projects ?? []).map(mapApiProjectToProject);
         const userId = user?.id != null ? String(user.id) : '';

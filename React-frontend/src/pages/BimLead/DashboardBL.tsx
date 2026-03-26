@@ -208,15 +208,15 @@ export default function DashboardBL() {
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
                     </Link>
-                    <Link to="/bl/projects" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                    <Link to="/bl/projects?status=Completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                     </Link>
-                    <Link to="/bl/teamtasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                    <Link to="/bl/teamtasks?status=in_progress" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In Progress Tasks</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                     </Link>
-                    <Link to="/bl/teamtasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                    <Link to="/bl/teamtasks?status=completed" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
                         <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Tasks</h3>
                         <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                     </Link>

@@ -59,7 +59,7 @@ def _ensure_vendor_bidding_table(vendor_conn):
 bp = Blueprint("projects", __name__, url_prefix="/api/projects")
 
 # Roles that see all company projects (like PHP session id 1 / type_id=1)
-PROJECTS_SEE_ALL_ROLES = ("Technical Director", "CEO", "Project Manager", "BIM Lead", "BIM Coordinator")
+PROJECTS_SEE_ALL_ROLES = ("Technical Director", "CEO")
 
 
 @bp.route("", methods=["GET"])
@@ -74,43 +74,53 @@ def list_projects():
     see_all_by_role = user_role in PROJECTS_SEE_ALL_ROLES
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(dictionary=True)
 
+    # Base WHERE clauses
+    where_clauses = ["Company_id = %s"]
+    params = [company_id]
+
+    # Visibility filters based on role/type
     if type_id is None and not see_all_by_role:
-        # Default: only projects created by me OR assigned to me
-        cur.execute(
-            """SELECT * FROM projects WHERE Company_id = %s AND (
+        if user_role == "BIM Lead":
+            # BIM Lead: ONLY projects where they are the Lead
+            where_clauses.append("FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0")
+            params.append(user_id)
+        elif user_role == "BIM Coordinator":
+            # BIM Coordinator: ONLY projects where they are the Coordinator
+            where_clauses.append("FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0")
+            params.append(user_id)
+        else:
+            # Default for other roles (BIM Modeler, etc.): involved in any capacity
+            where_clauses.append("""(
                  uploaderid = %s
                  OR FIND_IN_SET(%s, REPLACE(IFNULL(members, ''), ' ', '')) > 0
                  OR FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0
                  OR FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0
                  OR FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0
-               ) ORDER BY project_name""",
-            (company_id, user_id, user_id, user_id, user_id, user_id),
-        )
+               )""")
+            params.extend([user_id, user_id, user_id, user_id, user_id])
     elif type_id is not None and str(type_id) != "1":
-        # type_id 2 or 3: projects where user is in members or team
-        cur.execute(
-            """SELECT * FROM projects WHERE Company_id = %s AND (
-                 FIND_IN_SET(%s, REPLACE(IFNULL(members, ''), ' ', '')) > 0
-                 OR FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0
-                 OR FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0
-                 OR FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0
-               ) ORDER BY project_name""",
-            (company_id, user_id, user_id, user_id, user_id),
-        )
+        # Specific type_id filter (usually similar to broad involvement)
+        where_clauses.append("""(
+             FIND_IN_SET(%s, REPLACE(IFNULL(members, ''), ' ', '')) > 0
+             OR FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0
+             OR FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0
+             OR FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0
+           )""")
+        params.extend([user_id, user_id, user_id, user_id])
+    
+    # Apply Status filter if present
+    if status == "Completed":
+        where_clauses.append("progress = 100")
     elif status:
-        # Completed projects only
-        cur.execute(
-            "SELECT * FROM projects WHERE progress = 100 AND Company_id = %s ORDER BY project_name",
-            (company_id,),
-        )
-    else:
-        # type_id=1 or management role: all company projects
-        cur.execute(
-            "SELECT * FROM projects WHERE Company_id = %s ORDER BY project_name",
-            (company_id,),
-        )
+        # Handling for other potential statuses if needed, though Completed is most common
+        pass
+
+    # Final execution
+    where_sql = " AND ".join(where_clauses)
+    sql = f"SELECT * FROM projects WHERE {where_sql} ORDER BY project_name"
+    cur.execute(sql, tuple(params))
 
     rows = cur.fetchall()
     project_ids = [r["id"] for r in rows]

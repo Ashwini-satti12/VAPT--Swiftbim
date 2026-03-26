@@ -632,7 +632,7 @@ export default function DashboardTD() {
           </div>
           {/* Completed Projects */}
           <div
-            onClick={() => navigate("/td/projects")}
+            onClick={() => navigate("/td/projects?status=Completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
@@ -644,7 +644,7 @@ export default function DashboardTD() {
           </div>
           {/* In-Progress Tasks */}
           <div
-            onClick={() => navigate("/td/mytasks")}
+            onClick={() => navigate("/td/teamtasks?status=in_progress")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
@@ -656,7 +656,7 @@ export default function DashboardTD() {
           </div>
           {/* Completed Tasks */}
           <div
-            onClick={() => navigate("/td/mytasks")}
+            onClick={() => navigate("/td/teamtasks?status=completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">

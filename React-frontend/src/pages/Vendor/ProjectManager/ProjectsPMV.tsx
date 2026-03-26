@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
@@ -99,15 +100,21 @@ export default function ProjectsPMV() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
 
-    const fetchProjects = () => {
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
+    const [searchParams] = useSearchParams();
+    const statusFilter = searchParams.get("status");
+
+    const fetchProjects = (status?: string | null) => {
+        const params: any = {};
+        if (status) params.status = status;
+
+        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
             .then(({ data }) => setList(data.projects ?? []))
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
-        fetchProjects();
+        fetchProjects(statusFilter);
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
                 const emps = data.employees ?? [];

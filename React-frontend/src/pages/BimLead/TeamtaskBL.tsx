@@ -23,26 +23,26 @@ import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
-  if (!path || path.trim() === "") return "";
-  if (path.startsWith("http")) return path;
-  let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
-  const apiBaseUrl = getApiBaseUrl();
-  let urlPath = "";
-  if (normalizedPath.startsWith("employee/")) {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  } else if (normalizedPath.startsWith("profiles/")) {
-    const filename = normalizedPath.replace("profiles/", "");
-    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-  } else if (!normalizedPath.includes("/")) {
-    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-  } else {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  }
-  return `${apiBaseUrl}${urlPath}`;
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+    let normalizedPath = path.replace(/\\/g, "/").trim().replace(/^\d+\s+/, "").replace(/^\/+/, "");
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) => index === 0 ? part : encodeURIComponent(part));
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+    return `${apiBaseUrl}${urlPath}`;
 };
 
 function formatTimeForDisplay(value: string): string {
@@ -147,7 +147,7 @@ function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                 className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -272,7 +272,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                 className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
                             >
                                 {opt}
                             </button>
@@ -866,7 +866,7 @@ export default function TeamtaskBL() {
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
         const label = statusToLabel(newStatus);
-        
+
         // Find task to get projectId if possible
         const task = merged.find(t => t.id === taskId);
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
@@ -886,9 +886,9 @@ export default function TeamtaskBL() {
         });
 
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, { 
+        api.patch(`/api/tasks/${taskId}/status`, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-            projectId 
+            projectId
         }).catch(err => {
             console.error("Failed to update task status:", err);
             // Optionally revert local state on error
@@ -1539,7 +1539,7 @@ export default function TeamtaskBL() {
                                         {editingTaskId === null && (
                                             <button
                                                 type="button"
-                                                 className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                             >
                                                 Tasklist
                                             </button>
@@ -1675,11 +1675,11 @@ export default function TeamtaskBL() {
                                             Assign To
                                         </label>
                                         <FormDropdown
-                                             label="Select Assign To"
-                                             options={[
-                                                 { value: "", label: "Select Assign To" },
-                                                 ...employeesForAssignDropdown.map(e => ({ value: e.full_name, label: e.full_name })),
-                                             ]}
+                                            label="Select Assign To"
+                                            options={[
+                                                { value: "", label: "Select Assign To" },
+                                                ...employeesForAssignDropdown.map(e => ({ value: e.full_name, label: e.full_name })),
+                                            ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>
                                                 setAddTaskForm((f) => ({ ...f, assignTo: v }))
@@ -1776,9 +1776,9 @@ export default function TeamtaskBL() {
                                                 <AttachmentPreviewItem
                                                     key={`${file.name}-${index}-${file.size}`}
                                                     file={file}
-                          onRemove={() => removeAttachment(index)}
-                          onPreviewClick={setAttachmentPreviewFile}
-                        />
+                                                    onRemove={() => removeAttachment(index)}
+                                                    onPreviewClick={setAttachmentPreviewFile}
+                                                />
                                             ))}
                                         </ul>
                                     )}
@@ -1788,7 +1788,7 @@ export default function TeamtaskBL() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                     className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                 >
                                     Discard
                                 </button>
@@ -1798,11 +1798,11 @@ export default function TeamtaskBL() {
                                 >
                                     Submit
                                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
             <AttachmentPreviewModal
                 file={attachmentPreviewFile}
                 onClose={() => setAttachmentPreviewFile(null)}

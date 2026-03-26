@@ -130,7 +130,7 @@ function TaskDropdown({
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+        <span className={`font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
           {label.toLowerCase() === "show" && selected && selected !== label ? (
             <>
               <span className="text-sm text-[#353535]">Show:</span>{" "}
