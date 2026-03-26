@@ -394,9 +394,13 @@ export default function ProjectsTD() {
         const selectable = allEmp.filter(isEmployeeActiveForProjectAssignment);
         setAllEmployees(allEmp);
         setEmployees(allEmp);
-        setProjectManagers(selectable.filter((e) => e.user_role === "Project Manager"));
+        setProjectManagers(
+          selectable.filter((e) => e.user_role === "Project Manager"),
+        );
         setBimLeads(selectable.filter((e) => e.user_role === "BIM Lead"));
-        setBimCoordinators(selectable.filter((e) => e.user_role === "BIM Coordinator"));
+        setBimCoordinators(
+          selectable.filter((e) => e.user_role === "BIM Coordinator"),
+        );
       })
       .catch(() => {
         setAllEmployees([]);
@@ -688,7 +692,14 @@ export default function ProjectsTD() {
                   {/* To Do Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=todo" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
@@ -704,7 +715,14 @@ export default function ProjectsTD() {
                   {/* In Progress Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=in_progress" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -720,7 +738,14 @@ export default function ProjectsTD() {
                   {/* Paused Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=paused" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -736,7 +761,14 @@ export default function ProjectsTD() {
                   {/* Completed Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=completed" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -896,13 +928,17 @@ export default function ProjectsTD() {
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                Project Manager
+                              </p>
                               <div className="flex items-center -space-x-3">
                                 <div
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
                                   title="Not assigned"
                                 >
-                                  <span className="text-slate-600 text-xs font-bold">PM</span>
+                                  <span className="text-slate-600 text-xs font-bold">
+                                    PM
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -910,23 +946,42 @@ export default function ProjectsTD() {
                         }
 
                         const maxCount = Math.max(pmIds.length, pmNames.length);
-                        const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
-                          const pId = pmIds[i];
-                          const pName = pmNames[i];
-                          const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                          const dName = pmEmp?.full_name || pName || "Unknown";
-                          const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
-                          return { key: i, dName, url };
-                        });
+                        const pmEntries = Array.from({ length: maxCount }).map(
+                          (_, i) => {
+                            const pId = pmIds[i];
+                            const pName = pmNames[i];
+                            const pmEmp = pId
+                              ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                              : null;
+                            const dName =
+                              pmEmp?.full_name || pName || "Unknown";
+                            const url = pmEmp?.profile_picture
+                              ? getGlobalProfileUrl(
+                                  pmEmp.id,
+                                  pmEmp.profile_picture,
+                                )
+                              : null;
+                            return { key: i, dName, url };
+                          },
+                        );
                         const visiblePm = pmEntries.slice(0, 3);
                         const pmRemaining = Math.max(0, pmEntries.length - 3);
                         const pmOverflowTitle =
-                          pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                          pmRemaining > 0
+                            ? pmEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                            : undefined;
 
                         return (
                           <div className="min-w-0">
                             <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                              {maxCount > 1 ? "Project Managers" : "Project Manager"}
+                              {maxCount > 1
+                                ? "Project Managers"
+                                : "Project Manager"}
                             </p>
                             <div className="flex items-center -space-x-3">
                               {visiblePm.map((entry) => (
@@ -941,7 +996,8 @@ export default function ProjectsTD() {
                                       className="w-full h-full object-cover"
                                       alt=""
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
                                       }}
                                     />
                                   ) : (
@@ -982,13 +1038,17 @@ export default function ProjectsTD() {
                         if (blIds.length === 0 && blNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                BIM Lead
+                              </p>
                               <div className="flex items-center -space-x-3">
                                 <div
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
                                   title="Not assigned"
                                 >
-                                  <span className="text-slate-600 text-xs font-bold">BL</span>
+                                  <span className="text-slate-600 text-xs font-bold">
+                                    BL
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -996,18 +1056,35 @@ export default function ProjectsTD() {
                         }
 
                         const maxCount = Math.max(blIds.length, blNames.length);
-                        const blEntries = Array.from({ length: maxCount }).map((_, i) => {
-                          const pId = blIds[i];
-                          const pName = blNames[i];
-                          const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                          const dName = blEmp?.full_name || pName || "Unknown";
-                          const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
-                          return { key: i, dName, url };
-                        });
+                        const blEntries = Array.from({ length: maxCount }).map(
+                          (_, i) => {
+                            const pId = blIds[i];
+                            const pName = blNames[i];
+                            const blEmp = pId
+                              ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                              : null;
+                            const dName =
+                              blEmp?.full_name || pName || "Unknown";
+                            const url = blEmp?.profile_picture
+                              ? getGlobalProfileUrl(
+                                  blEmp.id,
+                                  blEmp.profile_picture,
+                                )
+                              : null;
+                            return { key: i, dName, url };
+                          },
+                        );
                         const visibleBl = blEntries.slice(0, 3);
                         const blRemaining = Math.max(0, blEntries.length - 3);
                         const blOverflowTitle =
-                          blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                          blRemaining > 0
+                            ? blEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                            : undefined;
 
                         return (
                           <div className="min-w-0">
@@ -1027,7 +1104,8 @@ export default function ProjectsTD() {
                                       className="w-full h-full object-cover"
                                       alt=""
                                       onError={(e) => {
-                                        (e.target as HTMLImageElement).src = ProfileIcon;
+                                        (e.target as HTMLImageElement).src =
+                                          ProfileIcon;
                                       }}
                                     />
                                   ) : (
@@ -1813,7 +1891,9 @@ export default function ProjectsTD() {
                                             api
                                               .get<{
                                                 client_budget: number | null;
-                                              }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
+                                              }>(
+                                                `/api/vendors/client-budget?client_id=${p.client_name}`,
+                                              )
                                               .then(({ data }) => {
                                                 if (
                                                   data.client_budget !== null &&
