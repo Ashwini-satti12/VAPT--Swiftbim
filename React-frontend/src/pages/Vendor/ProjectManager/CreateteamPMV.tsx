@@ -3,6 +3,7 @@ import api from "../../../lib/api";
 import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
 import eyeIcon from "../../../assets/ProjectManager/consultant/eyeIcon.svg";
+import upArrow from "../../../assets/TechnicalDirector/upArrow.svg";
 
 interface Employee {
     id: number;
@@ -45,16 +46,18 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
-            {/* Header: Title and Options */}
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+            {/* Team Name */}
+            <div className="flex flex-col mb-4 pt-1">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
+                <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
                     {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
-                </h3>
+                </span>
+            </div>
                 <div className="absolute top-6 right-6" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
-                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
                     >
                         <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
                     </button>
@@ -66,7 +69,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                     onViewDetails(team);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
                             >
                                 <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                                 <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
@@ -76,7 +79,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                     onEdit(team);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
                             >
                                 <PencilSquareIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
                                 <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Edit</span>
@@ -86,7 +89,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                                     onDelete(team.team_id);
                                     setShowMenu(false);
                                 }}
-                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
+                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer"
                             >
                                 <TrashIcon className="w-5 h-5 text-[#353535] group-hover/item:text-[#DD4342]" />
                                 <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">Delete</span>
@@ -94,35 +97,52 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* Team Leader */}
             <div className="flex flex-col mb-5">
-                <span className="text-[13px] text-[#64748B] mb-1 font-medium">Team Leader</span>
-                <span className="text-[15px] font-bold text-[#334155]">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
+                <span className="text-[18px] font-bold text-[#353535] truncate">
                     {team.leader_name || getEmpName(team.leader)}
                 </span>
             </div>
 
-            {/* Members */}
-            <div className="mt-2 mb-6 flex-1">
-                <span className="text-[12px] text-[#64748B] mb-2 block font-medium">Members ({memberIds.length})</span>
-                <div className="flex -space-x-1.5">
-                    {memberIds.slice(0, 5).map((eid) => (
-                        <div
-                            key={eid}
-                            className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[11px] font-bold text-[#475569] shadow-sm uppercase shadow-sm"
-                            title={getEmpName(eid)}
-                        >
-                            {getEmpName(eid)[0]}
-                        </div>
-                    ))}
-                    {memberIds.length > 5 && (
-                        <div className="w-8 h-8 rounded-full border border-white bg-[#F8FAFC] flex items-center justify-center text-[10px] font-bold text-[#64748B] shadow-sm">
-                            +{memberIds.length - 5}
-                        </div>
-                    )}
+            {/* Divider */}
+            <div className="h-[1px] w-full bg-[#E5E7EB] mb-5" />
+
+            {/* Members + Details */}
+            <div className="mt-auto flex items-center justify-between">
+                <div>
+
+                    <div className="flex -space-x-3">
+                        {memberIds.slice(0, 5).map((eid) => (
+                            <div
+                                key={eid}
+                                className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center"
+                                title={getEmpName(eid)}
+                            >
+                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600 uppercase">
+                                    {(getEmpName(eid) || 'U').charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                        ))}
+                        {memberIds.length > 5 && (
+                            <div className="w-9 h-9 rounded-full border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                                +{memberIds.length - 5}
+                            </div>
+                        )}
+                        {memberIds.length === 0 && (
+                            <span className="text-[12px] text-[#CBD5E1]">No members yet</span>
+                        )}
+                    </div>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => onViewDetails(team)}
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] pr-1 cursor-pointer"
+                >
+                    Details
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                </button>
             </div>
 
         </div>
@@ -295,30 +315,31 @@ export default function CreateteamPMV() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FFFFFF] font-inter">
+        <div className="h-full flex flex-col p-2 font-Gantari">
             {/* Header section */}
-            <div className="flex justify-between items-center mb-10">
-                <h1 className="text-[24px] font-bold text-[#1E293B] font-sora">Create Team</h1>
+            <div className="flex justify-between items-center mb-8">
+                <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Create Team</h2>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 cursor-pointer"
                 >
-                    <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-                    <span>Create Team</span>
+                    <PlusIcon className="w-5 h-5 stroke-[3]" />
+                    New Team
                 </button>
             </div>
 
             {/* Teams Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {teams.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-[#E2E8F0]">
-                        <p className="text-[#64748B] text-[17px] font-medium font-sora">No teams created yet.</p>
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="mt-4 text-[#DD4342] font-bold hover:underline"
-                        >
-                            Create your first team
-                        </button>
+                    <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+                        <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
+                            <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
+                            <p className="text-[#64748B]">Click "New Team" to get started.</p>
+                        </div>
                     </div>
                 ) : (
                     teams.map((team) => (
@@ -336,6 +357,7 @@ export default function CreateteamPMV() {
                     ))
                 )}
             </div>
+            </div>
 
             {/* Add Modal */}
             {showAddModal && (
@@ -344,7 +366,7 @@ export default function CreateteamPMV() {
                         <div className="p-8">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Team</h3>
-                                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
+                                <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
                                     <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                                 </button>
                             </div>
@@ -367,7 +389,7 @@ export default function CreateteamPMV() {
                                     <select
                                         value={form.project_id}
                                         onChange={(e) => setForm({ ...form, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
                                         required
                                     >
                                         <option value="">Select Project</option>
@@ -384,7 +406,7 @@ export default function CreateteamPMV() {
                                     <select
                                         value={form.leader}
                                         onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
                                         required
                                     >
                                         <option value="">Select Leader</option>
@@ -437,14 +459,14 @@ export default function CreateteamPMV() {
                                     <button
                                         type="button"
                                         onClick={() => setShowAddModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors"
+                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors cursor-pointer"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50"
+                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50 cursor-pointer"
                                     >
                                         {submitting ? 'Creating...' : 'Create Team'}
                                     </button>
@@ -462,7 +484,7 @@ export default function CreateteamPMV() {
                         <div className="p-8">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Edit Team</h3>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
+                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
                                     <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                                 </button>
                             </div>
@@ -484,7 +506,7 @@ export default function CreateteamPMV() {
                                     <select
                                         value={editForm.project_id}
                                         onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
                                         required
                                     >
                                         <option value="">Select Project</option>
@@ -501,7 +523,7 @@ export default function CreateteamPMV() {
                                     <select
                                         value={editForm.leader}
                                         onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none cursor-pointer"
                                         required
                                     >
                                         {employees.map(emp => (
@@ -549,14 +571,14 @@ export default function CreateteamPMV() {
                                     <button
                                         type="button"
                                         onClick={() => setShowEditModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors"
+                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-[#E2E8F0] transition-colors cursor-pointer"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={submitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50"
+                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center disabled:opacity-50 cursor-pointer"
                                     >
                                         {submitting ? 'Updating...' : 'Save Changes'}
                                     </button>
@@ -574,7 +596,7 @@ export default function CreateteamPMV() {
                         <div className="p-8">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">Team Details</h3>
-                                <button onClick={() => setShowDetailsModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black">
+                                <button onClick={() => setShowDetailsModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg transition-colors bg-[#F2F2F2] text-black cursor-pointer">
                                     <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
                                 </button>
                             </div>
@@ -618,7 +640,7 @@ export default function CreateteamPMV() {
                             <div className="mt-10">
                                 <button
                                     onClick={() => setShowDetailsModal(false)}
-                                    className="w-full py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity"
+                                    className="w-full py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:opacity-90 transition-opacity cursor-pointer"
                                 >
                                     Close
                                 </button>

@@ -14,6 +14,7 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 function formatTimeForDisplay(value: string): string {
     if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -32,6 +33,7 @@ interface Employee {
     id: number;
     full_name: string;
     profile_picture?: string;
+  active?: string;
 }
 
 interface Project {
@@ -764,11 +766,11 @@ export default function MytaskBM() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -781,9 +783,9 @@ export default function MytaskBM() {
             });
         }
 
-        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1580,7 +1582,7 @@ export default function MytaskBM() {
                                             label="Select Assign To"
                                             options={[
                                                 { value: "", label: "Select Assign To" },
-                                                ...employees.map(e => ({ value: e.full_name, label: e.full_name }))
+                                                ...employees.filter(isEmployeeActiveForProjectAssignment).map(e => ({ value: e.full_name, label: e.full_name }))
                                             ]}
                                             value={addTaskForm.assignTo}
                                             onChange={(v) =>

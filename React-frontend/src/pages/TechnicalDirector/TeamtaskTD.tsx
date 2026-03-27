@@ -19,6 +19,7 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
@@ -449,6 +450,7 @@ interface Task {
 interface Employee {
   id: number;
   full_name: string;
+  active?: string | null;
 }
 
 interface Project {
@@ -839,7 +841,7 @@ export default function TeamtaskPM() {
     if (!raw) return all;
     const tokens = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
 
-    return all.filter((emp) => {
+    return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
       const name = (emp.full_name || "").trim();
       const idStr = String(emp.id);
       return tokens.some((t: string) => t === idStr || t.toLowerCase() === name.toLowerCase());

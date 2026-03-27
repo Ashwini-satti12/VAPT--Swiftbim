@@ -1186,35 +1186,66 @@ export default function ProjectsV() {
                                                 </div>
 
                                                 <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto gap-3">
-                                                    <div className="flex -space-x-4 min-w-0">
+                                                    <div className="flex items-center min-w-0">
                                                         {memberIds.length === 0 ? (
                                                             <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                        ) : memberIds.length === 1 ? (
+                                                            <div className="flex items-center gap-3">
+                                                                {(() => {
+                                                                    const id = memberIds[0];
+                                                                    const emp = getMemberForAvatar(id);
+                                                                    const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                                    return (
+                                                                        <>
+                                                                            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0">
+                                                                                {url ? (
+                                                                                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
+                                                                                        {(getEmployeeName(id) || "?")[0]?.toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                                                                {getEmployeeName(id) || "Unknown"}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
+                                                            </div>
                                                         ) : (
-                                                            <>
+                                                            <div className="flex items-center -space-x-4">
                                                                 {memberIds.slice(0, 3).map((id) => {
                                                                     const emp = getMemberForAvatar(id);
                                                                     const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                                     return (
-                                                                        <div
-                                                                            key={id}
-                                                                            className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0"
-                                                                        >
-                                                                            {url ? (
-                                                                                <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                            ) : (
-                                                                                <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
-                                                                                    {(getEmployeeName(id) || "?")[0]?.toUpperCase()}
-                                                                                </div>
-                                                                            )}
+                                                                        <div key={id} className="relative group shrink-0">
+                                                                            <div className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0">
+                                                                                {url ? (
+                                                                                    <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                                ) : (
+                                                                                    <div className="w-full h-full flex items-center justify-center bg-slate-200 text-[10px] font-bold text-slate-600">
+                                                                                        {(getEmployeeName(id) || "?")[0]?.toUpperCase()}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                                {getEmployeeName(id) || "Unknown"}
+                                                                            </div>
                                                                         </div>
                                                                     );
                                                                 })}
                                                                 {memberIds.length > 3 && (
-                                                                    <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-[#1967D2] bg-white flex items-center justify-center text-[11px] font-bold text-[#1967D2] shrink-0">
-                                                                        +{memberIds.length - 3}
+                                                                    <div className="relative group shrink-0">
+                                                                        <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-[#1967D2] bg-white flex items-center justify-center text-[11px] font-bold text-[#1967D2] shrink-0">
+                                                                            +{memberIds.length - 3}
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                            {memberIds.length - 3} more
+                                                                        </div>
                                                                     </div>
                                                                 )}
-                                                            </>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     {p.priority ? (

@@ -16,6 +16,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -92,7 +93,7 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -120,20 +121,22 @@ function FormDropdown({
                     role="listbox"
                     className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
                 >
-                    {options.map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            role="option"
-                            onClick={() => {
-                                onChange(opt.value);
-                                onClose();
-                            }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
+                    <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar font-Gantari">
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    onClose();
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm text-[#8B8B8B] hover:text-[#353535] hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -186,7 +189,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -251,7 +254,7 @@ function TaskDropdown({
                     )}
                     <div
                         className="overflow-y-auto py-1 custom-scrollbar font-Gantari"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        style={{ maxHeight: listMaxHeight }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -307,6 +310,7 @@ interface Task {
 interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 interface Project {
@@ -547,7 +551,7 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100"
+                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -561,7 +565,7 @@ function TaskCard({
                         <button
                             type="button"
                             role="menuitem"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
+                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left cursor-pointer"
                             onClick={() => {
                                 setMenuOpen(false);
                                 onViewTask?.(task);
@@ -575,7 +579,7 @@ function TaskCard({
                                 <button
                                     type="button"
                                     role="menuitem"
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left cursor-pointer"
                                     onClick={() => {
                                         setMenuOpen(false);
                                         onEditTask?.(task);
@@ -587,7 +591,7 @@ function TaskCard({
                                 <button
                                     type="button"
                                     role="menuitem"
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left cursor-pointer"
                                     onClick={() => {
                                         setMenuOpen(false);
                                         onDeleteTask?.(task);
@@ -687,7 +691,7 @@ function TaskCard({
                     to={`/tasks/${task.id}`}
                     state={{ task, from: "teamtask" }}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
                 >
                     Details
                     <img src={Arrow} alt="Arrow" className="w-2 h-2" />
@@ -697,7 +701,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -1031,6 +1035,7 @@ export default function TeamtaskPMV() {
     }, [isTeam, statusFilter]);
 
     const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
         .filter((e) => (e.full_name || "").trim() !== "")
         .map((e) => ({ value: e.full_name, label: e.full_name }));
 
@@ -1303,7 +1308,7 @@ export default function TeamtaskPMV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1334,14 +1339,14 @@ export default function TeamtaskPMV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
                             >
                                 Yes, Delete
                             </button>
@@ -1358,7 +1363,7 @@ export default function TeamtaskPMV() {
                             <button
                                 type="button"
                                 onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1575,7 +1580,7 @@ export default function TeamtaskPMV() {
                                         {editingTaskId === null && (
                                             <button
                                                 type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                             >
                                                 Tasklist
                                             </button>
@@ -1818,7 +1823,7 @@ export default function TeamtaskPMV() {
                                                     <button
                                                         type="button"
                                                         onClick={() => removeAttachment(index)}
-                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
+                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
                                                         aria-label={`Remove ${file.name}`}
                                                     >
                                                         <svg
@@ -1845,13 +1850,13 @@ export default function TeamtaskPMV() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] cursor-pointer"
                                 >
                                     Submit
                                 </button>

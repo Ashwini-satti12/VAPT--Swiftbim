@@ -340,7 +340,7 @@ export default function ProjectsPMV() {
                                 key={emp.id}
                                 type="button"
                                 onClick={() => toggleMember(emp.id)}
-                                className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F4F5F7] transition-colors ${selectedMemberIds.includes(emp.id) ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
+                                className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F4F5F7] transition-colors cursor-pointer ${selectedMemberIds.includes(emp.id) ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
                             >
                                 <div className="flex items-center gap-3">
                                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${selectedMemberIds.includes(emp.id) ? "bg-[#DD4342] text-white" : "bg-slate-200 text-slate-500"}`}>
@@ -389,10 +389,10 @@ export default function ProjectsPMV() {
                         </button>
                         {editDropdownOpen === "pm" && (
                             <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                                <button type="button" onClick={() => { setCreateProjectManager(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]">Select Project Manager</button>
+                                <button type="button" onClick={() => { setCreateProjectManager(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7] cursor-pointer">Select Project Manager</button>
                                 {projectManagers.map(pm => (
                                     <button key={pm.id} type="button" onClick={() => { setCreateProjectManager(pm.full_name || ""); setEditDropdownOpen(null); }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createProjectManager === pm.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{pm.full_name}</button>
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] cursor-pointer ${createProjectManager === pm.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{pm.full_name}</button>
                                 ))}
                             </div>
                         )}
@@ -408,10 +408,10 @@ export default function ProjectsPMV() {
                         </button>
                         {editDropdownOpen === "bimLead" && (
                             <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                                <button type="button" onClick={() => { setCreateBIMLead(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]">Select BIM Lead</button>
+                                <button type="button" onClick={() => { setCreateBIMLead(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7] cursor-pointer">Select BIM Lead</button>
                                 {bimLeads.map(lead => (
                                     <button key={lead.id} type="button" onClick={() => { setCreateBIMLead(lead.full_name || ""); setEditDropdownOpen(null); }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createBIMLead === lead.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{lead.full_name}</button>
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] cursor-pointer ${createBIMLead === lead.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{lead.full_name}</button>
                                 ))}
                             </div>
                         )}
@@ -427,10 +427,10 @@ export default function ProjectsPMV() {
                         </button>
                         {editDropdownOpen === "bimCoord" && (
                             <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
-                                <button type="button" onClick={() => { setCreateBIMCoOrdinator(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]">Select BIM Coordinator</button>
+                                <button type="button" onClick={() => { setCreateBIMCoOrdinator(""); setEditDropdownOpen(null); }} className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7] cursor-pointer">Select BIM Coordinator</button>
                                 {bimCoordinators.map(coord => (
                                     <button key={coord.id} type="button" onClick={() => { setCreateBIMCoOrdinator(coord.full_name || ""); setEditDropdownOpen(null); }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createBIMCoOrdinator === coord.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{coord.full_name}</button>
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] cursor-pointer ${createBIMCoOrdinator === coord.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{coord.full_name}</button>
                                 ))}
                             </div>
                         )}
@@ -472,7 +472,7 @@ export default function ProjectsPMV() {
                             <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-[5px] bg-white border border-slate-200 shadow-lg py-1 max-h-48 overflow-y-auto">
                                 {["High", "Medium", "Low"].map(p => (
                                     <button key={p} type="button" onClick={() => { setCreatePriority(p); setEditDropdownOpen(null); }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createPriority === p ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{p}</button>
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] cursor-pointer ${createPriority === p ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}>{p}</button>
                                 ))}
                             </div>
                         )}
@@ -533,7 +533,7 @@ export default function ProjectsPMV() {
                             <button
                                 type="button"
                                 onClick={() => setCreateFile(null)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
                                 title="Remove file"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -609,14 +609,14 @@ export default function ProjectsPMV() {
                                             setShowEditModal(false);
                                             setEditDropdownOpen(null);
                                         }}
-                                        className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200"
+                                        className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200 cursor-pointer"
                                     >
                                         Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="px-12 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-[16px] transition-all hover:opacity-90 shadow-lg shadow-red-100 disabled:opacity-50"
+                                        className="px-12 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-[16px] transition-all hover:opacity-90 shadow-lg shadow-red-100 disabled:opacity-50 cursor-pointer"
                                     >
                                         {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
@@ -628,7 +628,7 @@ export default function ProjectsPMV() {
                     <div className="flex flex-col h-full bg-white">
                         <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowProjectView(false)}
-                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors">
+                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors cursor-pointer">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -714,7 +714,7 @@ export default function ProjectsPMV() {
                     <div className="flex flex-col h-full bg-white">
                         <div className="flex items-center justify-between px-10 py-8">
                             <div className="flex items-center gap-6">
-                                <button type="button" onClick={() => setShowMilestones(false)} className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors">
+                                <button type="button" onClick={() => setShowMilestones(false)} className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors cursor-pointer">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
@@ -736,7 +736,7 @@ export default function ProjectsPMV() {
                         <div className="flex items-center justify-between pb-6">
                             <h2 className="text-[24px] font-semibold text-[#000000]">Projects</h2>
                             <button onClick={() => { setShowCreateModal(true); setSelectedMemberIds([]); }}
-                                className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm">
+                                className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm text-sm cursor-pointer">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                                 Create Project
                             </button>
@@ -759,19 +759,19 @@ export default function ProjectsPMV() {
                                                     <div className="flex justify-between items-start mb-6">
                                                         <h3 className="text-[20px] font-semibold text-[#353535] leading-tight">{p.project_name ?? "Untitled"}</h3>
                                                         <div className="relative">
-                                                            <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full">
+                                                            <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full cursor-pointer">
                                                                 <img src={Dot} alt="" className="w-6 h-6" />
                                                             </button>
                                                             {openMenuProjectId === p.id && (
                                                                 <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
                                                                     <button onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><VscEye /> View Details</button>
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><VscEye /> View Details</button>
                                                                     <button onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><BiEdit /> Edit</button>
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><BiEdit /> Edit</button>
                                                                     <button onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"><FaCircleDollarToSlot /> Milestones</button>
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><FaCircleDollarToSlot /> Milestones</button>
                                                                     <button onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-red-500 font-semibold text-sm transition-colors"><RiDeleteBin5Fill /> Delete</button>
+                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-red-500 font-semibold text-sm transition-colors cursor-pointer"><RiDeleteBin5Fill /> Delete</button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -797,15 +797,47 @@ export default function ProjectsPMV() {
                                                     </div>
                                                 </div>
                                                 <div className="border-t border-[#F1F1F1] pt-5 mt-auto flex items-center justify-between">
-                                                    <div className="flex -space-x-4">
-                                                        {memberIds.slice(0, 3).map(id => (
-                                                            <div key={id} className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
-                                                                {(getEmployeeName(id) || "?")[0]}
+                                                    <div className="flex items-center min-w-0">
+                                                        {memberIds.length === 0 ? (
+                                                            <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                        ) : memberIds.length === 1 ? (
+                                                            <div className="flex items-center gap-3">
+                                                                {(() => {
+                                                                    const id = memberIds[0];
+                                                                    return (
+                                                                        <>
+                                                                            <div className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                                                {(getEmployeeName(id) || "?")[0]}
+                                                                            </div>
+                                                                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                                                                {getEmployeeName(id) || "Unknown"}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
-                                                        ))}
-                                                        {memberIds.length > 3 && (
-                                                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">
-                                                                +{memberIds.length - 3}
+                                                        ) : (
+                                                            <div className="flex items-center -space-x-4">
+                                                                {memberIds.slice(0, 3).map(id => (
+                                                                    <div key={id} className="relative group shrink-0">
+                                                                        <div className="relative z-0 w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                                            {(getEmployeeName(id) || "?")[0]}
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                            {getEmployeeName(id) || "Unknown"}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                {memberIds.length > 3 && (
+                                                                    <div className="relative group shrink-0">
+                                                                        <div className="relative z-10 w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">
+                                                                            +{memberIds.length - 3}
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                            {memberIds.length - 3} more
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>
@@ -832,7 +864,7 @@ export default function ProjectsPMV() {
                         <div className="p-8 md:p-10 overflow-y-auto custom-scrollbar flex-1">
                             <div className="flex justify-between items-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B] font-sora">New Project</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2]">
+                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-[#F1F5F9] rounded-lg bg-[#F2F2F2] cursor-pointer">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
@@ -842,14 +874,14 @@ export default function ProjectsPMV() {
                                     <button
                                         type="button"
                                         onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-4 rounded-[5px] bg-[#F4F5F7] text-[#353535] font-bold hover:bg-slate-200 transition-colors"
+                                        className="flex-1 px-4 py-4 rounded-[5px] bg-[#F4F5F7] text-[#353535] font-bold hover:bg-slate-200 transition-colors cursor-pointer"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={createSubmitting}
-                                        className="flex-1 px-4 py-4 rounded-[5px] bg-[#DD4342] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                                        className="flex-1 px-4 py-4 rounded-[5px] bg-[#DD4342] text-white font-bold hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
                                     >
                                         {createSubmitting ? "Creating..." : "Create Project"}
                                     </button>
@@ -871,8 +903,8 @@ export default function ProjectsPMV() {
                         <h3 className="text-xl font-bold text-[#1E293B] mb-2 font-gantari">Delete Project</h3>
                         <p className="text-slate-500 mb-8 font-gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
                         <div className="flex gap-4">
-                            <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200">Cancel</button>
-                            <button onClick={handleDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100">Delete</button>
+                            <button onClick={() => setDeleteId(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200 cursor-pointer">Cancel</button>
+                            <button onClick={handleDelete} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100 cursor-pointer">Delete</button>
                         </div>
                     </div>
                 </div>

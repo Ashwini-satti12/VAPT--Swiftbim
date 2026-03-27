@@ -4,6 +4,7 @@ import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 function formatTimeForDisplay(value: string): string {
   if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -242,6 +243,7 @@ interface Task {
 interface Employee {
   id: number;
   full_name: string;
+  active?: string;
 }
 
 interface Project {
@@ -486,14 +488,14 @@ export default function AddTaskPM() {
         if (!addTaskForm.projectName) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
         if (!proj) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const involvedNames = new Set<string>();
@@ -513,11 +515,11 @@ export default function AddTaskPM() {
             });
         }
         
-        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
         
         return [
             { value: "", label: "Select Assign To" },
-            ...validEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
         ];
     };
 

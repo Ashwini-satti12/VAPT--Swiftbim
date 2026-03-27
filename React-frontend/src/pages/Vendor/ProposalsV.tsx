@@ -5,6 +5,8 @@ import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import addressIcon from '../../assets/TechnicalDirector/Vector.svg';
 import websiteIcon from '../../assets/TechnicalDirector/world-wide-web 1.svg';
 import emailIcon from '../../assets/TechnicalDirector/mail icon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import viewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 
 type Proposal = {
     id: number;
@@ -49,14 +51,14 @@ function safeParse(val: any): any[] {
 export default function ProposalsV() {
     const [loading, setLoading] = useState(true);
     const [proposals, setProposals] = useState<Proposal[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
     const [selected, setSelected] = useState<Proposal | null>(null);
     const navigate = useNavigate();
     const [clarNote, setClarNote] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
-    /** Reject / Request panels: textarea shown only after clicking the action button */
     const [showRequestInput, setShowRequestInput] = useState(false);
+    const [showEntries, setShowEntries] = useState('show');
+    const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
     const fetchProposals = () => {
         api.get<{ proposals: Proposal[] }>('/api/vendors/proposals')
@@ -115,10 +117,11 @@ export default function ProposalsV() {
         finally { setSubmitting(false); }
     };
 
-    const filtered = proposals.filter(p =>
-        (p.project_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.vendor_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const displayList = (() => {
+        if (showEntries === 'show' || showEntries === 'all') return proposals;
+        const [start, end] = showEntries.split('-').map(Number);
+        return proposals.slice(start - 1, end);
+    })();
 
     // --- VIEW PROPOSAL DETAIL ---
     if (selected) {
@@ -160,33 +163,33 @@ export default function ProposalsV() {
                     {/* Summary banner — CreateProposalTD-style */}
                     <div className="bg-[#F2F2F2] border border-[#AEACAC52] rounded-md py-6 flex flex-wrap items-center">
                         <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Project Name</p>
-                            <p className="font-semibold text-[#616161] text-base truncate text-center uppercase tracking-wide">{selected.project_name || `Proposal #${selected.id}`}</p>
+                            <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Project Name</p>
+                            <p className="text-[#616161] text-[16px] truncate text-center uppercase tracking-wide">{selected.project_name || `Proposal #${selected.id}`}</p>
                         </div>
                         <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Vendor Name</p>
-                            <p className="font-semibold text-[#616161] text-base truncate text-center">{selected.vendor_name || '—'}</p>
+                            <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Vendor Name</p>
+                            <p className="text-[#616161] text-[16px] truncate text-center">{selected.vendor_name || '—'}</p>
                         </div>
                         <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Currency</p>
-                            <p className="font-semibold text-[#616161] text-base text-center">{currencyLabel}</p>
+                            <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Currency</p>
+                            <p className="text-[#616161] text-[16px] text-center">{currencyLabel}</p>
                         </div>
                         <div className="flex-1 min-w-[140px] px-6 sm:px-2 border-r border-[#AEACAC52]">
-                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Email</p>
-                            <p className="font-semibold text-[#616161] text-base truncate text-center">{selected.email_address || '—'}</p>
+                            <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Email</p>
+                            <p className="text-[#616161] text-[16px] truncate text-center">{selected.email_address || '—'}</p>
                         </div>
                         <div className="flex-1 min-w-[140px] px-6 sm:px-2 last:border-r-0 sm:border-r-0">
-                            <p className="text-lg font-bold text-[#353535] mb-1 tracking-wider text-center">Received On</p>
-                            <p className="font-semibold text-[#616161] text-base text-center">{formatDate(selected.created_at)}</p>
+                            <p className="text-[18px] font-semibold text-[#020202] mb-1 tracking-wider text-center">Received On</p>
+                            <p className=" text-[#616161] text-[16px] text-center">{formatDate(selected.created_at)}</p>
                         </div>
                     </div>
 
                         {/* 1. Executive Summary */}
                         {selected.executive_summary && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">1. Executive Summary</h2>
+                                <h2 className="font-bold text-[16px] text-[#020202]">1. Executive Summary</h2>
                                 <div className="bg-[#F2F2F2] rounded-md px-4 py-3 border border-transparent">
-                                    <p className="text-base text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.executive_summary)}</p>
+                                    <p className="text-[14px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.executive_summary)}</p>
                                 </div>
                             </div>
                         )}
@@ -194,9 +197,9 @@ export default function ProposalsV() {
                         {/* 2. About Us */}
                         {selected.about_us && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">2. About Us</h2>
+                                <h2 className="font-bold text-[16px] text-[#020202]">2. About Us</h2>
                                 <div className="bg-[#F2F2F2] rounded-md px-4 py-3">
-                                    <p className="text-base text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.about_us)}</p>
+                                    <p className="text-[14px] text-[#353535] font-gantari leading-relaxed whitespace-pre-line">{stripHtml(selected.about_us)}</p>
                                 </div>
                                 {(selected.address || selected.website_url || selected.email_address) && (
                                     <div className="space-y-4 pt-2 w-full">
@@ -204,38 +207,38 @@ export default function ProposalsV() {
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3 min-w-[140px] shrink-0">
                                                     <img src={addressIcon} alt="" className="w-5 h-5" />
-                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                    <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Address</span>
                                                         <span>:</span>
                                                     </div>
                                                 </div>
-                                                <span className="text-[#616161] font-medium text-base flex-1">{selected.address}</span>
+                                                <span className="text-[#616161] font-medium text-[14px] flex-1">{selected.address}</span>
                                             </div>
                                         )}
                                         {selected.website_url && (
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3 min-w-[140px] shrink-0">
                                                     <img src={websiteIcon} alt="" className="w-5 h-5" />
-                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                    <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Website</span>
                                                         <span>:</span>
                                                     </div>
                                                 </div>
                                                 <a href={selected.website_url.startsWith('http') ? selected.website_url : `https://${selected.website_url}`}
                                                     target="_blank" rel="noopener noreferrer"
-                                                    className="text-[#1967D2] font-medium hover:underline text-base flex-1 truncate">{selected.website_url}</a>
+                                                    className="text-[#1967D2] font-medium hover:underline text-[14px] flex-1 truncate">{selected.website_url}</a>
                                             </div>
                                         )}
                                         {selected.email_address && (
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-3 min-w-[140px] shrink-0">
                                                     <img src={emailIcon} alt="" className="w-5 h-5" />
-                                                    <div className="flex-1 flex justify-between text-sm font-semibold text-[#020202]">
+                                                    <div className="flex-1 flex justify-between text-[14px] font-semibold text-[#020202]">
                                                         <span>Email</span>
                                                         <span>:</span>
                                                     </div>
                                                 </div>
-                                                <span className="text-[#616161] font-medium text-base flex-1">{selected.email_address}</span>
+                                                <span className="text-[#616161] font-medium text-[14px] flex-1">{selected.email_address}</span>
                                             </div>
                                         )}
                                     </div>
@@ -246,8 +249,8 @@ export default function ProposalsV() {
                         {/* 3. Scope of Work */}
                         {selected.scope_of_work && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">3. Scope of Work</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-sm [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                <h2 className="font-bold text-[16px] text-[#020202]">3. Scope of Work</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-[14px] [&_h3]:font-bold [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.scope_of_work }} />
                             </div>
                         )}
@@ -255,10 +258,10 @@ export default function ProposalsV() {
                         {/* Technology Table */}
                         {techs.length > 0 && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">Technology to be Used</h2>
+                                <h2 className="font-bold text-[16px] text-[#020202]">Technology to be Used</h2>
                                 <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
                                     <table className="w-full">
-                                        <thead>
+                                        <thead className="bg-[#F2F2F2]">
                                             <tr className="bg-[#F2F2F2]">
                                                 <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-gray-700 text-sm">Sl.No</th>
                                                 <th className="px-4 py-3 text-left font-gantari font-bold text-gray-700 text-sm">Software</th>
@@ -268,10 +271,10 @@ export default function ProposalsV() {
                                             {techs.map((t: string, i: number) => (
                                                 <tr key={i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'} border-t border-gray-100`}>
                                                     <td className="px-4 py-3">
-                                                        <span className="font-gantari text-[#020202] text-sm">{i + 1}.</span>
+                                                        <span className="font-gantari text-[#020202] text-[14px]">{i + 1}.</span>
                                                     </td>
                                                     <td className="px-4 py-3">
-                                                        <span className="font-gantari text-[#353535] text-[15px]">{t}</span>
+                                                        <span className="font-gantari text-[#353535] text-[14px]">{t}</span>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -284,8 +287,8 @@ export default function ProposalsV() {
                         {/* 4. Deliverables */}
                         {selected.deliverables && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">4. Deliverables</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                <h2 className="font-bold text-[16px] text-[#020202]">4. Deliverables</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.deliverables }} />
                             </div>
                         )}
@@ -293,8 +296,8 @@ export default function ProposalsV() {
                         {/* 5.1 Exclusions */}
                         {selected.exclusions && stripHtml(selected.exclusions) && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">5. Exclusions</h2>
-                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-base text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
+                                <h2 className="font-bold text-[16px] text-[#020202]">5. Exclusions</h2>
+                                <div className="bg-[#F2F2F2] rounded-md px-4 py-3 text-[14px] text-[#353535] font-gantari leading-relaxed border border-[#AEACAC52] [&_h2]:text-[16px] [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2 [&_p]:my-1 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5"
                                     dangerouslySetInnerHTML={{ __html: selected.exclusions }} />
                             </div>
                         )}
@@ -335,24 +338,24 @@ export default function ProposalsV() {
                         {/* 6.1 Payment Terms */}
                         {payments.length > 0 && (
                             <div className="space-y-4">
-                                <h2 className="font-bold text-lg text-[#020202]">6. Payment Terms</h2>
+                                <h2 className="font-bold text-[16px] text-[#020202]">6. Payment Terms</h2>
                                 <div className="bg-[#F2F2F2] rounded-md overflow-hidden border border-[#AEACAC52]">
                                     <table className="w-full">
                                         <thead>
                                             <tr className="bg-[#F2F2F2] border-b border-[#AEACAC52]">
-                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-sm">Sl.No</th>
-                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Payment Basis</th>
-                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Terms</th>
-                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-sm">Timeline (Weeks)</th>
+                                                <th className="px-4 py-3 text-left w-16 font-gantari font-bold text-[#020202] text-[16px]">Sl.No</th>
+                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Payment Basis</th>
+                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Terms</th>
+                                                <th className="px-4 py-3 text-center font-gantari font-bold text-[#020202] text-[16px]">Timeline (Weeks)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {payments.map((p: any, i: number) => (
                                                 <tr key={i} className={`${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAFA]'} border-t border-gray-100`}>
-                                                    <td className="px-4 py-3 font-gantari text-[#020202] text-sm">{i + 1}.</td>
-                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-[15px]">{p.basis || '—'}</td>
-                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-sm">{p.terms || '—'}</td>
-                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-sm">{p.timeline || '—'}</td>
+                                                    <td className="px-4 py-3 font-gantari text-[#020202] text-[14px]">{i + 1}.</td>
+                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-[14px]">{p.basis || '—'}</td>
+                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-[14px]">{p.terms || '—'}</td>
+                                                    <td className="px-4 py-3 text-center font-gantari text-[#353535] text-[14px]">{p.timeline || '—'}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -434,23 +437,53 @@ export default function ProposalsV() {
             )}
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0 px-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-shrink-0">
                 <div className="flex items-center justify-between w-full md:w-auto">
                     <h2 className="text-2xl font-semibold text-[#000000]">Proposals</h2>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
-                    <div className="relative flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md min-w-[220px]">
-                        <svg className="w-4 h-4 text-[#616161] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                            placeholder="Search project..." className="bg-transparent text-sm font-medium text-[#353535] placeholder:text-[#616161] focus:outline-none w-full font-gantari" />
-                        {searchTerm && (
-                            <button onClick={() => setSearchTerm('')} className="text-[#616161] hover:text-[#353535] transition-colors ml-1">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                                </svg>
-                            </button>
+                    <div className="relative">
+                        <button 
+                            onClick={() => setShowDropdownOpen(!showDropdownOpen)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#E8E8E8] text-[14px] font-medium transition-all cursor-pointer border-0 font-gantari"
+                        >
+                            {showEntries === 'show' ? (
+                                <span className="text-sm font-medium text-[#616161]">Show</span>
+                            ) : (
+                                <span className="text-sm font-medium text-[#353535]">Show: {showEntries === 'all' ? 'All' : showEntries}</span>
+                            )}
+                            <img 
+                                src={ArrowDown} 
+                                alt="arrow" 
+                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showDropdownOpen ? 'rotate-180' : ''}`} 
+                            />
+                        </button>
+                        
+                        {showDropdownOpen && (
+                            <>
+                                <div className="fixed inset-0 z-10" onClick={() => setShowDropdownOpen(false)} />
+                                <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-0 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                    <div className="bg-[#F2F2F2] text-[#353535] font-semibold px-4 py-2 sticky top-0 z-10 font-gantari text-sm">
+                                        Show
+                                    </div>
+                                    {[
+                                        { label: '1-50', val: '1-50' },
+                                        { label: '51-100', val: '51-100' },
+                                        { label: '101-150', val: '101-150' },
+                                        { label: '151-200', val: '151-200' },
+                                        { label: '201-250', val: '201-250' },
+                                        { label: 'All', val: 'all' }
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.val}
+                                            onClick={() => { setShowEntries(opt.val); setShowDropdownOpen(false); }}
+                                            className="w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] bg-transparent"
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
@@ -463,7 +496,7 @@ export default function ProposalsV() {
                         <div className="flex justify-center items-center py-20">
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DE3D3A]" />
                         </div>
-                    ) : filtered.length === 0 ? (
+                    ) : displayList.length === 0 ? (
                         <div className="py-20 text-center text-[#616161] font-gantari">
                             <svg className="w-14 h-14 mx-auto mb-4 text-[#AEACAC]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -473,50 +506,51 @@ export default function ProposalsV() {
                         </div>
                     ) : (
                         <table className="min-w-full border-collapse">
-                            <thead className="sticky top-0 z-10 bg-white">
-                                <tr className="border-b border-gray-100 bg-white">
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Sl.No</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Project Name</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Vendor Name</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Currency</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Received On</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Status</th>
-                                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">Action</th>
+                            <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1.5px] after:bg-[rgb(89,89,89)]/10">
+                                <tr className="bg-white">
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Sl.No</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Project Name</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Vendor Name</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Currency</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Received On</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Status</th>
+                                    <th className="px-4 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap border-b-[1.5px] border-[#F2F2F2]">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filtered.map((proposal, index) => {
+                                {displayList.map((proposal, index) => {
                                     const slNo = (index + 1).toString().padStart(2, '0');
                                     return (
                                         <tr key={`${proposal.source}-${proposal.id}`} className={`${index % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'} transition-colors`}>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">{slNo}</td>
-                                            <td className="px-3 py-3 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">{slNo}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {proposal.project_name || `Proposal #${proposal.id}`}
                                             </td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <div className="text-sm font-semibold text-[#353535] font-gantari">{proposal.vendor_name || '—'}</div>
-                                                {proposal.email_address && <div className="text-xs text-[#616161] font-gantari mt-0.5">{proposal.email_address}</div>}
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                                <div className="text-[14px] text-[#353535] font-gantari">{proposal.vendor_name || '—'}</div>
+                                                {/* {proposal.email_address && <div className="text-[12px] text-[#616161] font-gantari mt-0.5">{proposal.email_address}</div>} */}
                                             </td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {proposal.selected_currency || proposal.currency || '—'}
                                             </td>
-                                            <td className="px-3 py-3 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                                                 {formatDate(proposal.created_at)}
                                             </td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <span className={`inline-flex px-4 py-1.5 rounded-lg text-xs font-bold font-gantari ${getStatusBadge(proposal.status)}`}>
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                                <span className={`inline-flex px-4 py-1.5 rounded-md text-[14px] font-gantari ${getStatusBadge(proposal.status)}`}>
                                                     {getStatusLabel(proposal.status)}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-3 text-center whitespace-nowrap align-middle">
-                                                <button onClick={() => { setSelected(proposal); setClarNote(''); setShowRequestInput(false); }}
-                                                    className="flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-md text-xs font-bold font-gantari bg-[#DD4342] text-white hover:bg-[#c23b3a] shadow-sm shadow-red-100 transition-all">
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                    View Proposal
-                                                </button>
+                                            <td className="px-4 py-6 text-center whitespace-nowrap align-middle">
+                                                <div className="flex justify-center">
+                                                    <button 
+                                                        onClick={() => { setSelected(proposal); setClarNote(''); setShowRequestInput(false); }}
+                                                        className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#DD4342] text-white rounded-md transition-all font-medium font-gantari text-[14px] whitespace-nowrap cursor-pointer"
+                                                    >
+                                                        <img src={viewIcon} alt="view" className="w-4 h-4 brightness-0 invert" />
+                                                        View
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

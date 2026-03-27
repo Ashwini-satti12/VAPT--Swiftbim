@@ -18,6 +18,7 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -32,6 +33,7 @@ export type FormDropdownId =
 export interface Employee {
   id: number;
   full_name: string;
+  active?: string;
 }
 
 export interface Project {
@@ -1005,7 +1007,7 @@ export default function MytaskV() {
 
     const validEmployees = rawEmployees.filter((e) => e?.full_name && involvedNames.has(e.full_name));
 
-    return ["Select Employee", ...validEmployees.map((e) => e?.full_name).filter(Boolean)];
+    return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e?.full_name).filter(Boolean)];
   };
 
   const employeeOptions = getEmployeeOptions();

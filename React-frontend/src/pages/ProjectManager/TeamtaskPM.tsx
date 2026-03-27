@@ -19,6 +19,7 @@ import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 const getApiBaseUrl = () => import.meta.env.VITE_API_URL || "";
 const getProfileUrl = (path: string | undefined): string => {
@@ -453,6 +454,7 @@ interface Task {
 interface Employee {
   id: number;
   full_name: string;
+  active?: string;
 }
 
 interface Project {
@@ -1207,7 +1209,9 @@ export default function TeamtaskPM() {
     label: p.project_name,
   }));
   // taskTypes unused: ["Task", "Bug", "Feature"]
-  const modalAssignOptions = employeesForAssignDropdown.map((e) => ({
+  const modalAssignOptions = employeesForAssignDropdown
+    .filter(isEmployeeActiveForProjectAssignment)
+    .map((e) => ({
     value: e.full_name,
     label: e.full_name,
   }));

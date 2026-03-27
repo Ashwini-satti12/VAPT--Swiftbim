@@ -10,6 +10,7 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -18,6 +19,7 @@ interface Employee {
     id: number;
     full_name?: string;
     name?: string;
+    active?: string | null;
 }
 
 interface Project {
@@ -965,7 +967,7 @@ export default function MytaskEV() {
 
         const validEmployees = rawEmployees.filter((e) => (e?.full_name || e?.name) && involvedNames.has((e?.full_name || e?.name) as string));
 
-        return ["Select Employee", ...validEmployees.map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -994,7 +996,7 @@ export default function MytaskEV() {
         if (!raw) return all;
         const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
         if (tokens.length === 0) return all;
-        return all.filter((emp) => {
+        return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
             const name = ((emp.full_name || emp.name) || "").trim();
             const idStr = String(emp.id);
             return tokens.some((t) => {

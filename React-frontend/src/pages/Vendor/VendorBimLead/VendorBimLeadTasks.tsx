@@ -9,6 +9,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 interface Task {
     id: number;
@@ -32,6 +33,7 @@ interface Project {
 interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 export default function VendorBimLeadTasks() {

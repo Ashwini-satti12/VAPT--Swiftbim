@@ -5,6 +5,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     formatTimeForDisplay,
     FormDropdown,
@@ -182,14 +183,14 @@ export default function AddTaskBC() {
         if (!addTaskForm.projectName) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
         if (!proj) {
             return [
                 { value: "", label: "Select Assign To" },
-                ...employees.map((e) => ({ value: e.full_name, label: e.full_name })),
+                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
             ];
         }
         const involvedNames = new Set<string>();
@@ -209,11 +210,11 @@ export default function AddTaskBC() {
             });
         }
         
-        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
         
         return [
             { value: "", label: "Select Assign To" },
-            ...validEmployees.map((e) => ({ value: e.full_name, label: e.full_name })),
+            ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
         ];
     };
 
