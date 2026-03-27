@@ -113,20 +113,22 @@ function FormDropdown({
                     role="listbox"
                     className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
                 >
-                    {options.map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            role="option"
-                            onClick={() => {
-                                onChange(opt.value);
-                                onClose();
-                            }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
+                    <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar font-Gantari">
+                        {options.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    onClose();
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm text-[#8B8B8B] hover:text-[#353535] hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
@@ -179,7 +181,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -236,7 +238,7 @@ function TaskDropdown({
                     )}
                     <div
                         className="overflow-y-auto py-1 custom-scrollbar font-Gantari"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        style={{ maxHeight: listMaxHeight }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -682,7 +684,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",

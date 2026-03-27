@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
@@ -149,7 +149,7 @@ export default function MytaskViewV() {
   const state = location.state as { task?: Task; from?: string } | null;
   const initialTask = state?.task;
   const fromTeamTask = state?.from === "teamtask";
-  const backToUrl = fromTeamTask ? "/v/team" : "/v/mytasks";
+  const navigate = useNavigate();
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
 
@@ -239,7 +239,7 @@ export default function MytaskViewV() {
         const found = (res.data.tasks ?? []).find((t) => t.id === task.id);
         if (found) setTask(found);
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   const handleImageSubmit = async () => {
@@ -301,12 +301,12 @@ export default function MytaskViewV() {
     return (
       <div className="bg-white min-h-screen p-6">
         <p className="text-slate-600 mb-4">No task selected.</p>
-        <Link
-          to={backToUrl}
-          className="text-[#3d3399] hover:underline font-medium"
+        <button
+          onClick={() => navigate(-1)}
+          className="text-[#3d3399] hover:underline font-medium cursor-pointer"
         >
           ← Back to Tasks
-        </Link>
+        </button>
       </div>
     );
   }
@@ -334,15 +334,15 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen overflow-y-auto pb-10">
       <div className="flex items-center justify-between px-6 py-4">
-        <Link
-          to={backToUrl}
-          className="p-1 rounded-lg text-black hover:bg-slate-100"
+        <button
+          onClick={() => navigate(-1)}
+          className="p-1 rounded-lg text-black hover:bg-slate-100 cursor-pointer"
           aria-label="Close"
         >
           <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
-        </Link>
+        </button>
         <h1 className="flex-1 text-center text-2xl font-semibold text-black">
           {task.project_name || task.task_name || "Task Name"}
         </h1>
@@ -386,11 +386,10 @@ export default function MytaskViewV() {
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${
-                      statusDisplay === opt.value
+                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
                         ? "bg-slate-50 font-medium"
                         : ""
-                    }`}
+                      }`}
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full shrink-0 ${STATUS_STYLE[opt.value].dot}`}
@@ -418,10 +417,10 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {String(
                   taskRecord.modules_name ??
-                    task.module ??
-                    task.modules ??
-                    taskRecord.modules ??
-                    "—",
+                  task.module ??
+                  task.modules ??
+                  taskRecord.modules ??
+                  "—",
                 )}
               </span>
             </div>
@@ -431,10 +430,10 @@ export default function MytaskViewV() {
               <span className="text-[#616161]">
                 {String(
                   task.type ??
-                    task.category ??
-                    taskRecord.category ??
-                    taskRecord.type ??
-                    "—",
+                  task.category ??
+                  taskRecord.category ??
+                  taskRecord.type ??
+                  "—",
                 )}
               </span>
             </div>
@@ -603,17 +602,32 @@ export default function MytaskViewV() {
           </div>
         </div>
 
+        {/* Task Description & Checklist */}
         <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6 space-y-4">
           <div>
             <h4 className="text-black text-md mb-2">Task Description</h4>
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.description?.trim() ? task.description : "—"}
+              {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+                <div
+                  className="prose prose-sm max-w-none prose-p:my-0"
+                  dangerouslySetInnerHTML={{ __html: task.description }}
+                />
+              ) : (
+                "—"
+              )}
             </div>
           </div>
           <div>
             <h4 className="text-black text-md mb-2">Checklist / Reference</h4>
             <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
-              {task.checklist?.trim() ? task.checklist : "—"}
+              {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+                <div
+                  className="prose prose-sm max-w-none prose-p:my-0"
+                  dangerouslySetInnerHTML={{ __html: task.checklist }}
+                />
+              ) : (
+                "—"
+              )}
             </div>
           </div>
         </div>

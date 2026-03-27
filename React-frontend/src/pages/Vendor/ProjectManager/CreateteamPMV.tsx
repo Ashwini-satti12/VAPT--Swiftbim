@@ -3,6 +3,7 @@ import api from "../../../lib/api";
 import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
 import eyeIcon from "../../../assets/ProjectManager/consultant/eyeIcon.svg";
+import upArrow from "../../../assets/TechnicalDirector/upArrow.svg";
 
 interface Employee {
     id: number;
@@ -45,12 +46,14 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
     }, []);
 
     return (
-        <div className="bg-white rounded-lg p-6 border border-[#E2E8F0] w-full min-h-[220px] flex flex-col transition-all hover:shadow-md group relative font-inter">
-            {/* Header: Title and Options */}
-            <div className="flex justify-between items-start mb-6">
-                <h3 className="text-[17px] font-bold text-[#1E293B] font-sora truncate pr-8">
+        <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+            {/* Team Name */}
+            <div className="flex flex-col mb-4 pt-1">
+                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
+                <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
                     {team.team_name || team.teamname || team.leader_name || getEmpName(team.leader)}
-                </h3>
+                </span>
+            </div>
                 <div className="absolute top-6 right-6" ref={menuRef}>
                     <button
                         onClick={() => setShowMenu(!showMenu)}
@@ -94,7 +97,6 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* Team Leader */}
             <div className="flex flex-col mb-5">
@@ -110,9 +112,7 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
             {/* Members + Details */}
             <div className="mt-auto flex items-center justify-between">
                 <div>
-                    <span className="text-[12px] text-[#999999] mb-2 block font-medium">
-                        Members ({memberIds.length})
-                    </span>
+
                     <div className="flex -space-x-3">
                         {memberIds.slice(0, 5).map((eid) => (
                             <div
@@ -138,12 +138,10 @@ function TeamCard({ team, getEmpName, onEdit, onDelete, onViewDetails }: { team:
                 <button
                     type="button"
                     onClick={() => onViewDetails(team)}
-                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] hover:text-[#DD4342] transition-colors pr-1 cursor-pointer"
+                    className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] pr-1 cursor-pointer"
                 >
                     Details
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
                 </button>
             </div>
 
@@ -317,30 +315,31 @@ export default function CreateteamPMV() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FFFFFF] font-inter">
+        <div className="h-full flex flex-col p-2 font-Gantari">
             {/* Header section */}
-            <div className="flex justify-between items-center mb-10">
-                <h1 className="text-[24px] font-bold text-[#1E293B] font-sora">Create Team</h1>
+            <div className="flex justify-between items-center mb-8">
+                <h2 className="text-[24px] font-semibold text-[#000000] font-Gantari">Create Team</h2>
                 <button
                     onClick={() => setShowAddModal(true)}
-                    className="flex items-center gap-2 bg-[#DD4342] text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition-all font-semibold shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-lg shadow-red-200 cursor-pointer"
                 >
-                    <PlusIcon className="w-5 h-5 stroke-[2.5]" />
-                    <span>Create Team</span>
+                    <PlusIcon className="w-5 h-5 stroke-[3]" />
+                    New Team
                 </button>
             </div>
 
             {/* Teams Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {teams.length === 0 ? (
-                    <div className="col-span-full py-20 text-center bg-[#F8FAFC] rounded-2xl border-2 border-dashed border-[#E2E8F0]">
-                        <p className="text-[#64748B] text-[17px] font-medium font-sora">No teams created yet.</p>
-                        <button
-                            onClick={() => setShowAddModal(true)}
-                            className="mt-4 text-[#DD4342] font-bold hover:underline cursor-pointer"
-                        >
-                            Create your first team
-                        </button>
+                    <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
+                        <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
+                            <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-[#1E293B]">No teams found</h3>
+                            <p className="text-[#64748B]">Click "New Team" to get started.</p>
+                        </div>
                     </div>
                 ) : (
                     teams.map((team) => (
@@ -357,6 +356,7 @@ export default function CreateteamPMV() {
                         />
                     ))
                 )}
+            </div>
             </div>
 
             {/* Add Modal */}
