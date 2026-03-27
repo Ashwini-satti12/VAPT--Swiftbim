@@ -14,6 +14,13 @@ import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
+const truncateFileName = (name: string, maxLen = 25) => {
+  const lastDot = name.lastIndexOf('.');
+  const ext = lastDot !== -1 ? name.slice(lastDot) : '';
+  const base = lastDot !== -1 ? name.slice(0, lastDot) : name;
+  return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
+};
+
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other")
     return undefined;
@@ -186,6 +193,7 @@ interface Project {
   description?: string;
   budget_ceiling?: string;
   bidding_end_date?: string;
+  document_attachment?: string;
 }
 
 interface Milestone {
@@ -258,6 +266,9 @@ export default function ProjectsTD() {
 
   const [createError, setCreateError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -382,6 +393,7 @@ export default function ProjectsTD() {
       priority: str(r.priority),
       location: str(r.location),
       description: str(r.description),
+      document_attachment: str(r.document_attachment),
     };
   };
 
@@ -428,7 +440,7 @@ export default function ProjectsTD() {
       .then(() => {
         /* departments data consumed but state was removed */
       })
-      .catch(() => {});
+      .catch(() => { });
 
     api
       .get<{
@@ -695,9 +707,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=todo" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -718,9 +730,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=in_progress" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -741,9 +753,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=paused" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -764,9 +776,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=completed" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -911,18 +923,18 @@ export default function ProjectsTD() {
                       {(() => {
                         const pmIds = selectedProjectForView.project_manager_id
                           ? String(selectedProjectForView.project_manager_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                           : [];
                         const pmNames =
                           selectedProjectForView.project_manager_name
                             ? String(
-                                selectedProjectForView.project_manager_name,
-                              )
-                                .split(",")
-                                .map((n) => n.trim())
-                                .filter(Boolean)
+                              selectedProjectForView.project_manager_name,
+                            )
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
                             : [];
 
                         if (pmIds.length === 0 && pmNames.length === 0) {
@@ -952,16 +964,16 @@ export default function ProjectsTD() {
                             const pName = pmNames[i];
                             const pmEmp = pId
                               ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
+                                (e: any) => String(e.id) === pId,
+                              )
                               : null;
                             const dName =
                               pmEmp?.full_name || pName || "Unknown";
                             const url = pmEmp?.profile_picture
                               ? getGlobalProfileUrl(
-                                  pmEmp.id,
-                                  pmEmp.profile_picture,
-                                )
+                                pmEmp.id,
+                                pmEmp.profile_picture,
+                              )
                               : null;
                             return { key: i, dName, url };
                           },
@@ -971,9 +983,9 @@ export default function ProjectsTD() {
                         const pmOverflowTitle =
                           pmRemaining > 0
                             ? pmEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
                             : undefined;
 
                         return (
@@ -1034,15 +1046,15 @@ export default function ProjectsTD() {
                       {(() => {
                         const blIds = selectedProjectForView.lead_id
                           ? String(selectedProjectForView.lead_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                           : [];
                         const blNames = selectedProjectForView.lead_name
                           ? String(selectedProjectForView.lead_name)
-                              .split(",")
-                              .map((n) => n.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((n) => n.trim())
+                            .filter(Boolean)
                           : [];
 
                         if (blIds.length === 0 && blNames.length === 0) {
@@ -1072,16 +1084,16 @@ export default function ProjectsTD() {
                             const pName = blNames[i];
                             const blEmp = pId
                               ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
+                                (e: any) => String(e.id) === pId,
+                              )
                               : null;
                             const dName =
                               blEmp?.full_name || pName || "Unknown";
                             const url = blEmp?.profile_picture
                               ? getGlobalProfileUrl(
-                                  blEmp.id,
-                                  blEmp.profile_picture,
-                                )
+                                blEmp.id,
+                                blEmp.profile_picture,
+                              )
                               : null;
                             return { key: i, dName, url };
                           },
@@ -1091,9 +1103,9 @@ export default function ProjectsTD() {
                         const blOverflowTitle =
                           blRemaining > 0
                             ? blEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
                             : undefined;
 
                         return (
@@ -1168,14 +1180,14 @@ export default function ProjectsTD() {
                             // Get members from project (IDs can be numeric or string from API)
                             const rawIds =
                               selectedProjectForView.members ||
-                              selectedProjectForView.member
+                                selectedProjectForView.member
                                 ? String(
-                                    selectedProjectForView.members ||
-                                      selectedProjectForView.member,
-                                  )
-                                    .split(",")
-                                    .map((m) => m.trim())
-                                    .filter(Boolean)
+                                  selectedProjectForView.members ||
+                                  selectedProjectForView.member,
+                                )
+                                  .split(",")
+                                  .map((m) => m.trim())
+                                  .filter(Boolean)
                                 : [];
                             const memberIds = rawIds.map((m) => {
                               const n = Number(m);
@@ -1252,46 +1264,46 @@ export default function ProjectsTD() {
                               <div className="flex items-center -space-x-3">
                                 {visibleMembers.length > 0
                                   ? visibleMembers.map((emp) => (
-                                      <div key={emp.id} className="relative group shrink-0">
-                                        <div
-                                          className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
-                                        >
-                                          {getProfileImageUrl(emp) ? (
-                                            <img
-                                              src={getProfileImageUrl(emp)}
-                                              alt={emp.full_name || "Member"}
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                              {(emp.full_name || `E${emp.id}`)
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                          {emp.full_name || `Employee ${emp.id}`}
-                                        </div>
-                                      </div>
-                                    ))
-                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
+                                    <div key={emp.id} className="relative group shrink-0">
                                       <div
-                                        key={j}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
                                       >
-                                        <img
-                                          src={ProfileIcon}
-                                          alt="avatar"
-                                          className="w-full h-full object-cover"
-                                        />
+                                        {getProfileImageUrl(emp) ? (
+                                          <img
+                                            src={getProfileImageUrl(emp)}
+                                            alt={emp.full_name || "Member"}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {(emp.full_name || `E${emp.id}`)
+                                              .charAt(0)
+                                              .toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                    )) : null}
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {emp.full_name || `Employee ${emp.id}`}
+                                      </div>
+                                    </div>
+                                  ))
+                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
+                                    <div
+                                      key={j}
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                    >
+                                      <img
+                                        src={ProfileIcon}
+                                        alt="avatar"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )) : null}
                                 {(hasMore || hasIdsButNoResolved) && (
                                   <div className="relative group shrink-0">
                                     <div
@@ -1353,12 +1365,12 @@ export default function ProjectsTD() {
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.start_date
                               ? new Date(
-                                  selectedProjectForView.start_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                selectedProjectForView.start_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "N/A"}
                           </span>
                         </div>
@@ -1422,12 +1434,12 @@ export default function ProjectsTD() {
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.end_date
                               ? new Date(
-                                  selectedProjectForView.end_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                selectedProjectForView.end_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "N/A"}
                           </span>
                         </div>
@@ -1461,12 +1473,49 @@ export default function ProjectsTD() {
                           </span>
                           <span className="hidden sm:inline text-[#999999] mr-4">
                             :
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                              No Document Available
-                            </span>
+                          </span>                          <div className="flex flex-col gap-2">
+                            {selectedProjectForView.document_attachment ? (
+                              selectedProjectForView.document_attachment
+                                .split(",")
+                                .map((file) => file.trim())
+                                .filter(Boolean)
+                                .map((fileName, idx) => {
+                                  const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                                  return (
+                                    <div key={idx} className="flex items-center gap-3">
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-md font-Gantari font-medium text-blue-600 hover:underline"
+                                      >
+                                        {truncateFileName(fileName)}
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const link = document.createElement("a");
+                                          link.href = url;
+                                          link.download = fileName;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        }}
+                                        className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                        title="Download"
+                                      >
+                                        ⬇️
+                                      </button>
+                                    </div>
+                                  );
+                                })
+                            ) : (
+                              <span className="text-md font-Gantari font-medium text-[#666666]">
+                                No Document Available
+                              </span>
+                            )}
                           </div>
+
                         </div>
                       </div>
                     </div>
@@ -1612,8 +1661,8 @@ export default function ProjectsTD() {
                               Due:{" "}
                               {m.due_date
                                 ? new Date(m.due_date).toLocaleDateString(
-                                    "en-GB",
-                                  )
+                                  "en-GB",
+                                )
                                 : "-"}
                             </span>
                           </div>
@@ -1661,7 +1710,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }}
                               className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
@@ -1695,7 +1744,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }
                             }}
                             className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
@@ -1757,10 +1806,10 @@ export default function ProjectsTD() {
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
                       ? p.member
-                          .split(",")
-                          .map((m) => m.trim())
-                          .filter(Boolean)
-                          .map(Number)
+                        .split(",")
+                        .map((m) => m.trim())
+                        .filter(Boolean)
+                        .map(Number)
                       : [];
 
                     const radius = 28;
@@ -1883,19 +1932,19 @@ export default function ProjectsTD() {
                                             String(c.id) ===
                                             String(p.client_name),
                                         )?.fullName ??
-                                          clientsList.find(
-                                            (c) =>
-                                              String(c.id) ===
-                                              String(p.client_name),
-                                          )?.full_name ??
-                                          p.client_name ??
-                                          "",
+                                        clientsList.find(
+                                          (c) =>
+                                            String(c.id) ===
+                                            String(p.client_name),
+                                        )?.full_name ??
+                                        p.client_name ??
+                                        "",
                                       );
                                       setCreateProjectManager(
                                         p.project_manager
                                           ? p.project_manager
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateStartDate(p.start_date ?? "");
@@ -1920,15 +1969,15 @@ export default function ProjectsTD() {
                                       setCreateBIMLead(
                                         p.bim_lead
                                           ? p.bim_lead
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateBIMCoOrdinator(
                                         p.bim_co_ordinator
                                           ? p.bim_co_ordinator
-                                              .split(",")
-                                              .map((s) => s.trim())
+                                            .split(",")
+                                            .map((s) => s.trim())
                                           : [],
                                       );
                                       setCreateMember(p.member ?? "");
@@ -1939,6 +1988,16 @@ export default function ProjectsTD() {
                                       setCreatePriority(p.priority ?? "");
                                       setCreateLocation(p.location ?? "");
                                       setCreateDescription(p.description ?? "");
+                                      setExistingFiles(
+                                        p.document_attachment
+                                          ? p.document_attachment
+                                            .split(",")
+                                            .map((s) => s.trim())
+                                            .filter(Boolean)
+                                          : [],
+                                      );
+                                      setRemovedFiles([]);
+                                      setCreateFiles([]);
                                       setShowEditModal(true);
                                       if (p.client_name) {
                                         import("../../lib/api").then(
@@ -1953,7 +2012,7 @@ export default function ProjectsTD() {
                                                 if (
                                                   data.client_budget !== null &&
                                                   data.client_budget !==
-                                                    undefined
+                                                  undefined
                                                 ) {
                                                   setCreateBudget(
                                                     String(data.client_budget),
@@ -2031,9 +2090,9 @@ export default function ProjectsTD() {
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
                                       ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                        )
+                                        emp.id,
+                                        emp.profile_picture,
+                                      )
                                       : null;
 
                                     return (
@@ -2086,11 +2145,10 @@ export default function ProjectsTD() {
                           <div className="flex items-center gap-3">
                             {p.priority && (
                               <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
-                                  p.priority.toLowerCase() === "high"
+                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
                                     ? "bg-[#DD4342]"
                                     : "bg-[#94D6F2]"
-                                }`}
+                                  }`}
                               >
                                 {p.priority}
                               </div>
@@ -2135,75 +2193,102 @@ export default function ProjectsTD() {
                   e.preventDefault();
                   setCreateError("");
                   setCreateSubmitting(true);
+
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  if (createBudget) formData.append("budget", createBudget);
+                  if (createModuleName)
+                    formData.append("modules", createModuleName);
+
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue)
+                      return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName))
+                      return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId !== undefined)
+                    formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds(
+                    [
+                      ...createProjectManager,
+                      ...(showOtherPM && otherPMValue ? [otherPMValue] : []),
+                    ],
+                    projectManagers,
+                  );
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const blIds = namesToIds(
+                    [
+                      ...createBIMLead,
+                      ...(showOtherBIMLead && otherBIMLeadValue
+                        ? [otherBIMLeadValue]
+                        : []),
+                    ],
+                    bimLeads,
+                  );
+                  if (blIds) formData.append("lead_id", blIds);
+
+                  const bcIds = namesToIds(
+                    [
+                      ...createBIMCoOrdinator,
+                      ...(showOtherBIMCoord && otherBIMCoordValue
+                        ? [otherBIMCoordValue]
+                        : []),
+                    ],
+                    bimCoordinators,
+                  );
+                  if (bcIds) formData.append("bim_coordinator_id", bcIds);
+
+                  const members =
+                    selectedMemberIds.join(",") || createMember || undefined;
+                  if (members) formData.append("members", members);
+
+                  if (createDepartment)
+                    formData.append("department", createDepartment);
+
+                  if (createDepartment === "Submission Deadline") {
+                    if (createBudgetCeiling)
+                      formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate)
+                      formData.append("bidding_end_date", createBiddingEndDate);
+                  }
+
+                  if (createEndDate) formData.append("due_date", createEndDate);
+                  if (createStartDate)
+                    formData.append("start_date", createStartDate);
+                  if (createTotalHours)
+                    formData.append("totalhours", createTotalHours);
+                  if (createPerDay) formData.append("perday", createPerDay);
+                  if (createResources)
+                    formData.append("resources", createResources);
+                  if (createRequiredResources)
+                    formData.append(
+                      "required_resources",
+                      createRequiredResources,
+                    );
+                  if (createPriority)
+                    formData.append("priority", createPriority);
+                  if (createLocation)
+                    formData.append("location", createLocation);
+                  if (createDescription)
+                    formData.append("description", createDescription);
+
+                  // Append files
+                  createFiles.forEach((f) => formData.append("files", f));
+
                   api
                     .post<{ success?: boolean; project_id?: number }>(
                       "/api/projects",
+                      formData,
                       {
-                        project_name: createName.trim(),
-                        budget: createBudget || undefined,
-                        modules: createModuleName || undefined,
-                        client_id: (() => {
-                          if (showOtherClient && otherClientValue)
-                            return otherClientValue;
-                          if (!createClientName) return undefined;
-                          const byName = clientsList.find(
-                            (c) =>
-                              (c.fullName ?? c.full_name) === createClientName,
-                          );
-                          if (byName) return byName.id;
-                          if (/^\d+$/.test(createClientName))
-                            return Number(createClientName);
-                          return undefined;
-                        })(),
-                        project_manager_id: namesToIds(
-                          [
-                            ...createProjectManager,
-                            ...(showOtherPM && otherPMValue
-                              ? [otherPMValue]
-                              : []),
-                          ],
-                          projectManagers,
-                        ),
-                        lead_id: namesToIds(
-                          [
-                            ...createBIMLead,
-                            ...(showOtherBIMLead && otherBIMLeadValue
-                              ? [otherBIMLeadValue]
-                              : []),
-                          ],
-                          bimLeads,
-                        ),
-                        bim_coordinator_id: namesToIds(
-                          [
-                            ...createBIMCoOrdinator,
-                            ...(showOtherBIMCoord && otherBIMCoordValue
-                              ? [otherBIMCoordValue]
-                              : []),
-                          ],
-                          bimCoordinators,
-                        ),
-                        members:
-                          selectedMemberIds.join(",") ||
-                          createMember ||
-                          undefined,
-                        department: createDepartment || undefined,
-                        ...(createDepartment === "Submission Deadline"
-                          ? {
-                              budget_ceiling: createBudgetCeiling || undefined,
-                              bidding_end_date:
-                                createBiddingEndDate || undefined,
-                            }
-                          : {}),
-                        due_date: createEndDate || undefined,
-                        start_date: createStartDate || undefined,
-                        totalhours: createTotalHours || undefined,
-                        perday: createPerDay || undefined,
-                        resources: createResources || undefined,
-                        required_resources:
-                          createRequiredResources || undefined,
-                        priority: createPriority || undefined,
-                        location: createLocation || undefined,
-                        description: createDescription || undefined,
+                        headers: { "Content-Type": "multipart/form-data" },
                       },
                     )
                     .then(({ data }) => {
@@ -2236,6 +2321,7 @@ export default function ProjectsTD() {
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
+                        setCreateFiles([]);
                         api
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
@@ -2247,13 +2333,13 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
                     .catch((err) =>
                       setCreateError(
                         err.response?.data?.message ||
-                          "Failed to create project",
+                        "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -2341,7 +2427,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -2561,6 +2647,56 @@ export default function ProjectsTD() {
                     </>
                   )}
                 </div>
+                <div className="space-y-4">
+                  <label className="block text-[16px] font-medium text-[#000000]">
+                    Attach Documents
+                  </label>
+                  <div className="flex flex-col gap-4">
+                    <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#DD4342] transition-colors cursor-pointer group bg-slate-50">
+                      <div className="flex items-center gap-2 text-gray-500 group-hover:text-[#DD4342]">
+                        <span>📎 Attach Files</span>
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setCreateFiles((prev) => [
+                              ...prev,
+                              ...Array.from(e.target.files!),
+                            ]);
+                          }
+                        }}
+                      />
+                    </label>
+                    {createFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {createFiles.map((file, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-700"
+                          >
+                            <span className="truncate max-w-[150px]">
+                              {file.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCreateFiles((prev) =>
+                                  prev.filter((_, i) => i !== idx),
+                                )
+                              }
+                              className="text-gray-400 hover:text-red-500"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
                     type="button"
@@ -2631,7 +2767,7 @@ export default function ProjectsTD() {
                         setDeleteId(null);
                       }
                     })
-                    .catch(() => {});
+                    .catch(() => { });
                 }}
                 className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
@@ -2683,7 +2819,7 @@ export default function ProjectsTD() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-6 px-1"
             >
@@ -2840,69 +2976,102 @@ export default function ProjectsTD() {
                   }
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
-                  api
-                    .patch(`/api/projects/${id}`, {
-                      project_name: createName.trim(),
-                      budget: createBudget || undefined,
-                      modules: createModuleName || undefined,
-                      client_id: (() => {
-                        if (showOtherClient && otherClientValue)
-                          return otherClientValue;
-                        if (!createClientName) return undefined;
-                        const byName = clientsList.find(
-                          (c) =>
-                            (c.fullName ?? c.full_name) === createClientName,
-                        );
-                        if (byName) return byName.id;
-                        if (/^\d+$/.test(createClientName))
-                          return Number(createClientName);
-                        return undefined;
-                      })(),
-                      project_manager_id: namesToIds(
-                        [
-                          ...createProjectManager,
-                          ...(showOtherPM && otherPMValue
-                            ? [otherPMValue]
-                            : []),
-                        ],
-                        projectManagers,
-                      ),
-                      lead_id: namesToIds(
-                        [
-                          ...createBIMLead,
-                          ...(showOtherBIMLead && otherBIMLeadValue
-                            ? [otherBIMLeadValue]
-                            : []),
-                        ],
-                        bimLeads,
-                      ),
-                      bim_coordinator_id: namesToIds(
-                        [
-                          ...createBIMCoOrdinator,
-                          ...(showOtherBIMCoord && otherBIMCoordValue
-                            ? [otherBIMCoordValue]
-                            : []),
-                        ],
-                        bimCoordinators,
-                      ),
-                      members: createMember || undefined,
 
-                      department: createDepartment || undefined,
-                      ...(isEditSourceOutsource
-                        ? {
-                            budget_ceiling: createBudgetCeiling || undefined,
-                            bidding_end_date: createBiddingEndDate || undefined,
-                          }
-                        : {}),
-                      due_date: createEndDate || undefined,
-                      start_date: createStartDate || undefined,
-                      totalhours: createTotalHours || undefined,
-                      perday: createPerDay || undefined,
-                      resources: createResources || undefined,
-                      required_resources: createRequiredResources || undefined,
-                      priority: createPriority || undefined,
-                      location: createLocation || undefined,
-                      description: createDescription || undefined,
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  if (createBudget) formData.append("budget", createBudget);
+                  if (createModuleName)
+                    formData.append("modules", createModuleName);
+
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue)
+                      return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName,
+                    );
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName))
+                      return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId !== undefined)
+                    formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds(
+                    [
+                      ...createProjectManager,
+                      ...(showOtherPM && otherPMValue ? [otherPMValue] : []),
+                    ],
+                    projectManagers,
+                  );
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const blIds = namesToIds(
+                    [
+                      ...createBIMLead,
+                      ...(showOtherBIMLead && otherBIMLeadValue
+                        ? [otherBIMLeadValue]
+                        : []),
+                    ],
+                    bimLeads,
+                  );
+                  if (blIds) formData.append("lead_id", blIds);
+
+                  const bcIds = namesToIds(
+                    [
+                      ...createBIMCoOrdinator,
+                      ...(showOtherBIMCoord && otherBIMCoordValue
+                        ? [otherBIMCoordValue]
+                        : []),
+                    ],
+                    bimCoordinators,
+                  );
+                  if (bcIds) formData.append("bim_coordinator_id", bcIds);
+
+                  const members =
+                    selectedMemberIds.join(",") || createMember || undefined;
+                  if (members) formData.append("members", members);
+
+                  if (createDepartment)
+                    formData.append("department", createDepartment);
+
+                  if (isEditSourceOutsource) {
+                    if (createBudgetCeiling)
+                      formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate)
+                      formData.append("bidding_end_date", createBiddingEndDate);
+                  }
+
+                  if (createEndDate) formData.append("due_date", createEndDate);
+                  if (createStartDate)
+                    formData.append("start_date", createStartDate);
+                  if (createTotalHours)
+                    formData.append("totalhours", createTotalHours);
+                  if (createPerDay) formData.append("perday", createPerDay);
+                  if (createResources)
+                    formData.append("resources", createResources);
+                  if (createRequiredResources)
+                    formData.append(
+                      "required_resources",
+                      createRequiredResources,
+                    );
+                  if (createPriority)
+                    formData.append("priority", createPriority);
+                  if (createLocation)
+                    formData.append("location", createLocation);
+                  if (createDescription)
+                    formData.append("description", createDescription);
+
+                  // Manage existing files
+                  formData.append("removed_files", removedFiles.join(","));
+
+                  // Append new files
+                  createFiles.forEach((f) => formData.append("files", f));
+
+                  api
+                    .patch(`/api/projects/${id}`, formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
@@ -2922,10 +3091,10 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
-                    .catch(() => {})
+                    .catch(() => { })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"
@@ -2987,7 +3156,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -3020,11 +3189,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              !createDepartment
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             Select Source
                           </button>
@@ -3034,11 +3202,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Budget Ceiling"
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling"
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             In House
                           </button>
@@ -3048,11 +3215,10 @@ export default function ProjectsTD() {
                               setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Submission Deadline"
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline"
                                 ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                 : "text-gray-700"
-                            }`}
+                              }`}
                           >
                             Outsource
                           </button>
@@ -3210,6 +3376,98 @@ export default function ProjectsTD() {
                   )}
                 </div>
 
+                {/* File Management */}
+                <div className="space-y-4">
+                  <label className="block text-[16px] font-medium text-[#000000]">
+                    Project Documents
+                  </label>
+                  <div className="flex flex-col gap-4">
+                    {/* Existing Files */}
+                    {existingFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500">Existing Files:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {existingFiles.map((file, idx) => {
+                            const isRemoved = removedFiles.includes(file);
+                            return (
+                              <div
+                                key={idx}
+                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium transition-all ${isRemoved ? "bg-red-50 text-red-500 line-through" : "bg-blue-50 text-blue-700"}`}
+                              >
+                                <span>{truncateFileName(file)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (isRemoved) {
+                                      setRemovedFiles((prev) =>
+                                        prev.filter((f) => f !== file),
+                                      );
+                                    } else {
+                                      setRemovedFiles((prev) => [...prev, file]);
+                                    }
+                                  }}
+                                  className="hover:text-red-900"
+                                >
+                                  {isRemoved ? "↺" : "✕"}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New Files */}
+                    <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#DD4342] transition-colors cursor-pointer group bg-slate-50">
+                      <div className="flex items-center gap-2 text-gray-500 group-hover:text-[#DD4342]">
+                        <span>📎 Add More Files</span>
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setCreateFiles((prev) => [
+                              ...prev,
+                              ...Array.from(e.target.files!),
+                            ]);
+                          }
+                        }}
+                      />
+                    </label>
+
+                    {createFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500">New Files:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {createFiles.map((file, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium"
+                            >
+                              <span className="truncate max-w-[150px]">
+                                {file.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setCreateFiles((prev) =>
+                                    prev.filter((_, i) => i !== idx),
+                                  )
+                                }
+                                className="text-emerald-400 hover:text-red-500"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Footer Buttons */}
                 <div className="flex justify-center gap-6 pt-6">
                   <button
@@ -3251,7 +3509,7 @@ export default function ProjectsTD() {
                         (isEditSourceOutsource &&
                           createBudgetCeiling.trim() &&
                           parseBudgetValue(createBudgetCeiling) >
-                            parseBudgetValue(createBudget))
+                          parseBudgetValue(createBudget))
                       )
                     }
                     className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
