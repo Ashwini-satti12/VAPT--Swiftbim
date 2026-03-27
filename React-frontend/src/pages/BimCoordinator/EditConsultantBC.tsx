@@ -278,7 +278,6 @@ export default function EditConsultantBC() {
             <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
               <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
               <div className="flex-1">
-                <p className="font-semibold leading-snug">Update error</p>
                 <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
+import toast from "react-hot-toast";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -49,6 +50,9 @@ export default function VendorBimLeadTasks() {
         due_date: "", project_id: "", assigned_to: "", category: "General"
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
+    const [createError, setCreateError] = useState("");
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [showViewModal, setShowViewModal] = useState(false);
 
 
     const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
@@ -70,12 +74,33 @@ export default function VendorBimLeadTasks() {
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
+        setCreateError("");
+
+        const requiredFields: (keyof typeof createForm)[] = [
+            "task_name",
+            "project_id",
+            "assigned_to",
+            "priority",
+            "due_date",
+            "description",
+        ];
+
+        for (const field of requiredFields) {
+            if (!createForm[field]) {
+                setCreateError("Please fill in all required fields marked with *.");
+                return;
+            }
+        }
+
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-tasks", createForm)
             .then(() => {
                 setShowCreateModal(false);
                 setCreateForm({ task_name: "", description: "", status: "To Do", priority: "Medium", due_date: "", project_id: "", assigned_to: "", category: "General" });
                 fetchTasks();
+            })
+            .catch((err) => {
+                setCreateError(err.response?.data?.message || "Failed to create task.");
             })
             .finally(() => setCreateSubmitting(false));
     };
@@ -173,7 +198,10 @@ export default function VendorBimLeadTasks() {
                             />
                         </div>
                         <button
-                            onClick={() => setShowCreateModal(true)}
+                            onClick={() => {
+                                setCreateError("");
+                                setShowCreateModal(true);
+                            }}
                             className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
@@ -325,14 +353,24 @@ export default function VendorBimLeadTasks() {
                                 </button>
                             </div>
                             <form onSubmit={handleCreate} className="space-y-5">
+                                {createError && (
+                                    <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                                        <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                                            !
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Task Name *</label>
+                                    <label className="text-[14px] font-bold text-[#475569] block">Task Name <span className="text-[#DD4342]">*</span></label>
                                     <input type="text" value={createForm.task_name} onChange={e => setCreateForm({ ...createForm, task_name: e.target.value })} required
                                         className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter task name" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Project</label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Project <span className="text-[#DD4342]">*</span></label>
                                         <select value={createForm.project_id} onChange={e => setCreateForm({ ...createForm, project_id: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="">Select Project</option>
@@ -340,7 +378,7 @@ export default function VendorBimLeadTasks() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Assign To</label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Assign To <span className="text-[#DD4342]">*</span></label>
                                         <select value={createForm.assigned_to} onChange={e => setCreateForm({ ...createForm, assigned_to: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="">Select Employee</option>
@@ -350,7 +388,7 @@ export default function VendorBimLeadTasks() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Priority <span className="text-[#DD4342]">*</span></label>
                                         <select value={createForm.priority} onChange={e => setCreateForm({ ...createForm, priority: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="Low">Low</option>
@@ -360,13 +398,13 @@ export default function VendorBimLeadTasks() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Due Date <span className="text-[#DD4342]">*</span></label>
                                         <input type="date" value={createForm.due_date} onChange={e => setCreateForm({ ...createForm, due_date: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Description</label>
+                                    <label className="text-[14px] font-bold text-[#475569] block">Description <span className="text-[#DD4342]">*</span></label>
                                     <textarea value={createForm.description} onChange={e => setCreateForm({ ...createForm, description: e.target.value })} rows={3}
                                         className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Task description..." />
                                 </div>
@@ -375,7 +413,7 @@ export default function VendorBimLeadTasks() {
                                         className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                                     <button type="submit" disabled={createSubmitting}
                                         className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
-                                        Create Task
+                                        {createSubmitting ? "Creating..." : "Create Task"}
                                     </button>
                                 </div>
                             </form>

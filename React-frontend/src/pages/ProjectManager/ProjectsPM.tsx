@@ -172,6 +172,7 @@ export default function ProjectsPM() {
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [editError, setEditError] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -1050,11 +1051,11 @@ export default function ProjectsPM() {
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
+                  {/* <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
-                  </div>
+                  </div> */}
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
@@ -1318,8 +1319,7 @@ export default function ProjectsPM() {
                 <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
                   <div className="flex-1">
-                    <p className="font-semibold leading-snug">Validation error</p>
-                    <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    <p className="text-[13px] leading-snug">{createError}</p>
                   </div>
                 </div>
               )}
@@ -1489,23 +1489,6 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Total Hours ── */}
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text" required
-                    value={createTotalHours}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      setCreateTotalHours(value);
-                    }}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* ── Per Day ── */}
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -1520,6 +1503,23 @@ export default function ProjectsPM() {
                     }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -1743,6 +1743,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
+                    setCreateError('');
                     resetFormFields();
                   }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all cursor-pointer"
@@ -1768,6 +1769,7 @@ export default function ProjectsPM() {
                 type="button"
                 onClick={() => {
                   setShowEditModal(false);
+                  setEditError('');
                   resetFormFields();
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
@@ -1782,6 +1784,33 @@ export default function ProjectsPM() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
+                setEditError('');
+
+                if (
+                  !createName.trim() ||
+                  !createBudget.trim() ||
+                  editModuleTags.length === 0 ||
+                  editTaskTags.length === 0 ||
+                  !createClientName.trim() ||
+                  !createProjectManager.trim() ||
+                  !createStartDate.trim() ||
+                  !createEndDate.trim() ||
+                  !createPerDay.trim() ||
+                  !createTotalHours.trim() ||
+                  !createDepartment.trim() ||
+                  !createBIMLead.trim() ||
+                  !createBIMCoOrdinator.trim() ||
+                  selectedMemberIds.length === 0 ||
+                  !createResources.trim() ||
+                  !createRequiredResources.trim() ||
+                  !editPriority.trim() ||
+                  !createLocation.trim() ||
+                  !createDescription.trim()
+                ) {
+                  setEditError('Please fill in all required fields.');
+                  return;
+                }
+
                 setIsEditSubmitting(true);
 
                 const formData = new FormData();
@@ -1888,6 +1917,14 @@ export default function ProjectsPM() {
               }}
               className="max-w-5xl mx-auto px-6"
             >
+              {editError && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="flex-1">
+                    <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
 
                 {/* ── Project Name ── */}
@@ -2044,23 +2081,6 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Total Hours ── */}
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text" required
-                    value={createTotalHours}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      setCreateTotalHours(value);
-                    }}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* ── Per Day ── */}
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -2075,6 +2095,23 @@ export default function ProjectsPM() {
                     }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -2338,6 +2375,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
+                    setEditError('');
                     resetFormFields();
                   }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all cursor-pointer"

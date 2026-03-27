@@ -13,6 +13,7 @@ import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import addBtnIcon from "../../assets/TechnicalDirector/add btn.svg";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import closeBtnIcon from "../../assets/ProductNavbarIcons/close button.svg";
+import { FiPaperclip, FiX } from "react-icons/fi";
 
 const nameToId = (name: string, employeesList: Employee[]) => {
   if (!name || name === "Nothing Selected" || name === "Other")
@@ -186,6 +187,9 @@ interface Project {
   description?: string;
   budget_ceiling?: string;
   bidding_end_date?: string;
+  modules?: string;
+  tasks?: string;
+  files?: string;
 }
 
 interface Milestone {
@@ -222,7 +226,10 @@ export default function ProjectsTD() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createBudget, setCreateBudget] = useState("");
-  const [createModuleName, setCreateModuleName] = useState("");
+  const [moduleNameTags, setModuleNameTags] = useState<string[]>([]);
+  const [moduleNameInput, setModuleNameInput] = useState("");
+  const [createTaskTags, setCreateTaskTags] = useState<string[]>([]);
+  const [createTaskInput, setCreateTaskInput] = useState("");
   const [createClientName, setCreateClientName] = useState("");
   const [showOtherClient, setShowOtherClient] = useState(false);
   const [otherClientValue, setOtherClientValue] = useState("");
@@ -248,15 +255,18 @@ export default function ProjectsTD() {
   );
   const [showOtherBIMCoord, setShowOtherBIMCoord] = useState(false);
   const [otherBIMCoordValue, setOtherBIMCoordValue] = useState("");
-  const [createMember, setCreateMember] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [createResources, setCreateResources] = useState("");
   const [createRequiredResources, setCreateRequiredResources] = useState("");
   const [createPriority, setCreatePriority] = useState("");
   const [createLocation, setCreateLocation] = useState("");
   const [createDescription, setCreateDescription] = useState("");
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
 
   const [createError, setCreateError] = useState("");
+  const [editError, setEditError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
@@ -330,7 +340,6 @@ export default function ProjectsTD() {
   const [loadingTaskStats, setLoadingTaskStats] = useState(false);
 
   const panelType = user?.panel_type ?? 3;
-  const isEditSourceInHouse = createDepartment === "Budget Ceiling";
   const isEditSourceOutsource = createDepartment === "Submission Deadline";
   const isManagement = panelType === 1;
   const isTechnicalDirector = user?.user_role === "Technical Director";
@@ -382,6 +391,7 @@ export default function ProjectsTD() {
       priority: str(r.priority),
       location: str(r.location),
       description: str(r.description),
+      files: str(r.files), // Added files
     };
   };
 
@@ -643,6 +653,71 @@ export default function ProjectsTD() {
       </div>
     );
   }
+
+  const openEdit = (p: Project) => {
+    setOpenMenuProjectId(null);
+    setSelectedProjectForEdit(p);
+    setCreateName(p.project_name || "");
+    setCreateBudget(p.budget || "");
+    setModuleNameTags(p.modules ? p.modules.split(", ").filter(Boolean) : []);
+    setCreateTaskTags(p.tasks ? p.tasks.split(", ").filter(Boolean) : []);
+    setCreateClientName(p.client_name || "");
+    setCreateProjectManager(
+      p.project_manager ? p.project_manager.split(",").map((s) => s.trim()) : [],
+    );
+    setCreateStartDate(p.start_date || "");
+    setCreateEndDate(p.end_date || "");
+    setCreateTotalHours(p.total_hours || "");
+    setCreatePerDay(p.per_day || "");
+    setCreateDepartment(
+      p.department === "Budget Ceiling" || p.department === "Submission Deadline"
+        ? p.department
+        : "",
+    );
+    setCreateBudgetCeiling(p.budget_ceiling || "");
+    const biddingDate = p.bidding_end_date
+      ? p.bidding_end_date.includes("T")
+        ? p.bidding_end_date.split("T")[0]
+        : p.bidding_end_date
+      : "";
+    setCreateBiddingEndDate(biddingDate);
+    setCreateBIMLead(
+      p.bim_lead ? p.bim_lead.split(",").map((s) => s.trim()) : [],
+    );
+    setCreateBIMCoOrdinator(
+      p.bim_co_ordinator ? p.bim_co_ordinator.split(",").map((s) => s.trim()) : [],
+    );
+    setSelectedMemberIds(
+      p.members
+        ? p.members
+            .split(",")
+            .map((m) => Number(m.trim()))
+            .filter(Number.isFinite)
+        : [],
+    );
+    setCreateResources(p.resources || "");
+    setCreateRequiredResources(p.required_resources || "");
+    setCreatePriority(p.priority || "");
+    setCreateLocation(p.location || "");
+    setCreateDescription(p.description || "");
+    setExistingFiles(p.files ? p.files.split(",").filter(Boolean) : []);
+    setRemovedFiles([]);
+    setCreateFiles([]);
+    setShowEditModal(true);
+    if (p.client_name) {
+      import("../../lib/api").then(({ default: api }) => {
+        api
+          .get<{
+            client_budget: number | null;
+          }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
+          .then(({ data }) => {
+            if (data.client_budget !== null && data.client_budget !== undefined) {
+      setCreateBudget(String(data.client_budget));
+            }
+          });
+      });
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen">
@@ -1711,7 +1786,7 @@ export default function ProjectsTD() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 2 0 00-1 1v3M4 7h16"
                               />
                             </svg>
                           </button>
@@ -1868,101 +1943,7 @@ export default function ProjectsTD() {
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setOpenMenuProjectId(null);
-                                      setSelectedProjectForEdit(p);
-                                      setCreateName(p.project_name ?? "");
-                                      setCreateBudget(
-                                        p.budget
-                                          ? `${p.budget}`
-                                          : "Fetching...",
-                                      );
-                                      setCreateModuleName(p.module_name ?? "");
-                                      setCreateClientName(
-                                        clientsList.find(
-                                          (c) =>
-                                            String(c.id) ===
-                                            String(p.client_name),
-                                        )?.fullName ??
-                                          clientsList.find(
-                                            (c) =>
-                                              String(c.id) ===
-                                              String(p.client_name),
-                                          )?.full_name ??
-                                          p.client_name ??
-                                          "",
-                                      );
-                                      setCreateProjectManager(
-                                        p.project_manager
-                                          ? p.project_manager
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                          : [],
-                                      );
-                                      setCreateStartDate(p.start_date ?? "");
-                                      setCreateEndDate(p.end_date ?? "");
-                                      setCreateTotalHours(p.total_hours ?? "");
-                                      setCreatePerDay(p.per_day ?? "");
-                                      setCreateDepartment(
-                                        p.department === "Budget Ceiling" ||
-                                          p.department === "Submission Deadline"
-                                          ? p.department
-                                          : "",
-                                      );
-                                      setCreateBudgetCeiling(
-                                        p.budget_ceiling ?? "",
-                                      );
-                                      const biddingDate = p.bidding_end_date
-                                        ? p.bidding_end_date.includes("T")
-                                          ? p.bidding_end_date.split("T")[0]
-                                          : p.bidding_end_date
-                                        : "";
-                                      setCreateBiddingEndDate(biddingDate);
-                                      setCreateBIMLead(
-                                        p.bim_lead
-                                          ? p.bim_lead
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                          : [],
-                                      );
-                                      setCreateBIMCoOrdinator(
-                                        p.bim_co_ordinator
-                                          ? p.bim_co_ordinator
-                                              .split(",")
-                                              .map((s) => s.trim())
-                                          : [],
-                                      );
-                                      setCreateMember(p.member ?? "");
-                                      setCreateResources(p.resources ?? "");
-                                      setCreateRequiredResources(
-                                        p.required_resources ?? "",
-                                      );
-                                      setCreatePriority(p.priority ?? "");
-                                      setCreateLocation(p.location ?? "");
-                                      setCreateDescription(p.description ?? "");
-                                      setShowEditModal(true);
-                                      if (p.client_name) {
-                                        import("../../lib/api").then(
-                                          ({ default: api }) => {
-                                            api
-                                              .get<{
-                                                client_budget: number | null;
-                                              }>(
-                                                `/api/vendors/client-budget?client_id=${p.client_name}`,
-                                              )
-                                              .then(({ data }) => {
-                                                if (
-                                                  data.client_budget !== null &&
-                                                  data.client_budget !==
-                                                    undefined
-                                                ) {
-                                                  setCreateBudget(
-                                                    String(data.client_budget),
-                                                  );
-                                                }
-                                              });
-                                          },
-                                        );
-                                      }
+                                      openEdit(p);
                                     }}
                                     className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                   >
@@ -2118,6 +2099,7 @@ export default function ProjectsTD() {
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
+                  setEditError("");
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
@@ -2133,85 +2115,100 @@ export default function ProjectsTD() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
+                  if (
+                    !createName.trim() ||
+                    !createClientName ||
+                    createProjectManager.length === 0 ||
+                    createBIMLead.length === 0 ||
+                    createBIMCoOrdinator.length === 0 ||
+                    selectedMemberIds.length === 0 ||
+                    !createResources.trim() ||
+                    !createRequiredResources.trim() ||
+                    createTaskTags.length === 0 ||
+                    !createPriority.trim() ||
+                    !createLocation.trim() ||
+                    !createDescription.trim() ||
+                    createFiles.length === 0
+                  ) {
+                    setCreateError("Please fill all required fields and attach a file.");
+                    return;
+                  }
                   setCreateError("");
                   setCreateSubmitting(true);
+
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  formData.append("budget", createBudget);
+                  formData.append("modules", moduleNameTags.join(", "));
+                  formData.append("tasks", createTaskTags.join(", "));
+                  
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue) return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find(
+                      (c) => (c.fullName ?? c.full_name) === createClientName
+                    );
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId) formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds(
+                    [...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])],
+                    projectManagers
+                  );
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const blIds = namesToIds(
+                    [...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])],
+                    bimLeads
+                  );
+                  if (blIds) formData.append("lead_id", blIds);
+
+                  const bcIds = namesToIds(
+                    [...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])],
+                    bimCoordinators
+                  );
+                  if (bcIds) formData.append("bim_coordinator_id", bcIds);
+
+                  if (selectedMemberIds.length > 0) formData.append("members", selectedMemberIds.join(","));
+                  formData.append("department", createDepartment);
+                  
+                  if (createDepartment === "Submission Deadline") {
+                    if (createBudgetCeiling) formData.append("budget_ceiling", createBudgetCeiling);
+                    if (createBiddingEndDate) formData.append("bidding_end_date", createBiddingEndDate);
+                  }
+
+                  formData.append("due_date", createEndDate);
+                  formData.append("start_date", createStartDate);
+                  formData.append("totalhours", createTotalHours);
+                  formData.append("perday", createPerDay);
+                  formData.append("resources", createResources);
+                  formData.append("required_resources", createRequiredResources);
+                  formData.append("priority", createPriority);
+                  formData.append("location", createLocation);
+                  formData.append("description", createDescription);
+
+                  createFiles.forEach((file) => {
+                    formData.append("files", file);
+                  });
+
                   api
                     .post<{ success?: boolean; project_id?: number }>(
                       "/api/projects",
-                      {
-                        project_name: createName.trim(),
-                        budget: createBudget || undefined,
-                        modules: createModuleName || undefined,
-                        client_id: (() => {
-                          if (showOtherClient && otherClientValue)
-                            return otherClientValue;
-                          if (!createClientName) return undefined;
-                          const byName = clientsList.find(
-                            (c) =>
-                              (c.fullName ?? c.full_name) === createClientName,
-                          );
-                          if (byName) return byName.id;
-                          if (/^\d+$/.test(createClientName))
-                            return Number(createClientName);
-                          return undefined;
-                        })(),
-                        project_manager_id: namesToIds(
-                          [
-                            ...createProjectManager,
-                            ...(showOtherPM && otherPMValue
-                              ? [otherPMValue]
-                              : []),
-                          ],
-                          projectManagers,
-                        ),
-                        lead_id: namesToIds(
-                          [
-                            ...createBIMLead,
-                            ...(showOtherBIMLead && otherBIMLeadValue
-                              ? [otherBIMLeadValue]
-                              : []),
-                          ],
-                          bimLeads,
-                        ),
-                        bim_coordinator_id: namesToIds(
-                          [
-                            ...createBIMCoOrdinator,
-                            ...(showOtherBIMCoord && otherBIMCoordValue
-                              ? [otherBIMCoordValue]
-                              : []),
-                          ],
-                          bimCoordinators,
-                        ),
-                        members:
-                          selectedMemberIds.join(",") ||
-                          createMember ||
-                          undefined,
-                        department: createDepartment || undefined,
-                        ...(createDepartment === "Submission Deadline"
-                          ? {
-                              budget_ceiling: createBudgetCeiling || undefined,
-                              bidding_end_date:
-                                createBiddingEndDate || undefined,
-                            }
-                          : {}),
-                        due_date: createEndDate || undefined,
-                        start_date: createStartDate || undefined,
-                        totalhours: createTotalHours || undefined,
-                        perday: createPerDay || undefined,
-                        resources: createResources || undefined,
-                        required_resources:
-                          createRequiredResources || undefined,
-                        priority: createPriority || undefined,
-                        location: createLocation || undefined,
-                        description: createDescription || undefined,
-                      },
+                      formData,
+                      { headers: { "Content-Type": "multipart/form-data" } }
                     )
                     .then(({ data }) => {
                       if (data.success) {
                         setShowCreateModal(false);
                         setCreateName("");
                         setCreateBudget("");
-                        setCreateModuleName("");
+                        setModuleNameTags([]);
+                        setModuleNameInput("");
+                        setCreateTaskTags([]);
+                        setCreateTaskInput("");
                         setCreateClientName("");
                         setShowOtherClient(false);
                         setOtherClientValue("");
@@ -2231,11 +2228,11 @@ export default function ProjectsTD() {
                         setCreateBIMCoOrdinator([]);
                         setShowOtherBIMCoord(false);
                         setOtherBIMCoordValue("");
-                        setCreateMember("");
                         setSelectedMemberIds([]);
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
+                        setCreateFiles([]);
                         api
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
@@ -2261,9 +2258,12 @@ export default function ProjectsTD() {
                 className="space-y-6"
               >
                 {createError && (
-                  <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">
-                    {createError}
-                  </p>
+                  <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                      <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    </div>
+                  </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 -mt-2">
@@ -2278,7 +2278,6 @@ export default function ProjectsTD() {
                       onChange={(e) => setCreateName(e.target.value)}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Your Project Name"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -2292,6 +2291,82 @@ export default function ProjectsTD() {
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Project Budget"
                     />
+                  </div>
+
+                  {/* ── Module Name ── */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Modules Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={moduleNameInput}
+                      onChange={(e) => setModuleNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = moduleNameInput.trim().replace(/,$/, '');
+                          if (val && !moduleNameTags.includes(val)) setModuleNameTags(prev => [...prev, val]);
+                          setModuleNameInput('');
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Modules Name"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter names, separated by commas, and then press enter
+                    </p>
+                    {moduleNameTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-Gantari">
+                        {moduleNameTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button type="button" onClick={() => setModuleNameTags(prev => prev.filter((_, i) => i !== idx))} className="hover:cursor-pointer text-gray-400 transition-colors leading-none">x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Task Name ── */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Task Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createTaskInput}
+                      onChange={(e) => setCreateTaskInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = createTaskInput.trim().replace(/,$/, '');
+                          if (val && !createTaskTags.includes(val)) setCreateTaskTags(prev => [...prev, val]);
+                          setCreateTaskInput('');
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Task Name"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter names, separated by commas, and then press enter
+                    </p>
+                    {createTaskTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-Gantari">
+                        {createTaskTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button type="button" onClick={() => setCreateTaskTags(prev => prev.filter((_, i) => i !== idx))} className="hover:cursor-pointer text-gray-400 transition-colors leading-none">x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Client Name & Project Manager */}
@@ -2403,163 +2478,326 @@ export default function ProjectsTD() {
                     </div>
                   </div>
 
-                  {/* In House Fields */}
-                  {createDepartment === "Budget Ceiling" && (
-                    <>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="block text-[16px] font-medium text-[#000000]">
-                          Select Project Manager{" "}
-                          <span className="text-[#DD4342]">*</span>
-                        </label>
-                        <FormSelect
-                          label="Select Project Manager"
-                          placeholder="Nothing Selected"
-                          options={
-                            projectManagers
-                              .map((e) => e.full_name ?? "")
-                              .filter(Boolean) as string[]
-                          }
-                          value={createProjectManager}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateProjectManager(v);
-                            setShowOtherPM(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherPM && (
-                          <input
-                            type="text"
-                            value={otherPMValue}
-                            onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter Project Manager Name"
-                          />
-                        )}
-                      </div>
+                  {/* Shared Fields */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select Project Manager{" "}
+                      <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select Project Manager"
+                      placeholder="Nothing Selected"
+                      options={
+                        projectManagers
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createProjectManager}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateProjectManager(v);
+                        setShowOtherPM(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherPM && (
+                      <input
+                        type="text"
+                        value={otherPMValue}
+                        onChange={(e) => setOtherPMValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Manager Name"
+                      />
+                    )}
+                  </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-[16px] font-medium text-[#000000]">
-                          Select BIM Lead{" "}
-                          <span className="text-[#DD4342]">*</span>
-                        </label>
-                        <FormSelect
-                          label="Select BIM Lead"
-                          placeholder="Nothing Selected"
-                          options={
-                            bimLeads
-                              .map((e) => e.full_name ?? "")
-                              .filter(Boolean) as string[]
-                          }
-                          value={createBIMLead}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateBIMLead(v);
-                            setShowOtherBIMLead(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherBIMLead && (
-                          <input
-                            type="text"
-                            value={otherBIMLeadValue}
-                            onChange={(e) =>
-                              setOtherBIMLeadValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Lead Name"
-                          />
-                        )}
-                      </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select BIM Lead{" "}
+                      <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select BIM Lead"
+                      placeholder="Nothing Selected"
+                      options={
+                        bimLeads
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createBIMLead}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMLead(v);
+                        setShowOtherBIMLead(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherBIMLead && (
+                      <input
+                        type="text"
+                        value={otherBIMLeadValue}
+                        onChange={(e) =>
+                          setOtherBIMLeadValue(e.target.value)
+                        }
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Lead Name"
+                      />
+                    )}
+                  </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-[16px] font-medium text-[#000000]">
-                          Select BIM Coordinator
-                        </label>
-                        <FormSelect
-                          label="Select BIM Coordinator"
-                          placeholder="Nothing Selected"
-                          options={
-                            bimCoordinators
-                              .map((e) => e.full_name ?? "")
-                              .filter(Boolean) as string[]
-                          }
-                          value={createBIMCoOrdinator}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateBIMCoOrdinator(v);
-                            setShowOtherBIMCoord(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherBIMCoord && (
-                          <input
-                            type="text"
-                            value={otherBIMCoordValue}
-                            onChange={(e) =>
-                              setOtherBIMCoordValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Coordinator Name"
-                          />
-                        )}
-                      </div>
-                    </>
-                  )}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select BIM Coordinator <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select BIM Coordinator"
+                      placeholder="Nothing Selected"
+                      options={
+                        bimCoordinators
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createBIMCoOrdinator}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMCoOrdinator(v);
+                        setShowOtherBIMCoord(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherBIMCoord && (
+                      <input
+                        type="text"
+                        value={otherBIMCoordValue}
+                        onChange={(e) =>
+                          setOtherBIMCoordValue(e.target.value)
+                        }
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Coordinator Name"
+                      />
+                    )}
+                  </div>
 
-                  {/* Outsource Fields */}
+                  {/* Dates */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project Start Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={createStartDate}
+                      onChange={(e) => setCreateStartDate(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project End Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={createEndDate}
+                      onChange={(e) => setCreateEndDate(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                    />
+                  </div>
+
+                  {/* Hours & Resources */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Per Day <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createPerDay}
+                      onChange={(e) => setCreatePerDay(e.target.value.replace(/[^0-9.]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Per Day Hours"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createTotalHours}
+                      onChange={(e) => setCreateTotalHours(e.target.value.replace(/[^0-9.]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Total Hours"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Total Resources Available <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createResources}
+                      onChange={(e) => setCreateResources(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Resources"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Required Resources <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createRequiredResources}
+                      onChange={(e) => setCreateRequiredResources(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Required Resources"
+                    />
+                  </div>
+
+                  {/* Priority & Location */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Priority <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Priority"
+                      placeholder="Select Priority"
+                      options={["High", "Medium", "Low"]}
+                      value={createPriority}
+                      onChange={setCreatePriority}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Location <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createLocation}
+                      onChange={(e) => setCreateLocation(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Location"
+                    />
+                  </div>
+
+                  {/* Outsource Budget Ceiling (conditional inline) */}
                   {createDepartment === "Submission Deadline" && (
-                    <>
-                      <div className="space-y-2">
+                     <div className="space-y-2 md:col-span-2">
                         <label className="block text-[16px] font-medium text-[#000000]">
-                          Outsourcing Budget
+                          Outsourcing Budget <span className="text-[#DD4342]">*</span>
                         </label>
                         <input
                           type="text"
                           className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-[5px] focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
+                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                            return outsourceNum > clientNum ? "border-[#DD4342] focus:border-[#DD4342]" : "border-transparent focus:border-[#AEACAC52]";
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
+                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
-                          const outsourceNum =
-                            parseBudgetValue(createBudgetCeiling);
-                          if (
-                            createBudgetCeiling.trim() &&
-                            outsourceNum > clientNum
-                          ) {
-                            return (
-                              <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
-                                Outsourcing budget is exceeding. It should be
-                                less than or equal to client budget.
-                              </p>
-                            );
+                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                          if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
+                            return <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">Outsourcing budget is exceeding client budget.</p>;
                           }
                           return null;
                         })()}
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-[16px] font-medium text-[#000000]">
-                          Bidding End Date
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
-                          value={createBiddingEndDate}
-                          onChange={(e) =>
-                            setCreateBiddingEndDate(e.target.value)
-                          }
-                        />
-                      </div>
-                    </>
                   )}
+
+                  {/* Team Members Selector - Full Width */}
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Team Members <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="p-4 bg-[#F8FAFC] rounded-xl border border-slate-200">
+                      <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                        {allEmployees.map((emp) => {
+                          const isSelected = selectedMemberIds.includes(emp.id);
+                          return (
+                            <button
+                              key={emp.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedMemberIds(prev => prev.filter(id => id !== emp.id));
+                                } else {
+                                  setSelectedMemberIds(prev => [...prev, emp.id]);
+                                }
+                              }}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${isSelected ? "bg-[#DD4342] border-[#DD4342] text-white" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isSelected ? "bg-white/20" : "bg-slate-100"}`}>
+                                {(emp.full_name || "?")[0]}
+                              </div>
+                              {emp.full_name}
+                              {isSelected && <FiX className="w-3 h-3" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Project Description - Full Width */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project Description <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <textarea
+                      value={createDescription}
+                      onChange={(e) => setCreateDescription(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[120px] resize-none"
+                      placeholder="Enter Project Description"
+                    />
+                  </div>
+
+                  {/* Attach File - Full Width */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Attach File <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 py-3 text-[14px] text-gray-400 font-medium truncate">
+                        {createFiles.length > 0 ? `${createFiles.length} file(s) selected` : "Choose Files"}
+                      </div>
+                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[14px] cursor-pointer transition-colors whitespace-nowrap">
+                        Browse File
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files || []);
+                            setCreateFiles(prev => [...prev, ...newFiles]);
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* File Previews */}
+                    {createFiles.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        {createFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                            <div className="w-8 h-8 rounded bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                              <FiPaperclip className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] font-semibold text-[#333] truncate">{file.name}</p>
+                              <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                              className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                            >
+                              <FiX className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-center gap-4 pt-4 ">
                   <button
@@ -2797,10 +3035,12 @@ export default function ProjectsTD() {
                   setEditDropdownOpen(null);
                   setCreateBudgetCeiling("");
                   setCreateBiddingEndDate("");
+                  setEditError("");
                   // Reset all form fields
                   setCreateName("");
                   setCreateBudget("");
-                  setCreateModuleName("");
+                  setModuleNameTags([]);
+                  setCreateTaskTags([]);
                   setCreateClientName("");
                   setCreateProjectManager([]);
                   setCreateStartDate("");
@@ -2810,12 +3050,13 @@ export default function ProjectsTD() {
                   setCreateDepartment("");
                   setCreateBIMLead([]);
                   setCreateBIMCoOrdinator([]);
-                  setCreateMember("");
+                  setSelectedMemberIds([]);
                   setCreateResources("");
                   setCreateRequiredResources("");
                   setCreatePriority("");
                   setCreateLocation("");
                   setCreateDescription("");
+                  setCreateFiles([]);
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
                 title="Close"
@@ -2833,76 +3074,81 @@ export default function ProjectsTD() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!selectedProjectForEdit) return;
+                  if (
+                    !createName.trim() ||
+                    !createClientName ||
+                    createProjectManager.length === 0 ||
+                    createBIMLead.length === 0 ||
+                    createBIMCoOrdinator.length === 0 ||
+                    !createStartDate ||
+                    !createEndDate ||
+                    !createPerDay ||
+                    !createTotalHours ||
+                    !createDepartment
+                  ) {
+                    setEditError("Please fill all required fields.");
+                    return;
+                  }
                   if (isEditSourceOutsource && createBudgetCeiling.trim()) {
                     const clientNum = parseBudgetValue(createBudget);
                     const outsourceNum = parseBudgetValue(createBudgetCeiling);
-                    if (outsourceNum > clientNum) return;
+                    if (outsourceNum > clientNum) {
+                      setEditError("Outsourcing budget is exceeding client budget.");
+                      return;
+                    }
                   }
+                  setEditError("");
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
-                  api
-                    .patch(`/api/projects/${id}`, {
-                      project_name: createName.trim(),
-                      budget: createBudget || undefined,
-                      modules: createModuleName || undefined,
-                      client_id: (() => {
-                        if (showOtherClient && otherClientValue)
-                          return otherClientValue;
-                        if (!createClientName) return undefined;
-                        const byName = clientsList.find(
-                          (c) =>
-                            (c.fullName ?? c.full_name) === createClientName,
-                        );
-                        if (byName) return byName.id;
-                        if (/^\d+$/.test(createClientName))
-                          return Number(createClientName);
-                        return undefined;
-                      })(),
-                      project_manager_id: namesToIds(
-                        [
-                          ...createProjectManager,
-                          ...(showOtherPM && otherPMValue
-                            ? [otherPMValue]
-                            : []),
-                        ],
-                        projectManagers,
-                      ),
-                      lead_id: namesToIds(
-                        [
-                          ...createBIMLead,
-                          ...(showOtherBIMLead && otherBIMLeadValue
-                            ? [otherBIMLeadValue]
-                            : []),
-                        ],
-                        bimLeads,
-                      ),
-                      bim_coordinator_id: namesToIds(
-                        [
-                          ...createBIMCoOrdinator,
-                          ...(showOtherBIMCoord && otherBIMCoordValue
-                            ? [otherBIMCoordValue]
-                            : []),
-                        ],
-                        bimCoordinators,
-                      ),
-                      members: createMember || undefined,
 
-                      department: createDepartment || undefined,
-                      ...(isEditSourceOutsource
-                        ? {
-                            budget_ceiling: createBudgetCeiling || undefined,
-                            bidding_end_date: createBiddingEndDate || undefined,
-                          }
-                        : {}),
-                      due_date: createEndDate || undefined,
-                      start_date: createStartDate || undefined,
-                      totalhours: createTotalHours || undefined,
-                      perday: createPerDay || undefined,
-                      resources: createResources || undefined,
-                      required_resources: createRequiredResources || undefined,
-                      priority: createPriority || undefined,
-                      location: createLocation || undefined,
-                      description: createDescription || undefined,
+                  const formData = new FormData();
+                  formData.append("project_name", createName.trim());
+                  if (createBudget) formData.append("budget", createBudget);
+                  formData.append("modules", moduleNameTags.join(", "));
+                  formData.append("tasks", createTaskTags.join(", "));
+                  
+                  const clientId = (() => {
+                    if (showOtherClient && otherClientValue) return otherClientValue;
+                    if (!createClientName) return undefined;
+                    const byName = clientsList.find(c => (c.fullName ?? c.full_name) === createClientName);
+                    if (byName) return byName.id;
+                    if (/^\d+$/.test(createClientName)) return Number(createClientName);
+                    return undefined;
+                  })();
+                  if (clientId !== undefined) formData.append("client_id", String(clientId));
+
+                  const pmIds = namesToIds([...createProjectManager, ...(showOtherPM && otherPMValue ? [otherPMValue] : [])], projectManagers);
+                  if (pmIds) formData.append("project_manager_id", pmIds);
+
+                  const leadIds = namesToIds([...createBIMLead, ...(showOtherBIMLead && otherBIMLeadValue ? [otherBIMLeadValue] : [])], bimLeads);
+                  if (leadIds) formData.append("lead_id", leadIds);
+
+                  const coordIds = namesToIds([...createBIMCoOrdinator, ...(showOtherBIMCoord && otherBIMCoordValue ? [otherBIMCoordValue] : [])], bimCoordinators);
+                  if (coordIds) formData.append("bim_coordinator_id", coordIds);
+
+                  formData.append("start_date", createStartDate);
+                  formData.append("end_date", createEndDate);
+                  formData.append("per_day", createPerDay);
+                  formData.append("total_hours", createTotalHours);
+                  formData.append("department", createDepartment);
+                  formData.append("budget_ceiling", createBudgetCeiling);
+                  formData.append("bidding_end_date", createBiddingEndDate);
+                  formData.append("resources", createResources);
+                  formData.append("required_resources", createRequiredResources);
+                  formData.append("priority", createPriority);
+                  formData.append("location", createLocation);
+                  formData.append("description", createDescription);
+                  formData.append("members", selectedMemberIds.join(","));
+                  
+                  // Handle Files
+                  createFiles.forEach(file => formData.append("files", file));
+                  if (removedFiles.length > 0) {
+                    formData.append("removed_files", removedFiles.join(","));
+                  }
+
+                  api
+                    .patch(`/api/projects/${id}`, formData, {
+                      headers: { "Content-Type": "multipart/form-data" }
                     })
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
@@ -2930,49 +3176,132 @@ export default function ProjectsTD() {
                 }}
                 className="space-y-8"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                  {/* Row 1: Project name, Client name */}
+                {editError && (
+                  <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                      <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                    </div>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                  {/* Project Name & Budget */}
                   <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Project Name
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
-                      placeholder="Enter Project name"
                       value={createName}
                       onChange={(e) => setCreateName(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Your Project Name"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Client Name
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Budget <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
-                      readOnly
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Client Name"
-                      value={createClientName}
+                      value={createBudget}
+                      onChange={(e) => setCreateBudget(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Project Budget"
                     />
                   </div>
 
-                  {/* Row 2: Client Budget (read-only from contracts), Select source */}
+                  {/* ── Module Name ── */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Modules Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={moduleNameInput}
+                      onChange={(e) => setModuleNameInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = moduleNameInput.trim().replace(/,$/, '');
+                          if (val && !moduleNameTags.includes(val)) setModuleNameTags(prev => [...prev, val]);
+                          setModuleNameInput('');
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Modules Name"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter names, separated by commas, and then press enter
+                    </p>
+                    {moduleNameTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-Gantari">
+                        {moduleNameTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button type="button" onClick={() => setModuleNameTags(prev => prev.filter((_, i) => i !== idx))} className="hover:cursor-pointer text-gray-400 transition-colors leading-none">x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Task Name ── */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Task Name <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createTaskInput}
+                      onChange={(e) => setCreateTaskInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault();
+                          const val = createTaskInput.trim().replace(/,$/, '');
+                          if (val && !createTaskTags.includes(val)) setCreateTaskTags(prev => [...prev, val]);
+                          setCreateTaskInput('');
+                        }
+                      }}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Task Name"
+                    />
+                    <p className="flex items-center gap-1.5 text-[12px] text-[#DD4342] font-medium">
+                      <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      Please enter names, separated by commas, and then press enter
+                    </p>
+                    {createTaskTags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1 font-Gantari">
+                        {createTaskTags.map((tag, idx) => (
+                          <span key={idx} className="inline-flex items-center gap-1.5 bg-[#F2F3F4] border border-gray-200 text-[#353535] text-[14px] font-medium px-3 py-1 rounded-[15px]">
+                            {tag}
+                            <button type="button" onClick={() => setCreateTaskTags(prev => prev.filter((_, i) => i !== idx))} className="hover:cursor-pointer text-gray-400 transition-colors leading-none">x</button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Client Name & Project Manager */}
                   <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Client Budget
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Client Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="text"
                       readOnly
-                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
-                      placeholder="Auto-fetched from contract"
-                      value={createBudget}
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] font-Gantari font-medium text-[#353535] cursor-not-allowed focus:outline-none focus:border-[#AEACAC52]"
+                      value={createClientName}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                      Select Source
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select Source <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="relative dropdown-container">
                       <button
@@ -3013,18 +3342,14 @@ export default function ProjectsTD() {
                         </svg>
                       </button>
                       {editDropdownOpen === "source" && (
-                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-lg bg-white border border-[#E0E0E0] shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
                           <button
                             type="button"
                             onClick={() => {
                               setCreateDepartment("");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              !createDepartment
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
-                            }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${!createDepartment ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             Select Source
                           </button>
@@ -3034,11 +3359,7 @@ export default function ProjectsTD() {
                               setCreateDepartment("Budget Ceiling");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Budget Ceiling"
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
-                            }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Budget Ceiling" ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             In House
                           </button>
@@ -3048,11 +3369,7 @@ export default function ProjectsTD() {
                               setCreateDepartment("Submission Deadline");
                               setEditDropdownOpen(null);
                             }}
-                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${
-                              createDepartment === "Submission Deadline"
-                                ? "bg-[#E2EEFF] text-[#1D7AFC]"
-                                : "text-gray-700"
-                            }`}
+                            className={`block w-full text-left px-5 py-2.5 text-[14px] font-Gantari cursor-pointer ${createDepartment === "Submission Deadline" ? "bg-[#E2EEFF] text-[#1D7AFC]" : "text-gray-700"}`}
                           >
                             Outsource
                           </button>
@@ -3061,153 +3378,365 @@ export default function ProjectsTD() {
                     </div>
                   </div>
 
-                  {/* In House: Select Project Manager, BIM Lead, BIM Coordinator */}
-                  {isEditSourceInHouse && (
-                    <>
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                          Select Project Manager
-                        </label>
-                        <FormSelect
-                          label="Select Project Manager"
-                          placeholder="Select Project Manager"
-                          options={projectManagers
-                            .map((pm) => pm.full_name ?? "")
-                            .filter(Boolean)}
-                          value={createProjectManager}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateProjectManager(v);
-                            setShowOtherPM(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherPM && (
-                          <input
-                            type="text"
-                            value={otherPMValue}
-                            onChange={(e) => setOtherPMValue(e.target.value)}
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter Project Manager Name"
-                          />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                          Select BIM Lead
-                        </label>
-                        <FormSelect
-                          label="Select BIM Lead"
-                          placeholder="Select BIM Lead"
-                          options={bimLeads
-                            .map((lead) => lead.full_name ?? "")
-                            .filter(Boolean)}
-                          value={createBIMLead}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateBIMLead(v);
-                            setShowOtherBIMLead(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherBIMLead && (
-                          <input
-                            type="text"
-                            value={otherBIMLeadValue}
-                            onChange={(e) =>
-                              setOtherBIMLeadValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Lead Name"
-                          />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-[15px] font-Gantari font-bold text-[#353535]">
-                          Select BIM Coordinator
-                        </label>
-                        <FormSelect
-                          label="Select BIM Coordinator"
-                          placeholder="Select BIM Coordinator"
-                          options={bimCoordinators
-                            .map((coord) => coord.full_name ?? "")
-                            .filter(Boolean)}
-                          value={createBIMCoOrdinator}
-                          isMulti={true}
-                          onChange={(v) => {
-                            setCreateBIMCoOrdinator(v);
-                            setShowOtherBIMCoord(v.includes("Other"));
-                          }}
-                        />
-                        {showOtherBIMCoord && (
-                          <input
-                            type="text"
-                            value={otherBIMCoordValue}
-                            onChange={(e) =>
-                              setOtherBIMCoordValue(e.target.value)
-                            }
-                            className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
-                            placeholder="Enter BIM Coordinator Name"
-                          />
-                        )}
-                      </div>
-                    </>
-                  )}
+                  {/* Shared Fields */}
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select Project Manager{" "}
+                      <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select Project Manager"
+                      placeholder="Nothing Selected"
+                      options={
+                        projectManagers
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createProjectManager}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateProjectManager(v);
+                        setShowOtherPM(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherPM && (
+                      <input
+                        type="text"
+                        value={otherPMValue}
+                        onChange={(e) => setOtherPMValue(e.target.value)}
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter Project Manager Name"
+                      />
+                    )}
+                  </div>
 
-                  {/* Outsource: Outsourcing Budget, Bidding End Date */}
-                  {isEditSourceOutsource && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                          Outsourcing Budget
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select BIM Lead{" "}
+                      <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select BIM Lead"
+                      placeholder="Nothing Selected"
+                      options={
+                        bimLeads
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createBIMLead}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMLead(v);
+                        setShowOtherBIMLead(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherBIMLead && (
+                      <input
+                        type="text"
+                        value={otherBIMLeadValue}
+                        onChange={(e) =>
+                          setOtherBIMLeadValue(e.target.value)
+                        }
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Lead Name"
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Select BIM Coordinator <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Select BIM Coordinator"
+                      placeholder="Nothing Selected"
+                      options={
+                        bimCoordinators
+                          .map((e) => e.full_name ?? "")
+                          .filter(Boolean) as string[]
+                      }
+                      value={createBIMCoOrdinator}
+                      isMulti={true}
+                      onChange={(v) => {
+                        setCreateBIMCoOrdinator(v);
+                        setShowOtherBIMCoord(v.includes("Other"));
+                      }}
+                    />
+                    {showOtherBIMCoord && (
+                      <input
+                        type="text"
+                        value={otherBIMCoordValue}
+                        onChange={(e) =>
+                          setOtherBIMCoordValue(e.target.value)
+                        }
+                        className="w-full mt-2 px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                        placeholder="Enter BIM Coordinator Name"
+                      />
+                    )}
+                  </div>
+
+                  {/* Dates */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project Start Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={createStartDate}
+                      onChange={(e) => setCreateStartDate(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project End Date <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={createEndDate}
+                      onChange={(e) => setCreateEndDate(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535]"
+                    />
+                  </div>
+
+                  {/* Hours & Resources */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Per Day <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createPerDay}
+                      onChange={(e) => setCreatePerDay(e.target.value.replace(/[^0-9.]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Per Day Hours"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createTotalHours}
+                      onChange={(e) => setCreateTotalHours(e.target.value.replace(/[^0-9.]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Total Hours"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Total Resources Available <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createResources}
+                      onChange={(e) => setCreateResources(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Resources"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Required Resources <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createRequiredResources}
+                      onChange={(e) => setCreateRequiredResources(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Required Resources"
+                    />
+                  </div>
+
+                  {/* Priority & Location */}
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Priority <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <FormSelect
+                      label="Priority"
+                      placeholder="Select Priority"
+                      options={["High", "Medium", "Low"]}
+                      value={createPriority}
+                      onChange={setCreatePriority}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Location <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={createLocation}
+                      onChange={(e) => setCreateLocation(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Location"
+                    />
+                  </div>
+
+                  {/* Outsource Budget Ceiling (conditional inline) */}
+                  {createDepartment === "Submission Deadline" && (
+                     <div className="space-y-2 md:col-span-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                          Outsourcing Budget <span className="text-[#DD4342]">*</span>
                         </label>
                         <input
                           type="text"
-                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-lg focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
+                          className={`w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 rounded-[5px] focus:outline-none transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B] ${(() => {
                             const clientNum = parseBudgetValue(createBudget);
-                            const outsourceNum =
-                              parseBudgetValue(createBudgetCeiling);
-                            return outsourceNum > clientNum
-                              ? "border-[#DD4342] focus:border-[#DD4342]"
-                              : "border-transparent focus:border-[#AEACAC52]";
+                            const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                            return outsourceNum > clientNum ? "border-[#DD4342] focus:border-[#DD4342]" : "border-transparent focus:border-[#AEACAC52]";
                           })()}`}
                           placeholder="Enter Outsourcing Budget"
                           value={createBudgetCeiling}
-                          onChange={(e) =>
-                            setCreateBudgetCeiling(e.target.value)
-                          }
+                          onChange={(e) => setCreateBudgetCeiling(e.target.value)}
                         />
                         {(() => {
                           const clientNum = parseBudgetValue(createBudget);
-                          const outsourceNum =
-                            parseBudgetValue(createBudgetCeiling);
-                          if (
-                            createBudgetCeiling.trim() &&
-                            outsourceNum > clientNum
-                          ) {
-                            return (
-                              <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">
-                                Outsourcing budget is exceeding. It should be
-                                less than or equal to client budget.
-                              </p>
-                            );
+                          const outsourceNum = parseBudgetValue(createBudgetCeiling);
+                          if (createBudgetCeiling.trim() && outsourceNum > clientNum) {
+                            return <p className="text-[14px] font-Gantari font-medium text-[#DD4342] mt-1">Outsourcing budget is exceeding client budget.</p>;
                           }
                           return null;
                         })()}
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-[16px] font-Gantari font-medium text-[#000000]">
-                          Bidding End Date
-                        </label>
-                        <input
-                          type="date"
-                          className="w-full px-4 py-2 text-[14px] bg-[#F2F3F4] border-1 border-transparent rounded-lg focus:outline-none focus:border-[#AEACAC52] transition-all font-Gantari font-medium text-[#353535] placeholder-[#8B8B8B]"
-                          value={createBiddingEndDate}
-                          onChange={(e) =>
-                            setCreateBiddingEndDate(e.target.value)
-                          }
-                        />
-                      </div>
-                    </>
                   )}
+
+                  {/* Team Members Selector - Full Width */}
+                  <div className="md:col-span-2 space-y-4">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Team Members <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="p-4 bg-[#F8FAFC] rounded-xl border border-slate-200">
+                      <div className="flex flex-wrap gap-3 max-h-48 overflow-y-auto custom-scrollbar p-1">
+                        {allEmployees.map((emp) => {
+                          const isSelected = selectedMemberIds.includes(emp.id);
+                          return (
+                            <button
+                              key={emp.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedMemberIds(prev => prev.filter(id => id !== emp.id));
+                                } else {
+                                  setSelectedMemberIds(prev => [...prev, emp.id]);
+                                }
+                              }}
+                              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${isSelected ? "bg-[#DD4342] border-[#DD4342] text-white" : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full flex items-center justify-center ${isSelected ? "bg-white/20" : "bg-slate-100"}`}>
+                                {(emp.full_name || "?")[0]}
+                              </div>
+                              {emp.full_name}
+                              {isSelected && <FiX className="w-3 h-3" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Project Description - Full Width */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Project Description <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <textarea
+                      value={createDescription}
+                      onChange={(e) => setCreateDescription(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border-1 border-transparent rounded-[5px] transition-all focus:outline-none focus:border-[#AEACAC52] min-h-[120px] resize-none"
+                      placeholder="Enter Project Description"
+                    />
+                  </div>
+
+                  {/* Attach File - Full Width (Edit mode: Show existing + add new) */}
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                      Attach File <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
+                      <div className="flex-1 px-4 py-3 text-[14px] text-gray-400 font-medium truncate">
+                        {(createFiles.length + existingFiles.length) > 0 ? `${createFiles.length + existingFiles.length} file(s) total` : "Choose Files"}
+                      </div>
+                      <label className="px-6 py-3 bg-[#E8E8E8] text-[#555555] font-semibold text-[14px] cursor-pointer transition-colors whitespace-nowrap">
+                        Browse File
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            const newFiles = Array.from(e.target.files || []);
+                            setCreateFiles(prev => [...prev, ...newFiles]);
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    {/* File Previews */}
+                    <div className="space-y-4 pt-2">
+                       {/* Existing Files */}
+                       {existingFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[12px] font-medium text-gray-500">Existing Files:</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {existingFiles.map((fileUrl, idx) => {
+                              const fileName = fileUrl.split('/').pop() || 'file';
+                              return (
+                                <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                                  <div className="w-8 h-8 rounded bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                                    <FiPaperclip className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[12px] font-semibold text-[#333] truncate">{fileName}</p>
+                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-blue-500 hover:underline">View</a>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRemovedFiles(prev => [...prev, fileUrl]);
+                                      setExistingFiles(prev => prev.filter((_, i) => i !== idx));
+                                    }}
+                                    className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                                  >
+                                    <FiX className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* New Files */}
+                      {createFiles.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-[12px] font-medium text-gray-500">New Files:</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {createFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-[#AEACAC52] rounded-[8px] group transition-all hover:border-[#DD4342]">
+                                <div className="w-8 h-8 rounded bg-[#F2F3F4] flex items-center justify-center text-[#DD4342]">
+                                  <FiPaperclip className="w-4 h-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[12px] font-semibold text-[#333] truncate">{file.name}</p>
+                                  <p className="text-[10px] text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setCreateFiles(prev => prev.filter((_, i) => i !== idx))}
+                                  className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                                >
+                                  <FiX className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer Buttons */}
@@ -3222,7 +3751,7 @@ export default function ProjectsTD() {
                       // Reset all form fields
                       setCreateName("");
                       setCreateBudget("");
-                      setCreateModuleName("");
+                      setModuleNameTags([]);
                       setCreateClientName("");
                       setCreateProjectManager([]);
                       setCreateStartDate("");
@@ -3232,12 +3761,13 @@ export default function ProjectsTD() {
                       setCreateDepartment("");
                       setCreateBIMLead([]);
                       setCreateBIMCoOrdinator([]);
-                      setCreateMember("");
+                      setSelectedMemberIds([]);
                       setCreateResources("");
                       setCreateRequiredResources("");
                       setCreatePriority("");
                       setCreateLocation("");
                       setCreateDescription("");
+                      setCreateFiles([]);
                     }}
                     className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
                   >
