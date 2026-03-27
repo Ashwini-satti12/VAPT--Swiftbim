@@ -3,9 +3,13 @@ import { FaDownload } from 'react-icons/fa6';
 
 interface Props {
     vendor: Vendor;
+    editable?: boolean;
+    onAdd?: () => void;
+    onEdit?: (id: number, data: Partial<Vendor['resource_profiles'][0]>) => void;
+    onDelete?: (id: number) => void;
 }
 
-const Resources = ({ vendor }: Props) => {
+const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
     const profiles = vendor.resource_profiles || [];
 
     if (profiles.length === 0) {
@@ -25,7 +29,7 @@ const Resources = ({ vendor }: Props) => {
 
     const FileLink = ({ fileName, label }: { fileName: string | null, label: string }) => {
         if (!fileName) return null;
-        const fileUrl = `http://localhost:5001/static/uploads/vendors/${fileName}`;
+        const fileUrl = `http://localhost:5000/static/uploads/vendors/${fileName}`;
         return (
             <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                 <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -44,7 +48,17 @@ const Resources = ({ vendor }: Props) => {
     };
 
     return (
-        <div className="animate-fade-in space-y-8">
+        <div className="animate-fade-in space-y-6">
+            {editable && (
+                <div className="flex justify-end">
+                    <button
+                        onClick={onAdd}
+                        className="px-4 py-2 text-sm font-semibold bg-[#DE3D3A] text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        + Add New Resource
+                    </button>
+                </div>
+            )}
 
             {profiles.map((profile, index) => (
                 <div key={index} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
@@ -117,6 +131,23 @@ const Resources = ({ vendor }: Props) => {
                             </div>
                         </div>
                     </div>
+
+                    {editable && (
+                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
+                            <button
+                                onClick={() => profile.id && onEdit?.(profile.id, profile)}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                            >
+                                Edit Details
+                            </button>
+                            <button
+                                onClick={() => profile.id && onDelete?.(profile.id)}
+                                className="text-sm font-medium text-red-600 hover:text-red-800"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

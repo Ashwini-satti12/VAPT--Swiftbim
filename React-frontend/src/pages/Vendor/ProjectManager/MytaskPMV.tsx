@@ -687,7 +687,7 @@ function TaskCard({
 }
 
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",

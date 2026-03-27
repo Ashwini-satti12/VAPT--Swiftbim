@@ -2,6 +2,7 @@ import type { Vendor } from "../types";
 import { FaDownload } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
 import { useMemo } from "react";
+import { api } from "../../../../lib/api";
 
 interface Props {
   vendor: Vendor;
@@ -208,7 +209,7 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
           {vendor.trade_license_file ? (
             <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg">
               <a
-                href={`http://localhost:5001/static/uploads/vendors/${vendor.trade_license_file}`}
+                href={api.defaults.baseURL + `static/uploads/vendors/${vendor.trade_license_file}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={vendor.trade_license_file}
@@ -230,7 +231,7 @@ const CompanyDetails = ({ vendor, editable = false, onChange }: Props) => {
           {vendor.gst_certificate_file ? (
             <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg">
               <a
-                href={`http://localhost:5001/static/uploads/vendors/${vendor.gst_certificate_file}`}
+                href={`http://localhost:5000/static/uploads/vendors/${vendor.gst_certificate_file}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={vendor.gst_certificate_file}

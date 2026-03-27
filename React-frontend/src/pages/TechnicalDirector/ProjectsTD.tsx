@@ -268,6 +268,9 @@ export default function ProjectsTD() {
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const [existingFiles, setExistingFiles] = useState<string[]>([]);
+  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -438,7 +441,7 @@ export default function ProjectsTD() {
       .then(() => {
         /* departments data consumed but state was removed */
       })
-      .catch(() => {});
+      .catch(() => { });
 
     api
       .get<{
@@ -770,9 +773,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=todo" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -793,9 +796,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=in_progress" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -816,9 +819,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=paused" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -839,9 +842,9 @@ export default function ProjectsTD() {
                     onClick={() =>
                       navigate(
                         "/td/teamtasks?status=completed" +
-                          (selectedProjectForView?.project_name
-                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
-                            : ""),
+                        (selectedProjectForView?.project_name
+                          ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
@@ -986,18 +989,18 @@ export default function ProjectsTD() {
                       {(() => {
                         const pmIds = selectedProjectForView.project_manager_id
                           ? String(selectedProjectForView.project_manager_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                           : [];
                         const pmNames =
                           selectedProjectForView.project_manager_name
                             ? String(
-                                selectedProjectForView.project_manager_name,
-                              )
-                                .split(",")
-                                .map((n) => n.trim())
-                                .filter(Boolean)
+                              selectedProjectForView.project_manager_name,
+                            )
+                              .split(",")
+                              .map((n) => n.trim())
+                              .filter(Boolean)
                             : [];
 
                         if (pmIds.length === 0 && pmNames.length === 0) {
@@ -1027,16 +1030,16 @@ export default function ProjectsTD() {
                             const pName = pmNames[i];
                             const pmEmp = pId
                               ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
+                                (e: any) => String(e.id) === pId,
+                              )
                               : null;
                             const dName =
                               pmEmp?.full_name || pName || "Unknown";
                             const url = pmEmp?.profile_picture
                               ? getGlobalProfileUrl(
-                                  pmEmp.id,
-                                  pmEmp.profile_picture,
-                                )
+                                pmEmp.id,
+                                pmEmp.profile_picture,
+                              )
                               : null;
                             return { key: i, dName, url };
                           },
@@ -1046,9 +1049,9 @@ export default function ProjectsTD() {
                         const pmOverflowTitle =
                           pmRemaining > 0
                             ? pmEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
                             : undefined;
 
                         return (
@@ -1109,15 +1112,15 @@ export default function ProjectsTD() {
                       {(() => {
                         const blIds = selectedProjectForView.lead_id
                           ? String(selectedProjectForView.lead_id)
-                              .split(",")
-                              .map((id) => id.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((id) => id.trim())
+                            .filter(Boolean)
                           : [];
                         const blNames = selectedProjectForView.lead_name
                           ? String(selectedProjectForView.lead_name)
-                              .split(",")
-                              .map((n) => n.trim())
-                              .filter(Boolean)
+                            .split(",")
+                            .map((n) => n.trim())
+                            .filter(Boolean)
                           : [];
 
                         if (blIds.length === 0 && blNames.length === 0) {
@@ -1147,16 +1150,16 @@ export default function ProjectsTD() {
                             const pName = blNames[i];
                             const blEmp = pId
                               ? allEmployees.find(
-                                  (e: any) => String(e.id) === pId,
-                                )
+                                (e: any) => String(e.id) === pId,
+                              )
                               : null;
                             const dName =
                               blEmp?.full_name || pName || "Unknown";
                             const url = blEmp?.profile_picture
                               ? getGlobalProfileUrl(
-                                  blEmp.id,
-                                  blEmp.profile_picture,
-                                )
+                                blEmp.id,
+                                blEmp.profile_picture,
+                              )
                               : null;
                             return { key: i, dName, url };
                           },
@@ -1166,9 +1169,9 @@ export default function ProjectsTD() {
                         const blOverflowTitle =
                           blRemaining > 0
                             ? blEntries
-                                .slice(3)
-                                .map((e) => e.dName)
-                                .join(", ")
+                              .slice(3)
+                              .map((e) => e.dName)
+                              .join(", ")
                             : undefined;
 
                         return (
@@ -1243,14 +1246,14 @@ export default function ProjectsTD() {
                             // Get members from project (IDs can be numeric or string from API)
                             const rawIds =
                               selectedProjectForView.members ||
-                              selectedProjectForView.member
+                                selectedProjectForView.member
                                 ? String(
-                                    selectedProjectForView.members ||
-                                      selectedProjectForView.member,
-                                  )
-                                    .split(",")
-                                    .map((m) => m.trim())
-                                    .filter(Boolean)
+                                  selectedProjectForView.members ||
+                                  selectedProjectForView.member,
+                                )
+                                  .split(",")
+                                  .map((m) => m.trim())
+                                  .filter(Boolean)
                                 : [];
                             const memberIds = rawIds.map((m) => {
                               const n = Number(m);
@@ -1327,46 +1330,46 @@ export default function ProjectsTD() {
                               <div className="flex items-center -space-x-3">
                                 {visibleMembers.length > 0
                                   ? visibleMembers.map((emp) => (
-                                      <div key={emp.id} className="relative group shrink-0">
-                                        <div
-                                          className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
-                                        >
-                                          {getProfileImageUrl(emp) ? (
-                                            <img
-                                              src={getProfileImageUrl(emp)}
-                                              alt={emp.full_name || "Member"}
-                                              className="w-full h-full object-cover"
-                                              onError={(e) => {
-                                                (
-                                                  e.target as HTMLImageElement
-                                                ).src = ProfileIcon;
-                                              }}
-                                            />
-                                          ) : (
-                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                              {(emp.full_name || `E${emp.id}`)
-                                                .charAt(0)
-                                                .toUpperCase()}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                          {emp.full_name || `Employee ${emp.id}`}
-                                        </div>
-                                      </div>
-                                    ))
-                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
+                                    <div key={emp.id} className="relative group shrink-0">
                                       <div
-                                        key={j}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
                                       >
-                                        <img
-                                          src={ProfileIcon}
-                                          alt="avatar"
-                                          className="w-full h-full object-cover"
-                                        />
+                                        {getProfileImageUrl(emp) ? (
+                                          <img
+                                            src={getProfileImageUrl(emp)}
+                                            alt={emp.full_name || "Member"}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                            {(emp.full_name || `E${emp.id}`)
+                                              .charAt(0)
+                                              .toUpperCase()}
+                                          </div>
+                                        )}
                                       </div>
-                                    )) : null}
+                                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                        {emp.full_name || `Employee ${emp.id}`}
+                                      </div>
+                                    </div>
+                                  ))
+                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
+                                    <div
+                                      key={j}
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                    >
+                                      <img
+                                        src={ProfileIcon}
+                                        alt="avatar"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )) : null}
                                 {(hasMore || hasIdsButNoResolved) && (
                                   <div className="relative group shrink-0">
                                     <div
@@ -1428,12 +1431,12 @@ export default function ProjectsTD() {
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.start_date
                               ? new Date(
-                                  selectedProjectForView.start_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                selectedProjectForView.start_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "N/A"}
                           </span>
                         </div>
@@ -1497,12 +1500,12 @@ export default function ProjectsTD() {
                           <span className="text-md font-Gantari font-medium text-[#666666]">
                             {selectedProjectForView.end_date
                               ? new Date(
-                                  selectedProjectForView.end_date,
-                                ).toLocaleDateString("en-GB", {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                })
+                                selectedProjectForView.end_date,
+                              ).toLocaleDateString("en-GB", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              })
                               : "N/A"}
                           </span>
                         </div>
@@ -1536,12 +1539,49 @@ export default function ProjectsTD() {
                           </span>
                           <span className="hidden sm:inline text-[#999999] mr-4">
                             :
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                              No Document Available
-                            </span>
+                          </span>                          <div className="flex flex-col gap-2">
+                            {selectedProjectForView.document_attachment ? (
+                              selectedProjectForView.document_attachment
+                                .split(",")
+                                .map((file) => file.trim())
+                                .filter(Boolean)
+                                .map((fileName, idx) => {
+                                  const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                                  return (
+                                    <div key={idx} className="flex items-center gap-3">
+                                      <a
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-md font-Gantari font-medium text-blue-600 hover:underline"
+                                      >
+                                        {truncateFileName(fileName)}
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const link = document.createElement("a");
+                                          link.href = url;
+                                          link.download = fileName;
+                                          document.body.appendChild(link);
+                                          link.click();
+                                          document.body.removeChild(link);
+                                        }}
+                                        className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                        title="Download"
+                                      >
+                                        ⬇️
+                                      </button>
+                                    </div>
+                                  );
+                                })
+                            ) : (
+                              <span className="text-md font-Gantari font-medium text-[#666666]">
+                                No Document Available
+                              </span>
+                            )}
                           </div>
+
                         </div>
                       </div>
                     </div>
@@ -1687,8 +1727,8 @@ export default function ProjectsTD() {
                               Due:{" "}
                               {m.due_date
                                 ? new Date(m.due_date).toLocaleDateString(
-                                    "en-GB",
-                                  )
+                                  "en-GB",
+                                )
                                 : "-"}
                             </span>
                           </div>
@@ -1736,7 +1776,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }}
                               className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors cursor-pointer"
                               title="Mark as Paid"
@@ -1770,7 +1810,7 @@ export default function ProjectsTD() {
                                       currentProject?.id &&
                                       fetchMilestones(currentProject.id),
                                   )
-                                  .catch(() => {});
+                                  .catch(() => { });
                               }
                             }}
                             className="p-2 rounded-lg bg-red-50 text-[#DD4342] hover:bg-red-100 transition-colors cursor-pointer"
@@ -1832,10 +1872,10 @@ export default function ProjectsTD() {
                     // Get members from project.member field (comma-separated string)
                     const memberIds = p.member
                       ? p.member
-                          .split(",")
-                          .map((m) => m.trim())
-                          .filter(Boolean)
-                          .map(Number)
+                        .split(",")
+                        .map((m) => m.trim())
+                        .filter(Boolean)
+                        .map(Number)
                       : [];
 
                     const radius = 28;
@@ -2012,9 +2052,9 @@ export default function ProjectsTD() {
                                   {visibleMembers.map((emp) => {
                                     const profileUrl = emp.profile_picture
                                       ? getGlobalProfileUrl(
-                                          emp.id,
-                                          emp.profile_picture,
-                                        )
+                                        emp.id,
+                                        emp.profile_picture,
+                                      )
                                       : null;
 
                                     return (
@@ -2067,11 +2107,10 @@ export default function ProjectsTD() {
                           <div className="flex items-center gap-3">
                             {p.priority && (
                               <div
-                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${
-                                  p.priority.toLowerCase() === "high"
+                                className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high"
                                     ? "bg-[#DD4342]"
                                     : "bg-[#94D6F2]"
-                                }`}
+                                  }`}
                               >
                                 {p.priority}
                               </div>
@@ -2233,6 +2272,7 @@ export default function ProjectsTD() {
                         setCreateLocation("");
                         setCreateDescription("");
                         setCreateFiles([]);
+                        setCreateFiles([]);
                         api
                           .get<{ projects?: Record<string, unknown>[] }>(
                             "/api/projects",
@@ -2244,13 +2284,13 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
                     .catch((err) =>
                       setCreateError(
                         err.response?.data?.message ||
-                          "Failed to create project",
+                        "Failed to create project",
                       ),
                     )
                     .finally(() => setCreateSubmitting(false));
@@ -2416,7 +2456,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -2869,7 +2909,7 @@ export default function ProjectsTD() {
                         setDeleteId(null);
                       }
                     })
-                    .catch(() => {});
+                    .catch(() => { });
                 }}
                 className="px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
@@ -2921,7 +2961,7 @@ export default function ProjectsTD() {
                     setMilestoneNotes("");
                     fetchMilestones(currentProject.id);
                   })
-                  .catch(() => {});
+                  .catch(() => { });
               }}
               className="space-y-6 px-1"
             >
@@ -3168,10 +3208,10 @@ export default function ProjectsTD() {
                               ),
                             ),
                           )
-                          .catch(() => {});
+                          .catch(() => { });
                       }
                     })
-                    .catch(() => {})
+                    .catch(() => { })
                     .finally(() => setIsEditSubmitting(false));
                 }}
                 className="space-y-8"
@@ -3316,7 +3356,7 @@ export default function ProjectsTD() {
                         <span
                           className={
                             createDepartment === "Budget Ceiling" ||
-                            createDepartment === "Submission Deadline"
+                              createDepartment === "Submission Deadline"
                               ? "text-gray-700"
                               : "text-gray-400"
                           }
@@ -3781,7 +3821,7 @@ export default function ProjectsTD() {
                         (isEditSourceOutsource &&
                           createBudgetCeiling.trim() &&
                           parseBudgetValue(createBudgetCeiling) >
-                            parseBudgetValue(createBudget))
+                          parseBudgetValue(createBudget))
                       )
                     }
                     className="px-8 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-Gantari font-semibold text-[16px] transition-all shadow-sm disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"

@@ -46,6 +46,13 @@ const firstCsvValue = (value: string | undefined): string => {
     .map((v) => v.trim())
     .filter(Boolean)[0] ?? '';
 };
+
+const truncateFileName = (name: string, maxLen = 25) => {
+  const lastDot = name.lastIndexOf('.');
+  const ext = lastDot !== -1 ? name.slice(lastDot) : '';
+  const base = lastDot !== -1 ? name.slice(0, lastDot) : name;
+  return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
+};
 function FormSelect({
   placeholder, options, value, onChange,
 }: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -241,7 +248,6 @@ export default function ProjectsPM() {
       setCreateTotalHours(computedTotal);
     }
   }, [createPerDay, createStartDate, createEndDate]);
-  const projectDocumentUrl = "document.pdf";
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
@@ -430,17 +436,17 @@ export default function ProjectsPM() {
         const userName = user?.full_name ?? '';
         const filtered = userId
           ? allProjects.filter((p) => {
-              // Include any project where this PM user is involved.
-              return (
-                csvIncludes(p.project_manager_id, userId) ||
-                csvIncludes(p.lead_id, userId) ||
-                csvIncludes(p.bim_coordinator_id, userId) ||
-                csvIncludes(p.member, userId) ||
-                csvIncludesName(p.project_manager_name, userName) ||
-                csvIncludesName(p.lead_name, userName) ||
-                csvIncludesName(p.bim_coordinator_name, userName)
-              );
-            })
+            // Include any project where this PM user is involved.
+            return (
+              csvIncludes(p.project_manager_id, userId) ||
+              csvIncludes(p.lead_id, userId) ||
+              csvIncludes(p.bim_coordinator_id, userId) ||
+              csvIncludes(p.member, userId) ||
+              csvIncludesName(p.project_manager_name, userName) ||
+              csvIncludesName(p.lead_name, userName) ||
+              csvIncludesName(p.bim_coordinator_name, userName)
+            );
+          })
           : allProjects;
         setList(filtered);
       })
@@ -537,30 +543,30 @@ export default function ProjectsPM() {
     <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Project View Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProjectView(false);
-                  setSearchParams({}, { replace: true });
-                }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <div className="text-center">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
-                  {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
-                </h3>
-                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
-                </div>
+        <div className="flex flex-col h-full bg-white">
+          {/* Project View Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => {
+                setShowProjectView(false);
+                setSearchParams({}, { replace: true });
+              }}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
+                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
+              </h3>
+              <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
               </div>
             </div>
+          </div>
 
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-6">
@@ -867,7 +873,7 @@ export default function ProjectsPM() {
                     const memberIdsForView = selectedProjectForView.member
                       ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
                       : [];
-                    
+
                     if (memberIdsForView.length === 0) {
                       return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
                     }
@@ -1003,28 +1009,42 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <div className="flex items-center gap-3">
-                      {projectDocumentUrl ? (
-                        <>
-                          <span
-                            onClick={() => window.open(projectDocumentUrl, "_blank")}
-                            className="cursor-pointer text-md font-Gantari font-medium text-blue-600 hover:underline"
-                          >
-                            Document.pdf
-                          </span>
-                          <button
-                            onClick={() => {
-                              const link = document.createElement("a");
-                              link.href = projectDocumentUrl;
-                              link.download = "Document.pdf";
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                          >
-                            ⬇️
-                          </button>
-                        </>
+                    <div className="flex flex-col gap-2">
+                      {selectedProjectForView.document_attachment ? (
+                        selectedProjectForView.document_attachment
+                          .split(",")
+                          .map((file) => file.trim())
+                          .filter(Boolean)
+                          .map((fileName, idx) => {
+                            const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                            return (
+                              <div key={idx} className="flex items-center gap-3">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-md font-Gantari font-medium text-blue-600 hover:underline"
+                                >
+                                  {truncateFileName ? truncateFileName(fileName) : fileName}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                  title="Download"
+                                >
+                                  ⬇️
+                                </button>
+                              </div>
+                            );
+                          })
                       ) : (
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           No Document Available
@@ -1067,34 +1087,34 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showMilestones && currentProject ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Milestones Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <div className="text-center">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                  Payment Milestones
-                </h3>
-                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
-                title="Add Milestone"
-              >
-                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                Add Milestone
-              </button>
+        <div className="flex flex-col h-full bg-white">
+          {/* Milestones Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => setShowMilestones(false)}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                Payment Milestones
+              </h3>
+              <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+              </p>
             </div>
+            <button
+              onClick={() => setShowAddMilestoneModal(true)}
+              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+              title="Add Milestone"
+            >
+              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+              Add Milestone
+            </button>
+          </div>
 
           {/* Milestones Content - match ProjectsTD */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
@@ -1218,19 +1238,19 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showCreateModal ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Create Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
-            </div>
+        <div className="flex flex-col h-full bg-white">
+          {/* Create Project Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
+          </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
             <form
               onSubmit={(e) => {

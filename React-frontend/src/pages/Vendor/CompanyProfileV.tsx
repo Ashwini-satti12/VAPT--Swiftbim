@@ -9,6 +9,30 @@ import SectorServiceSoftware from '../TechnicalDirector/PartnerView/components/S
 import Resources from '../TechnicalDirector/PartnerView/components/Resources';
 import PortfolioProject from '../TechnicalDirector/PartnerView/components/PortfolioProject';
 import Certificates from '../TechnicalDirector/PartnerView/components/Certificates';
+import type { ResourceProfile, PortfolioProject as PortfolioProjectType } from '../TechnicalDirector/PartnerView/types';
+import ResourceModal from './components/ResourceModal';
+import PortfolioModal from './components/PortfolioModal';
+
+function parseJsonArray(val: unknown): string[] {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    // Handle nested stringified arrays if any (from previous bug)
+                    return parsed.map(item => typeof item === 'string' && item.startsWith('[') ? parseJsonArray(item) : item).flat();
+                }
+            } catch (e) {
+                // fall through to split
+            }
+        }
+        return trimmed.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+}
 
 /** Normalize profile from GET /api/vendors/profile to Vendor shape for shared section components */
 function profileToVendor(profile: Record<string, unknown> | null): Vendor | null {
@@ -41,15 +65,15 @@ function profileToVendor(profile: Record<string, unknown> | null): Vendor | null
         core_business_areas: (profile.core_business_areas as string) ?? '',
         technical_team_size: (profile.technical_team_size as string) ?? '',
         description: (profile.description as string) ?? '',
-        sectors: (profile.sectors as string | string[]) ?? [],
-        service_categories: (profile.service_categories as string | string[]) ?? (profile.services as string | string[]) ?? [],
+        sectors: parseJsonArray(profile.sectors),
+        service_categories: parseJsonArray(profile.service_categories || profile.services),
         other_sector: (profile.other_sector as string) ?? '',
         other_service: (profile.other_service as string) ?? '',
-        software_tools: (profile.software_tools as string | string[]) ?? [],
+        software_tools: parseJsonArray(profile.software_tools),
         other_software: (profile.other_software as string) ?? '',
         resource_profiles: (profile.resource_profiles as Vendor['resource_profiles']) ?? [],
         portfolio_projects: (profile.portfolio_projects as Vendor['portfolio_projects']) ?? [],
-        certifications: (profile.certifications as string | string[]) ?? [],
+        certifications: parseJsonArray(profile.certifications),
         billing_currency: (profile.billing_currency as string) ?? '',
         payment_terms: (profile.payment_terms as string) ?? '',
         nda_agreed: (profile.nda_agreed as boolean | number) ?? 0,
@@ -68,6 +92,14 @@ export default function CompanyProfileV() {
     const [draft, setDraft] = useState<Vendor | null>(null);
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+    // Resource Modal State
+    const [showResourceModal, setShowResourceModal] = useState(false);
+    const [editingResource, setEditingResource] = useState<ResourceProfile | null>(null);
+
+    // Portfolio Modal State
+    const [showPortfolioModal, setShowPortfolioModal] = useState(false);
+    const [editingPortfolio, setEditingPortfolio] = useState<PortfolioProjectType | null>(null);
 
     useEffect(() => {
         api.get<{ profile: Record<string, unknown> | null; completeness: number; verified: boolean }>('/api/vendors/profile')
@@ -96,13 +128,7 @@ export default function CompanyProfileV() {
         });
     };
 
-    const listTextToJson = (val: unknown) => {
-        if (val == null) return '';
-        const s = String(val).trim();
-        if (!s) return '';
-        const list = s.split(',').map((x) => x.trim()).filter(Boolean);
-        return JSON.stringify(list);
-    };
+    // JSON fields are handled by handleSave manually to ensure single-level stringification
 
     const handleCancel = () => {
         setDraft(vendor ? { ...vendor } : null);
@@ -126,7 +152,8 @@ export default function CompanyProfileV() {
                 contact_name: draft.contact_name,
                 contact_designation: draft.contact_designation,
                 contact_email: draft.contact_email,
-                phone: draft.contact_mobile || draft.phone || '',
+                contact_mobile: draft.contact_mobile,
+                phone: draft.phone || draft.contact_mobile || '',
                 alternate_contact: draft.alternate_contact,
 
                 num_employees: draft.num_employees,
@@ -135,9 +162,9 @@ export default function CompanyProfileV() {
                 technical_team_size: draft.technical_team_size,
                 description: draft.description,
 
-                sectors: listTextToJson(draft.sectors),
-                service_categories: listTextToJson(draft.service_categories),
-                software_tools: listTextToJson(draft.software_tools),
+                sectors: Array.isArray(draft.sectors) ? JSON.stringify(draft.sectors) : draft.sectors,
+                service_categories: Array.isArray(draft.service_categories) ? JSON.stringify(draft.service_categories) : draft.service_categories,
+                software_tools: Array.isArray(draft.software_tools) ? JSON.stringify(draft.software_tools) : draft.software_tools,
             });
 
             // Refresh from backend so UI reflects DB values
@@ -169,25 +196,39 @@ export default function CompanyProfileV() {
                 return <SectorServiceSoftware vendor={activeVendor} editable={editMode} onChange={updateDraft} />;
             case 'Resources':
                 return (
-                    <div className="space-y-3">
-                        {editMode && (
-                            <div className="text-xs text-gray-500 font-gantari">
-                                Resources editing will be added next (currently view-only).
-                            </div>
-                        )}
-                        <Resources vendor={activeVendor} />
-                    </div>
+                    <Resources
+                        vendor={activeVendor}
+                        editable={editMode}
+                        onAdd={() => setShowResourceModal(true)}
+                        onEdit={(id, data) => { setEditingResource({ ...data, id } as ResourceProfile); setShowResourceModal(true); }}
+                        onDelete={async (id) => {
+                            if (!window.confirm('Delete this resource profile?')) return;
+                            try {
+                                await api.delete(`/api/vendors/profile/resource-profiles/${id}`);
+                                // refresh
+                                const { data } = await api.get('/api/vendors/profile');
+                                setVendor(profileToVendor(data.profile));
+                            } catch (e) { alert('Delete failed'); }
+                        }}
+                    />
                 );
             case 'Protfolio & Project':
                 return (
-                    <div className="space-y-3">
-                        {editMode && (
-                            <div className="text-xs text-gray-500 font-gantari">
-                                Portfolio editing will be added next (currently view-only).
-                            </div>
-                        )}
-                        <PortfolioProject vendor={activeVendor} />
-                    </div>
+                    <PortfolioProject
+                        vendor={activeVendor}
+                        editable={editMode}
+                        onAdd={() => setShowPortfolioModal(true)}
+                        onEdit={(id, data) => { setEditingPortfolio({ ...data, id } as PortfolioProjectType); setShowPortfolioModal(true); }}
+                        onDelete={async (id) => {
+                            if (!window.confirm('Delete this project?')) return;
+                            try {
+                                await api.delete(`/api/vendors/profile/portfolio-projects/${id}`);
+                                // refresh
+                                const { data } = await api.get('/api/vendors/profile');
+                                setVendor(profileToVendor(data.profile));
+                            } catch (e) { alert('Delete failed'); }
+                        }}
+                    />
                 );
             case 'Certificates':
                 return (
@@ -295,6 +336,32 @@ export default function CompanyProfileV() {
                     {renderContent()}
                 </div>
             </div>
+
+            {showResourceModal && (
+                <ResourceModal
+                    onClose={() => { setShowResourceModal(false); setEditingResource(null); }}
+                    onSuccess={async () => {
+                        const { data } = await api.get('/api/vendors/profile');
+                        setVendor(profileToVendor(data.profile));
+                        setShowResourceModal(false);
+                        setEditingResource(null);
+                    }}
+                    resource={editingResource}
+                />
+            )}
+
+            {showPortfolioModal && (
+                <PortfolioModal
+                    onClose={() => { setShowPortfolioModal(false); setEditingPortfolio(null); }}
+                    onSuccess={async () => {
+                        const { data } = await api.get('/api/vendors/profile');
+                        setVendor(profileToVendor(data.profile));
+                        setShowPortfolioModal(false);
+                        setEditingPortfolio(null);
+                    }}
+                    project={editingPortfolio}
+                />
+            )}
         </div>
     );
 }
