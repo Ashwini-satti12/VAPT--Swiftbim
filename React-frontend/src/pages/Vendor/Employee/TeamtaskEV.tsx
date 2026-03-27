@@ -15,6 +15,7 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -296,6 +297,7 @@ interface Employee {
     id: number;
     full_name?: string;
     name?: string;
+  active?: string;
 }
 
 interface Project {
@@ -705,32 +707,7 @@ export default function TeamtaskEV() {
         pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "v_teamTask_localTasks";
-    const DELETED_IDS_KEY = "v_teamTask_deletedIds";
-    const loadDeletedIds = (): number[] => {
-        try {
-            const raw = localStorage.getItem(DELETED_IDS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed)
-                ? parsed.map(Number).filter((n) => !Number.isNaN(n))
-                : [];
-        } catch {
-            return [];
-        }
-    };
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
-    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -745,12 +722,7 @@ export default function TeamtaskEV() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
-    const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
-    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t: any) => {
+    const allTasks = list.filter((t) => t && t.id != null).filter((t: any) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -780,47 +752,30 @@ export default function TeamtaskEV() {
         return true;
     });
 
-    const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
-        return s === "todo"
-            ? "To Do"
-            : s === "in_progress"
-                ? "In Progress"
-                : "Completed";
+
+    const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
+        todo: "Todo",
+        in_progress: "InProgress",
+        completed: "Completed",
     };
 
     const handleMoveTask = (
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
-        const label = statusToLabel(newStatus);
-        setLocalTasks((prev) => {
-            const idx = prev.findIndex((t) => t.id === taskId);
-            if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = { ...next[idx], status: label };
-                return next;
-            }
-            const fromList = list.find((t) => t.id === taskId);
-            if (fromList) return [{ ...fromList, status: label }, ...prev];
-            return prev;
+        setList((prev) =>
+            prev.map((t) =>
+                t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
+            ),
+        );
+
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+            status: statusMap[newStatus],
+        }).catch((err) => {
+            console.error("Failed to update status:", err);
+            toast.error("Failed to update status");
         });
     };
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
-        } catch {
-            // ignore quota or parse errors
-        }
-    }, [localTasks]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
-        } catch {
-            // ignore
-        }
-    }, [deletedIds]);
 
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
@@ -849,21 +804,22 @@ export default function TeamtaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/tasks/${task.id}`);
     };
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-        api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0", employeeid: "all" } })
-                .then(res => setList(res.data.tasks ?? []));
-            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeletedIds((prev) =>
-                prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-            );
-        }).finally(() => {
-            setDeleteTaskId(null);
-        });
+        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
+            .then(() => {
+                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => {
+                toast.error("Failed to delete task");
+            })
+            .finally(() => {
+                setDeleteTaskId(null);
+            });
     };
 
     const resetTaskFormAndClose = () => {
@@ -1002,11 +958,11 @@ export default function TeamtaskEV() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -1019,9 +975,9 @@ export default function TeamtaskEV() {
             });
         }
 
-        const validEmployees = employees.filter((e) => (e.full_name || e.name) && involvedNames.has((e.full_name || e.name) as string));
+        const validEmployees = employees.filter((e) => (e.full_name || e.name) && involvedNames.has((e.full_name || e.name) as string) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1062,6 +1018,7 @@ export default function TeamtaskEV() {
     }, [isTeam, statusFilter]);
 
     const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
         .filter((e) => (e.full_name || e.name || "").trim() !== "")
         .map((e) => ({
             value: e.full_name || e.name || "",

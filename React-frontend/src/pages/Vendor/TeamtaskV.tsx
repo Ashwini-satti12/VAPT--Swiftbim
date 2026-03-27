@@ -18,6 +18,7 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 // Get API base URL for image URLs (so uploaded profile pictures load correctly)
 const getApiBaseUrl = () => {
@@ -337,6 +338,7 @@ const getProfileUrl = (path: string | undefined): string => {
 export interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 export interface Project {
@@ -714,32 +716,7 @@ export default function TeamtaskV() {
         pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "v_teamTask_localTasks";
-    const DELETED_IDS_KEY = "v_teamTask_deletedIds";
-    const loadDeletedIds = (): number[] => {
-        try {
-            const raw = localStorage.getItem(DELETED_IDS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed)
-                ? parsed.map(Number).filter((n) => !Number.isNaN(n))
-                : [];
-        } catch {
-            return [];
-        }
-    };
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
-    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -758,12 +735,7 @@ export default function TeamtaskV() {
     const [recentTasks, setRecentTasks] = useState<Task[]>([]);
     const [loadingRecentTasks, setLoadingRecentTasks] = useState(false);
     const tasklistRef = useRef<HTMLDivElement>(null);
-    const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
-    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t: any) => {
+    const allTasks = list.filter((t: any) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -793,66 +765,34 @@ export default function TeamtaskV() {
         return true;
     });
 
-    const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
-        return s === "todo"
-            ? "To Do"
-            : s === "in_progress"
-                ? "In Progress"
-                : "Completed";
-    };
 
     const handleMoveTask = (
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
-        const label = statusToLabel(newStatus);
         const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
             todo: "Todo",
             in_progress: "InProgress",
             completed: "Completed",
         };
 
-        // Update local-only tasks
-        setLocalTasks((prev) => {
-            const idx = prev.findIndex((t) => t.id === taskId);
-            if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = { ...next[idx], status: label };
-                return next;
-            }
-            return prev;
-        });
-
-        // Update tasks from API list
+        // Optimistic update
         setList((prev) =>
             prev.map((t) =>
                 t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
             ),
         );
 
-        // Persist status to vendor_task table
+        // Persist status to backend
         api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
             status: statusMap[newStatus],
-        }).catch(() => {
-            // ignore errors; UI already updated optimistically
+        }).catch((err) => {
+            console.error("Failed to update status:", err);
+            toast.error("Failed to update status");
         });
     };
 
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
-        } catch {
-            // ignore quota or parse errors
-        }
-    }, [localTasks]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
-        } catch {
-            // ignore
-        }
-    }, [deletedIds]);
+    // No longer using localStorage for task status/deletion
 
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
@@ -888,15 +828,11 @@ export default function TeamtaskV() {
         if (deleteTaskId === null) return;
         api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
             .then(() => {
-                const p: Record<string, string> = { condition: "1" };
-                if (statusFilter) p.status = statusFilter;
-                api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-                    params: p,
-                }).then((res) => setList(res.data.tasks ?? []));
-                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-                setDeletedIds((prev) =>
-                    prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-                );
+                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => {
+                toast.error("Failed to delete task");
             })
             .finally(() => {
                 setDeleteTaskId(null);
@@ -1097,11 +1033,11 @@ export default function TeamtaskV() {
 
     const getEmployeeOptions = () => {
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const proj = projects.find((p) => p.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.map((e) => e.full_name)];
+            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -1114,9 +1050,9 @@ export default function TeamtaskV() {
             });
         }
 
-        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name));
+        const validEmployees = employees.filter((e) => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
 
-        return ["Select Employee", ...validEmployees.map((e) => e.full_name)];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name)];
     };
 
     const employeeOptions = getEmployeeOptions();
@@ -1126,7 +1062,9 @@ export default function TeamtaskV() {
     ];
     const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
     const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
-    const modalAssignOptions = employeesForAssignDropdown.map((e) => ({
+    const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
+        .map((e) => ({
         value: e.full_name,
         label: e.full_name,
     }));

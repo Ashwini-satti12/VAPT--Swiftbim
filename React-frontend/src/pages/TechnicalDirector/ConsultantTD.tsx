@@ -362,40 +362,8 @@ export default function ConsultantTD() {
         active: emp.active === 'inactive' ? 'deactive' : (emp.active || 'active')
       }));
 
-      // Debug: Check what profile_picture values we're getting
-      console.log('=== EMPLOYEES API RESPONSE ===');
-      console.log('Total employees:', normalizedEmployees.length);
-      const apiBase = getApiBaseUrl();
-      console.log('API Base URL:', apiBase || '(empty - using relative URLs with Vite proxy)');
-
-      if (!apiBase) {
-        console.log('ℹ️ Note: Vite proxy should forward /uploads/* to http://localhost:5000');
-        console.log('ℹ️ If images fail, make sure dev server was restarted after vite.config.ts changes');
-      }
-
-      // Log first few employees with profile pictures
-      const withPics = normalizedEmployees.filter(emp => emp.profile_picture);
-      const withoutPics = normalizedEmployees.filter(emp => !emp.profile_picture);
-
-      console.log(`Employees WITH profile_picture: ${withPics.length}`);
-      console.log(`Employees WITHOUT profile_picture: ${withoutPics.length}`);
-
-      withPics.slice(0, 5).forEach(emp => {
-        const url = getProfileUrl(emp.profile_picture);
-        console.log(`✓ ${emp.full_name}:`, {
-          dbValue: emp.profile_picture,
-          generatedUrl: url,
-          willLoad: url ? 'YES' : 'NO'
-        });
-      });
-
-      if (withoutPics.length > 0) {
-        console.log('Employees without profile_picture:', withoutPics.slice(0, 3).map(e => e.full_name).join(', '));
-      }
-
       setList(normalizedEmployees);
-    }).catch((err) => {
-      console.error('Failed to load employees:', err);
+    }).catch(() => {
       setList([]);
     }).finally(() => setLoading(false));
   }, []);
@@ -842,14 +810,6 @@ export default function ConsultantTD() {
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   const target = e.target as HTMLImageElement;
-                                  const url = getProfileUrl(emp.profile_picture);
-                                  console.error(`❌ Failed to load image for ${emp.full_name}:`, {
-                                    attemptedUrl: target.src,
-                                    generatedUrl: url,
-                                    dbValue: emp.profile_picture,
-                                    apiBaseUrl: getApiBaseUrl(),
-                                    note: 'Check if file exists in backend/uploads/employee/ folder'
-                                  });
                                   // Replace with placeholder on error
                                   const parent = target.parentElement;
                                   if (parent && !parent.querySelector('.error-placeholder')) {
@@ -857,7 +817,7 @@ export default function ConsultantTD() {
                                   }
                                 }}
                                 onLoad={() => {
-                                  console.log(`✅ Successfully loaded image for ${emp.full_name}:`, getProfileUrl(emp.profile_picture));
+                                  // Image loaded successfully
                                 }}
                               />
                             ) : (

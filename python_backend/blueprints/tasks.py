@@ -30,6 +30,10 @@ def _serialize_row(d):
     return out
 
 
+# Roles that see all company projects and tasks
+MANAGEMENT_ROLES = ("Technical Director", "CEO")
+
+
 def _progress(conn, project_id):
     cur = conn.cursor()
     cur.execute(
@@ -41,7 +45,7 @@ def _progress(conn, project_id):
     total = (cur.fetchone() or {}).get("total_count") or 0
     if total == 0:
         return 0
-    return round((completed / total) * 100, 2)
+    return round(float(completed / total) * 100, 2)
 
 
 @bp.route("/<int:task_id>/status", methods=["PATCH", "POST"])
@@ -101,6 +105,8 @@ def list_tasks():
     where = ["t.Company_id = %s"]
     params = [company_id]
 
+    user_role = (getattr(g, "user_role", None) or "").strip()
+
     if condition == "1":
         # Management view: can see all tasks, or filter by Myself/Others or by employee
         if assigned_by == "Myself":
@@ -110,7 +116,26 @@ def list_tasks():
         elif employee_id and str(employee_id) != "all":
             where.append("t.assigned_to = %s")
             params.append(employee_id)
-        # else: no assigned_to filter → all company tasks (for Technical Director etc.)
+        # else: no assigned_to filter → all company tasks (restricted by project involvement below)
+
+        # Add project level filtering for non-management roles to match dashboard
+        if user_role not in MANAGEMENT_ROLES:
+            if user_role == "BIM Coordinator":
+                where.append("FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0")
+                params.append(g.user_id)
+            elif user_role == "BIM Lead":
+                where.append("FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0")
+                params.append(g.user_id)
+            elif user_role == "BIM Modeler":
+                where.append("FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0")
+                params.append(g.user_id)
+            else:
+                # Other roles (like Project Manager): client_id, PM, lead, bim_coordinator_id, uploaderid, members
+                where.append("""(
+                        p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
+                        OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
+                    )""")
+                params.extend([g.user_id, g.user_id, g.user_id, g.user_id, g.user_id, g.user_id])
     else:
         # My task / employee view: only tasks assigned to me or created by me
         where.append("(t.assigned_to = %s OR t.uploaderid = %s)")

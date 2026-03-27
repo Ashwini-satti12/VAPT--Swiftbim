@@ -394,9 +394,13 @@ export default function ProjectsTD() {
         const selectable = allEmp.filter(isEmployeeActiveForProjectAssignment);
         setAllEmployees(allEmp);
         setEmployees(allEmp);
-        setProjectManagers(selectable.filter((e) => e.user_role === "Project Manager"));
+        setProjectManagers(
+          selectable.filter((e) => e.user_role === "Project Manager"),
+        );
         setBimLeads(selectable.filter((e) => e.user_role === "BIM Lead"));
-        setBimCoordinators(selectable.filter((e) => e.user_role === "BIM Coordinator"));
+        setBimCoordinators(
+          selectable.filter((e) => e.user_role === "BIM Coordinator"),
+        );
       })
       .catch(() => {
         setAllEmployees([]);
@@ -407,8 +411,11 @@ export default function ProjectsTD() {
       });
 
     // Fetch projects - use data directly from projects table
+    const status = searchParams.get("status");
     api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects")
+      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params: { status: status || undefined }
+      })
       .then(({ data }) => {
         const projects = (data.projects ?? []).map(mapApiProjectToProject);
         setList(projects);
@@ -685,7 +692,14 @@ export default function ProjectsTD() {
                   {/* To Do Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=todo" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
@@ -701,7 +715,14 @@ export default function ProjectsTD() {
                   {/* In Progress Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=in_progress" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -717,7 +738,14 @@ export default function ProjectsTD() {
                   {/* Paused Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=paused' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=paused" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -733,7 +761,14 @@ export default function ProjectsTD() {
                   {/* Completed Tasks */}
                   <button
                     type="button"
-                    onClick={() => navigate('/td/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                    onClick={() =>
+                      navigate(
+                        "/td/teamtasks?status=completed" +
+                          (selectedProjectForView?.project_name
+                            ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                            : ""),
+                      )
+                    }
                     className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
@@ -893,13 +928,17 @@ export default function ProjectsTD() {
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                Project Manager
+                              </p>
                               <div className="flex items-center -space-x-3">
                                 <div
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
                                   title="Not assigned"
                                 >
-                                  <span className="text-slate-600 text-xs font-bold">PM</span>
+                                  <span className="text-slate-600 text-xs font-bold">
+                                    PM
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -907,56 +946,86 @@ export default function ProjectsTD() {
                         }
 
                         const maxCount = Math.max(pmIds.length, pmNames.length);
-                        const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
-                          const pId = pmIds[i];
-                          const pName = pmNames[i];
-                          const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                          const dName = pmEmp?.full_name || pName || "Unknown";
-                          const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
-                          return { key: i, dName, url };
-                        });
+                        const pmEntries = Array.from({ length: maxCount }).map(
+                          (_, i) => {
+                            const pId = pmIds[i];
+                            const pName = pmNames[i];
+                            const pmEmp = pId
+                              ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                              : null;
+                            const dName =
+                              pmEmp?.full_name || pName || "Unknown";
+                            const url = pmEmp?.profile_picture
+                              ? getGlobalProfileUrl(
+                                  pmEmp.id,
+                                  pmEmp.profile_picture,
+                                )
+                              : null;
+                            return { key: i, dName, url };
+                          },
+                        );
                         const visiblePm = pmEntries.slice(0, 3);
                         const pmRemaining = Math.max(0, pmEntries.length - 3);
                         const pmOverflowTitle =
-                          pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                          pmRemaining > 0
+                            ? pmEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                            : undefined;
 
                         return (
                           <div className="min-w-0">
                             <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                              {maxCount > 1 ? "Project Managers" : "Project Manager"}
+                              {maxCount > 1
+                                ? "Project Managers"
+                                : "Project Manager"}
                             </p>
-                            <div className="flex items-center -space-x-3">
-                              {visiblePm.map((entry) => (
-                                <div
-                                  key={entry.key}
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                  title={entry.dName}
-                                >
-                                  {entry.url ? (
-                                    <img
-                                      src={entry.url}
-                                      className="w-full h-full object-cover"
-                                      alt=""
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = ProfileIcon;
-                                      }}
-                                    />
+                            {maxCount === 1 ? (
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                  {visiblePm[0].url ? (
+                                    <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {entry.dName.charAt(0).toUpperCase()}
+                                      {visiblePm[0].dName.charAt(0).toUpperCase()}
                                     </div>
                                   )}
                                 </div>
-                              ))}
-                              {pmRemaining > 0 && (
-                                <div
-                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none"
-                                  title={pmOverflowTitle}
-                                >
-                                  +{pmRemaining}
-                                </div>
-                              )}
-                            </div>
+                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center -space-x-3">
+                                {visiblePm.map((entry) => (
+                                  <div key={entry.key} className="relative group shrink-0">
+                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                      {entry.url ? (
+                                        <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                          {entry.dName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                      {entry.dName}
+                                    </div>
+                                  </div>
+                                ))}
+                                {pmRemaining > 0 && (
+                                  <div className="relative group shrink-0">
+                                    <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                      +{pmRemaining}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                      {pmOverflowTitle}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -979,13 +1048,17 @@ export default function ProjectsTD() {
                         if (blIds.length === 0 && blNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                BIM Lead
+                              </p>
                               <div className="flex items-center -space-x-3">
                                 <div
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
                                   title="Not assigned"
                                 >
-                                  <span className="text-slate-600 text-xs font-bold">BL</span>
+                                  <span className="text-slate-600 text-xs font-bold">
+                                    BL
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -993,56 +1066,84 @@ export default function ProjectsTD() {
                         }
 
                         const maxCount = Math.max(blIds.length, blNames.length);
-                        const blEntries = Array.from({ length: maxCount }).map((_, i) => {
-                          const pId = blIds[i];
-                          const pName = blNames[i];
-                          const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                          const dName = blEmp?.full_name || pName || "Unknown";
-                          const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
-                          return { key: i, dName, url };
-                        });
+                        const blEntries = Array.from({ length: maxCount }).map(
+                          (_, i) => {
+                            const pId = blIds[i];
+                            const pName = blNames[i];
+                            const blEmp = pId
+                              ? allEmployees.find(
+                                  (e: any) => String(e.id) === pId,
+                                )
+                              : null;
+                            const dName =
+                              blEmp?.full_name || pName || "Unknown";
+                            const url = blEmp?.profile_picture
+                              ? getGlobalProfileUrl(
+                                  blEmp.id,
+                                  blEmp.profile_picture,
+                                )
+                              : null;
+                            return { key: i, dName, url };
+                          },
+                        );
                         const visibleBl = blEntries.slice(0, 3);
                         const blRemaining = Math.max(0, blEntries.length - 3);
                         const blOverflowTitle =
-                          blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+                          blRemaining > 0
+                            ? blEntries
+                                .slice(3)
+                                .map((e) => e.dName)
+                                .join(", ")
+                            : undefined;
 
                         return (
                           <div className="min-w-0">
                             <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
                               {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
                             </p>
-                            <div className="flex items-center -space-x-3">
-                              {visibleBl.map((entry) => (
-                                <div
-                                  key={entry.key}
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                  title={entry.dName}
-                                >
-                                  {entry.url ? (
-                                    <img
-                                      src={entry.url}
-                                      className="w-full h-full object-cover"
-                                      alt=""
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).src = ProfileIcon;
-                                      }}
-                                    />
+                            {maxCount === 1 ? (
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                  {visibleBl[0].url ? (
+                                    <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {entry.dName.charAt(0).toUpperCase()}
+                                      {visibleBl[0].dName.charAt(0).toUpperCase()}
                                     </div>
                                   )}
                                 </div>
-                              ))}
-                              {blRemaining > 0 && (
-                                <div
-                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none"
-                                  title={blOverflowTitle}
-                                >
-                                  +{blRemaining}
-                                </div>
-                              )}
-                            </div>
+                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center -space-x-3">
+                                {visibleBl.map((entry) => (
+                                  <div key={entry.key} className="relative group shrink-0">
+                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                      {entry.url ? (
+                                        <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                          {entry.dName.charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                      {entry.dName}
+                                    </div>
+                                  </div>
+                                ))}
+                                {blRemaining > 0 && (
+                                  <div className="relative group shrink-0">
+                                    <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                      +{blRemaining}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                      {blOverflowTitle}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -1117,38 +1218,69 @@ export default function ProjectsTD() {
                               setShowAllMembersModal(true);
                             };
 
-                            return (
-                              <>
+                            return memberIds.length === 1 ? (
+                              <div className="flex items-center gap-3">
+                                {visibleMembers.map((emp) => (
+                                  <div key={emp.id} className="flex items-center gap-3">
+                                    <div
+                                      className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
+                                    >
+                                      {getProfileImageUrl(emp) ? (
+                                        <img
+                                          src={getProfileImageUrl(emp)}
+                                          alt={emp.full_name || "Member"}
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            (
+                                              e.target as HTMLImageElement
+                                            ).src = ProfileIcon;
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                          {(emp.full_name || `E${emp.id}`).charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                      {emp.full_name || `Employee ${emp.id}`}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex items-center -space-x-3">
                                 {visibleMembers.length > 0
                                   ? visibleMembers.map((emp) => (
-                                      <div
-                                        key={emp.id}
-                                        className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
-                                        title={
-                                          emp.full_name || `Employee ${emp.id}`
-                                        }
-                                      >
-                                        {getProfileImageUrl(emp) ? (
-                                          <img
-                                            src={getProfileImageUrl(emp)}
-                                            alt={emp.full_name || "Member"}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => {
-                                              (
-                                                e.target as HTMLImageElement
-                                              ).src = ProfileIcon;
-                                            }}
-                                          />
-                                        ) : (
-                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                            {(emp.full_name || `E${emp.id}`)
-                                              .charAt(0)
-                                              .toUpperCase()}
-                                          </div>
-                                        )}
+                                      <div key={emp.id} className="relative group shrink-0">
+                                        <div
+                                          className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0"
+                                        >
+                                          {getProfileImageUrl(emp) ? (
+                                            <img
+                                              src={getProfileImageUrl(emp)}
+                                              alt={emp.full_name || "Member"}
+                                              className="w-full h-full object-cover"
+                                              onError={(e) => {
+                                                (
+                                                  e.target as HTMLImageElement
+                                                ).src = ProfileIcon;
+                                              }}
+                                            />
+                                          ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                              {(emp.full_name || `E${emp.id}`)
+                                                .charAt(0)
+                                                .toUpperCase()}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                          {emp.full_name || `Employee ${emp.id}`}
+                                        </div>
                                       </div>
                                     ))
-                                  : [1, 2, 3].map((j) => (
+                                  : hasIdsButNoResolved ? [1, 2, 3].map((j) => (
                                       <div
                                         key={j}
                                         className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 relative z-0"
@@ -1159,29 +1291,33 @@ export default function ProjectsTD() {
                                           className="w-full h-full object-cover"
                                         />
                                       </div>
-                                    ))}
+                                    )) : null}
                                 {(hasMore || hasIdsButNoResolved) && (
-                                  <div
-                                    role="button"
-                                    tabIndex={0}
-                                    className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all shrink-0 select-none"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      openAllMembersModal();
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" || e.key === " ") {
+                                  <div className="relative group shrink-0">
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                      onClick={(e) => {
                                         e.preventDefault();
+                                        e.stopPropagation();
                                         openAllMembersModal();
-                                      }
-                                    }}
-                                    title="Click to see all members"
-                                  >
-                                    +{remainingCount || memberIds.length}
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                          e.preventDefault();
+                                          openAllMembersModal();
+                                        }
+                                      }}
+                                    >
+                                      +{remainingCount || memberIds.length}
+                                    </div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                      Click to see all members
+                                    </div>
                                   </div>
                                 )}
-                              </>
+                              </div>
                             );
                           })()}
                         </div>
@@ -1810,7 +1946,9 @@ export default function ProjectsTD() {
                                             api
                                               .get<{
                                                 client_budget: number | null;
-                                              }>(`/api/vendors/client-budget?client_id=${p.client_name}`)
+                                              }>(
+                                                `/api/vendors/client-budget?client_id=${p.client_name}`,
+                                              )
                                               .then(({ data }) => {
                                                 if (
                                                   data.client_budget !== null &&

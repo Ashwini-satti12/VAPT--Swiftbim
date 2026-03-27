@@ -372,7 +372,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Create Team", path: "/vendor-bim-lead/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vendor-bim-lead/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Team Task", path: "/vendor-bim-lead/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
-          { name: "Communication", path: "/vendor-bim-lead/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          { name: "Communication Hub", path: "/vendor-bim-lead/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 
@@ -386,7 +386,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Create Team", path: "/vpm/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vpm/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Bidding", path: "/vpm/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
-          { name: "Communication", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          { name: "Communication Hub", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 

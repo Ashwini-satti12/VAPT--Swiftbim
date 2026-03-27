@@ -41,7 +41,7 @@ def _serialize_row(d):
 
 
 # Roles that see all company projects and tasks
-MANAGEMENT_ROLES = ("Technical Director", "CEO", "Project Manager", "BIM Lead", "BIM Coordinator")
+MANAGEMENT_ROLES = ("Technical Director", "CEO")
 
 
 @bp.route("/stats", methods=["GET"])
@@ -56,20 +56,19 @@ def stats():
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
-    # BIM Coordinator: only projects where they are coordinator or in members
+    # BIM Coordinator: matching frontend ProjectsBC.tsx (only bim_coordinator_id)
     if user_role in MANAGEMENT_ROLES:
         # Management roles: see all company projects and tasks
         _involved_where = "p.Company_id = %s"
     elif user_role == "BIM Coordinator":
-        _involved_where = """p.Company_id = %s AND (
-                p.bim_coordinator_id = %s
-                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
-            )"""
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0"""
+    elif user_role == "BIM Lead":
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0"""
     # BIM Modeler: only projects where user is in members list (team member)
     elif user_role == "BIM Modeler":
         _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"""
     else:
-        # Other roles: client_id, PM, lead, bim_coordinator_id, uploaderid, members
+        # Other roles (like Project Manager): client_id, PM, lead, bim_coordinator_id, uploaderid, members
         _involved_where = """p.Company_id = %s AND (
                 p.client_id = %s OR p.project_manager_id = %s OR p.lead_id = %s OR p.bim_coordinator_id = %s OR p.uploaderid = %s
                 OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
@@ -87,7 +86,9 @@ def stats():
 
         # Define params based on role for the JOIN query (matching _involved_where)
         if user_role == "BIM Coordinator":
-            t_params = (company_id, uid, uid, task_status)
+            t_params = (company_id, uid, task_status)
+        elif user_role == "BIM Lead":
+            t_params = (company_id, uid, task_status)
         elif user_role == "BIM Modeler":
             t_params = (company_id, uid, task_status)
         else:
@@ -125,11 +126,13 @@ def stats():
         elif user_role == "BIM Coordinator":
             sql = """SELECT COUNT(*) AS total_projects FROM projects
                      WHERE Company_id = %s
-                       AND (
-                         bim_coordinator_id = %s
-                         OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0
-                       )"""
-            params = [company_id, uid, uid]
+                       AND FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0"""
+            params = [company_id, uid]
+        elif user_role == "BIM Lead":
+            sql = """SELECT COUNT(*) AS total_projects FROM projects
+                     WHERE Company_id = %s
+                       AND FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0"""
+            params = [company_id, uid]
         elif user_role == "BIM Modeler":
             sql = """SELECT COUNT(*) AS total_projects FROM projects
                      WHERE Company_id = %s
@@ -160,10 +163,15 @@ def stats():
                     fallback_sql += " AND progress = 100"
                 cur.execute(fallback_sql, (company_id,))
             elif user_role == "BIM Coordinator":
-                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND (bim_coordinator_id = %s OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0)"
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0"
                 if status == "Completed":
                     fallback_sql += " AND progress = 100"
-                cur.execute(fallback_sql, (company_id, uid, uid))
+                cur.execute(fallback_sql, (company_id, uid))
+            elif user_role == "BIM Lead":
+                fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0"
+                if status == "Completed":
+                    fallback_sql += " AND progress = 100"
+                cur.execute(fallback_sql, (company_id, uid))
             elif user_role == "BIM Modeler":
                 fallback_sql = "SELECT COUNT(*) AS total_projects FROM projects WHERE Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(members,''), ','), ' ', '')) > 0"
                 if status == "Completed":
@@ -221,11 +229,11 @@ def priority_tasks():
         _involved_where = "p.Company_id = %s"
         params = [company_id, company_id, today]
     elif user_role == "BIM Coordinator":
-        _involved_where = """p.Company_id = %s AND (
-                p.bim_coordinator_id = %s
-                OR FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
-            )"""
-        params = [company_id, user_id, user_id, company_id, today]
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.bim_coordinator_id, ''), ' ', '')) > 0"""
+        params = [company_id, user_id, company_id, today]
+    elif user_role == "BIM Lead":
+        _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(IFNULL(p.lead_id, ''), ' ', '')) > 0"""
+        params = [company_id, user_id, company_id, today]
     elif user_role == "BIM Modeler":
         _involved_where = """p.Company_id = %s AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0"""
         params = [company_id, user_id, company_id, today]

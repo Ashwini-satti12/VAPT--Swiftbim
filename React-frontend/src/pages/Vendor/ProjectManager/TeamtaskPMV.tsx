@@ -15,8 +15,8 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
-import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
@@ -101,11 +101,19 @@ function FormDropdown({
                 <span className={value ? "text-black" : "text-[#8B8B8B]"}>
                     {displayLabel}
                 </span>
-                <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
+                <svg
+                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
             </button>
             {isOpen && (
                 <div
@@ -209,11 +217,19 @@ function TaskDropdown({
                         (selected ?? label)
                     )}
                 </span>
-                <img
-                    src={ArrowDown}
-                    alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                />
+                <svg
+                    className={`ml-2 w-2.5 h-2.5 shrink-0 text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
             </button>
             {isOpen && (
                 <div
@@ -294,6 +310,7 @@ interface Task {
 interface Employee {
     id: number;
     full_name: string;
+  active?: string;
 }
 
 interface Project {
@@ -702,32 +719,7 @@ export default function TeamtaskPMV() {
         pathname.includes("/teamtask");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
-    const STORAGE_KEY = "v_teamTask_localTasks";
-    const DELETED_IDS_KEY = "v_teamTask_deletedIds";
-    const loadDeletedIds = (): number[] => {
-        try {
-            const raw = localStorage.getItem(DELETED_IDS_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw);
-            return Array.isArray(parsed)
-                ? parsed.map(Number).filter((n) => !Number.isNaN(n))
-                : [];
-        } catch {
-            return [];
-        }
-    };
     const [list, setList] = useState<Task[]>([]);
-    const [localTasks, setLocalTasks] = useState<Task[]>(() => {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return [];
-            const parsed = JSON.parse(raw) as Task[];
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    });
-    const [deletedIds, setDeletedIds] = useState<number[]>(loadDeletedIds);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -749,12 +741,7 @@ export default function TeamtaskPMV() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
-    const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
-    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t: any) => {
+    const allTasks = list.filter((t: any) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -784,47 +771,31 @@ export default function TeamtaskPMV() {
         return true;
     });
 
-    const statusToLabel = (s: "todo" | "in_progress" | "completed"): string => {
-        return s === "todo"
-            ? "To Do"
-            : s === "in_progress"
-                ? "In Progress"
-                : "Completed";
+
+
+    const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
+        todo: "Todo",
+        in_progress: "InProgress",
+        completed: "Completed",
     };
 
     const handleMoveTask = (
         taskId: number,
         newStatus: "todo" | "in_progress" | "completed",
     ) => {
-        const label = statusToLabel(newStatus);
-        setLocalTasks((prev) => {
-            const idx = prev.findIndex((t) => t.id === taskId);
-            if (idx >= 0) {
-                const next = [...prev];
-                next[idx] = { ...next[idx], status: label };
-                return next;
-            }
-            const fromList = list.find((t) => t.id === taskId);
-            if (fromList) return [{ ...fromList, status: label }, ...prev];
-            return prev;
+        setList((prev) =>
+            prev.map((t) =>
+                t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
+            ),
+        );
+
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
+            status: statusMap[newStatus],
+        }).catch((err) => {
+            console.error("Failed to update status:", err);
+            toast.error("Failed to update status");
         });
     };
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localTasks));
-        } catch {
-            // ignore quota or parse errors
-        }
-    }, [localTasks]);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(deletedIds));
-        } catch {
-            // ignore
-        }
-    }, [deletedIds]);
 
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
@@ -853,21 +824,22 @@ export default function TeamtaskPMV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/tasks/${task.id}`);
     };
 
     const confirmDeleteTask = () => {
         if (deleteTaskId === null) return;
-        api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0", employeeid: "all" } })
-                .then((res: { data: { tasks?: Task[] } }) => setList(res.data.tasks ?? []));
-            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeletedIds((prev) =>
-                prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
-            );
-        }).finally(() => {
-            setDeleteTaskId(null);
-        });
+        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
+            .then(() => {
+                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
+                toast.success("Task deleted");
+            })
+            .catch(() => {
+                toast.error("Failed to delete task");
+            })
+            .finally(() => {
+                setDeleteTaskId(null);
+            });
     };
 
     const resetTaskFormAndClose = () => {
@@ -1063,6 +1035,7 @@ export default function TeamtaskPMV() {
     }, [isTeam, statusFilter]);
 
     const modalAssignOptions = employeesForAssignDropdown
+        .filter(isEmployeeActiveForProjectAssignment)
         .filter((e) => (e.full_name || "").trim() !== "")
         .map((e) => ({ value: e.full_name, label: e.full_name }));
 
@@ -1532,7 +1505,7 @@ export default function TeamtaskPMV() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Project Name
+                                        Project
                                     </label>
                                     <FormDropdown
                                         label="Select Project"
@@ -1562,12 +1535,12 @@ export default function TeamtaskPMV() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Select Module
+                                        Team/Department
                                     </label>
                                     <FormDropdown
-                                        label="Select Module"
+                                        label="Select Team"
                                         options={[
-                                            { value: "", label: "Select Module" },
+                                            { value: "", label: "Select Team" },
                                             ...modalModuleOptions,
                                         ]}
                                         value={addTaskForm.module}
@@ -1588,7 +1561,7 @@ export default function TeamtaskPMV() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name
+                                        Task Name *
                                     </label>
                                     <div className="flex">
                                         <input
@@ -1600,7 +1573,7 @@ export default function TeamtaskPMV() {
                                                     taskName: e.target.value,
                                                 }))
                                             }
-                                            placeholder="Enter Task / Select Task"
+                                            placeholder="Enter task name"
                                             className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
                                                 }`}
                                         />
@@ -1618,15 +1591,15 @@ export default function TeamtaskPMV() {
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Type
+                                            Priority
                                         </label>
                                         <FormDropdown
                                             label="Select Type"
                                             options={[
-                                                { value: "", label: "Select Type" },
-                                                { value: "task", label: "Task" },
-                                                { value: "bug", label: "Bug" },
-                                                { value: "feature", label: "Feature" },
+                                                { value: "", label: "Priority" },
+                                                { value: "Low", label: "Low" },
+                                                { value: "Medium", label: "Medium" },
+                                                { value: "High", label: "High" },
                                             ]}
                                             value={addTaskForm.type}
                                             onChange={(v) =>

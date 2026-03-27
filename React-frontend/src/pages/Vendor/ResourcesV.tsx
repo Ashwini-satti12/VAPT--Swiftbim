@@ -4,7 +4,7 @@ import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import pmprofilebg from "../../assets/ProjectManager/consultant/pmprofilebg.jpg";
 import exportIcon from "../../assets/ProjectManager/consultant/exportIcon.svg";
 import mailIcon from "../../assets/ProjectManager/consultant/mailIcon.svg";
@@ -455,37 +455,37 @@ export default function ResourcesV() {
 
   const renderList = () => (
     <>
-      <div className="sticky z-50 bg-white mb-4 mt-2">
+      <div className="sticky z-50 bg-white mt-4 mb-4">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-          <h2 className="text-[24px] font-Gantari font-semibold text-[#353535] tracking-tight">
+          <h2 className="text-[24px] font-Gantari font-medium text-[#000000]">
             Resources
           </h2>
           {canAdd && (
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <button
                 onClick={() => setActiveView("add")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
               >
                 <FiPlus className="w-5 h-5" />
                 Add Worker
               </button>
               <button
                 onClick={() => setActiveView("invite")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
               >
                 <FiPlus className="w-5 h-5" />
                 Invite
               </button>
               <button
                 onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
               >
                 <img src={exportIcon} className="w-5 h-5" />
                 CSV
               </button>
               <button
                 onClick={() => setActiveView("inactive")}
-                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] sm:text-base whitespace-nowrap cursor-pointer"
               >
                 Manage Inactive
               </button>
@@ -496,18 +496,18 @@ export default function ResourcesV() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode("table")}
-              className={`p-2 rounded-full transition-all ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
             >
               <FiMenu className="w-5 h-5" />
             </button>
             <button
               onClick={() => setViewMode("card")}
-              className={`p-2 rounded-full transition-all ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
             >
               <FiGrid className="w-5 h-5" />
             </button>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto rounded-md">
             {viewMode === "table" && (
               <CustomDropdown
                 options={["10", "20", "30", "40"]}
@@ -517,7 +517,7 @@ export default function ResourcesV() {
                   setCurrentPage(1);
                 }}
                 placeholder="Show"
-                className="flex-1 sm:min-w-[120px]"
+                className="flex-1 sm:min-w-[120px] rounded-md"
                 styleType="header"
               />
             )}
@@ -529,7 +529,7 @@ export default function ResourcesV() {
                 setCurrentPage(1);
               }}
               placeholder="Status"
-              className="flex-1 sm:min-w-[120px]"
+              className="flex-1 sm:min-w-[120px] rounded-md"
               styleType="header"
             />
           </div>
@@ -556,7 +556,7 @@ export default function ResourcesV() {
                     />
                     <div className="absolute top-3 right-3">
                       <div
-                        className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${emp.active === "active" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"} text-[10px] font-bold border border-current/20`}
+                        className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${emp.active === "active" ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"} text-[10px] font-medium border border-current/20`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${emp.active === "active" ? "bg-emerald-500" : "bg-red-500"}`}
@@ -564,8 +564,8 @@ export default function ResourcesV() {
                         {emp.active === "active" ? "Online" : "Offline"}
                       </div>
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-3 bg-gradient-to-t from-black/60 to-transparent">
-                      <div className="w-12 h-12 rounded-full border-2 border-white overflow-hidden bg-slate-100 shrink-0">
+                    <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 bg-gradient-to-t from-black/60 to-transparent">
+                      <div className="w-16 h-16 rounded-full border-2 border-white overflow-hidden bg-slate-100 shrink-0">
                         {emp.profile_picture ? (
                           <img
                             src={getGlobalProfileUrl(
@@ -581,10 +581,10 @@ export default function ResourcesV() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-white font-bold text-lg truncate leading-tight">
+                        <h4 className="text-white font-medium text-[18px] font-gantari">
                           {toCamelCase(emp.full_name)}
                         </h4>
-                        <p className="text-white/80 text-xs truncate">
+                        <p className="text-white/80 text-[14px] font-gantari">
                           {emp.user_role || "Not assigned"}
                         </p>
                       </div>
@@ -594,21 +594,21 @@ export default function ResourcesV() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => window.open(`mailto:${emp.email}`)}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[11px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#d0e4ff]"
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={mailIcon} className="w-3.5 h-3.5" />
                         Mail
                       </button>
                       <button
                         onClick={() => navigate("/v/communication")}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[11px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#d0e4ff]"
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={messageIcon} className="w-3.5 h-3.5" />
-                        Chat
+                        Message
                       </button>
                       <button
                         onClick={() => window.open(`tel:${emp.phone_number}`)}
-                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[11px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#d0e4ff]"
+                        className="flex-1 py-2 bg-[#E8F1FF] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={callIcon} className="w-3.5 h-3.5" />
                         Call
@@ -641,7 +641,7 @@ export default function ResourcesV() {
                             profile_picture: null,
                           });
                         }}
-                        className="py-2 bg-[#DD4342] text-white text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-[#c93d3d] transition-colors"
+                        className="py-2 bg-[#DD4342] text-white text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <img src={eyeIcon} className="w-4 h-4" />
                         View
@@ -674,10 +674,10 @@ export default function ResourcesV() {
                               profile_picture: null,
                             });
                           }}
-                          className="py-2 bg-[#F2F2F2] text-[#353535] text-[12px] font-bold rounded flex items-center justify-center gap-1.5 hover:bg-slate-200 transition-colors"
+                          className="py-2 bg-[#F2F2F2] text-[#353535] text-[14px] font-medium rounded-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
                           <img src={editIcon} className="w-4 h-4" />
-                          Add Email
+                          Edit Details
                         </button>
                       )}
                     </div>
@@ -691,19 +691,19 @@ export default function ResourcesV() {
             <table className="min-w-full">
               <thead className="bg-[#F9F9F9]">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-[#353535]">
+                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
                     ID
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-[#353535]">
+                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
                     Name
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-bold text-[#353535]">
+                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
                     Email
                   </th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-[#353535]">
+                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
                     Contact
                   </th>
-                  <th className="px-6 py-4 text-center text-sm font-bold text-[#353535]">
+                  <th className="px-6 py-4 text-left text-[16px] font-medium text-[#353535]">
                     Status
                   </th>
                 </tr>
@@ -714,7 +714,7 @@ export default function ResourcesV() {
                     key={emp.id}
                     className={idx % 2 === 1 ? "bg-[#FCFCFC]" : "bg-white"}
                   >
-                    <td className="px-6 py-4 text-xs font-bold text-[#717171] uppercase">
+                    <td className="px-6 py-4 text-[14px] font-medium text-[#353535]">
                       {emp.empid ||
                         `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
                     </td>
@@ -729,35 +729,35 @@ export default function ResourcesV() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] font-bold">
+                          <div className="w-full h-full flex items-center justify-center text-[14px] font-medium">
                             ?
                           </div>
                         )}
                       </div>
-                      <span className="text-sm font-bold text-[#353535]">
+                      <span className="text-[14px] font-medium text-[#353535]">
                         {toCamelCase(emp.full_name)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-[#717171]">
+                    <td className="px-6 py-4 text-[14px] font-medium text-[#353535]">
                       {emp.email}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => window.open(`mailto:${emp.email}`)}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center hover:bg-[#d0e4ff]"
+                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                         >
                           <img src={mailIcon} className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => navigate("/v/communication")}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center hover:bg-[#d0e4ff]"
+                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                         >
                           <img src={messageIcon} className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => window.open(`tel:${emp.phone_number}`)}
-                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center hover:bg-[#d0e4ff]"
+                          className="w-8 h-8 rounded-full bg-[#E8F1FF] flex items-center justify-center cursor-pointer"
                         >
                           <img src={callIcon} className="w-4 h-4" />
                         </button>
@@ -791,112 +791,60 @@ export default function ResourcesV() {
       {/* Detail Modal */}
       {showDetailsModal && selectedEmployee && (
         <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl relative p-6 md:p-8">
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="absolute top-4 right-4 text-slate-500 hover:text-slate-800"
-            >
+          <div className="bg-white rounded-md w-full max-w-3xl relative flex flex-col max-h-[80vh] overflow-hidden">
+            <div className="flex items-start justify-between p-6 md:p-8 shrink-0">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              >
               <FiX className="w-5 h-5" />
-            </button>
+              </button>
 
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-[#353535]">
+              <div className="flex-1 text-center mx-6 min-w-0">
+                <h3 className="text-[24px] font-medium text-[#000000]  font-gantari">
                   {toCamelCase(selectedEmployee.full_name)}
                 </h3>
-                <p className="text-[#717171] text-sm mt-1">
+                <p className="text-[#353535] text-[16px] font-medium font-gantari">
                   {selectedEmployee.user_role || "Worker"}
                 </p>
               </div>
+
               <span
-                className={`px-4 py-1.5 rounded-full text-xs font-bold ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
+                className={`px-4 py-1 rounded-full text-[12px] font-medium shrink-0 mt-2 ${selectedEmployee.active === "active" ? "bg-[#E0FFE8] text-[#008F22]" : "bg-[#FFEEEE] text-[#E00100]"}`}
               >
                 ● {selectedEmployee.active === "active" ? "Active" : "Inactive"}
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-y-6 gap-x-12 border-t border-[#F0F0F0] pt-6 text-sm">
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Login Email
-                </p>
-                <p className="text-[#353535] font-semibold break-all">
-                  {selectedEmployee.email || "—"}
-                </p>
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex justify-center ">
+              <div className="flex flex-col text-left ">
+                {[
+                  { label: "Login Email", value: selectedEmployee.email },
+                  { label: "Phone Number", value: selectedEmployee.phone_number },
+                  { label: "Login Role", value: selectedEmployee.user_role },
+                  { label: "Designation", value: selectedEmployee.designation },
+                  { label: "Discipline", value: selectedEmployee.discipline },
+                  { label: "Years of Experience", value: selectedEmployee.years_of_experience },
+                  { label: "Resource Role", value: selectedEmployee.resource_role },
+                  { label: "Expertise", value: selectedEmployee.expertise },
+                  { label: "Software", value: selectedEmployee.software },
+                  { label: "Certifications", value: selectedEmployee.certifications },
+                  { label: "Projects Worked On", value: selectedEmployee.projects_worked_on },
+                  { label: "Address", value: selectedEmployee.address },
+                ].map(({ label, value }) =>
+                  value ? (
+                    <div key={label} className="flex items-center py-2 gap-6">
+                      <span className="text-[#353535] font-gantari text-[14px] font-medium w-52 shrink-0">
+                        {label}
+                      </span>
+                      <span className="text-[#353535] font-gantari text-[14px] font-medium shrink-0">:</span>
+                      <span className="text-[#000000] font-gantari text-[14px] font-semibold break-words">
+                        {value}
+                      </span>
+                    </div>
+                  ) : null
+                )}
               </div>
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Login Role
-                </p>
-                <p className="text-[#353535] font-semibold">
-                  {selectedEmployee.user_role || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Designation
-                </p>
-                <p className="text-[#353535] font-semibold">
-                  {selectedEmployee.designation || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Discipline
-                </p>
-                <p className="text-[#353535] font-semibold">
-                  {selectedEmployee.discipline || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Years of Experience
-                </p>
-                <p className="text-[#353535] font-semibold">
-                  {selectedEmployee.years_of_experience || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Resource Role
-                </p>
-                <p className="text-[#353535] font-semibold">
-                  {selectedEmployee.resource_role || "—"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Expertise
-                </p>
-                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
-                  {selectedEmployee.expertise || "—"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Software
-                </p>
-                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
-                  {selectedEmployee.software || "—"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Certifications
-                </p>
-                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
-                  {selectedEmployee.certifications || "—"}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-[#717171] text-xs font-bold uppercase mb-1">
-                  Projects Worked On
-                </p>
-                <p className="text-[#353535] font-semibold leading-relaxed whitespace-pre-line">
-                  {selectedEmployee.projects_worked_on || "—"}
-                </p>
-              </div>
-            </div>
 
             {canAdd && (
               <div
@@ -950,6 +898,7 @@ export default function ResourcesV() {
                                 </div> */}
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
@@ -957,16 +906,16 @@ export default function ResourcesV() {
       {activeView === "list" ? (
         renderList()
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-white custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white custom-scrollbar">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <button
                 onClick={() => setActiveView("list")}
-                className="p-2.5 rounded-xl bg-[#F4F4F4] text-[#353535] hover:bg-slate-200 transition-all"
+                className="p-2 rounded-md bg-[#F2F2F2] text-[#353535] cursor-pointer"
               >
-                <FiX className="w-5 h-5" />
+                <img src={backIcon} alt="close" />
               </button>
-              <h3 className="text-xl sm:text-2xl font-bold text-[#353535]">
+              <h3 className="sm:text-[24px] font-gantari font-medium text-[#000000]">
                 {activeView === "add"
                   ? "Add New Worker"
                   : activeView === "edit"
@@ -993,12 +942,15 @@ export default function ResourcesV() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
-                        Full Name *
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                        Full Name
+                        <span className="text-red-500">*</span>
                       </label>
+                      
                       <input
                         type="text"
                         placeholder="Worker Full Name"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
                           activeView === "add"
                             ? form.full_name
@@ -1012,17 +964,19 @@ export default function ResourcesV() {
                                 full_name: e.target.value,
                               })
                         }
-                        className="w-full px-4 py-3 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/20"
+                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
-                        Email Address *
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
+                        Email Address
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="email"
                         placeholder="email@example.com"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
                           activeView === "add" ? form.email : editForm.email
                         }
@@ -1034,12 +988,12 @@ export default function ResourcesV() {
                                 email: e.target.value,
                               })
                         }
-                        className="w-full px-4 py-3 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/20"
+                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Password{" "}
                         {activeView === "edit" &&
                           "(Leave blank to keep current)"}
@@ -1047,6 +1001,7 @@ export default function ResourcesV() {
                       <input
                         type="password"
                         placeholder="••••••••"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
                           activeView === "add"
                             ? form.password
@@ -1060,17 +1015,17 @@ export default function ResourcesV() {
                                 password: e.target.value,
                               })
                         }
-                        className="w-full px-4 py-3 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/20"
+                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                         required={activeView === "add"}
                       />
                     </div>
                   </div>
-                  <div className="space-y-6">
+                  <div className="space-y-6 ">
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Role
                       </label>
-                      <CustomDropdown
+                      <CustomDropdown 
                         options={
                           roleOptions.length
                             ? roleOptions
@@ -1087,10 +1042,12 @@ export default function ResourcesV() {
                             : setEditForm({ ...editForm, user_role: v })
                         }
                         placeholder="Select Role"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                        
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Department
                       </label>
                       <CustomDropdown
@@ -1115,15 +1072,17 @@ export default function ResourcesV() {
                             : setEditForm({ ...editForm, department: v })
                         }
                         placeholder="Select Department"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-[#353535] mb-2">
+                      <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Phone
                       </label>
                       <input
                         type="text"
                         placeholder="+1 234 567 890"
+                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
                         value={
                           activeView === "add"
                             ? form.phone_number
@@ -1137,12 +1096,12 @@ export default function ResourcesV() {
                                 phone_number: e.target.value,
                               })
                         }
-                        className="w-full px-4 py-3 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/20"
+                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
                       />
                     </div>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-sm font-bold text-[#353535] mb-2">
+                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                       Address
                     </label>
                     <textarea
@@ -1158,12 +1117,13 @@ export default function ResourcesV() {
                               address: e.target.value,
                             })
                       }
-                      className="w-full px-4 py-3 bg-[#F4F4F4] rounded-lg border-none text-sm outline-none focus:ring-1 focus:ring-[#DD4342]/20 resize-none"
+                      className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all resize-none"
                       placeholder="Residential or Office Address"
+                      placeholder-class="text-[#353535] text-[14px] font-medium"
                     ></textarea>
                   </div>
                   <div className="col-span-full">
-                    <label className="block text-sm font-bold text-[#353535] mb-2">
+                    <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                       Profile Picture
                     </label>
                     <div className="flex bg-[#F4F4F4] rounded-lg overflow-hidden border border-transparent focus-within:border-[#DD4342]/30 transition-all">
@@ -1173,7 +1133,7 @@ export default function ResourcesV() {
                           : editForm.profile_picture
                         )?.name || "Choose JPG/JPEG Image"}
                       </div>
-                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-sm font-bold cursor-pointer hover:bg-slate-300 transition-colors">
+                      <label className="px-6 py-3 bg-[#EAEAEA] text-[#353535] text-[14px] font-medium transition-all cursor-pointer">
                         Browse
                         <input
                           type="file"
@@ -1199,14 +1159,14 @@ export default function ResourcesV() {
                   <button
                     type="button"
                     onClick={() => setActiveView("list")}
-                    className="px-10 py-3 bg-[#F4F4F4] text-[#353535] font-bold rounded-lg hover:bg-slate-200 transition-all"
+                    className="px-5 py-2 bg-[#F2F2F2] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={addSubmitting || editSubmitting}
-                    className="px-14 py-3 bg-[#DD4342] text-white font-bold rounded-lg hover:bg-[#c93d3d] transition-all disabled:opacity-50"
+                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
                   >
                     {activeView === "add"
                       ? addSubmitting
@@ -1222,30 +1182,32 @@ export default function ResourcesV() {
               <form onSubmit={handleInvite} className="space-y-10">
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-bold text-[#353535] mb-2">
+                    <label className="block text-[16px] font-medium text-[#353535] mb-2">
                       Email Addresses
                     </label>
                     <textarea
                       value={inviteEmails}
                       onChange={(e) => setInviteEmails(e.target.value)}
                       rows={5}
-                      className="w-full px-5 py-4 bg-[#F4F4F4] rounded-xl border-none outline-none text-sm leading-relaxed"
+                      className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
                       placeholder="email1@example.com, email2@example.com"
+                      placeholder-class="text-[#353535] text-[14px] font-medium"
                     ></textarea>
-                    <p className="text-[11px] text-[#717171] mt-2 italic px-1">
+                    <p className="text-[14px] text-[#353535] mt-2 italic px-1">
                       * Separate multiple emails with commas.
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-[#353535] mb-2">
+                    <label className="block text-[16px] font-medium text-[#353535] mb-2">
                       Message (Optional)
                     </label>
                     <textarea
                       value={inviteMessage}
                       onChange={(e) => setInviteMessage(e.target.value)}
                       rows={3}
-                      className="w-full px-5 py-4 bg-[#F4F4F4] rounded-xl border-none outline-none text-sm leading-relaxed"
+                      className="w-full px-5 py-4 bg-[#F2F3F4] rounded-md border-none outline-none text-sm leading-relaxed"
                       placeholder="Welcome to our team!"
+                      placeholder-class="text-[#353535] text-[14px] font-medium"
                     ></textarea>
                   </div>
                 </div>
@@ -1253,7 +1215,7 @@ export default function ResourcesV() {
                   <button
                     type="submit"
                     disabled={inviteSubmitting}
-                    className="px-16 py-3.5 bg-[#DD4342] text-white font-bold rounded-xl hover:bg-[#c93d3d] transition-all disabled:opacity-50 shadow-lg shadow-red-100"
+                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] text-[14px] font-medium rounded-md cursor-pointer"
                   >
                     {inviteSubmitting ? "Sending..." : "Send Invitations"}
                   </button>
@@ -1261,13 +1223,13 @@ export default function ResourcesV() {
               </form>
             ) : activeView === "inactive" ? (
               <div className="space-y-8">
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
-                  <p className="text-sm text-[#717171] leading-relaxed">
+                <div className="p-4 bg-[#F2F3F4] border border-[#F0F0F0] rounded-md">
+                  <p className="text-[14px] text-[#353535] leading-relaxed">
                     Select workers to mark as inactive. Inactive workers will no
                     longer appear in project assignment lists or dropdowns.
                   </p>
                 </div>
-                <div className="border border-[#F0F0F0] rounded-xl overflow-hidden divide-y divide-[#F0F0F0]">
+                <div className="border border-[#F0F0F0] rounded-md overflow-hidden divide-y divide-[#F0F0F0]">
                   {list.length ? (
                     list.map((emp) => (
                       <div
@@ -1291,24 +1253,24 @@ export default function ResourcesV() {
                           </div>
                           <div className="flex flex-col">
                             <span
-                              className={`text-sm font-bold ${emp.active !== "active" ? "text-slate-400" : "text-[#353535]"}`}
+                              className={`text-[14px] font-medium ${emp.active !== "active" ? "text-slate-400" : "text-[#353535]"}`}
                             >
                               {emp.full_name}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                            <span className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
                               {emp.empid || "No ID"}
                             </span>
                           </div>
                         </div>
                         {emp.active !== "active" && (
-                          <span className="text-[10px] font-bold text-red-500 uppercase px-2 py-0.5 bg-red-50 rounded">
+                          <span className="text-[10px] font-medium text-red-500 uppercase px-2 py-0.5 bg-red-50 rounded">
                             Inactive
                           </span>
                         )}
                       </div>
                     ))
                   ) : (
-                    <div className="p-8 text-center text-slate-400 font-bold">
+                    <div className="p-8 text-center text-[#353535] font-medium">
                       No workers found.
                     </div>
                   )}
@@ -1320,14 +1282,14 @@ export default function ResourcesV() {
                       setActiveView("list");
                       setInactiveIds([]);
                     }}
-                    className="px-10 py-3 bg-[#F4F4F4] text-[#353535] font-bold rounded-lg hover:bg-slate-200 transition-all"
+                    className="px-5 py-2 bg-[#F2F2F2] text-[#353535] font-medium rounded-md text-[14px] cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleInactive}
                     disabled={!inactiveIds.length || inactiveSubmitting}
-                    className="px-14 py-3 bg-[#DD4342] text-white font-bold rounded-lg hover:bg-[#c93d3d] transition-all disabled:opacity-50"
+                    className="px-5 py-2 bg-[#DBE9FE] text-[#353535] font-medium rounded-md text-[14px] cursor-pointer"
                   >
                     {inactiveSubmitting ? "Updating..." : "Update Status"}
                   </button>

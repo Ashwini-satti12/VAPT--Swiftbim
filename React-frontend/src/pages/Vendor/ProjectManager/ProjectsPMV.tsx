@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
 import { VscEye } from "react-icons/vsc";
@@ -99,15 +100,21 @@ export default function ProjectsPMV() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editId, setEditId] = useState<number | null>(null);
 
-    const fetchProjects = () => {
-        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
+    const [searchParams] = useSearchParams();
+    const statusFilter = searchParams.get("status");
+
+    const fetchProjects = (status?: string | null) => {
+        const params: any = {};
+        if (status) params.status = status;
+
+        api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects", { params })
             .then(({ data }) => setList(data.projects ?? []))
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
 
     useEffect(() => {
-        fetchProjects();
+        fetchProjects(statusFilter);
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => {
                 const emps = data.employees ?? [];
@@ -790,15 +797,47 @@ export default function ProjectsPMV() {
                                                     </div>
                                                 </div>
                                                 <div className="border-t border-[#F1F1F1] pt-5 mt-auto flex items-center justify-between">
-                                                    <div className="flex -space-x-4">
-                                                        {memberIds.slice(0, 3).map(id => (
-                                                            <div key={id} className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
-                                                                {(getEmployeeName(id) || "?")[0]}
+                                                    <div className="flex items-center min-w-0">
+                                                        {memberIds.length === 0 ? (
+                                                            <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                        ) : memberIds.length === 1 ? (
+                                                            <div className="flex items-center gap-3">
+                                                                {(() => {
+                                                                    const id = memberIds[0];
+                                                                    return (
+                                                                        <>
+                                                                            <div className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                                                {(getEmployeeName(id) || "?")[0]}
+                                                                            </div>
+                                                                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                                                                {getEmployeeName(id) || "Unknown"}
+                                                                            </span>
+                                                                        </>
+                                                                    );
+                                                                })()}
                                                             </div>
-                                                        ))}
-                                                        {memberIds.length > 3 && (
-                                                            <div className="w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400">
-                                                                +{memberIds.length - 3}
+                                                        ) : (
+                                                            <div className="flex items-center -space-x-4">
+                                                                {memberIds.slice(0, 3).map(id => (
+                                                                    <div key={id} className="relative group shrink-0">
+                                                                        <div className="relative z-0 w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
+                                                                            {(getEmployeeName(id) || "?")[0]}
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                            {getEmployeeName(id) || "Unknown"}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                                {memberIds.length > 3 && (
+                                                                    <div className="relative group shrink-0">
+                                                                        <div className="relative z-10 w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">
+                                                                            +{memberIds.length - 3}
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                            {memberIds.length - 3} more
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </div>

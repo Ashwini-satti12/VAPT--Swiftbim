@@ -632,7 +632,7 @@ export default function DashboardTD() {
           </div>
           {/* Completed Projects */}
           <div
-            onClick={() => navigate("/td/projects")}
+            onClick={() => navigate("/td/projects?status=Completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
@@ -644,7 +644,7 @@ export default function DashboardTD() {
           </div>
           {/* In-Progress Tasks */}
           <div
-            onClick={() => navigate("/td/mytasks")}
+            onClick={() => navigate("/td/teamtasks?status=in_progress")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
@@ -656,7 +656,7 @@ export default function DashboardTD() {
           </div>
           {/* Completed Tasks */}
           <div
-            onClick={() => navigate("/td/mytasks")}
+            onClick={() => navigate("/td/teamtasks?status=completed")}
             className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
@@ -840,6 +840,18 @@ export default function DashboardTD() {
                                             )}
                                             alt=""
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.style.display = 'none';
+                                              const parent = target.parentElement;
+                                              if (parent) {
+                                                const initials = person.full_name?.slice(0, 2).toUpperCase() || "?";
+                                                const fallback = document.createElement('div');
+                                                fallback.className = "w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]";
+                                                fallback.innerText = initials;
+                                                parent.appendChild(fallback);
+                                              }
+                                            }}
                                           />
                                         ) : (
                                           <div className="w-full h-full bg-[#E5E5E5] flex items-center justify-center text-[11px] font-bold text-[#353535]">
