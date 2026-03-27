@@ -1020,7 +1020,7 @@ export default function EmployeesPM() {
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Add New Consultant</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">Add New Consultant</h3>
               <div className="w-10" />
             </div>
 
@@ -1037,7 +1037,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Employee Name"
                       value={form.full_name}
                       onChange={(e) => setForm((f: any) => ({ ...f, full_name: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1078,7 +1078,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Password"
                       value={form.password}
                       onChange={(e) => setForm((f: any) => ({ ...f, password: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1110,7 +1110,7 @@ export default function EmployeesPM() {
                       type="date"
                       value={form.dob}
                       onChange={(e) => setForm((f: any) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       max={dobMaxDate}
                     />
                   </div>
@@ -1121,7 +1121,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Email"
                       value={form.email}
                       onChange={(e) => setForm((f: any) => ({ ...f, email: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       required
                     />
                   </div>
@@ -1141,16 +1141,16 @@ export default function EmployeesPM() {
                       type="date"
                       value={form.joining_date}
                       onChange={(e) => setForm((f: any) => ({ ...f, joining_date: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
                   <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                    <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                    <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
                       <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                         {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                       </div>
-                      <label className="px-5 py-3 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer transition-colors shrink-0 font-Gantari">
+                      <label className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-medium cursor-pointer transition-colors shrink-0 font-Gantari">
                         Browse File
                         <input
                           type="file"
@@ -1172,21 +1172,21 @@ export default function EmployeesPM() {
                   placeholder="Type your Address..."
                   value={form.address}
                   onChange={(e) => setForm((f: any) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
                 <button
                   type="button"
                   onClick={() => setActiveView('list')}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={addSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
                 >
                   {addSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1208,7 +1208,7 @@ export default function EmployeesPM() {
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">Edit Consultant Details</h3>
+              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">Edit Consultant Details</h3>
               <div className="w-10" />
             </div>
 
@@ -1223,7 +1223,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Employee Name"
                     value={editForm.full_name}
                     onChange={(e) => setEditForm((f: any) => ({ ...f, full_name: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
                   />
@@ -1250,7 +1250,7 @@ export default function EmployeesPM() {
                             phone_number: e.target.value.replace(/\D/g, '').slice(0, getPhoneLength(f.country_code)),
                           }))
                         }
-                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                        className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       />
                     </div>
                   </div>
@@ -1262,7 +1262,7 @@ export default function EmployeesPM() {
                       placeholder="******** (password hidden)"
                       value={editForm.password}
                       onChange={(e) => setEditForm((f: any) => ({ ...f, password: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     disabled
                     />
                   </div>
@@ -1293,7 +1293,7 @@ export default function EmployeesPM() {
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f: any) => ({ ...f, accountnumber: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 </div>
@@ -1306,7 +1306,7 @@ export default function EmployeesPM() {
                       type="date"
                       value={editForm.dob}
                       onChange={(e) => setEditForm((f: any) => ({ ...f, dob: e.target.value }))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       max={dobMaxDate}
                     />
                   </div>
@@ -1317,7 +1317,7 @@ export default function EmployeesPM() {
                     placeholder="Enter Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm((f: any) => ({ ...f, email: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52] disabled:opacity-70 disabled:cursor-not-allowed"
                     required
                     disabled
                   />
@@ -1338,7 +1338,7 @@ export default function EmployeesPM() {
                     type="date"
                     value={editForm.doj}
                     onChange={(e) => setEditForm((f: any) => ({ ...f, doj: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div>
@@ -1348,12 +1348,12 @@ export default function EmployeesPM() {
                     placeholder="0000$"
                     value={editForm.salary}
                     onChange={(e) => setEditForm((f: any) => ({ ...f, salary: e.target.value }))}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   />
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Update Profile Picture</label>
-                  <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                  <div className="flex items-center bg-[#F4F4F4] rounded-md overflow-hidden">
                     <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                       {editForm.profile_picture ? editForm.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                     </div>
@@ -1379,7 +1379,7 @@ export default function EmployeesPM() {
                   placeholder="Type your Address..."
                   value={editForm.address}
                   onChange={(e) => setEditForm((f: any) => ({ ...f, address: e.target.value }))}
-                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
+                  className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-md font-Gantari transition-all outline-none resize-none focus:border-[#AEACAC52]"
                 />
               </div>
 
@@ -1417,14 +1417,14 @@ export default function EmployeesPM() {
                 <button
                   type="button"
                   onClick={() => { setActiveView('list'); setEditId(null); }}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#12141D] font-medium text-[16px] font-gantari cursor-pointer"
                 >
                   {editSubmitting ? 'Submitting...' : 'Submit'}
                 </button>
@@ -1436,16 +1436,16 @@ export default function EmployeesPM() {
 
       {activeView === 'invite' && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[20px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
+          <div className="bg-white rounded-[10px] max-w-[813px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative">
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInviteEmails(''); setInviteMessage(''); }}
-                className="absolute left-0 p-2.5 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] text-center">Invite New Consultant</h3>
+              <h1 className="text-[24px] font-medium text-[#000000] text-center">Invite New Consultant</h1>
             </div>
 
             <form onSubmit={handleInvite} className="space-y-8 overflow-y-auto custom-scrollbar pr-2">
@@ -1455,7 +1455,7 @@ export default function EmployeesPM() {
                   value={inviteEmails}
                   onChange={(e) => setInviteEmails(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-5 py-4 bg-[#F2F2F2] border-none rounded-md text-[14px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
                   placeholder="Enter Multiple Email addresses separated by commas,"
                 />
                 <p className="text-[14px] text-[#666666] mt-3 font-medium">Separate multiple emails with commas (eg., email01@eg.com)</p>
@@ -1467,7 +1467,7 @@ export default function EmployeesPM() {
                   value={inviteMessage}
                   onChange={(e) => setInviteMessage(e.target.value)}
                   rows={4}
-                  className="w-full px-5 py-4 bg-[#F4F4F4] border-none rounded-[10px] text-[15px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
+                  className="w-full px-5 py-4 bg-[#F2F2F2] border-none rounded-md text-[14px] placeholder:text-[#979797] font-medium transition-all outline-none resize-none leading-relaxed"
                   placeholder="Enter your Invitation Message.,"
                 />
               </div>
@@ -1476,7 +1476,7 @@ export default function EmployeesPM() {
                 <button
                   type="submit"
                   disabled={inviteSubmitting}
-                  className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] disabled:opacity-50 transition-all min-w-[200px] cursor-pointer"
+                  className="px-5 py-2 rounded-md bg-[#D1E6FF] text-[#12141D] font-medium text-[16px] cursor-pointer"
                 >
                   {inviteSubmitting ? 'Sending...' : 'Send Invitations'}
                 </button>
@@ -1489,7 +1489,7 @@ export default function EmployeesPM() {
 
       {activeView === 'inactive' && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[2px]">
-          <div className="bg-white rounded-[20px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
+          <div className="bg-white rounded-[10px] max-w-[950px] w-full max-h-[90vh] overflow-hidden p-8 sm:p-10 relative shadow-2xl flex flex-col font-Gantari">
             <div className="flex items-center justify-center mb-8 relative shrink-0">
               <button
                 type="button"
@@ -1498,7 +1498,7 @@ export default function EmployeesPM() {
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202] text-center">Manage In-active Consultants</h3>
+              <h3 className="text-[24px] font-medium text-[#000000] text-center">Manage In-active Consultants</h3>
             </div>
 
             <div className="shrink-0 mb-8 px-4">
@@ -1510,7 +1510,7 @@ export default function EmployeesPM() {
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-[15px] custom-scrollbar mb-10">
+            <div className="flex-1 overflow-y-auto border border-[#E0E0E0] rounded-lg custom-scrollbar mb-10">
               {(() => {
                 const grouped = list.reduce((acc: Record<string, Employee[]>, emp) => {
                   const role = emp.user_role || 'General';
@@ -1562,7 +1562,7 @@ export default function EmployeesPM() {
               <button
                 type="button"
                 onClick={() => { setActiveView('list'); setInactiveIds([]); }}
-                className="px-12 py-3 rounded-[5px] bg-[#F4F4F4] text-[#353535] font-semibold text-[16px] transition-all min-w-[150px] cursor-pointer"
+                className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#12141D] font-medium text-[16px] cursor-pointer"
               >
                 Discard
               </button>
@@ -1570,7 +1570,7 @@ export default function EmployeesPM() {
                 type="button"
                 onClick={handleInactive}
                 disabled={!inactiveIds.length || inactiveSubmitting}
-                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
+                className="px-5 py-2 rounded-md bg-[#D1E6FF] text-[#12141D] font-medium text-[16px] cursor-pointer"
               >
                 {inactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>
@@ -1582,22 +1582,22 @@ export default function EmployeesPM() {
 
       {showDetailsModal && selectedEmployee && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/10 backdrop-blur-[3px]">
-          <div className="bg-white rounded-[15px] max-w-[520px] w-full max-h-[90vh] overflow-hidden px-4 py-4 relative shadow-2xl flex flex-col gap-3 font-Gantari">
+          <div className="bg-white rounded-[15px] max-w-[620px] w-full max-h-[90vh] overflow-hidden px-4 py-4 relative shadow-2xl flex flex-col gap-3 font-Gantari">
             {/* Header */}
             <div className="flex items-center justify-center relative shrink-0">
               <button
                 type="button"
                 onClick={() => { setShowDetailsModal(false); setSelectedEmployee(null); }}
-                className="absolute left-0 p-2 rounded-[5px] bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
+                className="absolute left-0 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
               >
                 <FiX className="w-5 h-5 font-bold" />
               </button>
-              <h3 className="text-[24px] font-semibold text-[#020202]">View Details</h3>
+              <h1 className="text-[24px] font-semibold text-[#020202]">View Details</h1>
             </div>
 
             {/* Profile Section: show uploaded photo if available, otherwise initials */}
-            <div className="flex items-center gap-2 px-0">
-              <div className="w-[38px] h-[38px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
+            <div className="flex items-center justify-start gap-8 px-20">
+              <div className="w-[90px] h-[90px] rounded-full bg-[#F4F4F4] shrink-0 overflow-hidden flex items-center justify-center">
                 {selectedEmployee.profile_picture && selectedEmployee.profile_picture.trim() ? (
                   <img
                     src={getProfileUrl(selectedEmployee.profile_picture)}
@@ -1609,14 +1609,14 @@ export default function EmployeesPM() {
                     }}
                   />
                 ) : (
-                  <span className="text-[32px] font-bold text-[#000000]">
+                  <span className="text-[35px] font-semibold text-[#000000]">
                     {toCamelCase(selectedEmployee.full_name).charAt(0) || 'U'}
                   </span>
                 )}
               </div>
-              <div className="flex flex-col gap-1">
-                <h4 className="text-[18px] font-bold text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
-                <p className="text-[14px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
+              <div className="flex flex-col">
+                <h4 className="text-[28px] font-medium text-[#000000] font-Gantari">{toCamelCase(selectedEmployee.full_name)}</h4>
+                <p className="text-[16px] font-semibold text-[#353535] font-Gantari">{selectedEmployee.empid || `EMP-${String(selectedEmployee.id).padStart(4, '0')}`}</p>
               </div>
             </div>
 

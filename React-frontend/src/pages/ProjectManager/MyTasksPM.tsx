@@ -698,9 +698,9 @@ export default function MyTasksPM() {
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task - match MytaskTD */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-          <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
+          <h1 className="text-[24px] font-semibold text-[#000000] font-Gantari">
             {isTeam ? "Team Task" : "My Task"}
-          </h2>
+          </h1>
           <div
             ref={dropdownsContainerRef}
             className="flex flex-wrap items-center gap-2 w-fit"
