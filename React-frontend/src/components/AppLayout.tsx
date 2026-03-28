@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Sidebar from './ProductSidebar/Sidebar';
 import ProductNavbar from './ProductNavbar/Navbar';
 import BgImage from '../assets/Bg.png';
@@ -36,6 +37,7 @@ export default function AppLayout() {
         <main className="flex-1 flex flex-col px-4 pb-5 min-w-0 min-h-0 overflow-hidden">
           <div className="h-full min-h-0 rounded-[15px] bg-white border border-[#AEACAC52] p-4 flex flex-col overflow-hidden">
             <Outlet />
+            <Toaster position="top-right" />
           </div>
         </main>
       </div>

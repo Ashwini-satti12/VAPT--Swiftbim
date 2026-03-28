@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
+import { toast } from "react-hot-toast";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -52,6 +53,8 @@ export default function VendorBimLeadTasks() {
 
 
     const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
     const fetchTasks = () => {
         api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
@@ -384,6 +387,54 @@ export default function VendorBimLeadTasks() {
                 </div>
             )}
 
+            {/* View Task Modal */}
+            {showViewModal && selectedTask && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-8">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">{selectedTask.category || "General"}</span>
+                                    <h3 className="text-2xl font-bold text-[#1A1A1A]">{selectedTask.task_name}</h3>
+                                </div>
+                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2]">
+                                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="space-y-6">
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
+                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Status</span>
+                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.status}</span>
+                                    </div>
+                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
+                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Priority</span>
+                                        <span className={`font-bold ${selectedTask.priority === "High" ? "text-red-500" : "text-[#1A1A1A]"}`}>{selectedTask.priority}</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                                        {(selectedTask.assigned_to_name || "?")[0]}
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase tracking-widest">Assigned To</span>
+                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.assigned_to_name || "Unassigned"}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-gray-400 block mb-2 uppercase">Description</span>
+                                    <p className="text-[#6B7280] leading-relaxed bg-gray-50 p-4 rounded-xl text-sm italic">
+                                        {selectedTask.description || "No description available."}
+                                    </p>
+                                </div>
+                                <div className="pt-4 flex justify-end">
+                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
