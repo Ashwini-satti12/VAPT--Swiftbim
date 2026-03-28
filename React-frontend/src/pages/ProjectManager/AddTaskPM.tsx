@@ -557,7 +557,7 @@ export default function AddTaskPM() {
             >
               <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">
               {editingTaskId !== null ? "Edit Task" : "Add New Task"}
             </h3>
             <div className="w-10" />
@@ -904,7 +904,7 @@ export default function AddTaskPM() {
                   </div>
                   <label
                     htmlFor="add-task-file-input"
-                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer font-Gantari shrink-0"
+                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-semibold cursor-pointer font-Gantari shrink-0"
                   >
                     Browse File
                   </label>
@@ -928,14 +928,14 @@ export default function AddTaskPM() {
               <button
                 type="button"
                 onClick={goBack}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari transition-all min-w-[160px]"
+                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#101827] font-semibold text-[16px] font-Gantari transition-all"
               >
                 Discard
               </button>
               <button
                 type="submit"
                 disabled={addSubmitting}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari disabled:opacity-50 transition-all min-w-[160px]"
+                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari disabled:opacity-50 transition-all"
               >
                 {addSubmitting ? "Submitting..." : "Submit"}
               </button>
