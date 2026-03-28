@@ -46,6 +46,13 @@ const firstCsvValue = (value: string | undefined): string => {
     .map((v) => v.trim())
     .filter(Boolean)[0] ?? '';
 };
+
+const truncateFileName = (name: string, maxLen = 25) => {
+  const lastDot = name.lastIndexOf('.');
+  const ext = lastDot !== -1 ? name.slice(lastDot) : '';
+  const base = lastDot !== -1 ? name.slice(0, lastDot) : name;
+  return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
+};
 function FormSelect({
   placeholder, options, value, onChange,
 }: { label?: string; placeholder: string; options: string[]; value: string; onChange: (v: string) => void; }) {
@@ -172,6 +179,7 @@ export default function ProjectsPM() {
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
+  const [editError, setEditError] = useState('');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -240,7 +248,6 @@ export default function ProjectsPM() {
       setCreateTotalHours(computedTotal);
     }
   }, [createPerDay, createStartDate, createEndDate]);
-  const projectDocumentUrl = "document.pdf";
   // Fetch employees + departments once at mount so View modal can resolve names
   useEffect(() => {
     let isMounted = true;
@@ -429,17 +436,17 @@ export default function ProjectsPM() {
         const userName = user?.full_name ?? '';
         const filtered = userId
           ? allProjects.filter((p) => {
-              // Include any project where this PM user is involved.
-              return (
-                csvIncludes(p.project_manager_id, userId) ||
-                csvIncludes(p.lead_id, userId) ||
-                csvIncludes(p.bim_coordinator_id, userId) ||
-                csvIncludes(p.member, userId) ||
-                csvIncludesName(p.project_manager_name, userName) ||
-                csvIncludesName(p.lead_name, userName) ||
-                csvIncludesName(p.bim_coordinator_name, userName)
-              );
-            })
+            // Include any project where this PM user is involved.
+            return (
+              csvIncludes(p.project_manager_id, userId) ||
+              csvIncludes(p.lead_id, userId) ||
+              csvIncludes(p.bim_coordinator_id, userId) ||
+              csvIncludes(p.member, userId) ||
+              csvIncludesName(p.project_manager_name, userName) ||
+              csvIncludesName(p.lead_name, userName) ||
+              csvIncludesName(p.bim_coordinator_name, userName)
+            );
+          })
           : allProjects;
         setList(filtered);
       })
@@ -536,30 +543,30 @@ export default function ProjectsPM() {
     <div className="bg-white h-full flex flex-col overflow-hidden">
       {/* Main Content View Switcher */}
       {showProjectView && selectedProjectForView ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Project View Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowProjectView(false);
-                  setSearchParams({}, { replace: true });
-                }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <div className="text-center">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
-                  {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
-                </h3>
-                <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
-                </div>
+        <div className="flex flex-col h-full bg-white">
+          {/* Project View Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => {
+                setShowProjectView(false);
+                setSearchParams({}, { replace: true });
+              }}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
+                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
+              </h3>
+              <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
+                <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
+                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
               </div>
             </div>
+          </div>
 
           {/* Project View Content */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-6">
@@ -866,7 +873,7 @@ export default function ProjectsPM() {
                     const memberIdsForView = selectedProjectForView.member
                       ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
                       : [];
-                    
+
                     if (memberIdsForView.length === 0) {
                       return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
                     }
@@ -1002,28 +1009,42 @@ export default function ProjectsPM() {
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <div className="flex items-center gap-3">
-                      {projectDocumentUrl ? (
-                        <>
-                          <span
-                            onClick={() => window.open(projectDocumentUrl, "_blank")}
-                            className="cursor-pointer text-md font-Gantari font-medium text-blue-600 hover:underline"
-                          >
-                            Document.pdf
-                          </span>
-                          <button
-                            onClick={() => {
-                              const link = document.createElement("a");
-                              link.href = projectDocumentUrl;
-                              link.download = "Document.pdf";
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                            }}
-                          >
-                            ⬇️
-                          </button>
-                        </>
+                    <div className="flex flex-col gap-2">
+                      {selectedProjectForView.document_attachment ? (
+                        selectedProjectForView.document_attachment
+                          .split(",")
+                          .map((file) => file.trim())
+                          .filter(Boolean)
+                          .map((fileName, idx) => {
+                            const url = `${api.defaults.baseURL}uploads/${fileName}`;
+                            return (
+                              <div key={idx} className="flex items-center gap-3">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-md font-Gantari font-medium text-blue-600 hover:underline"
+                                >
+                                  {truncateFileName ? truncateFileName(fileName) : fileName}
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const link = document.createElement("a");
+                                    link.href = url;
+                                    link.download = fileName;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  className="p-1 hover:bg-slate-100 rounded transition-colors"
+                                  title="Download"
+                                >
+                                  ⬇️
+                                </button>
+                              </div>
+                            );
+                          })
                       ) : (
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           No Document Available
@@ -1050,11 +1071,11 @@ export default function ProjectsPM() {
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
+                  {/* <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
                     <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
-                  </div>
+                  </div> */}
                   <div className="flex flex-col sm:flex-row sm:items-center">
                     <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
                     <span className="hidden sm:inline text-[#999999] mr-4">:</span>
@@ -1066,34 +1087,34 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showMilestones && currentProject ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Milestones Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => setShowMilestones(false)}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <div className="text-center">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
-                  Payment Milestones
-                </h3>
-                <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddMilestoneModal(true)}
-                className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
-                title="Add Milestone"
-              >
-                <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
-                Add Milestone
-              </button>
+        <div className="flex flex-col h-full bg-white">
+          {/* Milestones Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-8 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => setShowMilestones(false)}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <div className="text-center">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+                Payment Milestones
+              </h3>
+              <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+                {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
+              </p>
             </div>
+            <button
+              onClick={() => setShowAddMilestoneModal(true)}
+              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+              title="Add Milestone"
+            >
+              <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
+              Add Milestone
+            </button>
+          </div>
 
           {/* Milestones Content - match ProjectsTD */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-10 custom-scrollbar">
@@ -1217,19 +1238,19 @@ export default function ProjectsPM() {
           </div>
         </div>
       ) : showCreateModal ? (
-          <div className="flex flex-col h-full bg-white">
-            {/* Create Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
-              <button
-                type="button"
-                onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
-              >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-              </button>
-              <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
-            </div>
+        <div className="flex flex-col h-full bg-white">
+          {/* Create Project Header */}
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <button
+              type="button"
+              onClick={() => { setShowCreateModal(false); setCreateError(''); }}
+              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              title="Close"
+            >
+              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+            </button>
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
+          </div>
           <div className="flex-1 overflow-y-auto py-4 md:py-6 px-4 custom-scrollbar">
             <form
               onSubmit={(e) => {
@@ -1318,8 +1339,7 @@ export default function ProjectsPM() {
                 <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
                   <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
                   <div className="flex-1">
-                    <p className="font-semibold leading-snug">Validation error</p>
-                    <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    <p className="text-[13px] leading-snug">{createError}</p>
                   </div>
                 </div>
               )}
@@ -1489,23 +1509,6 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Total Hours ── */}
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text" required
-                    value={createTotalHours}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      setCreateTotalHours(value);
-                    }}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* ── Per Day ── */}
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -1520,6 +1523,23 @@ export default function ProjectsPM() {
                     }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -1743,6 +1763,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowCreateModal(false);
+                    setCreateError('');
                     resetFormFields();
                   }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all cursor-pointer"
@@ -1768,6 +1789,7 @@ export default function ProjectsPM() {
                 type="button"
                 onClick={() => {
                   setShowEditModal(false);
+                  setEditError('');
                   resetFormFields();
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
@@ -1782,6 +1804,33 @@ export default function ProjectsPM() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
+                setEditError('');
+
+                if (
+                  !createName.trim() ||
+                  !createBudget.trim() ||
+                  editModuleTags.length === 0 ||
+                  editTaskTags.length === 0 ||
+                  !createClientName.trim() ||
+                  !createProjectManager.trim() ||
+                  !createStartDate.trim() ||
+                  !createEndDate.trim() ||
+                  !createPerDay.trim() ||
+                  !createTotalHours.trim() ||
+                  !createDepartment.trim() ||
+                  !createBIMLead.trim() ||
+                  !createBIMCoOrdinator.trim() ||
+                  selectedMemberIds.length === 0 ||
+                  !createResources.trim() ||
+                  !createRequiredResources.trim() ||
+                  !editPriority.trim() ||
+                  !createLocation.trim() ||
+                  !createDescription.trim()
+                ) {
+                  setEditError('Please fill in all required fields.');
+                  return;
+                }
+
                 setIsEditSubmitting(true);
 
                 const formData = new FormData();
@@ -1888,6 +1937,14 @@ export default function ProjectsPM() {
               }}
               className="max-w-5xl mx-auto px-6"
             >
+              {editError && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="flex-1">
+                    <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
 
                 {/* ── Project Name ── */}
@@ -2044,23 +2101,6 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Total Hours ── */}
-                <div>
-                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text" required
-                    value={createTotalHours}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9.]/g, '');
-                      setCreateTotalHours(value);
-                    }}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* ── Per Day ── */}
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -2075,6 +2115,23 @@ export default function ProjectsPM() {
                     }}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div>
+                  <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text" required
+                    value={createTotalHours}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setCreateTotalHours(value);
+                    }}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -2338,6 +2395,7 @@ export default function ProjectsPM() {
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
+                    setEditError('');
                     resetFormFields();
                   }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari min-w-[160px] transition-all cursor-pointer"

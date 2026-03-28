@@ -1578,13 +1578,18 @@ def _ensure_vendor_profile_tables():
         uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     # Add optional columns to vendor_onboarding if missing
+    cur.execute("SHOW COLUMNS FROM vendor_onboarding")
+    existing_cols = {row["Field"] for row in cur.fetchall()}
+
     for col, defn in [
-        # Company details / onboarding
+        # ... and all the other fields
         ("country", "VARCHAR(100)"),
         ("state", "VARCHAR(100)"),
         ("city", "VARCHAR(100)"),
         ("year_established", "VARCHAR(20)"),
+        ("website", "VARCHAR(255)"),
         ("linkedin", "VARCHAR(255)"),
+        ("phone", "VARCHAR(50)"),
         ("trade_license_file", "VARCHAR(255)"),
         ("gst_certificate_file", "VARCHAR(255)"),
         ("nda_agreement_file", "VARCHAR(255)"),
@@ -1612,10 +1617,11 @@ def _ensure_vendor_profile_tables():
         ("nda_agreed", "TINYINT DEFAULT 0"),
         ("data_protection_compliant", "TINYINT DEFAULT 0"),
     ]:
-        try:
-            cur.execute(f"ALTER TABLE vendor_onboarding ADD COLUMN IF NOT EXISTS `{col}` {defn}")
-        except Exception:
-            pass
+        if col not in existing_cols:
+            try:
+                cur.execute(f"ALTER TABLE vendor_onboarding ADD COLUMN `{col}` {defn}")
+            except Exception:
+                pass
 
 
 def _ensure_vendor_profile_child_tables():
@@ -2042,12 +2048,34 @@ def update_vendor_profile():
 @login_required
 def add_vendor_resource_profile():
     """POST /api/vendors/profile/resource-profiles — add a resource profile for current vendor."""
+    import os, uuid
     _ensure_vendor_profile_tables()
     _ensure_vendor_profile_child_tables()
     vendor_id = _current_vendor_onboarding_id()
     if not vendor_id:
         return jsonify({"success": False, "message": "Vendor profile not found"}), 404
-    data = request.get_json(silent=True) or {}
+
+    # Support both JSON and multipart (for files)
+    if request.is_json:
+        data = request.get_json()
+        from werkzeug.utils import secure_filename
+    else:
+        data = request.form
+
+    cert_path = data.get("certifications") # original filename or current value
+    file = request.files.get("certifications_file")
+    if file:
+        upload_root = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+        upload_dir = os.path.join(upload_root, "vendors") # Unified vendors directory
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        filename = secure_filename(file.filename)
+        # Avoid empty filename
+        if not filename:
+             filename = f"res_{uuid.uuid4().hex}"
+        file.save(os.path.join(upload_dir, filename))
+        cert_path = filename # Store the original filename
+
     cur = vendor_cursor()
     cur.execute(
         """INSERT INTO vendor_resource_profiles
@@ -2062,12 +2090,72 @@ def add_vendor_resource_profile():
             data.get("expertise"),
             data.get("role"),
             data.get("software"),
-            data.get("certifications"),
+            cert_path,
             data.get("projects_worked_on"),
         ),
     )
     get_vendor_db().commit()
     return jsonify({"success": True, "id": cur.lastrowid})
+
+
+@bp.route("/profile/resource-profiles/<int:resource_id>", methods=["PUT"])
+@login_required
+def update_vendor_resource_profile(resource_id):
+    """PUT /api/vendors/profile/resource-profiles/<id> — update a resource profile."""
+    from werkzeug.utils import secure_filename
+    import os, uuid
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+
+    cur = vendor_cursor()
+    allowed = ["name", "designation", "discipline", "years_of_experience", "expertise", "role", "software", "certifications", "projects_worked_on"]
+    sets, params = [], []
+
+    for key in allowed:
+        if key in data:
+            sets.append(f"`{key}` = %s")
+            params.append(data[key])
+
+    # Handle file upload for certification
+    file = request.files.get("certifications_file")
+    if file:
+        upload_root = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+        upload_dir = os.path.join(upload_root, "vendors") # Unified vendors directory
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        filename = secure_filename(file.filename)
+        if not filename:
+            filename = f"res_{uuid.uuid4().hex}"
+        file.save(os.path.join(upload_dir, filename))
+        sets.append("`certifications` = %s")
+        params.append(filename) # Store the original filename
+
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.extend([resource_id, vendor_id])
+    cur.execute(f"UPDATE vendor_resource_profiles SET {', '.join(sets)} WHERE id = %s AND vendor_id = %s", params)
+    get_vendor_db().commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/profile/resource-profiles/<int:resource_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_resource_profile(resource_id):
+    """DELETE /api/vendors/profile/resource-profiles/<id>."""
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    cur = vendor_cursor()
+    cur.execute("DELETE FROM vendor_resource_profiles WHERE id = %s AND vendor_id = %s", (resource_id, vendor_id))
+    get_vendor_db().commit()
+    return jsonify({"success": True})
 
 
 @bp.route("/profile/resource-profiles", methods=["GET"])
@@ -2198,13 +2286,33 @@ def assign_resource_login(resource_id):
 @bp.route("/profile/portfolio-projects", methods=["POST"])
 @login_required
 def add_vendor_portfolio_project():
-    """POST /api/vendors/profile/portfolio-projects — add a portfolio project for current vendor."""
+    """POST /api/vendors/profile/portfolio-projects — add a portfolio project."""
+    from werkzeug.utils import secure_filename
+    import os, uuid
     _ensure_vendor_profile_tables()
     _ensure_vendor_profile_child_tables()
     vendor_id = _current_vendor_onboarding_id()
     if not vendor_id:
         return jsonify({"success": False, "message": "Vendor profile not found"}), 404
-    data = request.get_json(silent=True) or {}
+
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+
+    file = request.files.get("project_file")
+    project_files_path = data.get("project_files")
+    if file:
+        upload_root = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+        upload_dir = os.path.join(upload_root, "vendors")
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        filename = secure_filename(file.filename)
+        if not filename:
+             filename = f"port_{uuid.uuid4().hex}"
+        file.save(os.path.join(upload_dir, filename))
+        project_files_path = filename # Store the original filename
+
     cur = vendor_cursor()
     cur.execute(
         """INSERT INTO vendor_portfolio
@@ -2220,11 +2328,79 @@ def add_vendor_portfolio_project():
             data.get("project_tools"),
             data.get("project_duration"),
             data.get("project_year"),
-            data.get("project_files"),
+            project_files_path,
         ),
     )
     get_vendor_db().commit()
     return jsonify({"success": True, "id": cur.lastrowid})
+
+
+@bp.route("/profile/portfolio-projects/<int:project_id>", methods=["PUT"])
+@login_required
+def update_vendor_portfolio_project(project_id):
+    """PUT /api/vendors/profile/portfolio-projects/<id> — update a portfolio project."""
+    from werkzeug.utils import secure_filename
+    import os, uuid
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+
+    cur = vendor_cursor()
+    allowed = ["project_name", "project_client", "project_sector", "project_description", "project_role", "project_tools", "project_duration", "project_year", "project_files"]
+    sets, params = [], []
+
+    for key in allowed:
+        if key in data:
+            sets.append(f"`{key}` = %s")
+            params.append(data[key])
+
+    # Handle file upload
+    file = request.files.get("project_file")
+    if file:
+        upload_root = current_app.config.get("UPLOAD_FOLDER", "static/uploads")
+        upload_dir = os.path.join(upload_root, "vendors")
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+        filename = secure_filename(file.filename)
+        if not filename:
+            filename = f"port_{uuid.uuid4().hex}"
+        file.save(os.path.join(upload_dir, filename))
+        sets.append("`project_files` = %s")
+        params.append(filename) # Store the original filename
+
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.extend([project_id, vendor_id])
+    cur.execute(f"UPDATE vendor_portfolio SET {', '.join(sets)} WHERE id = %s AND vendor_id = %s", params)
+    get_vendor_db().commit()
+    return jsonify({"success": True})
+
+    if not sets:
+        return jsonify({"success": False, "message": "No fields to update"}), 400
+
+    params.extend([project_id, vendor_id])
+    cur.execute(f"UPDATE vendor_portfolio SET {', '.join(sets)} WHERE id = %s AND vendor_id = %s", params)
+    get_vendor_db().commit()
+    return jsonify({"success": True})
+
+
+@bp.route("/profile/portfolio-projects/<int:project_id>", methods=["DELETE"])
+@login_required
+def delete_vendor_portfolio_project(project_id):
+    """DELETE /api/vendors/profile/portfolio-projects/<id>."""
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+    cur = vendor_cursor()
+    cur.execute("DELETE FROM vendor_portfolio WHERE id = %s AND vendor_id = %s", (project_id, vendor_id))
+    get_vendor_db().commit()
+    return jsonify({"success": True})
 
 
 @bp.route("/profile/documents", methods=["POST"])

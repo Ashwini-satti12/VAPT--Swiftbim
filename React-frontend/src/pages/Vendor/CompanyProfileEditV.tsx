@@ -124,8 +124,11 @@ export default function CompanyProfileEditV() {
                 </div>
             )}
             {errorMsg && (
-                <div className="mb-4 p-3 bg-[#FFE5E5] border border-[#DE3D3A]/30 rounded-xl text-sm font-gantari text-[#DE3D3A]">
-                    {errorMsg}
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                        <p className="mt-0.5 text-[13px] leading-snug">{errorMsg}</p>
+                    </div>
                 </div>
             )}
 

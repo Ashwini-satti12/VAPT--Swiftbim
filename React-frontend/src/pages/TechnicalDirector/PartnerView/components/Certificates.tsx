@@ -1,5 +1,6 @@
 import type { Vendor } from '../types';
 import { FaDownload } from 'react-icons/fa6';
+import { api } from '../../../../lib/api';
 
 interface Props {
     vendor: Vendor;
@@ -14,7 +15,7 @@ const Certificates = ({ vendor }: Props) => {
     };
 
     const FileLink = ({ fileName, label }: { fileName: string, label: string }) => {
-        const fileUrl = `http://localhost:5001/static/uploads/vendors/${fileName}`;
+        const fileUrl = api.defaults.baseURL + `static/uploads/vendors/${fileName}`;
         return (
             <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg">
                 <span className="text-sm font-medium text-gray-700">{label}</span>

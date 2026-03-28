@@ -13,7 +13,7 @@ import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
-import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+// import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -687,7 +687,7 @@ function TaskCard({
 }
 
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
