@@ -124,8 +124,8 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
             <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
 
             {/* Members */}
-            <div className="mt-auto flex flex-col">
-                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Members ({memberIds.length})</span>
+            <div className="mt-auto flex flex-col pt-2">
+
                 <div className="flex items-center justify-between">
                     <div className="flex -space-x-3">
                         {(() => {
@@ -189,7 +189,7 @@ function TeamCard({ team, employees, getEmpName, onEdit, onDelete, onViewDetails
                     </div>
                     <button
                         onClick={() => onViewDetails(team)}
-                        className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 cursor-pointer"
+                        className="flex items-center gap-1.5 text-sm font-gantari text-[#8B8B8B] transition-colors pr-2 cursor-pointer"
                     >
                         Details
                         <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
@@ -386,10 +386,10 @@ export default function CreateteamBL() {
     return (
         <div className="h-full flex flex-col p-4">
             <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-[#1E293B]">Team Workspace</h2>
+                <h2 className="text-[24px] font-medium text-[#000000]">Team Workspace</h2>
                 <button
                     onClick={() => { setShowLeaderDropdown(false); setShowMemberDropdown(false); setShowAddModal(true); }}
-                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-lg transition-all font-semibold active:scale-95 cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold active:scale-95 cursor-pointer"
                 >
                     <PlusIcon className="w-5 h-5 stroke-[3]" />
                     New Team
@@ -754,13 +754,13 @@ export default function CreateteamBL() {
                     <div className="bg-white rounded-[20px] shadow-2xl max-w-[600px] w-full max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-200 relative overflow-hidden">
                         <button
                             onClick={() => setShowDetailsModal(false)}
-                            className="absolute top-6 right-6 p-2 bg-slate-50 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors z-10 cursor-pointer"
+                            className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#000000] transition-colors z-10 cursor-pointer"
                         >
-                            <XMarkIcon className="w-6 h-6 stroke-2" />
+                            <XMarkIcon className="w-6 h-6 stroke-[2]" />
                         </button>
 
-                        <div className="p-8 pb-4 shrink-0">
-                            <h3 className="text-2xl font-bold text-slate-800 font-sora pr-12">
+                        <div className="p-8 pb-4 shrink-0 text-center">
+                            <h3 className="text-2xl font-bold text-slate-800 font-sora">
                                 {selectedTeam.team_name || selectedTeam.teamname || selectedTeam.leader_name || getEmpName(selectedTeam.leader)}
                             </h3>
                             <p className="text-slate-500 mt-1">Team Details</p>

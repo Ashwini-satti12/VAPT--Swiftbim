@@ -220,7 +220,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -664,7 +664,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200","201-250","251-300","All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
