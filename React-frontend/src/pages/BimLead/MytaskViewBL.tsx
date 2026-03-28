@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
+import { FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
 import Upload from '../../assets/ProjectManager/MyTask/Upload.svg';

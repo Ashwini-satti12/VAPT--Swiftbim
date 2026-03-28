@@ -586,6 +586,14 @@ export default function ManageLeavePM() {
     setPaginationWindowStart((s) =>
       Math.min(s + PAGINATION_VISIBLE, maxWindowStart),
     );
+  void [
+    activePage,
+    visiblePageRanges,
+    canPrevWindow,
+    canNextWindow,
+    goPrevWindow,
+    goNextWindow,
+  ];
 
   const handleView = (row: LeaveEntry) => {
     setSelectedLeave(row);

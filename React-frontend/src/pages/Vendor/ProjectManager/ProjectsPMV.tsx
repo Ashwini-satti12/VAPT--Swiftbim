@@ -81,6 +81,9 @@ export default function ProjectsPMV() {
     const [createDescription, setCreateDescription] = useState("");
     const [createDeliverables, setCreateDeliverables] = useState("");
 
+    const [createError, setCreateError] = useState("");
+    const [editError, setEditError] = useState("");
+
     const [createSubmitting, setCreateSubmitting] = useState(false);
     const [editSubmitting, setEditSubmitting] = useState(false);
     const [editDropdownOpen, setEditDropdownOpen] = useState<string | null>(null);
@@ -172,6 +175,30 @@ export default function ProjectsPMV() {
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
+        if (
+            !createName.trim() ||
+            !createBudget.trim() ||
+            !createModuleName.trim() ||
+            !createClientName.trim() ||
+            !createProjectManager.trim() ||
+            !createStartDate.trim() ||
+            !createEndDate.trim() ||
+            !createPerDay.trim() ||
+            !createTotalHours.trim() ||
+            !createBIMLead.trim() ||
+            !createBIMCoOrdinator.trim() ||
+            selectedMemberIds.length === 0 ||
+            !createResources.trim() ||
+            !createRequiredResources.trim() ||
+            !createPriority.trim() ||
+            !createLocation.trim() ||
+            !createDescription.trim() ||
+            !createFile
+        ) {
+            setCreateError("Please fill in all required fields and attach a file.");
+            return;
+        }
+        setCreateError("");
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-projects", {
             project_name: createName,
@@ -238,6 +265,29 @@ export default function ProjectsPMV() {
     const handleEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editId) return;
+        if (
+            !createName.trim() ||
+            !createBudget.trim() ||
+            !createModuleName.trim() ||
+            !createClientName.trim() ||
+            !createProjectManager.trim() ||
+            !createStartDate.trim() ||
+            !createEndDate.trim() ||
+            !createPerDay.trim() ||
+            !createTotalHours.trim() ||
+            !createBIMLead.trim() ||
+            !createBIMCoOrdinator.trim() ||
+            selectedMemberIds.length === 0 ||
+            !createResources.trim() ||
+            !createRequiredResources.trim() ||
+            !createPriority.trim() ||
+            !createLocation.trim() ||
+            !createDescription.trim()
+        ) {
+            setEditError("Please fill in all required fields.");
+            return;
+        }
+        setEditError("");
         setEditSubmitting(true);
         api.patch(`/api/vendors/vendor-projects/${editId}`, {
             project_name: createName,
@@ -365,12 +415,12 @@ export default function ProjectsPMV() {
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 text-left">
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project Name</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Project Name <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
                         placeholder="Enter Project name" value={createName} onChange={(e) => setCreateName(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Client Name</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Client Name <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
                         placeholder="Enter Client Name" value={createClientName} onChange={(e) => setCreateClientName(e.target.value)} />
                 </div>
@@ -380,7 +430,7 @@ export default function ProjectsPMV() {
                         placeholder="Auto-fetched from contract" value={createBudget} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select Project Manager</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Select Project Manager <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "pm" ? null : "pm")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -399,7 +449,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Lead</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Lead <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimLead" ? null : "bimLead")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -418,7 +468,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Coordinator</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Select BIM Coordinator <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "bimCoord" ? null : "bimCoord")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -437,31 +487,31 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project Start Date</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Project Start Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours</label>
-                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Per Day</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Per Day <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Resources</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" value={createResources} onChange={e => setCreateResources(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Priority</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button type="button" onClick={() => setEditDropdownOpen(o => o === "priority" ? null : "priority")}
                             className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer">
@@ -479,7 +529,7 @@ export default function ProjectsPMV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Location</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
                     <input type="text" className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" value={createLocation} onChange={e => setCreateLocation(e.target.value)} />
                 </div>
 
@@ -487,14 +537,14 @@ export default function ProjectsPMV() {
             <div className="space-y-6 mt-6 text-left">
                 {renderMemberSelector()}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Description</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none placeholder-gray-400" placeholder="Provide a detailed project description..." />
                 </div>
 
             </div>
             <div className="md:col-span-2 space-y-2">
-                <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+                <label className="block text-[15px] font-bold text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
                 <div className="relative group">
                     <input
                         type="file"
@@ -608,6 +658,7 @@ export default function ProjectsPMV() {
                                         onClick={() => {
                                             setShowEditModal(false);
                                             setEditDropdownOpen(null);
+                                            setEditError("");
                                         }}
                                         className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200 cursor-pointer"
                                     >
@@ -621,6 +672,11 @@ export default function ProjectsPMV() {
                                         {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
                                 </div>
+                                {editError && (
+                                    <p className="text-[#DD4342] text-sm font-bold text-center mt-4">
+                                        {editError}
+                                    </p>
+                                )}
                             </form>
                         </div>
                     </div>
@@ -886,6 +942,11 @@ export default function ProjectsPMV() {
                                         {createSubmitting ? "Creating..." : "Create Project"}
                                     </button>
                                 </div>
+                                {createError && (
+                                    <p className="text-[#DD4342] text-sm font-bold text-center mt-4">
+                                        {createError}
+                                    </p>
+                                )}
                             </form>
                         </div>
                     </div>

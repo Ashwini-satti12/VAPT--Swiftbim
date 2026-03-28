@@ -429,6 +429,27 @@ export default function AddTaskPM() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddError("");
+
+    const requiredFields: (keyof typeof addTaskForm)[] = [
+      "projectName",
+      "module",
+      "taskName",
+      "type",
+      "actualStartDate",
+      "actualEndDate",
+      "startTime",
+      "dueTime",
+      "assignTo",
+      "description",
+    ];
+
+    for (const field of requiredFields) {
+      if (!addTaskForm[field]) {
+        setAddError("Please fill in all required fields marked with *.");
+        return;
+      }
+    }
+
     setAddSubmitting(true);
     try {
       const isEditing = editingTaskId !== null;
@@ -536,7 +557,7 @@ export default function AddTaskPM() {
             >
               <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">
               {editingTaskId !== null ? "Edit Task" : "Add New Task"}
             </h3>
             <div className="w-10" />
@@ -549,8 +570,7 @@ export default function AddTaskPM() {
                   !
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold leading-snug">Validation error</p>
-                  <p className="mt-0.5 text-[13px] leading-snug">{addError}</p>
+                  <p className="text-[13px] leading-snug">{addError}</p>
                 </div>
               </div>
             )}
@@ -558,7 +578,7 @@ export default function AddTaskPM() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
               <div className="md:col-span-2">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Project Name
+                  Project Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <FormDropdown
                   label="Select Project"
@@ -587,7 +607,7 @@ export default function AddTaskPM() {
               </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Select Module
+                  Select Module <span className="text-[#DD4342]">*</span>
                 </label>
                 <FormDropdown
                   label="Select Module"
@@ -611,7 +631,7 @@ export default function AddTaskPM() {
               </div>
               <div>
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Task Name
+                  Task Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <FormDropdown
                   label="Select Task"
@@ -649,7 +669,7 @@ export default function AddTaskPM() {
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Type
+                    Type <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormDropdown
                     label="Select Type"
@@ -672,7 +692,7 @@ export default function AddTaskPM() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual Start Date
+                    Actual Start Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -688,7 +708,7 @@ export default function AddTaskPM() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Actual End Date
+                    Actual End Date <span className="text-[#DD4342]">*</span>
                   </label>
                   <input
                     type="date"
@@ -706,7 +726,7 @@ export default function AddTaskPM() {
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div className="relative">
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Select Start Time
+                    Select Start Time <span className="text-[#DD4342]">*</span>
                   </label>
                   <button
                     ref={formStartTimeTriggerRef}
@@ -758,7 +778,7 @@ export default function AddTaskPM() {
                 </div>
                 <div className="relative">
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Select End Time
+                    Select End Time <span className="text-[#DD4342]">*</span>
                   </label>
                   <button
                     ref={formEndTimeTriggerRef}
@@ -810,8 +830,8 @@ export default function AddTaskPM() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Assign To
-                  </label>
+                  Assign To <span className="text-[#DD4342]">*</span>
+                </label>
                   <FormDropdown
                     label="Select Assign To"
                     options={getAssignToOptions()}
@@ -834,7 +854,7 @@ export default function AddTaskPM() {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Description
+                  Description <span className="text-[#DD4342]">*</span>
                 </label>
                 <textarea
                   value={addTaskForm.description}
@@ -884,7 +904,7 @@ export default function AddTaskPM() {
                   </div>
                   <label
                     htmlFor="add-task-file-input"
-                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-bold cursor-pointer font-Gantari shrink-0"
+                    className="px-5 py-2 bg-[#E0E0E0] text-[#353535] text-[14px] font-semibold cursor-pointer font-Gantari shrink-0"
                   >
                     Browse File
                   </label>
@@ -908,14 +928,14 @@ export default function AddTaskPM() {
               <button
                 type="button"
                 onClick={goBack}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] font-Gantari transition-all min-w-[160px]"
+                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#101827] font-semibold text-[16px] font-Gantari transition-all"
               >
                 Discard
               </button>
               <button
                 type="submit"
                 disabled={addSubmitting}
-                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari disabled:opacity-50 transition-all min-w-[160px]"
+                className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] font-Gantari disabled:opacity-50 transition-all"
               >
                 {addSubmitting ? "Submitting..." : "Submit"}
               </button>

@@ -263,8 +263,25 @@ export default function ProjectsV() {
         return found ? found.id : "";
     };
 
+    const [createError, setCreateError] = useState("");
+    const [editError, setEditError] = useState("");
+
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
+        if (
+            !createName.trim() ||
+            !createClientName ||
+            !createStartDate ||
+            !createEndDate ||
+            !createPerDay ||
+            !createTotalHours ||
+            !createPriority ||
+            !createLocation
+        ) {
+            setCreateError("Please fill all required fields.");
+            return;
+        }
+        setCreateError("");
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-projects", {
             project_name: createName,
@@ -353,6 +370,20 @@ export default function ProjectsV() {
     const handleEdit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!editId) return;
+        if (
+            !createName.trim() ||
+            !createClientName ||
+            !createStartDate ||
+            !createEndDate ||
+            !createPerDay ||
+            !createTotalHours ||
+            !createPriority ||
+            !createLocation
+        ) {
+            setEditError("Please fill all required fields.");
+            return;
+        }
+        setEditError("");
         setEditSubmitting(true);
         api.patch(`/api/vendors/vendor-projects/${editId}`, {
             project_name: createName,
@@ -538,7 +569,7 @@ export default function ProjectsV() {
                 {/* Row 1: Project name, Client name */}
                 <div className="space-y-2">
                     <label className="block text-[15px] font-bold text-[#353535]">
-                        Project Name
+                        Project Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                         type="text"
@@ -550,7 +581,7 @@ export default function ProjectsV() {
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[15px] font-bold text-[#353535]">
-                        Client Name
+                        Client Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                         type="text"
@@ -578,7 +609,7 @@ export default function ProjectsV() {
                 {/* Row 3: Bidding End Date, Project Manager */}
                 <div className="space-y-2">
                     <label className="block text-[15px] font-bold text-[#353535]">
-                        Select Project Manager
+                        Select Project Manager <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="relative dropdown-container">
                         <button
@@ -636,7 +667,7 @@ export default function ProjectsV() {
                 {/* Row 4: BIM Lead, BIM Coordinator */}
                 <div className="space-y-2">
                     <label className="block text-[15px] font-bold text-[#353535]">
-                        Select BIM Lead
+                        Select BIM Lead <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="relative dropdown-container">
                         <button
@@ -749,43 +780,43 @@ export default function ProjectsV() {
 
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project Start Date</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Project Start Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
 
                 {/* Row 6: Total Hours, Per Day */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours</label>
-                    <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
-                </div>
-                <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Per Day</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Per Day <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
+                </div>
+                <div className="space-y-2">
+                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
+                    <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
+                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
                 </div>
 
                 {/* Row 7: Resources, Required Resources */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Resources</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" />
                 </div>
 
                 {/* Row 8: Priority, Location */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Priority</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button
                             type="button"
@@ -829,7 +860,7 @@ export default function ProjectsV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Location</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" />
                 </div>
@@ -840,13 +871,13 @@ export default function ProjectsV() {
             <div className="space-y-6 mt-6">
                 {renderMemberSelector()}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Description</label>
+                    <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
                         className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
                 </div>
             </div>
             <div className="md:col-span-2 space-y-2">
-                <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+                <label className="block text-[15px] font-bold text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
                 <div className="relative group">
                     <input
                         type="file"
@@ -961,6 +992,7 @@ export default function ProjectsV() {
                                         onClick={() => {
                                             setShowEditModal(false);
                                             setEditDropdownOpen(null);
+                                            setEditError("");
                                         }}
                                         className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200"
                                     >
@@ -969,11 +1001,16 @@ export default function ProjectsV() {
                                     <button
                                         type="submit"
                                         disabled={editSubmitting}
-                                        className="px-12 py-3.5 rounded-xl bg-[#DD4342] text-white font-bold text-[16px] transition-all hover:opacity-90 shadow-lg shadow-red-100 disabled:opacity-50"
+                                        className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50"
                                     >
                                         {editSubmitting ? "Updating..." : "Update Project"}
                                     </button>
                                 </div>
+                                {editError && (
+                                    <p className="text-[#DD4342] text-sm font-bold text-center mt-4">
+                                        {editError}
+                                    </p>
+                                )}
                             </form>
                         </div>
                     </div>
@@ -1289,13 +1326,18 @@ export default function ProjectsV() {
                                 {renderFormFields()}
 
                                 <div className="flex justify-center gap-6 pt-6 pb-4">
-                                    <button type="button" onClick={() => setShowCreateModal(false)}
+                                    <button type="button" onClick={() => { setShowCreateModal(false); setCreateError(""); }}
                                         className="px-12 py-4 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold hover:bg-gray-200 transition-colors">Discard</button>
                                     <button type="submit" disabled={createSubmitting}
                                         className="px-12 py-4 rounded-xl bg-[#DD4342] text-white font-bold hover:opacity-90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
                                         {createSubmitting ? "Creating..." : "Submit"}
                                     </button>
                                 </div>
+                                {createError && (
+                                    <p className="text-[#DD4342] text-sm font-bold text-center mt-4 pb-4">
+                                        {createError}
+                                    </p>
+                                )}
                             </form>
                         </div>
                     </div>

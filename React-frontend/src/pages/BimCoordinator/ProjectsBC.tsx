@@ -223,6 +223,7 @@ export default function ProjectsBC() {
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [editError, setEditError] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -1008,7 +1009,7 @@ export default function ProjectsBC() {
                               <div
                                 role="button"
                                 tabIndex={0}
-                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
@@ -1450,6 +1451,32 @@ export default function ProjectsBC() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   setCreateError("");
+
+                  if (
+                    !createName.trim() ||
+                    !createBudget.trim() ||
+                    moduleNameTags.length === 0 ||
+                    !createClientName.trim() ||
+                    !createProjectManager.trim() ||
+                    !createStartDate.trim() ||
+                    !createEndDate.trim() ||
+                    !createPerDay.trim() ||
+                    !createTotalHours.trim() ||
+                    !createDepartment.trim() ||
+                    !createBIMLead.trim() ||
+                    !createBIMCoOrdinator.trim() ||
+                    selectedMemberIds.length === 0 ||
+                    !createResources.trim() ||
+                    !createRequiredResources.trim() ||
+                    !createPriority.trim() ||
+                    !createLocation.trim() ||
+                    !createDescription.trim() ||
+                    createFiles.length === 0
+                  ) {
+                    setCreateError("Please fill in all required fields and attach at least one file.");
+                    return;
+                  }
+
                   setCreateSubmitting(true);
                   const formData = new FormData();
                   formData.append("project_name", createName.trim());
@@ -1566,9 +1593,12 @@ export default function ProjectsBC() {
                 className="max-w-5xl mx-auto px-4 py-5 space-y-6 md:space-y-8 pb-10"
               >
                 {createError && (
-                  <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">
-                    {createError}
-                  </p>
+                  <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                      <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    </div>
+                  </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
@@ -1719,21 +1749,6 @@ export default function ProjectsBC() {
                     />
                   </div>
 
-                  {/* ── Total Hours ── */}
-                  <div className="space-y-4">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Total Hours <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value)}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Total Hours"
-                    />
-                  </div>
-
                   {/* ── Per Day ── */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -1746,6 +1761,21 @@ export default function ProjectsBC() {
                       onChange={(e) => setCreatePerDay(e.target.value.replace(/  +/g, ' '))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Per Day Hours"
+                    />
+                  </div>
+
+                  {/* ── Total Hours ── */}
+                  <div className="space-y-4">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                      Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={createTotalHours}
+                      onChange={(e) => setCreateTotalHours(e.target.value)}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Total Hours"
                     />
                   </div>
 
@@ -2044,6 +2074,7 @@ export default function ProjectsBC() {
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false);
+                      setCreateError("");
                       setModuleNameTags([]);
                       setModuleNameInput("");
                     }}
@@ -2083,6 +2114,32 @@ export default function ProjectsBC() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!selectedProjectForEdit) return;
+                  setEditError("");
+
+                  if (
+                    !createName.trim() ||
+                    !createBudget.trim() ||
+                    editModuleTags.length === 0 ||
+                    !createClientName.trim() ||
+                    !createProjectManager.trim() ||
+                    !createStartDate.trim() ||
+                    !createEndDate.trim() ||
+                    !createPerDay.trim() ||
+                    !createTotalHours.trim() ||
+                    !createDepartment.trim() ||
+                    !createBIMLead.trim() ||
+                    !createBIMCoOrdinator.trim() ||
+                    selectedMemberIds.length === 0 ||
+                    !createResources.trim() ||
+                    !createRequiredResources.trim() ||
+                    !editPriority.trim() ||
+                    !createLocation.trim() ||
+                    !createDescription.trim()
+                  ) {
+                    setEditError("Please fill in all required fields.");
+                    return;
+                  }
+
                   setIsEditSubmitting(true);
                   const membersPayload =
                     selectedMemberIds.length > 0
@@ -2176,6 +2233,14 @@ export default function ProjectsBC() {
                 }}
                 className="mx-auto space-y-6 md:space-y-8"
               >
+                {editError && (
+                  <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                      <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6">
                   {/* Project Name */}
                   <div className="space-y-4">
@@ -2258,7 +2323,7 @@ export default function ProjectsBC() {
                                   prev.filter((_, i) => i !== idx),
                                 )
                               }
-                              className="text-gray-400 transition-colors leading-none cursor-pointer"
+                              className="text-gray-400 transition-colors leading-none"
                             >
                               x
                             </button>
@@ -2385,21 +2450,6 @@ export default function ProjectsBC() {
                     />
                   </div>
 
-                  {/* Total Hours */}
-                  <div className="space-y-4">
-                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                      Total Hours <span className="text-[#DD4342]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={createTotalHours}
-                      onChange={(e) => setCreateTotalHours(e.target.value.replace(/  +/g, ' '))}
-                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                      placeholder="Enter Total Hours"
-                    />
-                  </div>
-
                   {/* Per Day */}
                   <div className="space-y-4">
                     <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
@@ -2412,6 +2462,21 @@ export default function ProjectsBC() {
                       onChange={(e) => setCreatePerDay(e.target.value.replace(/  +/g, ' '))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                       placeholder="Enter Per Day Hours"
+                    />
+                  </div>
+
+                  {/* Total Hours */}
+                  <div className="space-y-4">
+                    <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
+                      Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={createTotalHours}
+                      onChange={(e) => setCreateTotalHours(e.target.value.replace(/  +/g, ' '))}
+                      className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                      placeholder="Enter Total Hours"
                     />
                   </div>
 
@@ -2775,6 +2840,7 @@ export default function ProjectsBC() {
                     type="button"
                     onClick={() => {
                       setShowEditModal(false);
+                      setEditError("");
                       setEditModuleTags([]);
                       setEditModuleInput("");
                       setEditTaskTags([]);

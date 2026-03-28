@@ -9,7 +9,7 @@ load_dotenv()
 conn = pymysql.connect(
     host=os.getenv("MYSQL_HOST", "localhost"),
     user=os.getenv("MYSQL_USER", "root"),
-    password=os.getenv("MYSQL_PASSWORD", "root@123"),
+    password=os.getenv("MYSQL_PASSWORD", "root"),
     database=os.getenv("MYSQL_DB", "snh6_swiftproject"),
     cursorclass=pymysql.cursors.DictCursor
 )
