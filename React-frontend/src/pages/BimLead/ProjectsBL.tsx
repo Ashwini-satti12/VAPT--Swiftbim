@@ -203,6 +203,7 @@ export default function ProjectsBL() {
 
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [editError, setEditError] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -1557,6 +1558,33 @@ export default function ProjectsBL() {
               onSubmit={(e) => {
                 e.preventDefault();
                 setCreateError("");
+
+                if (
+                  !createName.trim() ||
+                  !createBudget.trim() ||
+                  moduleNameTags.length === 0 ||
+                  createTaskTags.length === 0 ||
+                  !createClientName.trim() ||
+                  !createProjectManager.trim() ||
+                  !createStartDate.trim() ||
+                  !createEndDate.trim() ||
+                  !createPerDay.trim() ||
+                  !createTotalHours.trim() ||
+                  !createDepartment.trim() ||
+                  !createBIMLead.trim() ||
+                  !createBIMCoOrdinator.trim() ||
+                  selectedMemberIds.length === 0 ||
+                  !createResources.trim() ||
+                  !createRequiredResources.trim() ||
+                  !createPriority.trim() ||
+                  !createLocation.trim() ||
+                  !createDescription.trim() ||
+                  createFiles.length === 0
+                ) {
+                  setCreateError("Please fill in all required fields and attach at least one file.");
+                  return;
+                }
+
                 setCreateSubmitting(true);
                 const formData = new FormData();
                 formData.append("project_name", createName.trim());
@@ -1654,11 +1682,14 @@ export default function ProjectsBL() {
               }}
               className="max-w-[1174px] mx-auto px-0 py-5 space-y-6 md:space-y-8"
             >
-              {createError && (
-                <p className="text-sm text-red-600 bg-red-50 p-4 rounded-xl border border-red-100">
-                  {createError}
-                </p>
-              )}
+                {createError && (
+                  <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                    <div className="flex-1">
+                      <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
+                    </div>
+                  </div>
+                )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 lg:gap-x-12 gap-y-5 md:gap-y-6 px-4">
                 {/* ── Project Name ── */}
@@ -1868,21 +1899,6 @@ export default function ProjectsBL() {
                   />
                 </div>
 
-                {/* ── Total Hours ── */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createTotalHours}
-                    onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* ── Per Day ── */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
@@ -1895,6 +1911,21 @@ export default function ProjectsBL() {
                     onChange={(e) => setCreatePerDay(e.target.value)}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* ── Total Hours ── */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createTotalHours}
+                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -2196,7 +2227,10 @@ export default function ProjectsBL() {
               <div className="flex justify-center gap-4 pt-4 ">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setCreateError("");
+                  }}
                   className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
                 >
                   Discard
@@ -2220,6 +2254,7 @@ export default function ProjectsBL() {
                 type="button"
                 onClick={() => {
                   setShowEditModal(false);
+                  setEditError("");
                   resetFormFields();
                 }}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
@@ -2236,6 +2271,33 @@ export default function ProjectsBL() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!selectedProjectForEdit) return;
+                setEditError("");
+
+                if (
+                  !createName.trim() ||
+                  !createBudget.trim() ||
+                  editModuleTags.length === 0 ||
+                  editTaskTags.length === 0 ||
+                  !createClientName.trim() ||
+                  !createProjectManager.trim() ||
+                  !createStartDate.trim() ||
+                  !createEndDate.trim() ||
+                  !createPerDay.trim() ||
+                  !createTotalHours.trim() ||
+                  !createDepartment.trim() ||
+                  !createBIMLead.trim() ||
+                  !createBIMCoOrdinator.trim() ||
+                  selectedMemberIds.length === 0 ||
+                  !createResources.trim() ||
+                  !createRequiredResources.trim() ||
+                  !editPriority.trim() ||
+                  !createLocation.trim() ||
+                  !createDescription.trim()
+                ) {
+                  setEditError("Please fill in all required fields.");
+                  return;
+                }
+
                 setIsEditSubmitting(true);
                 const formData = new FormData();
                 formData.append("project_name", createName.trim());
@@ -2533,21 +2595,6 @@ export default function ProjectsBL() {
                   />
                 </div>
 
-                {/* Total Hours */}
-                <div className="space-y-2">
-                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
-                    Total Hours <span className="text-[#DD4342]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createTotalHours}
-                    onChange={(e) => setCreateTotalHours(e.target.value)}
-                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
-                    placeholder="Enter Total Hours"
-                  />
-                </div>
-
                 {/* Per Day */}
                 <div className="space-y-2">
                   <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
@@ -2560,6 +2607,21 @@ export default function ProjectsBL() {
                     onChange={(e) => setCreatePerDay(e.target.value)}
                     className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     placeholder="Enter Per Day Hours"
+                  />
+                </div>
+
+                {/* Total Hours */}
+                <div className="space-y-2">
+                  <label className="block text-[16px] font-Gantari font-semibold text-[#000000]">
+                    Total Hours <span className="text-[#DD4342]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={createTotalHours}
+                    onChange={(e) => setCreateTotalHours(e.target.value)}
+                    className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                    placeholder="Enter Total Hours"
                   />
                 </div>
 
@@ -2928,6 +2990,7 @@ export default function ProjectsBL() {
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
+                    setEditError("");
                   }}
                   className="px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-Gantari font-semibold text-[16px] transition-all cursor-pointer"
                 >
@@ -3359,8 +3422,16 @@ export default function ProjectsBL() {
                   })
                   .catch(() => { });
               }}
-              className="space-y-5 md:space-y-6 px-1"
+              className="max-w-5xl mx-auto px-6"
             >
+              {editError && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">!</div>
+                  <div className="flex-1">
+                    <p className="mt-0.5 text-[13px] leading-snug">{editError}</p>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="block text-[14px] md:text-[15px] font-Gantari font-bold text-[#353535]">
                   Milestone Name*

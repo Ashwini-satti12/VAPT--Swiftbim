@@ -36,7 +36,9 @@ export default function AddTaskBC() {
     const navigate = useNavigate();
     const location = useLocation();
     const editingTask = location.state?.task as Task | undefined;
-    const editingTaskId = editingTask?.id ?? null;
+    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [addError, setAddError] = useState("");
+    const [addSubmitting, setAddSubmitting] = useState(false);
 
     const [list, setList] = useState<Task[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -124,6 +126,29 @@ export default function AddTaskBC() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        setAddError("");
+
+        const requiredFields: (keyof typeof addTaskForm)[] = [
+            "projectName",
+            "module",
+            "taskName",
+            "type",
+            "actualStartDate",
+            "actualEndDate",
+            "startTime",
+            "dueTime",
+            "assignTo",
+            "description",
+        ];
+
+        for (const field of requiredFields) {
+            if (!addTaskForm[field]) {
+                setAddError("Please fill in all required fields marked with *.");
+                return;
+            }
+        }
+
+        setAddSubmitting(true);
         const payload = {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
             taskName: addTaskForm.taskName,
@@ -165,14 +190,22 @@ export default function AddTaskBC() {
                 .then(() => {
                     handleFiles(editingTaskId);
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
-                });
+                })
+                .catch((err) => {
+                    setAddError(err.response?.data?.message || "Failed to update task.");
+                })
+                .finally(() => setAddSubmitting(false));
         } else {
             api.post("/api/tasks", payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
                 }
-            });
+            })
+            .catch((err) => {
+                setAddError(err.response?.data?.message || "Failed to create task.");
+            })
+            .finally(() => setAddSubmitting(false));
         }
     };
 
@@ -237,9 +270,19 @@ export default function AddTaskBC() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {addError && (
+                        <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                            <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                                !
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[13px] primary text-red-700 leading-snug">{addError}</p>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                         <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Project Name</label>
+                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Project Name <span className="text-[#DD4342]">*</span></label>
                             <FormDropdown
                                 label="Select Project name"
                                 options={[
@@ -257,7 +300,7 @@ export default function AddTaskBC() {
                             />
                         </div>
                         <div>
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Module</label>
+                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Module <span className="text-[#DD4342]">*</span></label>
                             <FormDropdown
                                 label="Select Module"
                                 options={[
@@ -282,7 +325,7 @@ export default function AddTaskBC() {
                             />
                         </div>
                         <div>
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name</label>
+                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
                             <div className="flex relative">
                                 <input
                                     type="text"
@@ -317,7 +360,7 @@ export default function AddTaskBC() {
                         </div>
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type <span className="text-[#DD4342]">*</span></label>
                                 <FormDropdown
                                     label="Select Type"
                                     options={[
@@ -337,7 +380,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual Start Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualStartDate}
@@ -347,7 +390,7 @@ export default function AddTaskBC() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Actual End Date <span className="text-[#DD4342]">*</span></label>
                                 <input
                                     type="date"
                                     value={addTaskForm.actualEndDate}
@@ -359,7 +402,7 @@ export default function AddTaskBC() {
                         </div>
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                             <div className="relative w-full">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Start Time</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select Start Time <span className="text-[#DD4342]">*</span></label>
                                 <button
                                     ref={formStartTimeTriggerRef}
                                     type="button"
@@ -394,7 +437,7 @@ export default function AddTaskBC() {
                                 )}
                             </div>
                             <div className="relative w-full">
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select End Time</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Select End Time <span className="text-[#DD4342]">*</span></label>
                                 <button
                                     ref={formEndTimeTriggerRef}
                                     type="button"
@@ -429,7 +472,7 @@ export default function AddTaskBC() {
                                 )}
                             </div>
                             <div>
-                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Assign To</label>
+                                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Assign To <span className="text-[#DD4342]">*</span></label>
                                 <FormDropdown
                                     label="Select Assign To"
                                     options={getAssignToOptions()}
@@ -445,7 +488,7 @@ export default function AddTaskBC() {
                             </div>
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Description</label>
+                            <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Description <span className="text-[#DD4342]">*</span></label>
                             <textarea
                                 value={addTaskForm.description}
                                 onChange={(e) => setAddTaskForm((f) => ({ ...f, description: e.target.value }))}
@@ -515,9 +558,10 @@ export default function AddTaskBC() {
                         </button>
                         <button
                             type="submit"
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                            disabled={addSubmitting}
+                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
                         >
-                            Submit
+                            {addSubmitting ? "Submitting..." : "Submit"}
                         </button>
                     </div>
                 </form>

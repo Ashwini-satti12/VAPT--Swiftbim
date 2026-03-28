@@ -1,11 +1,16 @@
 import type { Vendor, PortfolioProject as PortfolioProjectType } from '../types';
 import { FaDownload } from 'react-icons/fa6';
+import api from '../../../../lib/api';
 
 interface Props {
     vendor: Vendor;
+    editable?: boolean;
+    onAdd?: () => void;
+    onEdit?: (id: number, data: Partial<PortfolioProjectType>) => void;
+    onDelete?: (id: number) => void;
 }
 
-const PortfolioProject = ({ vendor }: Props) => {
+const PortfolioProject = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
     const projects: PortfolioProjectType[] = vendor.portfolio_projects || [];
 
     const truncateFileName = (name: string, maxLen = 20) => {
@@ -17,7 +22,7 @@ const PortfolioProject = ({ vendor }: Props) => {
 
     const FileLink = ({ fileName }: { fileName: string | null }) => {
         if (!fileName) return <span className="text-gray-400 text-sm">Not uploaded</span>;
-        const fileUrl = `http://localhost:5001/static/uploads/vendors/${fileName}`;
+        const fileUrl = `${api.defaults.baseURL}/static/uploads/vendors/${fileName}`;
         return (
             <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
                 <span className="text-sm font-medium text-gray-700">Project File</span>
@@ -45,6 +50,16 @@ const PortfolioProject = ({ vendor }: Props) => {
 
     return (
         <div className="animate-fade-in space-y-10">
+            {editable && (
+                <div className="flex justify-end">
+                    <button
+                        onClick={onAdd}
+                        className="px-4 py-2 text-sm font-semibold bg-[#DE3D3A] text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                        + Add New Project
+                    </button>
+                </div>
+            )}
             {projects.map((proj, index) => (
                 <div key={proj.id ?? index} className="border border-gray-200 rounded-lg p-6">
                     <h3 className="font-sora font-semibold text-[#12141D] text-base mb-5">
@@ -119,6 +134,23 @@ const PortfolioProject = ({ vendor }: Props) => {
                             </div>
                         </div>
                     </div>
+
+                    {editable && (
+                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
+                            <button
+                                onClick={() => proj.id && onEdit?.(proj.id, proj)}
+                                className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                            >
+                                Edit Project
+                            </button>
+                            <button
+                                onClick={() => proj.id && onDelete?.(proj.id)}
+                                className="text-sm font-medium text-red-600 hover:text-red-800"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

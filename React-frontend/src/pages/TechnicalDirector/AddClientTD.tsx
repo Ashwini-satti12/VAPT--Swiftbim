@@ -71,7 +71,14 @@ export default function AddClientTD() {
 
         <form onSubmit={handleAddSubmit} className="space-y-4">
           {addError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{addError}</p>
+            <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+              <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                !
+              </div>
+              <div className="flex-1">
+                <p className="mt-0.5 text-[13px] leading-snug">{addError}</p>
+              </div>
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">

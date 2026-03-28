@@ -711,6 +711,8 @@ export default function MytaskV() {
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [addError, setAddError] = useState("");
+  const [addSubmitting, setAddSubmitting] = useState(false);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
@@ -830,6 +832,8 @@ export default function MytaskV() {
   const resetTaskFormAndClose = () => {
     setAddTaskModalOpen(false);
     setEditingTaskId(null);
+    setAddError("");
+    setAddSubmitting(false);
     setAttachmentFiles([]);
     setAddTaskForm({
       projectName: "",
@@ -1417,6 +1421,28 @@ export default function MytaskV() {
               className="flex-1 overflow-y-auto p-6"
               onSubmit={(e) => {
                 e.preventDefault();
+                setAddError("");
+
+                const requiredFields: (keyof typeof addTaskForm)[] = [
+                  "projectName",
+                  "module",
+                  "taskName",
+                  "type",
+                  "actualStartDate",
+                  "actualEndDate",
+                  "startTime",
+                  "dueTime",
+                  "assignTo",
+                  "description",
+                ];
+
+                for (const field of requiredFields) {
+                  if (!addTaskForm[field]) {
+                    setAddError("Please fill in all required fields marked with *.");
+                    return;
+                  }
+                }
+
                 if (
                   addTaskForm.actualStartDate &&
                   addTaskForm.actualStartDate < todayInputDate
@@ -1444,6 +1470,7 @@ export default function MytaskV() {
                   );
                   return;
                 }
+                setAddSubmitting(true);
                 const isEditing = editingTaskId !== null;
                 const existing = isEditing
                   ? list.find((t) => t.id === editingTaskId)
@@ -1492,24 +1519,54 @@ export default function MytaskV() {
                     .then(() => {
                       api
                         .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
-                        .then((res) => setList(res.data.tasks ?? []));
+                        .then((res) => {
+                          setList(res.data.tasks ?? []);
+                          setAddSubmitting(false);
+                          resetTaskFormAndClose();
+                        });
+                    })
+                    .catch((err) => {
+                      setAddError(err.response?.data?.message || "Failed to update task.");
+                      setAddSubmitting(false);
                     });
                 } else {
-                  api.post("/api/vendors/vendor-tasks", payload).then((res) => {
-                    if (res.data.success && res.data.task_id) {
-                      api
-                        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
-                        .then((r) => setList(r.data.tasks ?? []));
-                    }
-                  });
+                  api
+                    .post("/api/vendors/vendor-tasks", payload)
+                    .then((res) => {
+                      if (res.data.success && res.data.task_id) {
+                        api
+                          .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
+                          .then((r) => {
+                            setList(r.data.tasks ?? []);
+                            setAddSubmitting(false);
+                            resetTaskFormAndClose();
+                          });
+                      } else {
+                        setAddSubmitting(false);
+                        resetTaskFormAndClose();
+                      }
+                    })
+                    .catch((err) => {
+                      setAddError(err.response?.data?.message || "Failed to create task.");
+                      setAddSubmitting(false);
+                    });
                 }
-                resetTaskFormAndClose();
               }}
             >
+              {addError && (
+                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                  <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                    !
+                  </div>
+                  <div className="flex-1">
+                    <p className="mt-0.5 text-[13px] leading-snug">{addError}</p>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-black mb-1">
-                    Project Name
+                    Project Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormDropdown
                     label="Select Project name"
@@ -1542,7 +1599,7 @@ export default function MytaskV() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-black mb-1">
-                    Select Module
+                    Select Module <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormDropdown
                     label="Select Module"
@@ -1571,7 +1628,7 @@ export default function MytaskV() {
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-1">
-                    Task Name
+                    Task Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <div className="flex">
                     <input
@@ -1636,7 +1693,7 @@ export default function MytaskV() {
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Type
+                      Type <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormDropdown
                       label="Select Type"
@@ -1663,7 +1720,7 @@ export default function MytaskV() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Actual Start Date
+                      Actual Start Date <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="date"
@@ -1689,7 +1746,7 @@ export default function MytaskV() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Actual End Date
+                      Actual End Date <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="date"
@@ -1709,7 +1766,7 @@ export default function MytaskV() {
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Select Start Time
+                      Select Start Time <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="time"
@@ -1734,7 +1791,7 @@ export default function MytaskV() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Select End Time
+                      Select End Time <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                       type="time"
@@ -1756,7 +1813,7 @@ export default function MytaskV() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-black mb-1">
-                      Assign To
+                      Assign To <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormDropdown
                       label="Select Assign To"
@@ -1785,7 +1842,7 @@ export default function MytaskV() {
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-black mb-1">
-                    Description
+                    Description <span className="text-[#DD4342]">*</span>
                   </label>
                   <textarea
                     value={addTaskForm.description}
@@ -1902,9 +1959,10 @@ export default function MytaskV() {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                  disabled={addSubmitting}
+                  className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] disabled:opacity-50"
                 >
-                  Submit
+                  {addSubmitting ? "Submitting..." : "Submit"}
                 </button>
               </div>
             </form>

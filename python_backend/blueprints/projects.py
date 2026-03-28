@@ -86,6 +86,10 @@ def list_projects():
             # BIM Lead: ONLY projects where they are the Lead
             where_clauses.append("FIND_IN_SET(%s, REPLACE(IFNULL(lead_id, ''), ' ', '')) > 0")
             params.append(user_id)
+        elif user_role == "Project Manager":
+            # Project Manager: ONLY projects where they are the Project Manager
+            where_clauses.append("FIND_IN_SET(%s, REPLACE(IFNULL(project_manager_id, ''), ' ', '')) > 0")
+            params.append(user_id)
         elif user_role == "BIM Coordinator":
             # BIM Coordinator: ONLY projects where they are the Coordinator
             where_clauses.append("FIND_IN_SET(%s, REPLACE(IFNULL(bim_coordinator_id, ''), ' ', '')) > 0")

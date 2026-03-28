@@ -727,6 +727,8 @@ export default function TeamtaskV() {
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+    const [addError, setAddError] = useState("");
+    const [addSubmitting, setAddSubmitting] = useState(false);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -842,6 +844,8 @@ export default function TeamtaskV() {
     const resetTaskFormAndClose = () => {
         setAddTaskModalOpen(false);
         setEditingTaskId(null);
+        setAddError("");
+        setAddSubmitting(false);
         setAttachmentFiles([]);
         setAddTaskForm({
             projectName: "",
@@ -1423,16 +1427,38 @@ export default function TeamtaskV() {
                             className="flex-1 overflow-y-auto p-6"
                             onSubmit={(e) => {
                                 e.preventDefault();
+                                setAddError("");
+
+                                const requiredFields: (keyof typeof addTaskForm)[] = [
+                                    "projectName",
+                                    "module",
+                                    "taskName",
+                                    "type",
+                                    "actualStartDate",
+                                    "actualEndDate",
+                                    "startTime",
+                                    "dueTime",
+                                    "assignTo",
+                                    "description",
+                                ];
+
+                                for (const field of requiredFields) {
+                                    if (!addTaskForm[field]) {
+                                        setAddError("Please fill in all required fields marked with *.");
+                                        return;
+                                    }
+                                }
+
                                 if (
                                     addTaskForm.actualStartDate &&
-                                    addTaskForm.actualStartDate < todayInputDate
+                                    addTaskForm.actualStartDate < getTodayInputDate()
                                 ) {
                                     toast.error("Start date cannot be before today.");
                                     return;
                                 }
                                 if (
                                     addTaskForm.actualEndDate &&
-                                    addTaskForm.actualEndDate < todayInputDate
+                                    addTaskForm.actualEndDate < getTodayInputDate()
                                 ) {
                                     toast.error("End date cannot be before today.");
                                     return;
@@ -1450,6 +1476,7 @@ export default function TeamtaskV() {
                                     );
                                     return;
                                 }
+                                setAddSubmitting(true);
                                 const isEditing = editingTaskId !== null;
                                 const existing = isEditing
                                     ? list.find((t) => t.id === editingTaskId)
@@ -1516,6 +1543,10 @@ export default function TeamtaskV() {
                                                 .then((res) =>
                                                     setList(res.data.tasks ?? []),
                                                 );
+                                        })
+                                        .finally(() => {
+                                            setAddSubmitting(false);
+                                            resetTaskFormAndClose();
                                         });
                                 } else {
                                     api.post("/api/vendors/vendor-tasks", payload).then(
@@ -1531,15 +1562,28 @@ export default function TeamtaskV() {
                                                     );
                                             }
                                         },
-                                    );
+                                    )
+                                        .finally(() => {
+                                            setAddSubmitting(false);
+                                            resetTaskFormAndClose();
+                                        });
                                 }
-                                resetTaskFormAndClose();
                             }}
                         >
+                            {addError && (
+                                <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                                        !
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="mt-0.5 text-[13px] leading-snug">{addError}</p>
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Project Name
+                                        Project Name <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <FormDropdown
                                         label="Select Project"
@@ -1569,7 +1613,7 @@ export default function TeamtaskV() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Select Module
+                                        Select Module <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <FormDropdown
                                         label="Select Module"
@@ -1595,7 +1639,7 @@ export default function TeamtaskV() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Task Name
+                                        Task Name <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <div className="flex">
                                         <input
@@ -1660,7 +1704,7 @@ export default function TeamtaskV() {
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Type
+                                            Type <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <FormDropdown
                                             label="Select Type"
@@ -1687,7 +1731,7 @@ export default function TeamtaskV() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Actual Start Date
+                                            Actual Start Date <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <input
                                             type="date"
@@ -1716,7 +1760,7 @@ export default function TeamtaskV() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Actual End Date
+                                            Actual End Date <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <input
                                             type="date"
@@ -1739,7 +1783,7 @@ export default function TeamtaskV() {
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Select Start Time
+                                            Select Start Time <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <input
                                             type="time"
@@ -1764,7 +1808,7 @@ export default function TeamtaskV() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Select End Time
+                                            Select End Time <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <input
                                             type="time"
@@ -1786,7 +1830,7 @@ export default function TeamtaskV() {
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-black mb-1">
-                                            Assign To
+                                            Assign To <span className="text-[#DD4342]">*</span>
                                         </label>
                                         <FormDropdown
                                             label="Select Assign To"
@@ -1812,7 +1856,7 @@ export default function TeamtaskV() {
                                 </div>
                                 <div className="sm:col-span-2">
                                     <label className="block text-sm font-medium text-black mb-1">
-                                        Description
+                                        Description <span className="text-[#DD4342]">*</span>
                                     </label>
                                     <textarea
                                         value={addTaskForm.description}
@@ -1929,9 +1973,10 @@ export default function TeamtaskV() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    disabled={addSubmitting}
+                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] disabled:opacity-50"
                                 >
-                                    Submit
+                                    {addSubmitting ? "Submitting..." : "Submit"}
                                 </button>
                             </div>
                         </form>

@@ -428,210 +428,209 @@ export default function VendorBimLeadProjects() {
       </div>
     </div>
   );
+  const renderFormFields = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+      <div className="space-y-2">
+        <label className="block text-[16px] font-medium text-[#353535]">Project Name</label>
+        <input type="text" value={createName} onChange={e => setCreateName(e.target.value)}
+          className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all" placeholder="Enter Project Name" />
+      </div>
 
-  // const renderFormFields = () => (
-  //     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-  //         <div className="space-y-2">
-  //             <label className="block text-[16px] font-medium text-[#353535]">Project Name</label>
-  //             <input type="text" value={createName} onChange={e => setCreateName(e.target.value)}
-  //                 className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all" placeholder="Enter Project Name" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[16px] font-medium text-[#353535]">Budget</label>
+        <div className="relative">
+          <input type="text" readOnly className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+            placeholder="Auto-fetched from contract" value={createBudget} />
+        </div>
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[16px] font-medium text-[#353535]">Budget</label>
-  //             <div className="relative">
-  //                 <input type="text" readOnly className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
-  //                     placeholder="Auto-fetched from contract" value={createBudget} />
-  //             </div>
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[16px] font-medium text-[#353535]">Client Name</label>
+        <input type="text" value={createClientName} onChange={e => setCreateClientName(e.target.value)}
+          className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all" placeholder="Enter Client Name" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[16px] font-medium text-[#353535]">Client Name</label>
-  //             <input type="text" value={createClientName} onChange={e => setCreateClientName(e.target.value)}
-  //                 className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all" placeholder="Enter Client Name" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[16px] font-medium text-[#353535]">Project Manager</label>
+        <div className="relative">
+          <div onClick={() => setEditDropdownOpen(prev => prev === 'pm' ? null : 'pm')}
+            className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
+            <span className={createProjectManager ? "text-[#1E293B]" : "text-gray-400"}>{createProjectManager || "Select Manager"}</span>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'pm' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          {editDropdownOpen === 'pm' && (
+            <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
+              {projectManagers.map((m, i) => (
+                <div key={i} onClick={() => { setCreateProjectManager(m.full_name || ""); setEditDropdownOpen(null); }}
+                  className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[16px] font-medium text-[#353535]">Project Manager</label>
-  //             <div className="relative">
-  //                 <div onClick={() => setEditDropdownOpen(prev => prev === 'pm' ? null : 'pm')}
-  //                     className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
-  //                     <span className={createProjectManager ? "text-[#1E293B]" : "text-gray-400"}>{createProjectManager || "Select Manager"}</span>
-  //                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'pm' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-  //                 </div>
-  //                 {editDropdownOpen === 'pm' && (
-  //                     <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
-  //                         {projectManagers.map((m, i) => (
-  //                             <div key={i} onClick={() => { setCreateProjectManager(m.full_name || ""); setEditDropdownOpen(null); }}
-  //                                 className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
-  //                         ))}
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Project Start Date</label>
+        <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Project Start Date</label>
-  //             <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Project End Date</label>
+        <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Project End Date</label>
-  //             <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Total Hours</label>
+        <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Total Hours</label>
-  //             <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Per Day Hours</label>
+        <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Per Day Hours</label>
-  //             <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">BIM Lead</label>
+        <div className="relative">
+          <div onClick={() => setEditDropdownOpen(prev => prev === 'lead' ? null : 'lead')}
+            className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
+            <span className={createBIMLead ? "text-[#1E293B]" : "text-gray-400"}>{createBIMLead || "Select BIM Lead"}</span>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'lead' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          {editDropdownOpen === 'lead' && (
+            <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
+              {bimLeads.map((m, i) => (
+                <div key={i} onClick={() => { setCreateBIMLead(m.full_name || ""); setEditDropdownOpen(null); }}
+                  className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">BIM Lead</label>
-  //             <div className="relative">
-  //                 <div onClick={() => setEditDropdownOpen(prev => prev === 'lead' ? null : 'lead')}
-  //                     className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
-  //                     <span className={createBIMLead ? "text-[#1E293B]" : "text-gray-400"}>{createBIMLead || "Select BIM Lead"}</span>
-  //                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'lead' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-  //                 </div>
-  //                 {editDropdownOpen === 'lead' && (
-  //                     <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
-  //                         {bimLeads.map((m, i) => (
-  //                             <div key={i} onClick={() => { setCreateBIMLead(m.full_name || ""); setEditDropdownOpen(null); }}
-  //                                 className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
-  //                         ))}
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">BIM Coordinator</label>
+        <div className="relative">
+          <div onClick={() => setEditDropdownOpen(prev => prev === 'coord' ? null : 'coord')}
+            className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
+            <span className={createBIMCoOrdinator ? "text-[#1E293B]" : "text-gray-400"}>{createBIMCoOrdinator || "Select Coordinator"}</span>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'coord' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          {editDropdownOpen === 'coord' && (
+            <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
+              {bimCoordinators.map((m, i) => (
+                <div key={i} onClick={() => { setCreateBIMCoOrdinator(m.full_name || ""); setEditDropdownOpen(null); }}
+                  className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">BIM Coordinator</label>
-  //             <div className="relative">
-  //                 <div onClick={() => setEditDropdownOpen(prev => prev === 'coord' ? null : 'coord')}
-  //                     className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
-  //                     <span className={createBIMCoOrdinator ? "text-[#1E293B]" : "text-gray-400"}>{createBIMCoOrdinator || "Select Coordinator"}</span>
-  //                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'coord' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-  //                 </div>
-  //                 {editDropdownOpen === 'coord' && (
-  //                     <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
-  //                         {bimCoordinators.map((m, i) => (
-  //                             <div key={i} onClick={() => { setCreateBIMCoOrdinator(m.full_name || ""); setEditDropdownOpen(null); }}
-  //                                 className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{m.full_name}</div>
-  //                         ))}
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Resources</label>
+        <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Resources</label>
-  //             <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Required Resources</label>
+        <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Required Resources</label>
-  //             <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="0" />
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Priority</label>
+        <div className="relative">
+          <div onClick={() => setEditDropdownOpen(prev => prev === 'priority' ? null : 'priority')}
+            className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
+            <span className={createPriority ? "text-[#1E293B]" : "text-gray-400"}>{createPriority || "Select Priority"}</span>
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'priority' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+          </div>
+          {editDropdownOpen === 'priority' && (
+            <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
+              {["Low", "Medium", "High", "Urgent"].map((opt, i) => (
+                <div key={i} onClick={() => { setCreatePriority(opt); setEditDropdownOpen(null); }}
+                  className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{opt}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Priority</label>
-  //             <div className="relative">
-  //                 <div onClick={() => setEditDropdownOpen(prev => prev === 'priority' ? null : 'priority')}
-  //                     className="w-full px-5 py-3.5 bg-[#F2F2F2] rounded-xl cursor-pointer flex justify-between items-center text-[#1E293B] font-medium hover:bg-[#EAEAEA] transition-colors">
-  //                     <span className={createPriority ? "text-[#1E293B]" : "text-gray-400"}>{createPriority || "Select Priority"}</span>
-  //                     <svg className={`w-4 h-4 text-gray-400 transition-transform ${editDropdownOpen === 'priority' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-  //                 </div>
-  //                 {editDropdownOpen === 'priority' && (
-  //                     <div className="absolute z-[200] left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-2xl max-h-60 overflow-y-auto custom-scrollbar p-1">
-  //                         {["Low", "Medium", "High", "Urgent"].map((opt, i) => (
-  //                             <div key={i} onClick={() => { setCreatePriority(opt); setEditDropdownOpen(null); }}
-  //                                 className="px-4 py-3 hover:bg-[#F8FAFC] cursor-pointer text-sm font-bold text-[#334155] rounded-lg transition-colors hover:text-[#DD4342]">{opt}</div>
-  //                         ))}
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </div>
+      <div className="space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Location</label>
+        <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="Enter Location" />
+      </div>
 
-  //         <div className="space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Location</label>
-  //             <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all" placeholder="Enter Location" />
-  //         </div>
+      <div className="md:col-span-2">
+        {renderMemberSelector()}
+      </div>
 
-  //         <div className="md:col-span-2">
-  //             {renderMemberSelector()}
-  //         </div>
+      <div className="md:col-span-2 space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Project Description</label>
+        <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)}
+          className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all resize-none h-32" placeholder="Tell us about the project..." />
+      </div>
 
-  //         <div className="md:col-span-2 space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Project Description</label>
-  //             <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)}
-  //                 className="w-full px-5 py-3.5 bg-[#F2F2F2] border-none rounded-xl focus:ring-2 focus:ring-[#DD4342]/20 text-[#1E293B] font-medium transition-all resize-none h-32" placeholder="Tell us about the project..." />
-  //         </div>
-
-  //         <div className="md:col-span-2 space-y-2">
-  //             <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
-  //             <div className="relative group">
-  //                 <input
-  //                     type="file"
-  //                     id="file-upload"
-  //                     className="hidden"
-  //                     onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
-  //                 />
-  //                 {!createFile ? (
-  //                     <label
-  //                         htmlFor="file-upload"
-  //                         className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
-  //                     >
-  //                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
-  //                             <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
-  //                             <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
-  //                                 <span className="font-bold">Click to upload</span> or drag and drop
-  //                             </p>
-  //                             <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
-  //                         </div>
-  //                     </label>
-  //                 ) : (
-  //                     <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
-  //                         <div className="flex items-center gap-4">
-  //                             <div className="p-3 bg-white rounded-xl shadow-sm">
-  //                                 <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
-  //                             </div>
-  //                             <div className="min-w-0">
-  //                                 <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
-  //                                     {createFile.name}
-  //                                 </p>
-  //                                 <p className="text-xs text-slate-500">
-  //                                     {(createFile.size / 1024).toFixed(1)} KB
-  //                                 </p>
-  //                             </div>
-  //                         </div>
-  //                         <button
-  //                             type="button"
-  //                             onClick={() => setCreateFile(null)}
-  //                             className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-  //                             title="Remove file"
-  //                         >
-  //                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  //                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-  //                             </svg>
-  //                         </button>
-  //                     </div>
-  //                 )}
-  //             </div>
-  //         </div>
-  //     </div>
-  // );
+      <div className="md:col-span-2 space-y-2">
+        <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+        <div className="relative group">
+          <input
+            type="file"
+            id="file-upload"
+            className="hidden"
+            onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+          />
+          {!createFile ? (
+            <label
+              htmlFor="file-upload"
+              className="flex flex-col items-center justify-center w-full h-32 px-4 transition bg-[#F8FAFC] border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:bg-slate-50 hover:border-[#DD4342]/40 group"
+            >
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <FiUploadCloud className="w-8 h-8 mb-3 text-slate-400 group-hover:text-[#DD4342] transition-colors" />
+                <p className="mb-1 text-sm text-slate-500 group-hover:text-slate-600">
+                  <span className="font-bold">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-xs text-slate-400">PDF, DOCX, ZIP or Images (Max 10MB)</p>
+              </div>
+            </label>
+          ) : (
+            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] border border-[#DD4342]/20 rounded-2xl animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white rounded-xl shadow-sm">
+                  <FiPaperclip className="w-5 h-5 text-[#DD4342]" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#1E293B] truncate max-w-[200px] md:max-w-md">
+                    {createFile.name}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {(createFile.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCreateFile(null)}
+                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Remove file"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
