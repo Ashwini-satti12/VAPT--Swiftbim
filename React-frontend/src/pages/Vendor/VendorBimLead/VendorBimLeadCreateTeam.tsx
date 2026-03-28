@@ -5,7 +5,7 @@ import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg"
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
-import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+// import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 
 interface Team {

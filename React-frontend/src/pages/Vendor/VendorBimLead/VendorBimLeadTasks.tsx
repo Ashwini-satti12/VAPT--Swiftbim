@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../lib/api";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -50,12 +50,11 @@ export default function VendorBimLeadTasks() {
         due_date: "", project_id: "", assigned_to: "", category: "General"
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
-    const [createError, setCreateError] = useState("");
-    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [showViewModal, setShowViewModal] = useState(false);
 
 
     const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
     const fetchTasks = () => {
         api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
@@ -74,33 +73,12 @@ export default function VendorBimLeadTasks() {
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
-        setCreateError("");
-
-        const requiredFields: (keyof typeof createForm)[] = [
-            "task_name",
-            "project_id",
-            "assigned_to",
-            "priority",
-            "due_date",
-            "description",
-        ];
-
-        for (const field of requiredFields) {
-            if (!createForm[field]) {
-                setCreateError("Please fill in all required fields marked with *.");
-                return;
-            }
-        }
-
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-tasks", createForm)
             .then(() => {
                 setShowCreateModal(false);
                 setCreateForm({ task_name: "", description: "", status: "To Do", priority: "Medium", due_date: "", project_id: "", assigned_to: "", category: "General" });
                 fetchTasks();
-            })
-            .catch((err) => {
-                setCreateError(err.response?.data?.message || "Failed to create task.");
             })
             .finally(() => setCreateSubmitting(false));
     };
@@ -198,10 +176,7 @@ export default function VendorBimLeadTasks() {
                             />
                         </div>
                         <button
-                            onClick={() => {
-                                setCreateError("");
-                                setShowCreateModal(true);
-                            }}
+                            onClick={() => setShowCreateModal(true)}
                             className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
@@ -353,24 +328,14 @@ export default function VendorBimLeadTasks() {
                                 </button>
                             </div>
                             <form onSubmit={handleCreate} className="space-y-5">
-                                {createError && (
-                                    <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                                        <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
-                                            !
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="mt-0.5 text-[13px] leading-snug">{createError}</p>
-                                        </div>
-                                    </div>
-                                )}
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Task Name <span className="text-[#DD4342]">*</span></label>
+                                    <label className="text-[14px] font-bold text-[#475569] block">Task Name *</label>
                                     <input type="text" value={createForm.task_name} onChange={e => setCreateForm({ ...createForm, task_name: e.target.value })} required
                                         className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter task name" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Project <span className="text-[#DD4342]">*</span></label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Project</label>
                                         <select value={createForm.project_id} onChange={e => setCreateForm({ ...createForm, project_id: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="">Select Project</option>
@@ -378,7 +343,7 @@ export default function VendorBimLeadTasks() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Assign To <span className="text-[#DD4342]">*</span></label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Assign To</label>
                                         <select value={createForm.assigned_to} onChange={e => setCreateForm({ ...createForm, assigned_to: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="">Select Employee</option>
@@ -388,7 +353,7 @@ export default function VendorBimLeadTasks() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Priority <span className="text-[#DD4342]">*</span></label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
                                         <select value={createForm.priority} onChange={e => setCreateForm({ ...createForm, priority: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
                                             <option value="Low">Low</option>
@@ -398,13 +363,13 @@ export default function VendorBimLeadTasks() {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Due Date <span className="text-[#DD4342]">*</span></label>
+                                        <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
                                         <input type="date" value={createForm.due_date} onChange={e => setCreateForm({ ...createForm, due_date: e.target.value })}
                                             className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Description <span className="text-[#DD4342]">*</span></label>
+                                    <label className="text-[14px] font-bold text-[#475569] block">Description</label>
                                     <textarea value={createForm.description} onChange={e => setCreateForm({ ...createForm, description: e.target.value })} rows={3}
                                         className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Task description..." />
                                 </div>
@@ -413,7 +378,7 @@ export default function VendorBimLeadTasks() {
                                         className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancel</button>
                                     <button type="submit" disabled={createSubmitting}
                                         className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
-                                        {createSubmitting ? "Creating..." : "Create Task"}
+                                        Create Task
                                     </button>
                                 </div>
                             </form>
@@ -422,6 +387,54 @@ export default function VendorBimLeadTasks() {
                 </div>
             )}
 
+            {/* View Task Modal */}
+            {showViewModal && selectedTask && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-8">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">{selectedTask.category || "General"}</span>
+                                    <h3 className="text-2xl font-bold text-[#1A1A1A]">{selectedTask.task_name}</h3>
+                                </div>
+                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2]">
+                                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
+                            <div className="space-y-6">
+                                <div className="flex flex-wrap gap-4">
+                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
+                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Status</span>
+                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.status}</span>
+                                    </div>
+                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
+                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Priority</span>
+                                        <span className={`font-bold ${selectedTask.priority === "High" ? "text-red-500" : "text-[#1A1A1A]"}`}>{selectedTask.priority}</span>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shadow-sm">
+                                        {(selectedTask.assigned_to_name || "?")[0]}
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase tracking-widest">Assigned To</span>
+                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.assigned_to_name || "Unassigned"}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-bold text-gray-400 block mb-2 uppercase">Description</span>
+                                    <p className="text-[#6B7280] leading-relaxed bg-gray-50 p-4 rounded-xl text-sm italic">
+                                        {selectedTask.description || "No description available."}
+                                    </p>
+                                </div>
+                                <div className="pt-4 flex justify-end">
+                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

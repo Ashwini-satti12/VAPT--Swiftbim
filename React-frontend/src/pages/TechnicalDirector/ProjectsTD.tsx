@@ -268,9 +268,6 @@ export default function ProjectsTD() {
   const [createError, setCreateError] = useState("");
   const [editError, setEditError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
-  const [createFiles, setCreateFiles] = useState<File[]>([]);
-  const [existingFiles, setExistingFiles] = useState<string[]>([]);
-  const [removedFiles, setRemovedFiles] = useState<string[]>([]);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);

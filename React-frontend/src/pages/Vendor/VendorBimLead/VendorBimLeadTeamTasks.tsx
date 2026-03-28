@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "react-hot-toast";
 import api from "../../../lib/api";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
@@ -52,7 +53,6 @@ export default function VendorBimLeadTeamTasks() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState("All");
-    const navigate = useNavigate();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
@@ -69,7 +69,7 @@ export default function VendorBimLeadTeamTasks() {
     const fetchData = () => {
         setLoading(true);
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-team-tasks"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks?condition=1"),
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ teams?: Team[] }>("/api/vendors/vendor-teams")
@@ -90,7 +90,7 @@ export default function VendorBimLeadTeamTasks() {
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
-        api.post("/api/vendors/vendor-team-tasks", createForm)
+        api.post("/api/vendors/vendor-tasks", createForm)
             .then(() => {
                 setShowCreateModal(false);
                 setCreateForm({ task_name: "", description: "", status: "To Do", priority: "Medium", due_date: "", project_id: "", assigned_to: "", team_id: "" });
@@ -100,8 +100,8 @@ export default function VendorBimLeadTeamTasks() {
     };
 
     const handleStatusChange = (taskId: number, newStatus: string) => {
-        setTasks((prev) =>
-            prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
+        setTasks((prev: Task[]) =>
+            prev.map((t: Task) => (t.id === taskId ? { ...t, status: newStatus } : t))
         );
         api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
             .then(() => toast.success("Status updated"))
@@ -115,13 +115,13 @@ export default function VendorBimLeadTeamTasks() {
         if (!window.confirm("Are you sure you want to delete this task?")) return;
         api.delete(`/api/vendors/vendor-tasks/${taskId}`)
             .then(() => {
-                setTasks((prev) => prev.filter((t) => t.id !== taskId));
+                setTasks((prev: Task[]) => prev.filter((t: Task) => t.id !== taskId));
                 toast.success("Task deleted");
             })
             .catch(() => toast.error("Failed to delete task"));
     };
 
-    const outlineEmployeeFilters = ["All Employees", ...new Set(tasks.map(t => t.assigned_to_name).filter(Boolean))];
+    const outlineEmployeeFilters = ["All Employees", ...new Set(tasks.map((t: Task) => t.assigned_to_name).filter(Boolean))];
     const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState("All Employees");
 
     const filteredTasks = tasks.filter(t => {
@@ -155,16 +155,16 @@ export default function VendorBimLeadTeamTasks() {
         return "todo";
     };
     const counts = {
-        todo: baseFilteredTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
-        in_progress: baseFilteredTasks.filter((t) => normalizeStatus(t.status) === "in_progress")
+        todo: baseFilteredTasks.filter((t: Task) => normalizeStatus(t.status) === "todo").length,
+        in_progress: baseFilteredTasks.filter((t: Task) => normalizeStatus(t.status) === "in_progress")
             .length,
-        completed: baseFilteredTasks.filter((t) => normalizeStatus(t.status) === "completed")
+        completed: baseFilteredTasks.filter((t: Task) => normalizeStatus(t.status) === "completed")
             .length,
     };
     const displayedTasksByStatus = {
-        todo: filteredTasks.filter((t) => normalizeStatus(t.status) === "todo"),
-        in_progress: filteredTasks.filter((t) => normalizeStatus(t.status) === "in_progress"),
-        completed: filteredTasks.filter((t) => normalizeStatus(t.status) === "completed"),
+        todo: filteredTasks.filter((t: Task) => normalizeStatus(t.status) === "todo"),
+        in_progress: filteredTasks.filter((t: Task) => normalizeStatus(t.status) === "in_progress"),
+        completed: filteredTasks.filter((t: Task) => normalizeStatus(t.status) === "completed"),
     };
 
     if (loading) {
@@ -238,7 +238,7 @@ export default function VendorBimLeadTeamTasks() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {(["todo", "in_progress", "completed"] as const).map((bucket) => (
                         <div key={bucket} className="space-y-3 min-h-[120px] rounded-lg p-1">
-                            {displayedTasksByStatus[bucket].map((task) => (
+                            {displayedTasksByStatus[bucket].map((task: Task) => (
                                 <div key={task.id} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative">
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
