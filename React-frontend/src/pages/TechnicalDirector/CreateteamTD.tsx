@@ -10,6 +10,7 @@ import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 const showEntriesOptions: {
   value: string;
@@ -40,7 +41,7 @@ interface Employee {
   user_type?: string;
   address?: string;
   department?: string;
-  active?: string;
+  active?: string | null;
 }
 
 interface Team {
@@ -177,8 +178,14 @@ function TeamCard({
         <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
           Team Leader
         </span>
-        <span className="text-[18px] font-semibold text-[#353535] truncate">
+        <span className="text-[18px] font-semibold text-[#353535] truncate flex items-center gap-2">
           {team.leader_name || getEmpName(team.leader)}
+          {(() => {
+            const emp = getEmployee(team.leader);
+            return emp && !isEmployeeActiveForProjectAssignment(emp) ? (
+              <span className="text-xs font-normal text-red-500">(Inactive)</span>
+            ) : null;
+          })()}
         </span>
       </div>
 
@@ -520,8 +527,8 @@ export default function CreateteamTD() {
         });
     }
 
-    const filtered = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && e.active === 'active');
-    return filtered.length > 0 ? filtered : employees.filter(e => e.active === 'active');
+    const filtered = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
+    return filtered.length > 0 ? filtered : employees.filter(isEmployeeActiveForProjectAssignment);
   };
 
   if (loading) {

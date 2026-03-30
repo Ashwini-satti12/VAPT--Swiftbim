@@ -72,7 +72,7 @@ export default function AddTaskTD() {
             api.get<{ projects?: Project[] }>("/api/projects"),
         ]).then(([tasksRes, empRes, projRes]) => {
             setList(tasksRes.data.tasks ?? []);
-            setEmployees(empRes.data.employees ?? []);
+            setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
             setProjects(projRes.data.projects ?? []);
         });
     }, []);

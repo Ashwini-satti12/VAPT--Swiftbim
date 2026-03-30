@@ -13,6 +13,7 @@ import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 export function formatTimeForDisplay(value: string): string {
     if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
@@ -436,7 +437,7 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
         actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
         startTime: timeOnly(t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
         dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-        assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+        assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
     };
@@ -858,7 +859,7 @@ export default function MytaskBC() {
     }, [openDropdown]);
 
     useEffect(() => {
-        api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
+        api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
         api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
     }, []);
 

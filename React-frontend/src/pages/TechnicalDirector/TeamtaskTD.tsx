@@ -742,10 +742,10 @@ function TaskCard({
           className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2"
         >
           Details
-          <img 
-            src={Arrow} 
-            alt="Arrow" 
-            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]" 
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
           />
         </Link>
       </div>
@@ -1140,7 +1140,11 @@ export default function TeamtaskPM() {
     ])
       .then(([tasksRes, empRes, projRes]) => {
         setList(tasksRes.data.tasks ?? []);
-        setEmployees(empRes.data.employees ?? []);
+        setEmployees(
+          (empRes.data.employees ?? []).filter(
+            isEmployeeActiveForProjectAssignment,
+          ),
+        );
         setProjects(projRes.data.projects ?? []);
       })
       .catch(() => {

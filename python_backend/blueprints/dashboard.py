@@ -90,15 +90,18 @@ def stats():
         elif user_role == "BIM Lead":
             t_params = (company_id, uid, task_status)
         elif user_role == "BIM Modeler":
-            t_params = (company_id, uid, task_status)
+            # BIM Modeler only counts their own tasks
+            t_params = (company_id, uid, uid, task_status)
         else:
             t_params = (company_id, uid, uid, uid, uid, uid, uid, task_status)
+
+        modeler_filter = " AND t.assigned_to = %s" if user_role == "BIM Modeler" else ""
 
         try:
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
                     INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
-                    WHERE t.status = %s""",
+                    WHERE t.status = %s{modeler_filter}""",
                 t_params,
             )
             row = cur.fetchone()
