@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
-import { VscEye } from "react-icons/vsc";
-import { BiEdit } from "react-icons/bi";
-import { RiDeleteBin5Fill } from "react-icons/ri";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-import { FaCircleDollarToSlot } from "react-icons/fa6";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg";
+import threedot from "../../assets/ProjectManager/project/threedot.svg";
+
+
 
 
 interface Project {
@@ -969,13 +973,12 @@ export default function ProjectsV() {
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
                                 }}
-                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors"
+                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
                                 title="Close"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
+
                             <div className="min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                                     Edit Project Details
@@ -1018,11 +1021,10 @@ export default function ProjectsV() {
                     <div className="flex flex-col h-full bg-white">
                         <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowProjectView(false)}
-                                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer" title="Close">
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
+
                             <div className="min-w-0">
                                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
                                     {selectedProject.project_name ?? "Untitled Project"}
@@ -1039,59 +1041,173 @@ export default function ProjectsV() {
                                     { label: "Paused", value: taskStats.paused },
                                     { label: "Completed", value: taskStats.completed },
                                 ].map((stat, i) => (
-                                    <div key={i} className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] transition-colors group">
-                                        <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
+                                    <div key={i} className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors group border border-slate-200">
+                                        <div className="flex items-center justify-left mb-2">
+                                            <p className="text-[#353535] group-hover:text-white text-[18px] md:text-[20px] font-Gantari font-semibold">{stat.label}</p>
+                                        </div>
                                         <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
                                     </div>
                                 ))}
                             </div>
 
+
                             {/* Project Details */}
-                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-4">Project Details</h4>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm font-gantari">
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Priority</span><span className="text-[#1A1A1A] font-bold">{selectedProject.priority || "—"}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Budget</span><span className="text-[#1A1A1A] font-bold">{selectedProject.budget || "—"}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Start Date</span><span className="text-[#1A1A1A] font-bold">{formatDate(selectedProject.start_date)}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Due Date</span><span className="text-[#1A1A1A] font-bold">{formatDate(selectedProject.due_date)}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Location</span><span className="text-[#1A1A1A] font-bold">{selectedProject.location || "—"}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Total Hours</span><span className="text-[#1A1A1A] font-bold">{selectedProject.totalhours || "—"}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Per Day</span><span className="text-[#1A1A1A] font-bold">{selectedProject.perday || "—"}</span></div>
-                                    <div><span className="text-[#999999] block text-xs font-semibold mb-1">Modules</span><span className="text-[#1A1A1A] font-bold">{selectedProject.modules || "—"}</span></div>
+                            <div className="rounded-lg border border-slate-200 p-6 md:p-8">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                                    Project Details
+                                </h4>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                                    <div className="space-y-4 md:space-y-5">
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Priority
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.priority || "—"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Budget
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.budget || "—"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Actual Start Date
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {formatDate(selectedProject.start_date)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Location
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.location || "—"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4 md:space-y-5">
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Actual End Date
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {formatDate(selectedProject.due_date)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Total Project Hours
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.totalhours || "—"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Hours/Day
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.perday || "—"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                                Modules
+                                            </span>
+                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                                {selectedProject.modules || "—"}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
+
                             {/* Description */}
-                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000]">Project Description</h4>
-                                <p className="text-[16px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                                <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
                                     {selectedProject.description ?? "No description available"}
                                 </p>
                             </div>
 
-                            {/* Team Members */}
-                            <div className="border border-slate-200 rounded-[10px] p-6 md:p-8">
-                                <h4 className="text-[18px] md:text-[22px] font-Gantari font-bold text-[#000000] mb-6">Team Overview</h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {(selectedProject.members || "").split(",").filter(Boolean).map(id => {
-                                        const resource = vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                        return resource ? (
-                                            <div key={id} className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold">
-                                                    {(resource.full_name || "?")[0]}
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-bold text-[#1E293B]">{resource.full_name}</p>
-                                                    <p className="text-xs text-[#999]">{resource.user_role || "Member"}</p>
-                                                </div>
-                                            </div>
-                                        ) : null;
-                                    })}
-                                    {!(selectedProject.members || "").split(",").filter(Boolean).length && (
-                                        <p className="col-span-full text-[#999] text-sm">No team members assigned</p>
-                                    )}
+
+                            {/* Team Overview */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                                    Team Overview
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
+                                    {/* Project Manager/Technical Lead */}
+                                    <div className="min-w-0">
+                                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                            Team Members
+                                        </p>
+                                        <div className="flex items-center -space-x-3">
+                                            {(() => {
+                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                                const projectMembers = memberIds.map(id => {
+                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                }).filter(Boolean);
+
+                                                const visibleMembers = projectMembers.slice(0, 3);
+                                                const remainingCount = Math.max(0, projectMembers.length - 3);
+
+                                                return (
+                                                    <>
+                                                        {visibleMembers.map((emp: any) => {
+                                                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                            return (
+                                                                <div key={emp.id} className="relative group shrink-0">
+                                                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                                                        {profileUrl ? (
+                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                                                {(emp.full_name || "M").charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                        {emp.full_name}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {remainingCount > 0 && (
+                                                            <div className="relative group shrink-0">
+                                                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0">
+                                                                    +{remainingCount}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {projectMembers.length === 0 && (
+                                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                                                <span className="text-slate-600 text-xs font-bold">TM</span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
                 ) : showMilestones && milestonesProject ? (
@@ -1099,10 +1215,11 @@ export default function ProjectsV() {
                     <div className="flex flex-col h-full bg-white">
                         <div className="flex items-center justify-between px-10 py-8">
                             <div className="flex items-center gap-6">
-                                <button type="button" onClick={() => setShowMilestones(false)} className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
+                                <button type="button" onClick={() => setShowMilestones(false)}
+                                    className="p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                                    title="Go back"
+                                >
+                                    <img src={backIcon} alt="Back" className="w-5 h-5" />
                                 </button>
                                 <div>
                                     <h3 className="text-[26px] font-bold">Payment Milestones</h3>
@@ -1147,9 +1264,9 @@ export default function ProjectsV() {
                                                 key={p.id}
                                                 className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 min-h-[220px]"
                                             >
-                                                <div>
-                                                    <div className="flex items-start justify-between mb-4 mt-2 pr-0">
-                                                        <div className="relative flex items-center justify-center shrink-0">
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
+
                                                             <svg className="w-20 h-20 transform -rotate-90">
                                                                 <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
                                                                 <circle
@@ -1170,57 +1287,103 @@ export default function ProjectsV() {
                                                             </span>
                                                         </div>
                                                         <div className="relative shrink-0 project-menu-container">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id))}
-                                                            className="p-2 rounded-full border border-slate-800/80 text-[#353535] hover:bg-slate-50 transition-colors"
-                                                            aria-label="More actions"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                                                <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                                                            </svg>
-                                                        </button>
-                                                        <div
-                                                            className={`absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-[#E5E5E5] shadow-lg z-30 py-1 overflow-hidden transition-all ${openMenuProjectId === p.id ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"}`}
-                                                        >
                                                             <button
                                                                 type="button"
-                                                                onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenMenuProjectId((prev) => (prev === p.id ? null : p.id));
+                                                                }}
+                                                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                                                             >
-                                                                <VscEye /> View
+                                                                <img
+                                                                    src={threedot}
+                                                                    alt="threeDots"
+                                                                    className="w-5 h-5 text-[#8B8B8B]"
+                                                                />
                                                             </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
+                                                            <div
+                                                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                                                             >
-                                                                <BiEdit /> Edit
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
-                                                            >
-                                                                <FaCircleDollarToSlot /> Milestones
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
-                                                                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 font-semibold text-[#6B6B6B] text-sm text-left"
-                                                            >
-                                                                <RiDeleteBin5Fill /> Delete
-                                                            </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuProjectId(null);
+                                                                        setSelectedProject(p);
+                                                                        setShowProjectView(true);
+                                                                    }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                >
+                                                                    <img
+                                                                        src={viewIcon}
+                                                                        alt="view"
+                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        View
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuProjectId(null);
+                                                                        openEdit(p);
+                                                                    }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                >
+                                                                    <img
+                                                                        src={editIcon}
+                                                                        alt="edit"
+                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                        Edit
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuProjectId(null);
+                                                                        setMilestonesProject(p);
+                                                                        setShowMilestones(true);
+                                                                    }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                >
+                                                                    <img
+                                                                        src={paymentMilestoneIcon}
+                                                                        alt="payment milestone"
+                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                       Payment Milestones
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setOpenMenuProjectId(null);
+                                                                        setDeleteId(p.id);
+                                                                    }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                >
+                                                                    {/* <img
+                                                                        src={deleteIcon}
+                                                                        alt="delete"
+                                                                        className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                        Delete
+                                                                    </span> */}
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                    <div className="mb-4 px-2 -mt-1 text-center">
-                                                        <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] uppercase tracking-wide leading-tight line-clamp-3">
-                                                            {p.project_name ?? "Untitled"}
+                                                    <div className="mb-4 ml-6 -mt-2">
+                                                        <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                            {p.project_name ?? "Untitled Project"}
                                                         </h3>
                                                     </div>
-                                                </div>
+
 
                                                 <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto gap-3">
                                                     <div className="flex items-center min-w-0">
@@ -1314,8 +1477,10 @@ export default function ProjectsV() {
                         {/* Modal Header */}
                         <div className="relative flex items-center justify-center px-10 py-8 border-b border-slate-50">
                             <button type="button" onClick={() => setShowCreateModal(false)}
-                                className="absolute left-10 p-3 rounded-xl bg-[#F2F2F2] text-gray-800 hover:bg-gray-200 transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                className="absolute left-10 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                                title="Go back"
+                            >
+                                <img src={backIcon} alt="Back" className="w-5 h-5" />
                             </button>
                             <h3 className="text-2xl font-bold text-[#1A1A1A]">Add New Project</h3>
                         </div>
