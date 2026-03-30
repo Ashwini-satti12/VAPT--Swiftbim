@@ -40,6 +40,7 @@ interface Employee {
   user_type?: string;
   address?: string;
   department?: string;
+  active?: string;
 }
 
 interface Team {
@@ -57,6 +58,12 @@ interface Team {
 interface Project {
   id: number;
   project_name?: string;
+  members?: string;
+  members_names?: string[];
+  project_manager_name?: string;
+  lead_name?: string;
+  bim_coordinator_name?: string;
+  uploader_name?: string;
 }
 
 function TeamCard({
@@ -273,13 +280,16 @@ export default function CreateteamTD() {
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [showEditProjectDropdown, setShowEditProjectDropdown] = useState(false);
   const [projectDropdownUpward, setProjectDropdownUpward] = useState(false);
+  const [editProjectDropdownUpward, setEditProjectDropdownUpward] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
   const leaderDropdownRef = useRef<HTMLDivElement>(null);
   const projectDropdownRef = useRef<HTMLDivElement>(null);
+  const editProjectDropdownRef = useRef<HTMLDivElement>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
@@ -319,6 +329,12 @@ export default function CreateteamTD() {
         !projectDropdownRef.current.contains(event.target as Node)
       ) {
         setShowProjectDropdown(false);
+      }
+      if (
+        editProjectDropdownRef.current &&
+        !editProjectDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEditProjectDropdown(false);
       }
       if (
         showEntriesDropdownRef.current &&
@@ -497,6 +513,26 @@ export default function CreateteamTD() {
     return e ? e.full_name : "Unknown";
   };
 
+  const getProjectEmployees = (projectId: string | number) => {
+    if (!projectId) return employees;
+    const proj = projects.find((p) => String(p.id) === String(projectId));
+    if (!proj) return employees;
+
+    const involvedNames = new Set<string>();
+    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+    if (proj.lead_name) involvedNames.add(proj.lead_name);
+    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+    if (Array.isArray(proj.members_names)) {
+        proj.members_names.forEach(name => {
+            if (name) involvedNames.add(name);
+        });
+    }
+
+    const filtered = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && e.active === 'active');
+    return filtered.length > 0 ? filtered : employees.filter(e => e.active === 'active');
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -539,7 +575,7 @@ export default function CreateteamTD() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center justify-between min-w-[90px] px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="flex items-center justify-between min-w-[140px] px-4 py-2 bg-[#E8E8E8] rounded-[5px] transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
@@ -547,10 +583,10 @@ export default function CreateteamTD() {
                 </span>
               ) : (
                 <div className="flex items-center gap-1">
-                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">
+                  <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
                     Show:
                   </span>
-                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">
+                  <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
                     {selectedRange.label}
                   </span>
                 </div>
@@ -558,16 +594,11 @@ export default function CreateteamTD() {
               <img
                 src={ArrowDown}
                 alt="arrow"
-                className="ml-2 w-3.5 h-3.5 object-contain transition-transform duration-200"
-                style={{
-                  transform: showEntriesOpen
-                    ? "rotate(180deg)"
-                    : "rotate(0deg)",
-                }}
+                className="ml-2 w-3 h-3 object-contain transition-transform duration-200"
               />
             </button>
             {showEntriesOpen && (
-              <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto no-scrollbar">
+              <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-[#E0E0E0] rounded-[5px] shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto no-scrollbar">
                 {showEntriesOptions.map((opt) => (
                   <button
                     key={opt.value}
@@ -652,7 +683,7 @@ export default function CreateteamTD() {
             </button>
 
             <div className="text-center mb-10">
-              <h3 className="text-[26px] font-semibold text-[#353535]">
+              <h3 className="text-[24px] font-semibold text-[#000000]">
                 Create New Team
               </h3>
             </div>
@@ -665,7 +696,7 @@ export default function CreateteamTD() {
                 <input
                   type="text"
                   placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                   value={form.team_name}
                   onChange={(e) =>
                     setForm({ ...form, team_name: e.target.value })
@@ -675,27 +706,20 @@ export default function CreateteamTD() {
               </div>
 
               <div>
+                <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                  Select Project
+                </label>
                 <div className="relative" ref={projectDropdownRef}>
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Select Project"
+                      readOnly
                       value={
-                        showProjectDropdown
-                          ? projectSearchQuery
-                          : form.project_id
-                            ? (projects.find(
-                                (p) => String(p.id) === form.project_id,
-                              )?.project_name ?? "")
-                            : ""
+                        projects.find((p) => String(p.id) === form.project_id)
+                          ?.project_name ?? "Select Project"
                       }
-                      onChange={(e) => {
-                        setProjectSearchQuery(e.target.value);
-                        if (e.target.value === "")
-                          setForm((f) => ({ ...f, project_id: "" }));
-                        setShowProjectDropdown(true);
-                      }}
-                      onFocus={() => {
+                      onClick={() => {
                         const el = projectDropdownRef.current;
                         if (el) {
                           const rect = el.getBoundingClientRect();
@@ -703,22 +727,20 @@ export default function CreateteamTD() {
                             window.innerHeight - rect.bottom < 220,
                           );
                         }
-                        setShowProjectDropdown(true);
-                        setProjectSearchQuery("");
+                        setShowProjectDropdown(!showProjectDropdown);
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all cursor-pointer font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -733,29 +755,24 @@ export default function CreateteamTD() {
                       className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {projects
-                          .filter(
-                            (p) =>
-                              !projectSearchQuery.trim() ||
-                              p.project_name
-                                ?.toLowerCase()
-                                .includes(projectSearchQuery.toLowerCase()),
-                          )
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setForm({ ...form, project_id: String(p.id) });
-                                setProjectSearchQuery("");
-                                setShowProjectDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                            >
-                              {p.project_name}
-                            </button>
-                          ))}
+                        {projects.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setForm((f) => ({
+                                ...f,
+                                project_id: String(p.id),
+                                leader: "",
+                                employee: [],
+                              }));
+                              setShowProjectDropdown(false);
+                            }}
+                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                          >
+                            {p.project_name ?? `Project ${p.id}`}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -803,19 +820,19 @@ export default function CreateteamTD() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[10px] text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -830,7 +847,7 @@ export default function CreateteamTD() {
                       className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {employees
+                        {getProjectEmployees(form.project_id)
                           .filter(
                             (e) =>
                               !leaderSearchQuery.trim() ||
@@ -848,8 +865,27 @@ export default function CreateteamTD() {
                                 setLeaderSearchQuery("");
                                 setShowLeaderDropdown(false);
                               }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer flex items-center gap-3"
                             >
+                              {(() => {
+                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                return (
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
+                                    {profileUrl ? (
+                                      <img
+                                        src={profileUrl}
+                                        alt={e.full_name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = ProfileIcon;
+                                        }}
+                                      />
+                                    ) : (
+                                      (e.full_name || "U")[0].toUpperCase()
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               {e.full_name}
                             </button>
                           ))}
@@ -890,19 +926,19 @@ export default function CreateteamTD() {
                         setShowMemberDropdown(true);
                         setMemberSearchQuery("");
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -917,7 +953,7 @@ export default function CreateteamTD() {
                       className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {employees
+                        {getProjectEmployees(form.project_id)
                           .filter(
                             (e) =>
                               !memberSearchQuery.trim() ||
@@ -938,6 +974,18 @@ export default function CreateteamTD() {
                                 }
                                 className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
                               />
+                              {(() => {
+                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                return (
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                        {profileUrl ? (
+                                            <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            (e.full_name || "U")[0].toUpperCase()
+                                        )}
+                                    </div>
+                                );
+                              })()}
                               <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
                                 {e.full_name}
                               </span>
@@ -981,7 +1029,7 @@ export default function CreateteamTD() {
             </button>
 
             <div className="text-center mb-10">
-              <h3 className="text-[26px] font-semibold text-[#353535]">
+              <h3 className="text-[24px] font-semibold text-[#000000]">
                 Edit Team Details
               </h3>
             </div>
@@ -994,7 +1042,7 @@ export default function CreateteamTD() {
                 <input
                   type="text"
                   placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                   value={editForm.team_name}
                   onChange={(e) =>
                     setEditForm({ ...editForm, team_name: e.target.value })
@@ -1003,50 +1051,41 @@ export default function CreateteamTD() {
               </div>
 
               <div>
-                <div className="relative" ref={projectDropdownRef}>
+                <label className="block text-[16px] font-medium text-[#000000] mb-3">
+                  Select Project
+                </label>
+                <div className="relative" ref={editProjectDropdownRef}>
                   <div className="relative">
                     <input
                       type="text"
                       placeholder="Select Project"
+                      readOnly
                       value={
-                        showProjectDropdown
-                          ? projectSearchQuery
-                          : editForm.project_id
-                            ? (projects.find(
-                                (p) => String(p.id) === editForm.project_id,
-                              )?.project_name ?? "")
-                            : ""
+                        projects.find((p) => String(p.id) === editForm.project_id)
+                          ?.project_name ?? "Select Project"
                       }
-                      onChange={(e) => {
-                        setProjectSearchQuery(e.target.value);
-                        if (e.target.value === "")
-                          setEditForm((f) => ({ ...f, project_id: "" }));
-                        setShowProjectDropdown(true);
-                      }}
-                      onFocus={() => {
-                        const el = projectDropdownRef.current;
+                      onClick={() => {
+                        const el = editProjectDropdownRef.current;
                         if (el) {
                           const rect = el.getBoundingClientRect();
-                          setProjectDropdownUpward(
+                          setEditProjectDropdownUpward(
                             window.innerHeight - rect.bottom < 220,
                           );
                         }
-                        setShowProjectDropdown(true);
-                        setProjectSearchQuery("");
+                        setShowEditProjectDropdown(!showEditProjectDropdown);
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all cursor-pointer font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showProjectDropdown ? "rotate-180" : ""}`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -1056,37 +1095,29 @@ export default function CreateteamTD() {
                     </div>
                   </div>
 
-                  {showProjectDropdown && (
+                  {showEditProjectDropdown && (
                     <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
+                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {projects
-                          .filter(
-                            (p) =>
-                              !projectSearchQuery.trim() ||
-                              p.project_name
-                                ?.toLowerCase()
-                                .includes(projectSearchQuery.toLowerCase()),
-                          )
-                          .map((p) => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setEditForm({
-                                  ...editForm,
-                                  project_id: String(p.id),
-                                });
-                                setProjectSearchQuery("");
-                                setShowProjectDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                            >
-                              {p.project_name}
-                            </button>
-                          ))}
+                        {projects.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setEditForm((f) => ({
+                                ...f,
+                                project_id: String(p.id),
+                                leader: "",
+                                employee: [],
+                              }));
+                              setShowEditProjectDropdown(false);
+                            }}
+                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                          >
+                            {p.project_name ?? `Project ${p.id}`}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1134,19 +1165,19 @@ export default function CreateteamTD() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -1161,7 +1192,7 @@ export default function CreateteamTD() {
                       className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${leaderDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {employees
+                        {getProjectEmployees(editForm.project_id)
                           .filter(
                             (e) =>
                               !leaderSearchQuery.trim() ||
@@ -1224,19 +1255,19 @@ export default function CreateteamTD() {
                         setShowMemberDropdown(true);
                         setMemberSearchQuery("");
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -1251,7 +1282,7 @@ export default function CreateteamTD() {
                       className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${memberDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {employees
+                        {getProjectEmployees(editForm.project_id)
                           .filter(
                             (e) =>
                               !memberSearchQuery.trim() ||
@@ -1274,6 +1305,18 @@ export default function CreateteamTD() {
                                 }
                                 className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
                               />
+                              {(() => {
+                                const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                                return (
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden border">
+                                        {profileUrl ? (
+                                            <img src={profileUrl} alt={e.full_name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            (e.full_name || "U")[0].toUpperCase()
+                                        )}
+                                    </div>
+                                );
+                              })()}
                               <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
                                 {e.full_name}
                               </span>
@@ -1342,10 +1385,26 @@ export default function CreateteamTD() {
                     Leadership
                   </h4>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                      {(selectedTeam.leader_name ||
-                        getEmpName(selectedTeam.leader))?.[0] ?? ""}
-                    </div>
+                    {(() => {
+                      const leaderEmp = employees.find(e => String(e.id) === String(selectedTeam.leader));
+                      const profileUrl = leaderEmp?.profile_picture ? getGlobalProfileUrl(leaderEmp.id, leaderEmp.profile_picture) : null;
+                      return (
+                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm overflow-hidden">
+                          {profileUrl ? (
+                            <img 
+                              src={profileUrl} 
+                              alt="Leader" 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = ProfileIcon;
+                              }}
+                            />
+                          ) : (
+                            (selectedTeam.leader_name || getEmpName(selectedTeam.leader))?.[0] ?? ""
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div>
                       <p className="font-semibold text-slate-800">
                         {selectedTeam.leader_name ||
@@ -1374,8 +1433,19 @@ export default function CreateteamTD() {
                             key={eid}
                             className={`flex items-center gap-4 p-4 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
                           >
-                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
-                              {getEmpName(eid)?.[0] ?? ""}
+                            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600 overflow-hidden">
+                              {empInfo?.profile_picture ? (
+                                <img 
+                                  src={getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)} 
+                                  alt={empInfo.full_name} 
+                                  className="w-full h-full object-cover" 
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = ProfileIcon;
+                                  }}
+                                />
+                              ) : (
+                                (getEmpName(eid)?.[0] ?? "")
+                              )}
                             </div>
                             <div className="flex-1">
                               <p className="font-semibold text-slate-800">
@@ -1666,14 +1736,14 @@ export default function CreateteamTD() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+          <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-4 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
             <div className="relative flex items-center justify-center w-full mb-8">
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setTeamToDelete(null);
                 }}
-                className="absolute left-0 p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                className="absolute left-0 p-2 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
               >
                 <img src={CloseIcon} alt="Close" className="w-5 h-5 object-contain" />
               </button>
@@ -1700,7 +1770,7 @@ export default function CreateteamTD() {
                 <button
                   onClick={confirmDelete}
                   disabled={submitting}
-                  className="px-8 py-2 bg-[#FFE4E3] text-[#E00100] rounded-md text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                  className="px-8 py-2 bg-[#FFD9D9] text-[#E00100] rounded-md text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {submitting ? "Deleting..." : "Delete"}
                 </button>

@@ -517,15 +517,15 @@ export default function TeamReportTD() {
                                 setEmployeeOpen(o => !o);
                                 setTeamOpen(false);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer border-0 "
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 "
                         >
-                            <span className={`text-sm font-medium font-gantari ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                            <span className={`text-[14px] font-medium font-gantari ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {employee === 'All' ? 'Employee' : employee}
                             </span>
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""}`}
+                                className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${employeeOpen ? "rotate-180" : ""}`}
                             />
                         </button>
                         {employeeOpen && (
@@ -542,7 +542,7 @@ export default function TeamReportTD() {
                                             setEmployee(opt);
                                             setEmployeeOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${employee === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-medium font-gantari transition-colors cursor-pointer ${employee === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt === 'All' ? 'Employee' : opt}
                                     </button>
@@ -560,7 +560,7 @@ export default function TeamReportTD() {
                                 setTeamOpen(o => !o);
                                 setEmployeeOpen(false);
                             }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer border-0"
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             <span className={`text-sm font-medium font-gantari ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {team === 'All' ? 'Team' : team}
@@ -568,7 +568,7 @@ export default function TeamReportTD() {
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${teamOpen ? "rotate-180" : ""}`}
+                                className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${teamOpen ? "rotate-180" : ""}`}
                             />
                         </button>
                         {teamOpen && (
@@ -585,7 +585,7 @@ export default function TeamReportTD() {
                                             setTeam(opt);
                                             setTeamOpen(false);
                                         }}
-                                        className={`w-full text-left px-4 py-2.5 text-sm font-medium font-gantari transition-colors cursor-pointer ${team === opt ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-medium font-gantari transition-colors cursor-pointer ${team === opt ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt === 'All' ? 'Team' : opt}
                                     </button>
@@ -612,7 +612,7 @@ export default function TeamReportTD() {
                             <img
                                 src={ArrowDown}
                                 alt="arrow"
-                                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                                className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
                             />
                         </button>
                         {showEntriesOpen && (
@@ -626,7 +626,7 @@ export default function TeamReportTD() {
                                         key={opt.value}
                                         type="button"
                                         onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium cursor-pointer font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-[14px] font-medium cursor-pointer font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
                                     >
                                         {opt.label}
                                     </button>
