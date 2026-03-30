@@ -293,7 +293,7 @@ export default function ProposalTD() {
                                 : ''
                             }`}
                           >
-                            <img src={editIcon} alt="Edit" className="w-4 h-4 object-contain brightness-0 invert" />
+                            <img src={editIcon} alt="Edit" className="w-4 h-4 object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
                             Edit
                           </button>
                         </div>

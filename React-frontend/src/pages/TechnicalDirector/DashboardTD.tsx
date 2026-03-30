@@ -294,13 +294,15 @@ export default function DashboardTD() {
       <div className="flex flex-col lg:h-full lg:overflow-hidden">
         {/* Header and KPI Cards */}
         <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
-          <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
+          <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">
+            Dashboard
+          </h1>
           {/* KPI Grid: compact cards — label left, number right (match reference image) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Total Projects — first card red, white text */}
             <div
-              onClick={() => navigate('/td/projects')}
-              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-sm border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+              onClick={() => navigate("/td/projects")}
+              className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
             >
               <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
               <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
@@ -621,7 +623,7 @@ export default function DashboardTD() {
           {/* Total Projects — first card red, white text */}
           <div
             onClick={() => navigate("/td/projects")}
-            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-sm border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
+            className="bg-[#FFFFFF] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer transition-colors"
           >
             <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">
               Total Projects

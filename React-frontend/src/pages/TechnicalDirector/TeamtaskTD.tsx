@@ -931,7 +931,7 @@ export default function TeamtaskTD() {
         </div>
 
         {/* Status summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 px-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
           <Link
             to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
             className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
@@ -981,7 +981,7 @@ export default function TeamtaskTD() {
       </div>
 
       <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-4">
           <div
             className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
             onDragOver={(e) => {
