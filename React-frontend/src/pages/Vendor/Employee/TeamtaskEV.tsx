@@ -118,7 +118,7 @@ function FormDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg max-h-60 overflow-y-auto custom-scrollbar"
                 >
                     {options.map((opt) => (
                         <button
@@ -186,7 +186,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : "160px";
 
     return (
         <div className="relative">
@@ -239,7 +239,7 @@ function TaskDropdown({
                         </div>
                     )}
                     <div
-                        className="overflow-y-auto py-1"
+                        className="overflow-y-auto py-1 custom-scrollbar"
                         style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
                     >
                         {filteredOptions.map((opt, idx) => (
@@ -689,7 +689,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200","201-250","251-300", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
