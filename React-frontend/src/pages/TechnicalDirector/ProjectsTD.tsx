@@ -97,7 +97,7 @@ function FormSelect({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-left transition-all focus:outline-none text-[14px] font-normal border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${open ? "!border-[#AEACAC52]" : ""}`}
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#E8E8E8] rounded-[5px] text-left transition-all focus:outline-none text-[14px] font-normal border-1 border-transparent focus:border-[#AEACAC52] cursor-pointer ${open ? "!border-[#AEACAC52]" : ""}`}
       >
         <span
           className={
@@ -123,7 +123,7 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#FFFFFF] border border-gray-200 rounded-[8px] shadow-lg overflow-hidden max-h-48 overflow-y-auto custom-scrollbar">
           {dropdownOptions.map((opt) => (
             <button
               key={opt}
