@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import viewIcon from '../../assets/ProjectManager/Client/whiteviewicon.svg';
+import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
 interface AcceptedBid {
@@ -140,15 +141,15 @@ export default function ProposalTD() {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[140px] cursor-pointer"
+              className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px] cursor-pointer"
             >
               <div className="flex items-center gap-2 overflow-hidden">
                 {selectedShowEntries === 'show' ? (
-                  <span className="text-sm font-medium text-[#616161] font-gantari">Show</span>
+                  <span className="text-[14px] font-medium text-[#616161] font-gantari">Show</span>
                 ) : (
                   <>
-                    <span className="text-sm font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
-                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                    <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
+                    <span className="text-[14px] font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                   </>
                 )}
               </div>
@@ -273,6 +274,27 @@ export default function ProposalTD() {
                           >
                             <img src={viewIcon} alt="View" className="w-4 h-4 object-contain" />
                             view
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              bid.proposal_exists && navigate("/td/edit-proposal", {
+                                state: {
+                                  proposalId: bid.proposal_id,
+                                  bid,
+                                },
+                              })
+                            }
+                            disabled={!bid.proposal_exists}
+                            title="Edit Proposal"
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-md text-[14px] font-gantari transition-all bg-[#DD4342] text-white shadow-sm shadow-red-100 cursor-pointer ${
+                                !bid.proposal_exists 
+                                ? 'cursor-not-allowed opacity-50' 
+                                : ''
+                            }`}
+                          >
+                            <img src={editIcon} alt="Edit" className="w-4 h-4 object-contain brightness-0 invert" />
+                            Edit
                           </button>
                         </div>
                       </td>

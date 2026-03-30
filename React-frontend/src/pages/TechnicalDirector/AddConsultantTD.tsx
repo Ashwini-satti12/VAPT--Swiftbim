@@ -36,7 +36,7 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-2 bg-[#E8E8E8] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${isOpen ? '!border-[#AEACAC52]' : ''}`}
+        className={`w-full flex items-center justify-between px-4 py-2 bg-[#F2F3F4] rounded-[5px] text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] font-Gantari transition-all outline-none cursor-pointer ${isOpen ? '!border-[#AEACAC52]' : ''}`}
       >
         <span className={value ? 'text-[#353535]' : 'text-[#8B8B8B]'}>{value || placeholder}</span>
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
@@ -318,7 +318,7 @@ export default function AddConsultantTD() {
               </div>
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                   <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                     {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                   </div>

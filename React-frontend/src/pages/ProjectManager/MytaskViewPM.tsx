@@ -255,7 +255,7 @@ export default function MytaskViewPM() {
   const style = STATUS_STYLE[statusDisplay];
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
       <div className="flex items-center justify-between px-6 ">
         <Link
@@ -271,7 +271,8 @@ export default function MytaskViewPM() {
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth custom-scrollbar">
+        <div className="max-w-7xl mx-auto">
         {/* Status row */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2">
@@ -501,6 +502,7 @@ export default function MytaskViewPM() {
           <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
             {task.description || "Event (Consultant Partnership)..."}
           </div>
+        </div>
         </div>
       </div>
     </div>

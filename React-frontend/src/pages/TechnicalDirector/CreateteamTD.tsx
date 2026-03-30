@@ -134,7 +134,7 @@ function TeamCard({
         </button>
 
         {showMenu && (
-          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+          <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
 
             <button
               onClick={() => {
@@ -577,7 +577,7 @@ export default function CreateteamTD() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center justify-between min-w-[90px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] transition-all cursor-pointer border-0"
+              className="flex items-center justify-between min-w-[120px] px-4 py-2 bg-[#E8E8E8] rounded-[5px] transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">

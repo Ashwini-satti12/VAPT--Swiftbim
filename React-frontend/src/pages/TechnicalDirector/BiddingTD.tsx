@@ -141,18 +141,18 @@ export default function BiddingTD() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="flex items-center gap-2 min-w-[120px] px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === "show" ? (
-                <span className="text-sm font-medium text-[#616161] font-gantari">
+                <span className="text-[14px] font-medium text-[#616161] font-gantari">
                   Show
                 </span>
               ) : (
                 <>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">
+                  <span className="text-[14px] font-medium text-[#353535] font-gantari">
                     Show:
                   </span>
-                  <span className="text-sm font-medium text-[#353535] font-gantari">
+                  <span className="text-[14px] font-medium text-[#353535] font-gantari">
                     {selectedRange.label}
                   </span>
                 </>
@@ -160,7 +160,7 @@ export default function BiddingTD() {
               <img
                 src={ArrowDown}
                 alt="arrow"
-                className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                className={`ml-8 w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
               />
             </button>
             {showEntriesOpen && (
