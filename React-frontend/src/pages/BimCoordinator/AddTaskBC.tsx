@@ -72,7 +72,7 @@ export default function AddTaskBC() {
             api.get<{ projects?: Project[] }>("/api/projects"),
         ]).then(([tasksRes, empRes, projRes]) => {
             setList(tasksRes.data.tasks ?? []);
-            setEmployees(empRes.data.employees ?? []);
+            setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
             setProjects(projRes.data.projects ?? []);
         });
     }, []);
@@ -80,6 +80,7 @@ export default function AddTaskBC() {
     useEffect(() => {
         if (editingTask) {
             setAddTaskForm(taskToFormValues(editingTask));
+            setEditingTaskId(editingTask.id);
         }
     }, [editingTask]);
 

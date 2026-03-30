@@ -294,7 +294,7 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
       t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
     dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-    assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
+    assignTo: str(t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
   };
@@ -353,7 +353,7 @@ export default function AddTaskPM() {
       api.get<{ employees?: Employee[] }>("/api/employees"),
       api.get<{ projects?: Project[] }>("/api/projects"),
     ]).then(([empRes, projRes]) => {
-      setEmployees(empRes.data.employees ?? []);
+      setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
       setProjects(projRes.data.projects ?? []);
     });
   }, []);
@@ -649,38 +649,85 @@ export default function AddTaskPM() {
                 <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
                   Task Name <span className="text-[#DD4342]">*</span>
                 </label>
-                <FormDropdown
-                  label="Select Task"
-                  options={[
-                    { value: "", label: "Select Task" },
-                    ...(projects.find(
-                      (p) => p.project_name === addTaskForm.projectName,
-                    )?.tasks
-                      ? projects
-                        .find(
-                          (p) => p.project_name === addTaskForm.projectName,
-                        )!
-                        .tasks!.split(",")
-                        .map((t) => t.trim())
-                        .filter(Boolean)
-                        .map((t) => ({ value: t, label: t }))
-                      : []),
-                  ]}
-                  value={addTaskForm.taskName}
-                  onChange={(v) =>
-                    setAddTaskForm((f) => ({ ...f, taskName: v }))
-                  }
-                  isOpen={openFormDropdown === "taskName"}
-                  onToggle={() =>
-                    setOpenFormDropdown((d) =>
-                      d === "taskName" ? null : "taskName",
-                    )
-                  }
-                  onClose={() => setOpenFormDropdown(null)}
-                  triggerRef={formTaskNameTriggerRef}
-                  dropdownRef={formTaskNameMenuRef}
-                  searchable
-                />
+                <div className="flex w-full group">
+                  <input
+                    type="text"
+                    value={addTaskForm.taskName}
+                    onChange={(e) =>
+                      setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))
+                    }
+                    placeholder="Enter Task / Select Task"
+                    className="flex-1 min-w-0 px-4 py-2 bg-[#F2F3F4] text-[14px] text-[#353535] rounded-l-[5px] border border-transparent focus:border-[#AEACAC52] outline-none font-Gantari transition-all placeholder-[#8B8B8B]"
+                  />
+                  <div className="relative shrink-0">
+                    <button
+                      ref={formTaskNameTriggerRef}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenFormDropdown((d) =>
+                          d === "taskName" ? null : "taskName",
+                        );
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] text-[14px] text-[#8B8B8B] rounded-r-[5px] font-Gantari border-y border-r border-transparent hover:bg-[#D8D8D8] transition-all whitespace-nowrap cursor-pointer"
+                    >
+                      Tasklist
+                      <svg
+                        className={`h-4 w-4 transition-transform ${openFormDropdown === "taskName" ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+                    {openFormDropdown === "taskName" && (
+                      <div
+                        ref={formTaskNameMenuRef}
+                        className="absolute top-full right-0 z-20 mt-1 w-[250px] rounded-[5px] border border-[#E0E0E0] bg-white py-1 shadow-lg"
+                      >
+                        <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                          {(() => {
+                            const taskListStr = projects.find(
+                              (p) => p.project_name === addTaskForm.projectName,
+                            )?.tasks;
+                            const options = taskListStr
+                              ? taskListStr
+                                .split(",")
+                                .map((t) => t.trim())
+                                .filter(Boolean)
+                              : [];
+                            if (options.length === 0) {
+                              return (
+                                <div className="px-4 py-2 text-sm text-[#8B8B8B] italic">
+                                  No predefined tasks
+                                </div>
+                              );
+                            }
+                            return options.map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => {
+                                  setAddTaskForm((f) => ({ ...f, taskName: opt }));
+                                  setOpenFormDropdown(null);
+                                }}
+                                className="block w-full px-4 py-2 text-left text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4]"
+                              >
+                                {opt}
+                              </button>
+                            ));
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
                 <div>

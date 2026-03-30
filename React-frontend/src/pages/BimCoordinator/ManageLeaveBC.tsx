@@ -145,14 +145,98 @@ export default function ManageLeaveBC() {
     ...Array.from(new Set(leaves.map((l) => l.employeeName))),
   ];
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        employeeDropdownRef.current &&
-        !employeeDropdownRef.current.contains(event.target as Node)
-      ) {
-        setEmployeeDropdownOpen(false);
-      }
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (employeeDropdownRef.current && !employeeDropdownRef.current.contains(event.target as Node)) {
+                setEmployeeDropdownOpen(false);
+            }
+        };
+        if (employeeDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [employeeDropdownOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showEntriesDropdownRef.current && !showEntriesDropdownRef.current.contains(event.target as Node)) {
+                setShowEntriesOpen(false);
+            }
+        };
+        if (showEntriesOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEntriesOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (leaveTypeDropdownRef.current && !leaveTypeDropdownRef.current.contains(event.target as Node)) setLeaveTypeOpen(false);
+        };
+        if (leaveTypeOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [leaveTypeOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (leaveTypeDropdownEditRef.current && !leaveTypeDropdownEditRef.current.contains(event.target as Node)) setLeaveTypeOpenEdit(false);
+        };
+        if (leaveTypeOpenEdit) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [leaveTypeOpenEdit]);
+
+    useEffect(() => {
+        // CurrentPage reset removed
+    }, [selectedShowEntries, selectedEmployee]);
+
+    // On mount, also store leaves in backend so they persist across refresh (tblleaves)
+    useEffect(() => {
+        const fetchExistingLeaves = async () => {
+            if (!user?.id) return;
+            try {
+                const { data } = await api.get<{ applications?: any[] }>('/api/leave/applications');
+                const apps = (data.applications || []).filter((app) => app.employee_id === user.id);
+                if (!apps.length) return;
+                const mapped: LeaveEntry[] = apps.map((app, index) => ({
+                    id: app.lid,
+                    slNo: index + 1,
+                    employeeId: app.employee_id,
+                    employeeName: app.full_name || user.full_name || 'Unknown',
+                    role: app.role || user.user_role || 'BIM Coordinator',
+                    email: app.email || user.email || undefined,
+                    leaveType: app.type_name || app.title || 'Others',
+                    appliedOn: formatApiDate(app.posting_date),
+                    fromDate: formatApiDate(app.from_date),
+                    toDate: formatApiDate(app.to_date),
+                    description: app.description || '',
+                    currentStatus:
+                        app.status === 1
+                            ? 'Approved'
+                            : app.status === 2
+                            ? 'Rejected'
+                            : 'Pending',
+                }));
+                setLeaves(mapped);
+            } catch (err) {
+                console.error('Failed to load BIM Coordinator leaves from backend', err);
+            }
+        };
+
+        fetchExistingLeaves();
+    }, [user?.id]);
+
+    const validateApplyForm = (): boolean => {
+        const err: Record<string, string> = {};
+        const today = getTodayInputDate();
+        if (!leaveType) err.leaveType = 'Leave type is required';
+        if (!leaveFrom) err.leaveFrom = 'Leave from date is required';
+        if (!leaveTo) err.leaveTo = 'Leave to date is required';
+        if (leaveFrom && leaveFrom < today) err.leaveFrom = 'Leave from date cannot be in the past';
+        if (leaveTo && leaveTo < today) err.leaveTo = 'Leave to date cannot be in the past';
+        if (!reason.trim()) err.reason = 'Reason is required';
+        if (leaveFrom && leaveTo && leaveFrom > leaveTo) err.leaveTo = 'Leave to must be on or after leave from';
+        setApplyFormErrors(err);
+        return Object.keys(err).length === 0;
     };
     if (employeeDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -1287,6 +1371,95 @@ export default function ManageLeaveBC() {
                         />
                       </svg>
                     </div>
+<<<<<<< HEAD
+                </div>,
+                document.body
+            )}
+
+            {/* Edit Leave Modal */}
+            {editModalOpen && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={handleCloseEditModal}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-[#E5E5E5]" onClick={(e) => e.stopPropagation()}>
+                        <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                            <button type="button" onClick={handleCloseEditModal} className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                            </button>
+                            <h3 className="text-xl font-bold text-[#353535]">Edit Leave</h3>
+                        </div>
+                        <form onSubmit={handleSubmitEdit} className="px-6 py-6 space-y-4">
+                            <div>
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Employee Name</label>
+                                <input
+                                    type="text"
+                                    value={editingLeave ? `${editingLeave.employeeName}${editingLeave.role ? ` - ${editingLeave.role}` : ''}` : ''}
+                                    readOnly
+                                    disabled
+                                    className="w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] bg-[#E5E5E5] placeholder-[#8B8B8B] focus:outline-none disabled:opacity-80 disabled:cursor-not-allowed"
+                                    placeholder="Employee name - Role"
+                                />
+                            </div>
+                            <div className="relative" ref={leaveTypeDropdownEditRef}>
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Leave Type <span className="text-[#DD4342]">*</span></label>
+                                <button type="button" onClick={() => setLeaveTypeOpenEdit((o) => !o)} className={`w-full px-4 py-2.5 rounded-lg text-left text-sm flex items-center justify-between min-h-[40px] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] transition-colors ${leaveTypeOpenEdit ? 'ring-1 ring-[#D2D2D2]' : applyFormErrors.leaveType ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`}>
+                                    <span className={leaveType ? 'text-[#353535] font-medium' : 'text-[#8B8B8B]'}>{leaveType || 'Select leave type'}</span>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${leaveTypeOpenEdit ? 'rotate-180' : ''}`}><path d="M6 9l6 6 6-6" /></svg>
+                                </button>
+                                {leaveTypeOpenEdit && (
+                                    <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg py-1.5" onMouseDown={(e) => e.preventDefault()}>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setLeaveType(''); setLeaveTypeOpenEdit(false); }}
+                                            className={`w-full text-left px-4 py-2.5 text-sm font-medium ${!leaveType ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                        >
+                                            Nothing selected
+                                        </button>
+                                        {LEAVE_TYPES.map((t) => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                onClick={() => {
+                                                    setLeaveType(t);
+                                                    setLeaveTypeOpenEdit(false);
+                                                    if (applyFormErrors.leaveType) setApplyFormErrors((p) => ({ ...p, leaveType: '' }));
+                                                }}
+                                                className={`w-full text-left px-4 py-2.5 text-sm font-medium ${leaveType === t ? 'text-[#353535] bg-[#F0F2F7]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]'}`}
+                                            >
+                                                {t}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                                {applyFormErrors.leaveType && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveType}</p>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave From <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" min={getTodayInputDate()} value={leaveFrom} onChange={(e) => { setLeaveFrom(e.target.value); if (applyFormErrors.leaveFrom) setApplyFormErrors((p) => ({ ...p, leaveFrom: '' })); if (applyFormErrors.leaveTo && leaveTo && e.target.value <= leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveFrom ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveFrom && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveFrom}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-base font-semibold text-[#000000] mb-2">Leave To <span className="text-[#DD4342]">*</span></label>
+                                    <div className="relative">
+                                        <input type="date" min={leaveFrom || getTodayInputDate()} value={leaveTo} onChange={(e) => { setLeaveTo(e.target.value); if (applyFormErrors.leaveTo) setApplyFormErrors((p) => ({ ...p, leaveTo: '' })); }} className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${applyFormErrors.leaveTo ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} style={{ colorScheme: 'light' }} />
+                                        <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#616161] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="1.5" /><line x1="16" y1="2" x2="16" y2="6" strokeWidth="1.5" /><line x1="8" y1="2" x2="8" y2="6" strokeWidth="1.5" /><line x1="3" y1="10" x2="21" y2="10" strokeWidth="1.5" /></svg>
+                                    </div>
+                                    {applyFormErrors.leaveTo && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.leaveTo}</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-base font-semibold text-[#000000] mb-2">Describe Your Reason <span className="text-[#DD4342]">*</span></label>
+                                <textarea value={reason} onChange={(e) => { setReason(normalizeNameAndReason(e.target.value)); if (applyFormErrors.reason) setApplyFormErrors((p) => ({ ...p, reason: '' })); }} rows={3} placeholder="Enter your reason for leave..." className={`w-full px-4 py-2.5 rounded-lg text-sm text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:ring-1 focus:ring-[#D2D2D2] resize-none ${applyFormErrors.reason ? 'border border-[#DD4342]' : 'border-0'} bg-[#F2F3F4]`} />
+                                {applyFormErrors.reason && <p className="mt-1.5 text-sm text-[#DD4342]">{applyFormErrors.reason}</p>}
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={handleCloseEditModal} className="flex-1 px-4 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors">Cancel</button>
+                                <button type="submit" className="flex-1 px-4 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm">Update</button>
+                            </div>
+                        </form>
+=======
                     {applyFormErrors.leaveFrom && (
                       <p className="mt-1.5 text-sm text-[#DD4342]">
                         {applyFormErrors.leaveFrom}
@@ -1334,6 +1507,7 @@ export default function ManageLeaveBC() {
                           strokeWidth="1.5"
                         />
                       </svg>
+>>>>>>> d9afe7a8ad1109983f8569bf2b85f17a6dd03879
                     </div>
                     {applyFormErrors.leaveTo && (
                       <p className="mt-1.5 text-sm text-[#DD4342]">

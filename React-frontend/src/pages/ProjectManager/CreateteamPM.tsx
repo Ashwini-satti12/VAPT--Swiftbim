@@ -8,6 +8,7 @@ import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import upArrow from "../../assets/TechnicalDirector/upArrow.svg";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 interface Employee {
   id: number;
@@ -21,6 +22,7 @@ interface Employee {
   address?: string;
   department?: string;
   user_role?: string;
+  active?: string | null;
 }
 
 interface Team {
@@ -746,6 +748,7 @@ export default function CreateTeamPM() {
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
                         {employees
+                          .filter(isEmployeeActiveForProjectAssignment)
                           .filter(
                             (e) =>
                               !leaderSearchQuery.trim() ||
@@ -753,21 +756,31 @@ export default function CreateTeamPM() {
                                 ?.toLowerCase()
                                 .includes(leaderSearchQuery.toLowerCase()),
                           )
-                          .map((e) => (
-                            <button
-                              key={e.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setForm({ ...form, leader: String(e.id) });
-                                setLeaderSearchQuery("");
-                                setShowLeaderDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors"
-                            >
-                              {e.full_name}
-                            </button>
-                          ))}
+                          .map((e) => {
+                            const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                            return (
+                              <button
+                                key={e.id}
+                                type="button"
+                                onMouseDown={(ev) => {
+                                  ev.preventDefault();
+                                  setForm({ ...form, leader: String(e.id) });
+                                  setLeaderSearchQuery("");
+                                  setShowLeaderDropdown(false);
+                                }}
+                                className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors flex items-center gap-3 cursor-pointer"
+                              >
+                                {profileUrl ? (
+                                  <img src={profileUrl} alt="" className="w-6 h-6 rounded-full object-cover" onError={(ev) => { (ev.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                    {(e.full_name || "U").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                {e.full_name}
+                              </button>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -833,6 +846,7 @@ export default function CreateTeamPM() {
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
                         {employees
+                          .filter(isEmployeeActiveForProjectAssignment)
                           .filter(
                             (e) =>
                               !memberSearchQuery.trim() ||
@@ -840,24 +854,34 @@ export default function CreateTeamPM() {
                                 ?.toLowerCase()
                                 .includes(memberSearchQuery.toLowerCase()),
                           )
-                          .map((e) => (
-                            <label
-                              key={e.id}
-                              className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={form.employee.includes(String(e.id))}
-                                onChange={() =>
-                                  handleMemberToggle(String(e.id))
-                                }
-                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                              />
-                              <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
-                                {e.full_name}
-                              </span>
-                            </label>
-                          ))}
+                          .map((e) => {
+                            const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                            return (
+                              <label
+                                key={e.id}
+                                className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={form.employee.includes(String(e.id))}
+                                  onChange={() =>
+                                    handleMemberToggle(String(e.id))
+                                  }
+                                  className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                />
+                                {profileUrl ? (
+                                  <img src={profileUrl} alt="" className="w-6 h-6 rounded-full object-cover" onError={(ev) => { (ev.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                    {(e.full_name || "U").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
+                                  {e.full_name}
+                                </span>
+                              </label>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -1092,6 +1116,7 @@ export default function CreateTeamPM() {
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
                         {employees
+                          .filter(isEmployeeActiveForProjectAssignment)
                           .filter(
                             (e) =>
                               !leaderSearchQuery.trim() ||
@@ -1099,24 +1124,34 @@ export default function CreateTeamPM() {
                                 ?.toLowerCase()
                                 .includes(leaderSearchQuery.toLowerCase()),
                           )
-                          .map((e) => (
-                            <button
-                              key={e.id}
-                              type="button"
-                              onMouseDown={(ev) => {
-                                ev.preventDefault();
-                                setEditForm({
-                                  ...editForm,
-                                  leader: String(e.id),
-                                });
-                                setLeaderSearchQuery("");
-                                setShowLeaderDropdown(false);
-                              }}
-                              className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                            >
-                              {e.full_name}
-                            </button>
-                          ))}
+                          .map((e) => {
+                            const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                            return (
+                              <button
+                                key={e.id}
+                                type="button"
+                                onMouseDown={(ev) => {
+                                  ev.preventDefault();
+                                  setEditForm({
+                                    ...editForm,
+                                    leader: String(e.id),
+                                  });
+                                  setLeaderSearchQuery("");
+                                  setShowLeaderDropdown(false);
+                                }}
+                                className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors flex items-center gap-3 cursor-pointer"
+                              >
+                                {profileUrl ? (
+                                  <img src={profileUrl} alt="" className="w-6 h-6 rounded-full object-cover" onError={(ev) => { (ev.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                    {(e.full_name || "U").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                {e.full_name}
+                              </button>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -1182,6 +1217,7 @@ export default function CreateTeamPM() {
                     >
                       <div className="overflow-y-auto no-scrollbar max-h-44">
                         {employees
+                          .filter(isEmployeeActiveForProjectAssignment)
                           .filter(
                             (e) =>
                               !memberSearchQuery.trim() ||
@@ -1189,26 +1225,36 @@ export default function CreateTeamPM() {
                                 ?.toLowerCase()
                                 .includes(memberSearchQuery.toLowerCase()),
                           )
-                          .map((e) => (
-                            <label
-                              key={e.id}
-                              className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={editForm.employee.includes(
-                                  String(e.id),
+                          .map((e) => {
+                            const profileUrl = e.profile_picture ? getGlobalProfileUrl(e.id, e.profile_picture) : null;
+                            return (
+                              <label
+                                key={e.id}
+                                className="flex items-center gap-3 px-5 py-2.5 hover:bg-[#F2F2F2] cursor-pointer transition-colors group"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editForm.employee.includes(
+                                    String(e.id),
+                                  )}
+                                  onChange={() =>
+                                    handleMemberToggle(String(e.id), true)
+                                  }
+                                  className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
+                                />
+                                {profileUrl ? (
+                                  <img src={profileUrl} alt="" className="w-6 h-6 rounded-full object-cover" onError={(ev) => { (ev.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                    {(e.full_name || "U").charAt(0).toUpperCase()}
+                                  </div>
                                 )}
-                                onChange={() =>
-                                  handleMemberToggle(String(e.id), true)
-                                }
-                                className="w-5 h-5 rounded border-gray-300 text-[#000000] focus:ring-0 cursor-pointer"
-                              />
-                              <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
-                                {e.full_name}
-                              </span>
-                            </label>
-                          ))}
+                                <span className="text-[14px] text-[#8B8B8B] group-hover:text-[#353535]">
+                                  {e.full_name}
+                                </span>
+                              </label>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -1271,19 +1317,49 @@ export default function CreateTeamPM() {
                   Leadership
                 </h4>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-full border border-slate-200 flex items-center justify-center text-lg font-bold text-slate-700 shadow-sm">
-                    {(
-                      selectedTeam?.leader_name ||
-                      getEmpName(selectedTeam?.leader ?? "")
-                    )?.charAt(0) ?? "?"}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">
-                      {selectedTeam?.leader_name ||
-                        getEmpName(selectedTeam?.leader ?? "")}
-                    </p>
-                    <p className="text-sm text-slate-500">Team Leader</p>
-                  </div>
+                  {(() => {
+                    const leaderEmp = employees.find(
+                      (e) => String(e.id) === String(selectedTeam.leader),
+                    );
+                    const leaderProfileUrl = leaderEmp?.profile_picture
+                      ? getGlobalProfileUrl(leaderEmp.id, leaderEmp.profile_picture)
+                      : null;
+                    return (
+                      <>
+                        <div className="w-12 h-12 bg-white rounded-full border border-slate-200 overflow-hidden flex items-center justify-center shadow-sm shrink-0">
+                          {leaderProfileUrl ? (
+                            <img
+                              src={leaderProfileUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = ProfileIcon;
+                              }}
+                            />
+                          ) : (
+                            <span className="text-lg font-bold text-slate-700">
+                              {(
+                                selectedTeam?.leader_name ||
+                                getEmpName(selectedTeam?.leader ?? "")
+                              )?.charAt(0) ?? "?"}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800">
+                            {selectedTeam?.leader_name ||
+                              getEmpName(selectedTeam?.leader ?? "")}
+                            {leaderEmp && !isEmployeeActiveForProjectAssignment(leaderEmp) && (
+                              <span className="text-xs font-normal text-red-500 ml-2">
+                                (Inactive)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-sm text-slate-500">Team Leader</p>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1304,17 +1380,38 @@ export default function CreateTeamPM() {
                       const empInfo = employees.find(
                         (e) => String(e.id) === eid,
                       );
+                      const profileUrl = empInfo?.profile_picture
+                        ? getGlobalProfileUrl(empInfo.id, empInfo.profile_picture)
+                        : null;
                       return (
                         <div
                           key={eid}
                           className={`flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors ${i !== 0 ? "border-t border-slate-100" : ""}`}
                         >
-                          <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-sm font-bold text-slate-600">
-                            {getEmpName(eid)?.charAt(0) ?? "?"}
+                          <div className="w-10 h-10 bg-slate-50 rounded-full border border-slate-100 overflow-hidden flex items-center justify-center shrink-0">
+                            {profileUrl ? (
+                              <img
+                                src={profileUrl}
+                                alt=""
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = ProfileIcon;
+                                }}
+                              />
+                            ) : (
+                              <span className="text-sm font-bold text-slate-600">
+                                {getEmpName(eid)?.charAt(0) ?? "?"}
+                              </span>
+                            )}
                           </div>
                           <div>
                             <p className="font-medium text-slate-800">
                               {getEmpName(eid)}
+                              {empInfo && !isEmployeeActiveForProjectAssignment(empInfo) && (
+                                <span className="text-xs font-normal text-red-500 ml-2">
+                                  (Inactive)
+                                </span>
+                              )}
                             </p>
                             {empInfo?.email && (
                               <p className="text-sm text-slate-500">
@@ -1408,6 +1505,11 @@ export default function CreateTeamPM() {
                         <div className="flex-1 min-w-0">
                           <p className="text-[16px] font-Gantari font-bold text-[#1A1A1A] truncate">
                             {emp.full_name || `Employee ${emp.id}`}
+                            {!isEmployeeActiveForProjectAssignment(emp) && (
+                              <span className="text-xs font-normal text-red-500 ml-2">
+                                (Inactive)
+                              </span>
+                            )}
                           </p>
                           {emp.user_role != null && emp.user_role !== "" && (
                             <p className="text-[14px] font-Gantari text-[#8B8B8B] truncate">
@@ -1496,6 +1598,11 @@ export default function CreateTeamPM() {
                     </p>
                     <p className="text-[18px] font-Gantari font-bold text-[#1A1A1A]">
                       {selectedMember.full_name || "Not Available"}
+                      {!isEmployeeActiveForProjectAssignment(selectedMember) && (
+                        <span className="text-sm font-normal text-red-500 ml-2">
+                          (Inactive)
+                        </span>
+                      )}
                     </p>
                   </div>
                   {selectedMember.empid && (
