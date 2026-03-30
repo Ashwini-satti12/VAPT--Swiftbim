@@ -137,6 +137,17 @@ export default function ProjectsV() {
     };
 
     useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest(".project-menu-container")) {
+                setOpenMenuProjectId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
         fetchProjects(statusFilter);
 
         // Fetch all employees once (used for team member selection, etc.)
@@ -482,12 +493,12 @@ export default function ProjectsV() {
 
     const renderMemberSelector = () => (
         <div className="space-y-2">
-            <label className="block text-[15px] font-bold text-[#353535]">Team Members</label>
+            <label className="block text-[16px] font-medium text-[#000000]">Team Members</label>
             <div className="relative dropdown-container">
                 <button
                     type="button"
                     onClick={() => setEditDropdownOpen(o => o === "members" ? null : "members")}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                    className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
                 >
                     <div className="flex flex-wrap gap-2 pr-4">
                         {selectedMemberIds.length > 0 ? (
@@ -530,7 +541,7 @@ export default function ProjectsV() {
                                             key={resource.id}
                                             type="button"
                                             onClick={() => toggleMember(resource.id)}
-                                            className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F4F5F7] transition-colors ${isSelected ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
+                                            className={`flex items-center justify-between w-full px-5 py-2.5 text-sm hover:bg-[#F2F3F4] transition-colors ${isSelected ? "bg-[#FFF1F1] text-[#DD4342]" : "text-gray-700"}`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${isSelected ? "bg-[#DD4342] text-white" : "bg-slate-200 text-slate-500"}`}>
@@ -572,24 +583,24 @@ export default function ProjectsV() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                 {/* Row 1: Project name, Client name */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Project Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                         type="text"
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
+                        className="w-full px-4 py-3 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-[#353535] placeholder-gray-400"
                         placeholder="Enter Project name"
                         value={createName}
                         onChange={(e) => setCreateName(e.target.value)}
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Client Name <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
                         type="text"
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 placeholder-gray-400"
                         placeholder="Enter Client Name"
                         value={createClientName}
                         onChange={(e) => setCreateClientName(e.target.value)}
@@ -598,13 +609,13 @@ export default function ProjectsV() {
 
                 {/* Row 2: Client Budget (read-only), Outsourcing Budget */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Budget
                     </label>
                     <input
                         type="text"
                         readOnly
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
                         placeholder="Auto-fetched from contract"
                         value={createBudget}
                     />
@@ -612,7 +623,7 @@ export default function ProjectsV() {
 
                 {/* Row 3: Bidding End Date, Project Manager */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Select Project Manager <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="relative dropdown-container">
@@ -621,7 +632,7 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "pm" ? null : "pm"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
                         >
                             <span className={createProjectManager ? "text-gray-700" : "text-gray-400"}>
                                 {createProjectManager || "Select Project Manager"}
@@ -643,7 +654,7 @@ export default function ProjectsV() {
                                         setCreateProjectManager("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
                                 >
                                     Select Project Manager
                                 </button>
@@ -655,7 +666,7 @@ export default function ProjectsV() {
                                             setCreateProjectManager(pm.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createProjectManager === pm.full_name
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createProjectManager === pm.full_name
                                             ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                             : "text-gray-700"
                                             }`}
@@ -670,7 +681,7 @@ export default function ProjectsV() {
 
                 {/* Row 4: BIM Lead, BIM Coordinator */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Select BIM Lead <span className="text-[#DD4342]">*</span>
                     </label>
                     <div className="relative dropdown-container">
@@ -679,7 +690,7 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "bimLead" ? null : "bimLead"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
                         >
                             <span className={createBIMLead ? "text-gray-700" : "text-gray-400"}>
                                 {createBIMLead || "Select BIM Lead"}
@@ -701,7 +712,7 @@ export default function ProjectsV() {
                                         setCreateBIMLead("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
                                 >
                                     Select BIM Lead
                                 </button>
@@ -713,7 +724,7 @@ export default function ProjectsV() {
                                             setCreateBIMLead(lead.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createBIMLead === lead.full_name
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createBIMLead === lead.full_name
                                             ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                             : "text-gray-700"
                                             }`}
@@ -726,7 +737,7 @@ export default function ProjectsV() {
                     </div>
                 </div>
                 {/* <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">
+                    <label className="block text-[16px] font-medium text-[#000000]">
                         Select BIM Coordinator
                     </label>
                     <div className="relative dropdown-container">
@@ -735,7 +746,7 @@ export default function ProjectsV() {
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "bimCoord" ? null : "bimCoord"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
                         >
                             <span className={createBIMCoOrdinator ? "text-gray-700" : "text-gray-400"}>
                                 {createBIMCoOrdinator || "Select BIM Coordinator"}
@@ -757,7 +768,7 @@ export default function ProjectsV() {
                                         setCreateBIMCoOrdinator("");
                                         setEditDropdownOpen(null);
                                     }}
-                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F4F5F7]"
+                                    className="block w-full text-left px-5 py-2.5 text-sm text-gray-700 hover:bg-[#F2F3F4]"
                                 >
                                     Select BIM Coordinator
                                 </button>
@@ -769,7 +780,7 @@ export default function ProjectsV() {
                                             setCreateBIMCoOrdinator(coord.full_name || "");
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createBIMCoOrdinator === coord.full_name
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createBIMCoOrdinator === coord.full_name
                                             ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                             : "text-gray-700"
                                             }`}
@@ -784,50 +795,50 @@ export default function ProjectsV() {
 
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project Start Date <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Project End Date <span className="text-[#DD4342]">*</span></label>
                     <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
 
                 {/* Row 6: Total Hours, Per Day */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Per Day <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Per Day <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createPerDay} onChange={e => setCreatePerDay(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Total Hours <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Total Hours <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
                 </div>
 
                 {/* Row 7: Resources, Required Resources */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Resources <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createResources} onChange={e => setCreateResources(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Number of Resources" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Required Resources <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Required Resources <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createRequiredResources} onChange={e => setCreateRequiredResources(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Required Resources Count" />
                 </div>
 
                 {/* Row 8: Priority, Location */}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Priority <span className="text-[#DD4342]">*</span></label>
                     <div className="relative dropdown-container">
                         <button
                             type="button"
                             onClick={() =>
                                 setEditDropdownOpen((o) => (o === "priority" ? null : "priority"))
                             }
-                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
+                            className="w-full flex items-center justify-between px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-left cursor-pointer"
                         >
                             <span className={createPriority ? "text-gray-700" : "text-gray-400"}>
                                 {createPriority || "Select Priority"}
@@ -851,7 +862,7 @@ export default function ProjectsV() {
                                             setCreatePriority(p);
                                             setEditDropdownOpen(null);
                                         }}
-                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F4F5F7] ${createPriority === p
+                                        className={`block w-full text-left px-5 py-2.5 text-sm hover:bg-[#F2F3F4] ${createPriority === p
                                             ? "bg-[#E2EEFF] text-[#1D7AFC]"
                                             : "text-gray-700"
                                             }`}
@@ -864,9 +875,9 @@ export default function ProjectsV() {
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Location <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Location <span className="text-[#DD4342]">*</span></label>
                     <input type="text" value={createLocation} onChange={e => setCreateLocation(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Project Location" />
                 </div>
 
 
@@ -875,13 +886,13 @@ export default function ProjectsV() {
             <div className="space-y-6 mt-6">
                 {renderMemberSelector()}
                 <div className="space-y-2">
-                    <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
+                    <label className="block text-[16px] font-medium text-[#000000]">Description <span className="text-[#DD4342]">*</span></label>
                     <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
-                        className="w-full px-5 py-3.5 bg-[#F4F5F7] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
+                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700 resize-none" placeholder="Provide a detailed project description..." />
                 </div>
             </div>
             <div className="md:col-span-2 space-y-2">
-                <label className="block text-[15px] font-bold text-[#353535]">Attach File <span className="text-[#DD4342]">*</span></label>
+                <label className="block text-[16px] font-medium text-[#000000]">Attach File <span className="text-[#DD4342]">*</span></label>
                 <div className="relative group">
                     <input
                         type="file"
@@ -980,7 +991,7 @@ export default function ProjectsV() {
                             </button>
 
                             <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
                                     Edit Project Details
                                 </h3>
                                 <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Update your project information</p>
@@ -1026,7 +1037,7 @@ export default function ProjectsV() {
                             </button>
 
                             <div className="min-w-0">
-                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
+                                <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A] truncate">
                                     {selectedProject.project_name ?? "Untitled Project"}
                                 </h3>
                                 <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
@@ -1048,6 +1059,78 @@ export default function ProjectsV() {
                                         <p className="text-[#353535] group-hover:text-white text-[28px] md:text-[36px] font-Gantari font-bold leading-none mt-auto self-center">{stat.value}</p>
                                     </div>
                                 ))}
+                            </div>
+
+
+                            {/* Description */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                                <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                                    {selectedProject.description ?? "No description available"}
+                                </p>
+                            </div>
+
+
+                            {/* Team Overview */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                                    Team Overview
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
+                                    {/* Project Manager/Technical Lead */}
+                                    <div className="min-w-0">
+                                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                                            Team Members
+                                        </p>
+                                        <div className="flex items-center -space-x-3">
+                                            {(() => {
+                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                                const projectMembers = memberIds.map(id => {
+                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                }).filter(Boolean);
+
+                                                const visibleMembers = projectMembers.slice(0, 3);
+                                                const remainingCount = Math.max(0, projectMembers.length - 3);
+
+                                                return (
+                                                    <>
+                                                        {visibleMembers.map((emp: any) => {
+                                                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                            return (
+                                                                <div key={emp.id} className="relative group shrink-0">
+                                                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                                                        {profileUrl ? (
+                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                        ) : (
+                                                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                                                {(emp.full_name || "M").charAt(0).toUpperCase()}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                                                        {emp.full_name}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {remainingCount > 0 && (
+                                                            <div className="relative group shrink-0">
+                                                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0">
+                                                                    +{remainingCount}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        {projectMembers.length === 0 && (
+                                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                                                <span className="text-slate-600 text-xs font-bold">TM</span>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
 
@@ -1137,77 +1220,6 @@ export default function ProjectsV() {
                             </div>
 
 
-                            {/* Description */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                                <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                                    {selectedProject.description ?? "No description available"}
-                                </p>
-                            </div>
-
-
-                            {/* Team Overview */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
-                                    Team Overview
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                                    {/* Project Manager/Technical Lead */}
-                                    <div className="min-w-0">
-                                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                                            Team Members
-                                        </p>
-                                        <div className="flex items-center -space-x-3">
-                                            {(() => {
-                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
-                                                const projectMembers = memberIds.map(id => {
-                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                }).filter(Boolean);
-
-                                                const visibleMembers = projectMembers.slice(0, 3);
-                                                const remainingCount = Math.max(0, projectMembers.length - 3);
-
-                                                return (
-                                                    <>
-                                                        {visibleMembers.map((emp: any) => {
-                                                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                            return (
-                                                                <div key={emp.id} className="relative group shrink-0">
-                                                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                                                        {profileUrl ? (
-                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                        ) : (
-                                                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                                                                {(emp.full_name || "M").charAt(0).toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                        {emp.full_name}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {remainingCount > 0 && (
-                                                            <div className="relative group shrink-0">
-                                                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0">
-                                                                    +{remainingCount}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {projectMembers.length === 0 && (
-                                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                                                <span className="text-slate-600 text-xs font-bold">TM</span>
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
                         </div>
                     </div>
                 ) : showMilestones && milestonesProject ? (
@@ -1262,7 +1274,11 @@ export default function ProjectsV() {
                                         return (
                                             <div
                                                 key={p.id}
-                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 min-h-[220px]"
+                                                onClick={() => {
+                                                    setSelectedProject(p);
+                                                    setShowProjectView(true);
+                                                }}
+                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                                             >
                                                     <div className="flex items-start justify-between mb-2">
                                                         <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
@@ -1311,7 +1327,7 @@ export default function ProjectsV() {
                                                                         setSelectedProject(p);
                                                                         setShowProjectView(true);
                                                                     }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={viewIcon}
@@ -1328,7 +1344,7 @@ export default function ProjectsV() {
                                                                         setOpenMenuProjectId(null);
                                                                         openEdit(p);
                                                                     }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={editIcon}
@@ -1346,7 +1362,7 @@ export default function ProjectsV() {
                                                                         setMilestonesProject(p);
                                                                         setShowMilestones(true);
                                                                     }}
-                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer bg-transparent border-none"
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                                 >
                                                                     <img
                                                                         src={paymentMilestoneIcon}
@@ -1385,10 +1401,14 @@ export default function ProjectsV() {
                                                     </div>
 
 
-                                                <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto gap-3">
+                                                <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
                                                     <div className="flex items-center min-w-0">
                                                         {memberIds.length === 0 ? (
-                                                            <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                            <div className="flex items-center -space-x-3">
+                                                                <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                                                    <span className="text-slate-600 text-[10px] font-bold">TM</span>
+                                                                </div>
+                                                            </div>
                                                         ) : memberIds.length === 1 ? (
                                                             <div className="flex items-center gap-3">
                                                                 {(() => {
@@ -1397,7 +1417,7 @@ export default function ProjectsV() {
                                                                     const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                                     return (
                                                                         <>
-                                                                            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0">
+                                                                            <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all">
                                                                                 {url ? (
                                                                                     <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                                                                 ) : (
@@ -1420,7 +1440,7 @@ export default function ProjectsV() {
                                                                     const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                                                     return (
                                                                         <div key={id} className="relative group shrink-0">
-                                                                            <div className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0">
+                                                                            <div className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm shrink-0 hover:ring-2 hover:ring-[#DD4342]/20 transition-all">
                                                                                 {url ? (
                                                                                     <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                                                                 ) : (
@@ -1437,7 +1457,7 @@ export default function ProjectsV() {
                                                                 })}
                                                                 {memberIds.length > 3 && (
                                                                     <div className="relative group shrink-0">
-                                                                        <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-[#1967D2] bg-white flex items-center justify-center text-[11px] font-bold text-[#1967D2] shrink-0">
+                                                                        <div className="relative z-10 w-9 h-9 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm shrink-0 hover:bg-slate-100 transition-colors">
                                                                             +{memberIds.length - 3}
                                                                         </div>
                                                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
