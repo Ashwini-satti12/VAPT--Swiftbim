@@ -57,10 +57,10 @@ function FormDropdown({
     : label;
   const filteredOptions = searchable
     ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          opt.value === "",
-      )
+      (opt) =>
+        opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        opt.value === "",
+    )
     : options;
 
   return (
@@ -238,6 +238,8 @@ interface Task {
   checklist?: string;
   assigned_full_name?: string;
   created_at?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
 }
 
 interface Employee {
@@ -289,9 +291,9 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
     assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
@@ -357,7 +359,9 @@ export default function AddTaskPM() {
   }, []);
 
   useEffect(() => {
-    if (editingTask) setAddTaskForm(taskToFormValues(editingTask));
+    if (editingTask) {
+      setAddTaskForm(taskToFormValues(editingTask));
+    }
   }, [editingTask]);
 
   useEffect(() => {
@@ -450,6 +454,18 @@ export default function AddTaskPM() {
       }
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    if (addTaskForm.actualStartDate < today && !editingTaskId) {
+      setAddError("Actual Start Date cannot be in the past.");
+      setAddSubmitting(false);
+      return;
+    }
+    if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
+      setAddError("Actual End Date cannot be before Actual Start Date.");
+      setAddSubmitting(false);
+      return;
+    }
+
     setAddSubmitting(true);
     try {
       const isEditing = editingTaskId !== null;
@@ -468,8 +484,8 @@ export default function AddTaskPM() {
         startdate: addTaskForm.actualStartDate,
         due_date: addTaskForm.actualEndDate,
         dueDate: addTaskForm.actualEndDate,
-        startTime: addTaskForm.startTime,
-        dueTime: addTaskForm.dueTime,
+        perferstart_time: addTaskForm.startTime,
+        perferend_time: addTaskForm.dueTime,
         assigned_to: employees.find((e) => e.full_name === addTaskForm.assignTo)
           ?.id,
         assign_to: addTaskForm.assignTo,
@@ -505,44 +521,44 @@ export default function AddTaskPM() {
     }
   };
 
-    const getAssignToOptions = () => {
-        if (!addTaskForm.projectName) {
-            return [
-                { value: "", label: "Select Assign To" },
-                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
-            ];
-        }
-        const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
-        if (!proj) {
-            return [
-                { value: "", label: "Select Assign To" },
-                ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
-            ];
-        }
-        const involvedNames = new Set<string>();
-        // @ts-ignore - these fields might be added dynamically from backend
-        if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
-        // @ts-ignore
-        if (proj.lead_name) involvedNames.add(proj.lead_name);
-        // @ts-ignore
-        if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
-        // @ts-ignore
-        if (proj.uploader_name) involvedNames.add(proj.uploader_name);
-        // @ts-ignore
-        if (Array.isArray(proj.members_names)) {
-            // @ts-ignore
-            proj.members_names.forEach((name: string) => {
-                if (name) involvedNames.add(name);
-            });
-        }
-        
-        const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
-        
-        return [
-            { value: "", label: "Select Assign To" },
-            ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
-        ];
-    };
+  const getAssignToOptions = () => {
+    if (!addTaskForm.projectName) {
+      return [
+        { value: "", label: "Select Assign To" },
+        ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+      ];
+    }
+    const proj = projects.find((p) => p.project_name === addTaskForm.projectName);
+    if (!proj) {
+      return [
+        { value: "", label: "Select Assign To" },
+        ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+      ];
+    }
+    const involvedNames = new Set<string>();
+    // @ts-ignore - these fields might be added dynamically from backend
+    if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
+    // @ts-ignore
+    if (proj.lead_name) involvedNames.add(proj.lead_name);
+    // @ts-ignore
+    if (proj.bim_coordinator_name) involvedNames.add(proj.bim_coordinator_name);
+    // @ts-ignore
+    if (proj.uploader_name) involvedNames.add(proj.uploader_name);
+    // @ts-ignore
+    if (Array.isArray(proj.members_names)) {
+      // @ts-ignore
+      proj.members_names.forEach((name: string) => {
+        if (name) involvedNames.add(name);
+      });
+    }
+
+    const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
+
+    return [
+      { value: "", label: "Select Assign To" },
+      ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
+    ];
+  };
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden p-2 bg-white">
@@ -641,13 +657,13 @@ export default function AddTaskPM() {
                       (p) => p.project_name === addTaskForm.projectName,
                     )?.tasks
                       ? projects
-                          .find(
-                            (p) => p.project_name === addTaskForm.projectName,
-                          )!
-                          .tasks!.split(",")
-                          .map((t) => t.trim())
-                          .filter(Boolean)
-                          .map((t) => ({ value: t, label: t }))
+                        .find(
+                          (p) => p.project_name === addTaskForm.projectName,
+                        )!
+                        .tasks!.split(",")
+                        .map((t) => t.trim())
+                        .filter(Boolean)
+                        .map((t) => ({ value: t, label: t }))
                       : []),
                   ]}
                   value={addTaskForm.taskName}
@@ -697,6 +713,7 @@ export default function AddTaskPM() {
                   <input
                     type="date"
                     value={addTaskForm.actualStartDate}
+                    min={new Date().toISOString().split("T")[0]}
                     onChange={(e) =>
                       setAddTaskForm((f) => ({
                         ...f,
@@ -713,6 +730,7 @@ export default function AddTaskPM() {
                   <input
                     type="date"
                     value={addTaskForm.actualEndDate}
+                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
                     onChange={(e) =>
                       setAddTaskForm((f) => ({
                         ...f,
@@ -830,8 +848,8 @@ export default function AddTaskPM() {
                 </div>
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                  Assign To <span className="text-[#DD4342]">*</span>
-                </label>
+                    Assign To <span className="text-[#DD4342]">*</span>
+                  </label>
                   <FormDropdown
                     label="Select Assign To"
                     options={getAssignToOptions()}

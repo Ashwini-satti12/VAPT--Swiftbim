@@ -436,6 +436,8 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -476,9 +478,9 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
     assignTo: str(
       t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? "",
     ),

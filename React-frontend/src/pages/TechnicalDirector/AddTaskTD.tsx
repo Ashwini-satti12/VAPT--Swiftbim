@@ -79,6 +79,7 @@ export default function AddTaskTD() {
 
     useEffect(() => {
         if (editingTask) {
+            setEditingTaskId(editingTask.id);
             setAddTaskForm(taskToFormValues(editingTask));
             setEditingTaskId(editingTask.id);
         }
@@ -149,6 +150,16 @@ export default function AddTaskTD() {
             }
         }
 
+        const today = new Date().toISOString().split("T")[0];
+        if (addTaskForm.actualStartDate < today && !editingTaskId) {
+            setAddError("Actual Start Date cannot be in the past.");
+            return;
+        }
+        if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
+            setAddError("Actual End Date cannot be before Actual Start Date.");
+            return;
+        }
+
         setAddSubmitting(true);
         const payload = {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
@@ -185,8 +196,8 @@ export default function AddTaskTD() {
                     checklist: payload.checklist,
                     modules_name: payload.modules,
                     Actual_start_time: payload.startdate,
-                    start_time: payload.startTime,
-                    due_time: payload.dueTime,
+                    perferstart_time: payload.startTime,
+                    perferend_time: payload.dueTime,
                 })
                 .then(() => {
                     handleFiles(editingTaskId);
@@ -203,10 +214,10 @@ export default function AddTaskTD() {
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
                 }
             })
-            .catch((err) => {
-                setAddError(err.response?.data?.message || "Failed to create task.");
-            })
-            .finally(() => setAddSubmitting(false));
+                .catch((err) => {
+                    setAddError(err.response?.data?.message || "Failed to create task.");
+                })
+                .finally(() => setAddSubmitting(false));
         }
     };
 
@@ -237,10 +248,10 @@ export default function AddTaskTD() {
                 if (name) involvedNames.add(name);
             });
         }
-        
+
         // Filter employees to only those involved in the project
         const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
-        
+
         // Fallback: if somehow no one is involved, we might still want the dropdown to just show empty or all.
         // We will strictly follow "only involved" as requested.
         return [
@@ -305,11 +316,11 @@ export default function AddTaskTD() {
                                     { value: "", label: "Select Module" },
                                     ...(projects.find((p) => p.project_name === addTaskForm.projectName)?.modules
                                         ? (projects
-                                              .find((p) => p.project_name === addTaskForm.projectName)!
-                                              .modules!.split(",")
-                                              .map((m) => m.trim())
-                                              .filter(Boolean)
-                                              .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
+                                            .find((p) => p.project_name === addTaskForm.projectName)!
+                                            .modules!.split(",")
+                                            .map((m) => m.trim())
+                                            .filter(Boolean)
+                                            .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
                                         : []),
                                 ]}
                                 value={addTaskForm.module}
@@ -330,30 +341,28 @@ export default function AddTaskTD() {
                                     value={addTaskForm.taskName}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
                                     placeholder="Enter Task / Select Task"
-                                    className={`flex-1 w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52] ${editingTaskId !== null ? "" : "rounded-r-none"}`}
+                                    className="flex-1 w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] rounded-r-none font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                                 />
-                                {editingTaskId === null && (
-                                    <TaskDropdown
-                                        label="Tasklist"
-                                        options={[
-                                            "Select Task",
-                                            ...Array.from(new Set(merged.map((t) => t.task_name).filter(Boolean))) as string[],
-                                        ]}
-                                        selected={null}
-                                        onSelect={(val) => {
-                                            if (!val || val === "Select Task") return;
-                                            setAddTaskForm((f) => ({ ...f, taskName: val }));
-                                        }}
-                                        isOpen={tasklistOpen}
-                                        onToggle={() => setTasklistOpen((d) => !d)}
-                                        onClose={() => setTasklistOpen(false)}
-                                        triggerRef={tasklistTriggerRef}
-                                        dropdownRef={tasklistMenuRef}
-                                        searchable
-                                        searchPlaceholder="Search task..."
-                                        maxVisibleItems={6}
-                                    />
-                                )}
+                                <TaskDropdown
+                                    label="Tasklist"
+                                    options={[
+                                        "Select Task",
+                                        ...Array.from(new Set(merged.map((t) => t.task_name).filter(Boolean))) as string[],
+                                    ]}
+                                    selected={null}
+                                    onSelect={(val) => {
+                                        if (!val || val === "Select Task") return;
+                                        setAddTaskForm((f) => ({ ...f, taskName: val }));
+                                    }}
+                                    isOpen={tasklistOpen}
+                                    onToggle={() => setTasklistOpen((d) => !d)}
+                                    onClose={() => setTasklistOpen(false)}
+                                    triggerRef={tasklistTriggerRef}
+                                    dropdownRef={tasklistMenuRef}
+                                    searchable
+                                    searchPlaceholder="Search task..."
+                                    maxVisibleItems={6}
+                                />
                             </div>
                         </div>
                         <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-x-10 gap-y-6">
@@ -382,6 +391,7 @@ export default function AddTaskTD() {
                                 <input
                                     type="date"
                                     value={addTaskForm.actualStartDate}
+                                    min={new Date().toISOString().split("T")[0]}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
                                     placeholder="dd/mm/yyyy"
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
@@ -392,6 +402,7 @@ export default function AddTaskTD() {
                                 <input
                                     type="date"
                                     value={addTaskForm.actualEndDate}
+                                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
                                     placeholder="dd/mm/yyyy"
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"

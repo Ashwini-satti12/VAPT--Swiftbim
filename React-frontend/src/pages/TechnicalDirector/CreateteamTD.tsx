@@ -709,74 +709,25 @@ export default function CreateteamTD() {
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
                   Select Project
                 </label>
-                <div className="relative" ref={projectDropdownRef}>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Select Project"
-                      readOnly
-                      value={
-                        projects.find((p) => String(p.id) === form.project_id)
-                          ?.project_name ?? "Select Project"
-                      }
-                      onClick={() => {
-                        const el = projectDropdownRef.current;
-                        if (el) {
-                          const rect = el.getBoundingClientRect();
-                          setProjectDropdownUpward(
-                            window.innerHeight - rect.bottom < 220,
-                          );
-                        }
-                        setShowProjectDropdown(!showProjectDropdown);
-                      }}
-                      className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all cursor-pointer font-Gantari"
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 12 12"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M3 4.5L6 7.5L9 4.5"
-                          stroke="#8B8B8B"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  {showProjectDropdown && (
-                    <div
-                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 flex flex-col ${projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"}`}
-                    >
-                      <div className="overflow-y-auto no-scrollbar max-h-44">
-                        {projects.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => {
-                              setForm((f) => ({
-                                ...f,
-                                project_id: String(p.id),
-                                leader: "",
-                                employee: [],
-                              }));
-                              setShowProjectDropdown(false);
-                            }}
-                            className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
-                          >
-                            {p.project_name ?? `Project ${p.id}`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <select
+                  value={form.project_id}
+                  onChange={(e) => {
+                    const newProjectId = e.target.value;
+                    setForm((f) => ({ ...f, project_id: newProjectId, leader: "", employee: [] }));
+                  }
+                  }
+                  required
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                >
+                  <option value="" disabled>
+                    Select Project
+                  </option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.project_name ?? `Project ${p.id}`}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

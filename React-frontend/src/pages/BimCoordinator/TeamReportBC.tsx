@@ -318,7 +318,7 @@ export default function TeamReportBC() {
                 {/* Line 2: Filters */}
                 <div className="flex flex-wrap items-center gap-3 justify-end">
                     {/* Start Date */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[130px]">
                         <span className={`text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>
@@ -333,7 +333,7 @@ export default function TeamReportBC() {
                     </div>
 
                     {/* End Date */}
-                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+                    <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[130px]">
                         <span className={`text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
                         </span>
@@ -350,7 +350,7 @@ export default function TeamReportBC() {
                     {/* Employee Custom Dropdown */}
                     <div className="relative min-w-[130px]" ref={employeeDropdownRef}>
                         <button type="button" onClick={(e) => { e.stopPropagation(); setEmployeeOpen(o => !o); setTeamOpen(false); }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${employee !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {employee === 'All' ? 'Employee' : employee}
                             </span>
@@ -363,7 +363,7 @@ export default function TeamReportBC() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[160px] py-1 max-h-[300px] overflow-y-auto">
                                 {employeeOptions.map(opt => (
                                     <button key={opt} type="button" onClick={(e) => { e.stopPropagation(); setEmployee(opt); setEmployeeOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        className={`w-full text-left px-4 py-2 text-[14px]  text-[#8B8B8B] font-medium transition-colors ${employee === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#000000] hover:bg-[#F2F3F4]'}`}>
                                         {opt === 'All' ? 'Employee' : opt}
                                     </button>
                                 ))}
@@ -374,7 +374,7 @@ export default function TeamReportBC() {
                     {/* Team Custom Dropdown */}
                     <div className="relative min-w-[100px]" ref={teamDropdownRef}>
                         <button type="button" onClick={(e) => { e.stopPropagation(); setTeamOpen(o => !o); setEmployeeOpen(false); }}
-                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer">
+                            className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer">
                             <span className={`text-sm font-medium ${team !== 'All' ? 'text-[#353535]' : 'text-[#616161]'}`}>
                                 {team === 'All' ? 'Team' : team}
                             </span>
@@ -387,7 +387,7 @@ export default function TeamReportBC() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[130px] py-1 max-h-[300px] overflow-y-auto">
                                 {teamOptions.map(opt => (
                                     <button key={opt} type="button" onClick={(e) => { e.stopPropagation(); setTeam(opt); setTeamOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#353535]'}`}>
+                                        className={`w-full text-left px-4 py-2 text-[14px]  text-[#8B8B8B] font-medium transition-colors ${team === opt ? 'text-[#353535]' : 'text-[#616161] hover:text-[#000000] hover:bg-[#F2F3F4]'}`}>
                                         {opt === 'All' ? 'Team' : opt}
                                     </button>
                                 ))}
@@ -400,7 +400,7 @@ export default function TeamReportBC() {
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setShowEntriesOpen((o) => !o); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
                             <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
@@ -413,7 +413,7 @@ export default function TeamReportBC() {
                             <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1" onMouseDown={(e) => e.preventDefault()}>
                                 {showEntriesOptions.map((opt) => (
                                     <button key={opt.value} type="button" onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#353535] hover:bg-gray-50'}`}
+                                        className={`w-full text-left px-4 py-2 text-[14px]  text-[#8B8B8B] font-medium font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-gray-100' : 'text-[#616161] hover:text-[#000000] hover:bg-gray-50'}`}
                                     >
                                         {opt.label}
                                     </button>
