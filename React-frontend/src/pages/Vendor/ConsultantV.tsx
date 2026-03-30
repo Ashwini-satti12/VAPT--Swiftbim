@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
+import { COUNTRY_CODES, getPhoneLength } from '../../utils/countryCodes';
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
 import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
@@ -52,6 +53,8 @@ export default function ConsultantV() {
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
     const [showAddModal, setShowAddModal] = useState(false);
+    const [countryCode, setCountryCode] = useState('+91');
+    const [editCountryCode, setEditCountryCode] = useState('+91');
     const [addSubmitting, setAddSubmitting] = useState(false);
     const [addError, setAddError] = useState('');
     const [form, setForm] = useState({
@@ -112,10 +115,21 @@ export default function ConsultantV() {
             const emp = list.find((e) => e.id === id);
             if (emp) {
                 setEditId(id);
+                let savedPhone = emp.phone_number || '';
+                let foundCode = '+91';
+                let phoneWithoutCode = savedPhone;
+                for (const c of COUNTRY_CODES) {
+                    if (savedPhone.startsWith(c)) {
+                        foundCode = c;
+                        phoneWithoutCode = savedPhone.slice(c.length);
+                        break;
+                    }
+                }
+                setEditCountryCode(foundCode);
                 setEditForm({
                     full_name: emp.full_name,
                     email: emp.email,
-                    phone_number: emp.phone_number || '',
+                    phone_number: phoneWithoutCode,
                     user_role: emp.user_role || 'Consultant',
                     department: emp.department || '',
                     address: emp.address || '',
@@ -186,11 +200,19 @@ export default function ConsultantV() {
             }
         }
 
+        const cleanPhone = editForm.phone_number.replace(/\D/g, '');
+        const expectedLength = getPhoneLength(editCountryCode);
+        if (editForm.phone_number && (!cleanPhone || cleanPhone.length !== expectedLength)) {
+            setEditSubmitting(false);
+            alert(`Phone number must be exactly ${expectedLength} digits for ${editCountryCode}.`);
+            return;
+        }
+
         // Build payload with all fields from redesign
         const payload = {
             full_name: editForm.full_name,
             email: editForm.email,
-            phone_number: editForm.phone_number || undefined,
+            phone_number: editForm.phone_number ? `${editCountryCode}${cleanPhone}` : undefined,
             user_role: editForm.user_role,
             department: editForm.department || undefined,
             address: editForm.address || undefined,
@@ -252,13 +274,21 @@ export default function ConsultantV() {
                 return;
             }
         }
+        const cleanPhone = form.phone_number.replace(/\D/g, '');
+        const expectedLength = getPhoneLength(countryCode);
+        if (form.phone_number && (!cleanPhone || cleanPhone.length !== expectedLength)) {
+            setAddSubmitting(false);
+            setAddError(`Phone number must be exactly ${expectedLength} digits for ${countryCode}.`);
+            return;
+        }
+
         setAddSubmitting(true);
         api
             .post<{ success: boolean; id?: number; message?: string }>('/api/employees', {
                 full_name: form.full_name.trim(),
                 email: form.email.trim(),
                 password: form.password,
-                phone_number: form.phone_number.trim() || undefined,
+                phone_number: form.phone_number ? `${countryCode}${cleanPhone}` : undefined,
                 user_role: form.user_role,
                 department: form.department.trim() || undefined,
                 address: form.address.trim() || undefined,
@@ -453,10 +483,21 @@ export default function ConsultantV() {
                                                     type="button"
                                                     onClick={() => {
                                                         setEditId(emp.id);
+                                                        let savedPhone = emp.phone_number || '';
+                                                        let foundCode = '+91';
+                                                        let phoneWithoutCode = savedPhone;
+                                                        for (const c of COUNTRY_CODES) {
+                                                            if (savedPhone.startsWith(c)) {
+                                                                foundCode = c;
+                                                                phoneWithoutCode = savedPhone.slice(c.length);
+                                                                break;
+                                                            }
+                                                        }
+                                                        setEditCountryCode(foundCode);
                                                         setEditForm({
                                                             full_name: emp.full_name,
                                                             email: emp.email,
-                                                            phone_number: emp.phone_number || '',
+                                                            phone_number: phoneWithoutCode,
                                                             user_role: emp.user_role || 'Consultant',
                                                             department: emp.department || '',
                                                             address: emp.address || '',
@@ -637,13 +678,22 @@ export default function ConsultantV() {
                                     </div>
                                     <div>
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Phone Number"
-                                            value={form.phone_number}
-                                            onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                            className="w-full px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px]  text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={countryCode}
+                                                onChange={(e) => setCountryCode(e.target.value)}
+                                                className="w-[100px] px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                {COUNTRY_CODES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={form.phone_number}
+                                                onChange={(e) => setForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                                className="flex-1 px-4 py-2.5 bg-[#F4F4F4] border-none rounded-[5px] text-[14px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-1.5 font-Gantari">Password</label>
@@ -979,13 +1029,22 @@ export default function ConsultantV() {
 
                                     <div>
                                         <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Phone Number</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter Phone Number"
-                                            value={editForm.phone_number}
-                                            onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
-                                            className="w-full px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
-                                        />
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={editCountryCode}
+                                                onChange={(e) => setEditCountryCode(e.target.value)}
+                                                className="w-[100px] px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
+                                            >
+                                                {COUNTRY_CODES.map(c => <option key={c} value={c}>{c}</option>)}
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter Phone Number"
+                                                value={editForm.phone_number}
+                                                onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                                                className="flex-1 px-4 py-3 bg-[#F4F4F4] border-none rounded-[5px] text-[15px] placeholder:text-[#979797] font-Gantari transition-all outline-none"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div>

@@ -685,7 +685,7 @@ function TaskCard({
                     </div>
                 </div>
                 <Link
-                    to="/vendors/mytasks/view"
+                    to={`/v/mytasks/view/${task.id}`}
                     state={{ task, from: "teamtask" }}
                     draggable={false}
                     className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
