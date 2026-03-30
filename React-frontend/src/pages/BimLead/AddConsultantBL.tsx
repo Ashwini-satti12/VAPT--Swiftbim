@@ -198,7 +198,7 @@ export default function AddConsultantBL() {
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+          <h3 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari text-center flex-1">
             Add New Consultant
           </h3>
           <div className="w-10" />
@@ -372,7 +372,7 @@ export default function AddConsultantBL() {
             <button
               type="submit"
               disabled={addSubmitting}
-              className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer disabled:cursor-not-allowed"
+              className="w-full sm:w-auto px-12 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px] cursor-pointer disabled:cursor-not-allowed"
             >
               {addSubmitting ? 'Submitting...' : 'Submit'}
             </button>
