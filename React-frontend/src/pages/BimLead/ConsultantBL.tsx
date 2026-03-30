@@ -928,7 +928,7 @@ export default function ConsultantBL() {
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
-                <h3 className="text-[24px] font-semibold text-[#020202] text-center">
+                <h3 className="text-[24px] font-medium text-[#000000] text-center">
                   Invite New Consultant
                 </h3>
               </div>

@@ -12,8 +12,6 @@ import dashboardIcon from '../../assets/SidebarIcons/PMSidebarIcons/dashboard.sv
 import whiteDashboardIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whitedashboard.svg';
 import consultantIcon from '../../assets/SidebarIcons/PMSidebarIcons/consultant.svg';
 import whiteConsultantIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whiteconsultant.svg';
-import clientIcon from '../../assets/SidebarIcons/PMSidebarIcons/client.svg';
-import whiteClientIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whiteclients.svg';
 import projectIcon from '../../assets/SidebarIcons/PMSidebarIcons/projecticon.svg';
 import whiteProjectIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whiteprojects.svg';
 import myTaskIcon from '../../assets/SidebarIcons/PMSidebarIcons/mytask.svg';
@@ -28,6 +26,14 @@ import teamReportIcon from '../../assets/SidebarIcons/PMSidebarIcons/teamreport 
 import whiteTeamReportIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whiteteamreport.svg';
 import chatIcon from '../../assets/SidebarIcons/PMSidebarIcons/chat.svg';
 import whiteChatIcon from '../../assets/SidebarIcons/PMSidebarIcons/Whitechat.svg';
+
+// Technical Director Icons
+import blackBiddingIcon from '../../assets/TechnicalDirector/Sidebaricons/BlackBidding.svg';
+import redBiddingIcon from '../../assets/TechnicalDirector/Sidebaricons/RedBidding.svg';
+import blackProposalIcon from '../../assets/TechnicalDirector/Sidebaricons/BlackProposal.svg';
+import redProposalIcon from '../../assets/TechnicalDirector/Sidebaricons/RedProposal.svg';
+import blackPartnerIcon from '../../assets/TechnicalDirector/Sidebaricons/RedVector.svg';
+import redPartnerIcon from '../../assets/TechnicalDirector/Sidebaricons/RedPartner.svg';
 
 // const HIDE_CLIENTS_ROLES = ['BIM Lead', 'BIM Coordinator'];
 
@@ -99,8 +105,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         {
           name: "Partners",
           path: "/td/partner",
-          iconSrc: clientIcon,
-          activeIconSrc: whiteClientIcon,
+          iconSrc: blackPartnerIcon,
+          activeIconSrc: redPartnerIcon,
           isVisible: true,
         },
         {
@@ -113,15 +119,15 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         {
           name: "Bidding Process",
           path: "/td/bidding",
-          iconSrc: projectIcon,
-          activeIconSrc: whiteProjectIcon,
+          iconSrc: blackBiddingIcon,
+          activeIconSrc: redBiddingIcon,
           isVisible: true,
         },
         {
           name: "Proposal",
           path: "/td/manage-proposal",
-          iconSrc: projectIcon,
-          activeIconSrc: whiteProjectIcon,
+          iconSrc: blackProposalIcon,
+          activeIconSrc: redProposalIcon,
           isVisible: true,
         },
         {
@@ -202,8 +208,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         {
           name: "Partners",
           path: "/bl/partner",
-          iconSrc: clientIcon,
-          activeIconSrc: whiteClientIcon,
+          iconSrc: blackPartnerIcon,
+          activeIconSrc: redPartnerIcon,
           isVisible: true,
         },
         // {
@@ -372,7 +378,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Create Team", path: "/vendor-bim-lead/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vendor-bim-lead/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Team Task", path: "/vendor-bim-lead/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
-          { name: "Communication Hub", path: "/vendor-bim-lead/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          // { name: "Communication Hub", path: "/vendor-bim-lead/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 
@@ -380,13 +386,13 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
         return [
           { name: "Dashboard", path: "/vpm/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "Projects", path: "/vpm/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
-          { name: "Proposals", path: "/vpm/proposals", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Proposals", path: "/vpm/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
           { name: "My Task", path: "/vpm/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/vpm/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
           { name: "Create Team", path: "/vpm/createteam", iconSrc: createTeamIcon, activeIconSrc: whiteCreateTeamIcon, isVisible: true },
           { name: "Resources", path: "/vpm/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
-          { name: "Bidding", path: "/vpm/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
-          { name: "Communication Hub", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          { name: "Bidding", path: "/vpm/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
+          // { name: "Communication Hub", path: "/vpm/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 
@@ -395,7 +401,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Dashboard", path: "/ve/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
           { name: "My Task", path: "/ve/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/ve/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
-          { name: "Communication", path: "/ve/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          // { name: "Communication", path: "/ve/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
         ];
       }
 
@@ -403,8 +409,8 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       if (isVendorAdmin) {
         return [
           { name: "Dashboard", path: "/v/dashboard", iconSrc: dashboardIcon, activeIconSrc: whiteDashboardIcon, isVisible: true },
-          { name: "Bidding", path: "/v/opportunities", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
-          { name: "Proposals", path: "/v/proposals", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
+          { name: "Bidding", path: "/v/opportunities", iconSrc: blackBiddingIcon, activeIconSrc: redBiddingIcon, isVisible: true },
+          { name: "Proposals", path: "/v/proposals", iconSrc: blackProposalIcon, activeIconSrc: redProposalIcon, isVisible: true },
           { name: "Projects", path: "/v/projects", iconSrc: projectIcon, activeIconSrc: whiteProjectIcon, isVisible: true },
           { name: "My Task", path: "/v/mytasks", iconSrc: myTaskIcon, activeIconSrc: whiteMyTaskIcon, isVisible: true },
           { name: "Team Task", path: "/v/teamtasks", iconSrc: teamTaskIcon, activeIconSrc: whiteTeamTaskIcon, isVisible: true },
@@ -412,7 +418,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
           { name: "Resources", path: "/v/resources", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Company Profile", path: "/v/company-profile", iconSrc: consultantIcon, activeIconSrc: whiteConsultantIcon, isVisible: true },
           { name: "Milestones", path: "/v/milestones", iconSrc: trackerIcon, activeIconSrc: whiteTrackerIcon, isVisible: true },
-          { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
+          // { name: "Communication", path: "/v/communication", iconSrc: chatIcon, activeIconSrc: whiteChatIcon, isVisible: true },
           { name: "Performance", path: "/v/performance", iconSrc: teamReportIcon, activeIconSrc: whiteTeamReportIcon, isVisible: true },
         ];
       }
@@ -584,7 +590,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
     <div className="w-66 flex flex-col gap-4 sticky h-[calc(100vh-100px)] px-4">
       {/* Navigation Items Container */}
       <nav className="flex-1 flex flex-col bg-transparent backdrop-blur-sm rounded-2xl border border-[rgba(89,89,89,0.2)] overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-8 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto px-4 pb-4 pt-4 space-y-2 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {navItems.map((item) => {
             const active = isActive(item.path, item.name);
             const isNavigating = navigatingTo === item.path;
@@ -595,7 +601,7 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
                 type="button"
                 onClick={() => handleNavClick(item.path)}
                 disabled={isNavigating}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium cursor-pointer ${active
+                className={`w-full flex items-center gap-3 px-4 py-2 rounded-md transition-all duration-200 font-medium cursor-pointer ${active
                   ? "bg-[#DD4342] text-white shadow-lg active-scale-95"
                   : "text-slate-700 hover:bg-white/20 hover:text-black"
                   } ${isNavigating ? "opacity-90" : ""}`}

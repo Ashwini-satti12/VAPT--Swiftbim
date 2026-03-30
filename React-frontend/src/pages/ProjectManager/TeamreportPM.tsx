@@ -100,14 +100,19 @@ export default function TimesheetPM() {
 
   // Calculate task duration from start_time, end_time, Pause, and restart
   const calculateDuration = (entry: TimesheetEntry): string => {
-    if (!entry.start_time || !entry.end_time) return "-";
+    // Only use tracked time (start_time and end_time). 
+    // Fallbacks like Actual_start_time and due_date lead to incorrect, huge durations for tasks that haven't been tracked.
+    if (!entry.start_time || !entry.end_time) return "00:00:00";
 
     try {
       const start = new Date(entry.start_time);
       const end = new Date(entry.end_time);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return "00:00:00";
+
       let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
 
-      // Subtract pause time and add restart time
+      // Subtract pause time and add restart time (these are seconds from the backend)
       const pauseSeconds = entry.Pause || 0;
       const restartSeconds = entry.restart || 0;
       totalSeconds = totalSeconds - pauseSeconds + restartSeconds;
@@ -332,9 +337,9 @@ export default function TimesheetPM() {
   };
 
   return (
-    <div className="p-1 md:p-6 space-y-8 flex flex-col h-full bg-white">
+    <div className="p-1 space-y-8 flex flex-col h-full bg-white">
       {/* Header & Filter Section */}
-      <div className="flex flex-col gap-4 flex-shrink-0 px-">
+      <div className="flex flex-col gap-4 flex-shrink-0">
         {/* Line 1: Heading and Download */}
         <div className="flex items-center justify-between">
           <h3 className="text-[24px] font-semibold text-[#000000] font-gantari whitespace-nowrap">Monthly Report</h3>
@@ -365,9 +370,9 @@ export default function TimesheetPM() {
         {/* Line 2: Filters */}
         <div className="flex flex-wrap items-center gap-3 justify-end">
           {/* Start Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[140px]">
             <span
-              className={`text-sm font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`text-[14px] font-gantari font-medium ${startDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {startDate
                 ? startDate.split("-").reverse().join("/")
@@ -399,9 +404,9 @@ export default function TimesheetPM() {
           </div>
 
           {/* End Date */}
-          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer group min-w-[130px]">
+          <div className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer group min-w-[140px]">
             <span
-              className={`text-sm font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
+              className={`text-[14px] font-gantari font-medium ${endDate ? "text-[#353535]" : "text-[#616161]"}`}
             >
               {endDate ? endDate.split("-").reverse().join("/") : "End Date"}
             </span>
@@ -431,7 +436,7 @@ export default function TimesheetPM() {
           </div>
 
           {/* Employee Custom Dropdown */}
-          <div className="relative min-w-[130px]" ref={employeeDropdownRef}>
+          <div className="relative min-w-[140px]" ref={employeeDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
@@ -439,10 +444,10 @@ export default function TimesheetPM() {
                 setEmployeeOpen((o) => !o);
                 setTeamOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
             >
               <span
-                className={`text-sm font-medium ${employee !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
+                className={`text-[14px] font-gantari font-medium ${employee !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
               >
                 {employee === "All" ? "Employee" : employee}
               </span>
@@ -474,10 +479,10 @@ export default function TimesheetPM() {
                       setEmployee(opt);
                       setEmployeeOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${
                       employee === opt
-                        ? "text-[#353535] bg-gray-50"
-                        : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
+                        ? "text-[#8B8B8B] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] hover:text-[#000000] hover:bg-[#F2F2F2]"
                     }`}
                   >
                     {opt === "All" ? "Employee" : opt}
@@ -488,7 +493,7 @@ export default function TimesheetPM() {
           </div>
 
           {/* Team Custom Dropdown */}
-          <div className="relative min-w-[100px]" ref={teamDropdownRef}>
+          <div className="relative min-w-[120px]" ref={teamDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
@@ -496,10 +501,10 @@ export default function TimesheetPM() {
                 setTeamOpen((o) => !o);
                 setEmployeeOpen(false);
               }}
-              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#EAEAEA] rounded-md hover:bg-gray-200 transition-all cursor-pointer cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer"
             >
               <span
-                className={`text-sm font-medium ${team !== "All" ? "text-[#353535]" : "text-[#616161]"}`}
+                className={`text-[14px] font-gantari ${team !== "All" ? "text-[#353535]" : "text-[#000000]"}`}
               >
                 {team === "All" ? "Team" : team}
               </span>
@@ -531,10 +536,10 @@ export default function TimesheetPM() {
                       setTeam(opt);
                       setTeamOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${
                       team === opt
-                        ? "text-[#353535] bg-gray-50"
-                        : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"
+                        ? "text-[#353535] bg-[#F2F2F2]"
+                        : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"
                     }`}
                   >
                     {opt === "All" ? "Team" : opt}
@@ -552,12 +557,12 @@ export default function TimesheetPM() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer"
             >
-              <span className="text-sm font-medium text-[#353535] font-gantari">
+              <span className="text-[14px] font-gantari text-[#616161]">
                 Show:
               </span>
-              <span className="text-sm font-medium text-[#353535] font-gantari">
+              <span className="text-[14px] font-gantari text-[#353535]">
                 {selectedRange.label}
               </span>
               <svg
@@ -581,7 +586,7 @@ export default function TimesheetPM() {
             </button>
             {showEntriesOpen && (
               <div
-                className="absolute top-full left-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1"
+                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[120px] py-1"
                 onMouseDown={(e) => e.preventDefault()}
               >
                 {showEntriesOptions.map((opt) => (
@@ -593,7 +598,7 @@ export default function TimesheetPM() {
                       setSelectedShowEntries(opt.value);
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-gray-100" : "text-[#616161] hover:text-[#353535] hover:bg-gray-50"}`}
+                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                   >
                     {opt.label}
                   </button>
@@ -664,28 +669,28 @@ export default function TimesheetPM() {
                         key={row.id}
                         className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
                       >
-                        <td className="px-4 py-3 text-center text-sm text-gray-500 font-medium align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-500 font-gantari align-middle">
                           {slNo}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           {row.project_name && row.project_name.trim() !== ""
                             ? row.project_name
                             : "-"}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-600 font-gantari align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           <div className="mx-auto max-w-[250px] line-clamp-2 break-words text-center">
                             {row.task_name && row.task_name.trim() !== ""
                               ? row.task_name
                               : "-"}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           {startDate}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-600 align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           {endDate}
                         </td>
-                        <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium align-middle">
+                        <td className="px-4 py-3 text-center text-[14px] text-gray-600 font-gantari align-middle">
                           {duration}
                         </td>
                       </tr>

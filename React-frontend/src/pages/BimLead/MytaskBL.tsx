@@ -220,7 +220,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -424,8 +424,8 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
         type: str(t.type ?? t.category ?? ""),
         actualStartDate: dateOnly(t.start_date ?? t.startDate ?? t.Actual_start_time ?? ""),
         actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
-        startTime: timeOnly(t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
-        dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+        startTime: timeOnly(t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? ""),
+        dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
         assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
         description: str(t.description ?? ""),
         checklist: str(t.checklist ?? ""),
@@ -664,7 +664,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200","201-250","251-300","All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -925,7 +925,7 @@ export default function MytaskBL() {
         ])
             .then(([tasksRes, empRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
@@ -1366,8 +1366,8 @@ export default function MytaskBL() {
                                         startdate: addTaskForm.actualStartDate,
                                         due_date: addTaskForm.actualEndDate,
                                         dueDate: addTaskForm.actualEndDate,
-                                        startTime: addTaskForm.startTime,
-                                        dueTime: addTaskForm.dueTime,
+                                        perferstart_time: addTaskForm.startTime,
+                                        perferend_time: addTaskForm.dueTime,
                                         assigned_to: employees.find(e => e.full_name === addTaskForm.assignTo)?.id,
                                         assign_to: addTaskForm.assignTo,
                                         description: addTaskForm.description,

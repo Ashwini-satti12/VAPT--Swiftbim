@@ -748,7 +748,7 @@ export default function ManageLeave() {
     <div className="p-4 flex flex-col h-full font-gantari">
       {/* Page header: heading left; Employee + Show entries + Apply Leave right */}
       <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-        <h1 className="text-2xl md:text-[28px] font-bold text-[#353535] tracking-tight">
+        <h1 className="text-2xl md:text-[24px] font-medium text-[#000000] tracking-tight">
           Manage Leaves
         </h1>
         <div className="flex items-center gap-3 flex-wrap">
@@ -813,7 +813,7 @@ export default function ManageLeave() {
               setEmployeeName(displayName);
               setApplyModalOpen(true);
             }}
-             className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold text-sm active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+             className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-[#F2F2F2] rounded-md font-medium text-sm active:scale-[0.98] transition-all shadow-sm cursor-pointer"
            >
             Apply Leave
           </button>
@@ -1093,32 +1093,29 @@ export default function ManageLeave() {
               className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                <div />
-                <h3 className="text-xl font-bold text-[#353535] text-center">
+              <div className="relative flex items-center justify-center px-6 py-5 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[#EEEEEE] transition-colors text-[#000000] cursor-pointer"
+                  aria-label="Close"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+                <h3 className="text-xl font-medium text-[#000000] text-center">
                   Apply Leave
                 </h3>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535] cursor-pointer"
-                    aria-label="Close"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
               </div>
 
               <form
@@ -1366,13 +1363,13 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="px-6 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                    className="px-6 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-medium  active:scale-[0.98] transition-all shadow-sm cursor-pointer"
                   >
                     Submit
                   </button>
@@ -1395,32 +1392,29 @@ export default function ManageLeave() {
               className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-[#E5E5E5]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                <div />
-                <h3 className="text-xl font-bold text-[#353535] text-center">
+              <div className="relative flex items-center justify-center px-6 py-5 flex-shrink-0 border-b border-[#EEEEEE] bg-[#FAFAFA]">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md hover:bg-[#EEEEEE] transition-colors text-[#000000] cursor-pointer"
+                  aria-label="Close"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+                <h3 className="text-xl font-medium text-[#000000] text-center">
                   Edit Leave
                 </h3>
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleCloseEditModal}
-                    className="p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535] cursor-pointer"
-                    aria-label="Close"
-                  >
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
               </div>
 
               <form
@@ -1668,13 +1662,13 @@ export default function ManageLeave() {
                   <button
                     type="button"
                     onClick={handleCloseEditModal}
-                    className="px-6 py-2.5 rounded-lg font-medium text-[#616161] bg-[#F2F2F2] hover:bg-[#E5E5E5] transition-colors cursor-pointer"
+                    className="px-6 py-2.5 rounded-md font-medium text-[#616161] bg-[#F2F2F2]  transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-lg font-semibold hover:bg-[#c43a39] active:scale-[0.98] transition-all shadow-sm cursor-pointer"
+                    className="px-8 py-2.5 bg-[#DD4342] text-white rounded-md font-medium  active:scale-[0.98] transition-all shadow-sm cursor-pointer"
                   >
                     Update
                   </button>
@@ -1707,7 +1701,7 @@ export default function ManageLeave() {
                     setViewModalOpen(false);
                     setSelectedLeave(null);
                   }}
-                   className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors text-[#353535] cursor-pointer"
+                   className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-md bg-[#F2F2F2] hover:bg-[#E0E0E0] transition-colors text-[#000000] cursor-pointer"
                    aria-label="Close"
                  >
                   <svg
@@ -1723,14 +1717,14 @@ export default function ManageLeave() {
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
                 </button>
-                <h3 className="text-xl font-bold text-[#353535]">
+                <h3 className="text-xl font-medium text-[#000000]">
                   Leave Details
                 </h3>
               </div>
               <div className="px-6 py-6">
                 <div className="space-y-4">
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
                       Employee Name
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -1739,7 +1733,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
                       Role
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>
@@ -1748,7 +1742,7 @@ export default function ManageLeave() {
                     </span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <span className="w-[140px] shrink-0 text-sm font-semibold text-[#353535] pt-0.5">
+                    <span className="w-[140px] shrink-0 text-sm font-gantari text-[#353535] pt-0.5">
                       Leave Type
                     </span>
                     <span className="shrink-0 text-[#616161]">:</span>

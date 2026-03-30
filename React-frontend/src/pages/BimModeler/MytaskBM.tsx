@@ -700,8 +700,8 @@ const PERIOD_OPTIONS = [
 export default function MytaskBM() {
     const [searchParams] = useSearchParams();
     const { pathname } = useLocation();
-    const isTeam =
-        searchParams.get("condition") === "1" || pathname.endsWith("/team");
+    const ismy =
+        searchParams.get("condition") === "1" || pathname.endsWith("/my");
     const statusFilter =
         searchParams.get("status") || searchParams.get("taskstatus");
     const [list, setList] = useState<Task[]>([]);
@@ -910,7 +910,7 @@ export default function MytaskBM() {
     useEffect(() => {
         const params: Record<string, string> = {};
         if (statusFilter) params.status = statusFilter;
-        if (isTeam) params.condition = "1";
+        if (ismy) params.condition = "1";
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
@@ -919,14 +919,14 @@ export default function MytaskBM() {
         ])
             .then(([tasksRes, empRes, projRes]) => {
                 setList(tasksRes.data.tasks ?? []);
-                setEmployees(empRes.data.employees ?? []);
+                setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
                 setProjects(projRes.data.projects ?? []);
             })
             .catch(() => {
                 setList([]);
             })
             .finally(() => setLoading(false));
-    }, [isTeam, statusFilter]);
+    }, [ismy, statusFilter]);
 
     useEffect(() => {
         if (!addTaskForm.projectName) return;
@@ -1013,7 +1013,7 @@ export default function MytaskBM() {
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
                     <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-                        {isTeam ? "Team Task" : "My Task"}
+                        {ismy ? "my Task" : "My Task"}
                     </h2>
                     <div
                         ref={dropdownsContainerRef}
@@ -1386,7 +1386,7 @@ export default function MytaskBM() {
 
                                     const params: Record<string, string> = {};
                                     if (statusFilter) params.status = statusFilter;
-                                    if (isTeam) params.condition = "1";
+                                    if (ismy) params.condition = "1";
                                     const updatedTasks = await api.get<{ tasks?: Task[] }>("/api/tasks", { params });
                                     setList(updatedTasks.data.tasks ?? []);
                                     resetTaskFormAndClose();

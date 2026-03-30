@@ -42,8 +42,8 @@ function CustomDropdown({
         <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-slate-500`} />
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
-          <div className="max-h-[220px] overflow-y-auto">
+        <div className="absolute top-full left-0 w-full mt-1 bg-[#FFFFFF] border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
+          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
             {options.map((option) => (
               <button
                 key={option}
@@ -52,7 +52,7 @@ function CustomDropdown({
                   onChange(option);
                   setIsOpen(false);
                 }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F4F4F4] transition-colors cursor-pointer"
+                className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
               >
                 {option}
               </button>
@@ -318,7 +318,7 @@ export default function AddConsultantTD() {
               </div>
               <div className="space-y-2">
                 <label className="block text-[16px] font-semibold text-[#000000] font-Gantari">Upload Profile Picture</label>
-                <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                   <div className="flex-1 px-4 text-[14px] text-[#979797] truncate">
                     {form.profile_picture ? form.profile_picture.name : 'Choose file (JPEG or JPG only)'}
                   </div>
