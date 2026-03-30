@@ -274,7 +274,7 @@ export default function AddTaskBC() {
                     >
                         <img src={backIcon} alt="Back" className="w-5 h-5" />
                     </button>
-                    <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+                    <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">
                         {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                     </h3>
                     <div className="w-10" />
@@ -565,14 +565,14 @@ export default function AddTaskBC() {
                         <button
                             type="button"
                             onClick={goBack}
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
                         >
                             Discard
                         </button>
                         <button
                             type="submit"
                             disabled={addSubmitting}
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
+                            className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari cursor-pointer disabled:opacity-50"
                         >
                             {addSubmitting ? "Submitting..." : "Submit"}
                         </button>

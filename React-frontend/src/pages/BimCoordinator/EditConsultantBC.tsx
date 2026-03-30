@@ -262,12 +262,12 @@ export default function EditConsultantBC() {
           <button
             type="button"
             onClick={() => navigate('/bc/consultants')}
-            className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all hover:bg-slate-200 cursor-pointer"
+            className="p-2 rounded-md bg-[#F2F3F4] text-[#1A1A1A] transition-all cursor-pointer"
             title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
+          <h3 className="text-[20px] sm:text-[24px] font-medium text-[#0000000] font-Gantari text-center flex-1">
             Edit Consultant Details
           </h3>
           <div className="w-10" />
@@ -463,14 +463,14 @@ export default function EditConsultantBC() {
             <button
               type="button"
               onClick={() => navigate('/bc/consultants')}
-              className="w-full sm:w-auto px-16 py-3 rounded-lg bg-[#F4F4F4] text-[#353535] font-bold text-[16px] transition-all font-Gantari min-w-[180px] hover:bg-slate-200 cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-medium text-[16px] transition-all font-Gantari  cursor-pointer"
             >
               Discard
             </button>
             <button
               type="submit"
               disabled={editSubmitting}
-              className={`w-full sm:w-auto px-16 py-3 rounded-lg bg-[#D1E6FF] text-[#1A1A1A] font-bold text-[16px] transition-all font-Gantari min-w-[180px] ${editSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              className={`w-full sm:w-auto px-5 py-2 rounded-md bg-[#D1E6FF] text-[#000000] font-medium text-[16px] transition-all font-Gantari  ${editSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
             >
               {editSubmitting ? 'Updating...' : 'Submit'}
             </button>

@@ -306,12 +306,12 @@ export default function MytaskViewTD() {
               type="button"
               disabled={updatingStatus}
               onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50 cursor-pointer"
+              className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
               aria-expanded={statusDropdownOpen}
               aria-haspopup="listbox"
             >
               {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-4 h-4" />
+              <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
             </button>
             {statusDropdownOpen && !updatingStatus && (
               <div
@@ -328,10 +328,10 @@ export default function MytaskViewTD() {
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 cursor-pointer ${
+                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors cursor-pointer ${
                       statusDisplay === opt.value
-                        ? "bg-slate-50 font-medium"
-                        : ""
+                        ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                        : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                     }`}
                   >
                     <span

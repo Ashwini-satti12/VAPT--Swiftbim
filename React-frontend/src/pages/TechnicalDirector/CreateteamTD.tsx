@@ -288,12 +288,17 @@ export default function CreateteamTD() {
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [projectDropdownUpward, setProjectDropdownUpward] = useState(false);
+  const projectDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [showEditProjectDropdown, setShowEditProjectDropdown] = useState(false);
+  const [editProjectDropdownUpward, setEditProjectDropdownUpward] = useState(false);
+  const editProjectDropdownRef = useRef<HTMLDivElement>(null);
+
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const memberDropdownRef = useRef<HTMLDivElement>(null);
   const leaderDropdownRef = useRef<HTMLDivElement>(null);
-  const projectDropdownRef = useRef<HTMLDivElement>(null);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
@@ -333,6 +338,12 @@ export default function CreateteamTD() {
         !projectDropdownRef.current.contains(event.target as Node)
       ) {
         setShowProjectDropdown(false);
+      }
+      if (
+        editProjectDropdownRef.current &&
+        !editProjectDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowEditProjectDropdown(false);
       }
       if (
         showEntriesDropdownRef.current &&
@@ -573,7 +584,7 @@ export default function CreateteamTD() {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center justify-between min-w-[90px] px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+              className="flex items-center justify-between min-w-[90px] px-4 py-2 bg-[#F2F3F4] rounded-[5px] transition-all cursor-pointer border-0"
             >
               {selectedShowEntries === "show" ? (
                 <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
@@ -581,10 +592,10 @@ export default function CreateteamTD() {
                 </span>
               ) : (
                 <div className="flex items-center gap-1">
-                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">
+                  <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
                     Show:
                   </span>
-                  <span className="text-[14px] font-medium text-[#353535] font-Gantari">
+                  <span className="text-[14px] font-medium text-[#8B8B8B] font-Gantari">
                     {selectedRange.label}
                   </span>
                 </div>
@@ -592,16 +603,11 @@ export default function CreateteamTD() {
               <img
                 src={ArrowDown}
                 alt="arrow"
-                className="ml-2 w-3.5 h-3.5 object-contain transition-transform duration-200"
-                style={{
-                  transform: showEntriesOpen
-                    ? "rotate(180deg)"
-                    : "rotate(0deg)",
-                }}
+                className="ml-2 w-3 h-3 object-contain transition-transform duration-200"
               />
             </button>
             {showEntriesOpen && (
-              <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto no-scrollbar">
+              <div className="absolute top-full right-0 mt-1 z-50 bg-white border border-[#E0E0E0] rounded-[5px] shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto no-scrollbar">
                 {showEntriesOptions.map((opt) => (
                   <button
                     key={opt.value}
@@ -686,7 +692,7 @@ export default function CreateteamTD() {
             </button>
 
             <div className="text-center mb-10">
-              <h3 className="text-[26px] font-semibold text-[#353535]">
+              <h3 className="text-[24px] font-semibold text-[#000000]">
                 Create New Team
               </h3>
             </div>
@@ -699,7 +705,7 @@ export default function CreateteamTD() {
                 <input
                   type="text"
                   placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                   value={form.team_name}
                   onChange={(e) =>
                     setForm({ ...form, team_name: e.target.value })
@@ -712,25 +718,64 @@ export default function CreateteamTD() {
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
                   Select Project
                 </label>
-                <select
-                  value={form.project_id}
-                  onChange={(e) => {
-                    const newProjectId = e.target.value;
-                    setForm((f) => ({ ...f, project_id: newProjectId, leader: "", employee: [] }));
-                  }
-                  }
-                  required
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
-                >
-                  <option value="" disabled>
-                    Select Project
-                  </option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.project_name ?? `Project ${p.id}`}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative" ref={projectDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = projectDropdownRef.current;
+                      if (el) {
+                        const rect = el.getBoundingClientRect();
+                        setProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                      }
+                      setShowProjectDropdown(!showProjectDropdown);
+                    }}
+                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                  >
+                    <span>
+                      {form.project_id
+                        ? projects.find((p) => String(p.id) === form.project_id)?.project_name || "Select Project"
+                        : "Select Project"}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3 4.5L6 7.5L9 4.5"
+                        stroke="#8B8B8B"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {showProjectDropdown && (
+                    <div
+                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${
+                        projectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                      }`}
+                    >
+                      {projects.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
+                            setShowProjectDropdown(false);
+                          }}
+                          className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                        >
+                          {p.project_name ?? `Project ${p.id}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -774,19 +819,19 @@ export default function CreateteamTD() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[10px] text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -880,19 +925,19 @@ export default function CreateteamTD() {
                         setShowMemberDropdown(true);
                         setMemberSearchQuery("");
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -983,7 +1028,7 @@ export default function CreateteamTD() {
             </button>
 
             <div className="text-center mb-10">
-              <h3 className="text-[26px] font-semibold text-[#353535]">
+              <h3 className="text-[24px] font-semibold text-[#000000]">
                 Edit Team Details
               </h3>
             </div>
@@ -996,7 +1041,7 @@ export default function CreateteamTD() {
                 <input
                   type="text"
                   placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
                   value={editForm.team_name}
                   onChange={(e) =>
                     setEditForm({ ...editForm, team_name: e.target.value })
@@ -1008,25 +1053,64 @@ export default function CreateteamTD() {
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
                   Select Project
                 </label>
-                <select
-                  value={editForm.project_id}
-                  onChange={(e) => {
-                    const newProjectId = e.target.value;
-                    setEditForm((f) => ({ ...f, project_id: newProjectId, leader: "", employee: [] }));
-                  }
-                  }
-                  required
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
-                >
-                  <option value="" disabled>
-                    Select Project
-                  </option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.project_name ?? `Project ${p.id}`}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative" ref={editProjectDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = editProjectDropdownRef.current;
+                      if (el) {
+                        const rect = el.getBoundingClientRect();
+                        setEditProjectDropdownUpward(window.innerHeight - rect.bottom < 220);
+                      }
+                      setShowEditProjectDropdown(!showEditProjectDropdown);
+                    }}
+                    className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] flex items-center justify-between transition-all cursor-pointer font-Gantari"
+                  >
+                    <span>
+                      {editForm.project_id
+                        ? projects.find((p) => String(p.id) === editForm.project_id)?.project_name || "Select Project"
+                        : "Select Project"}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M3 4.5L6 7.5L9 4.5"
+                        stroke="#8B8B8B"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {showEditProjectDropdown && (
+                    <div
+                      className={`absolute left-0 w-full bg-[#FFFFFF] rounded-[10px] shadow-lg border border-[#AEACAC52] py-2 z-[110] animate-in fade-in zoom-in duration-200 max-h-60 overflow-y-auto no-scrollbar flex flex-col ${
+                        editProjectDropdownUpward ? "bottom-full mb-2 origin-bottom" : "top-full mt-2 origin-top"
+                      }`}
+                    >
+                      {projects.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setEditForm((f) => ({ ...f, project_id: String(p.id), leader: "", employee: [] }));
+                            setShowEditProjectDropdown(false);
+                          }}
+                          className="w-full px-5 py-2.5 text-left text-[14px] text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535] transition-colors cursor-pointer"
+                        >
+                          {p.project_name ?? `Project ${p.id}`}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -1070,19 +1154,19 @@ export default function CreateteamTD() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showLeaderDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"
@@ -1160,19 +1244,19 @@ export default function CreateteamTD() {
                         setShowMemberDropdown(true);
                         setMemberSearchQuery("");
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[5px] text-[14px] text-[#8B8B8B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all font-Gantari"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className={`transition-transform duration-200 ${showMemberDropdown ? "rotate-180" : ""}`}
+                        className={`transition-transform duration-200`}
                       >
                         <path
-                          d="M5 7.5L10 12.5L15 7.5"
+                          d="M3 4.5L6 7.5L9 4.5"
                           stroke="#8B8B8B"
                           strokeWidth="2"
                           strokeLinecap="round"

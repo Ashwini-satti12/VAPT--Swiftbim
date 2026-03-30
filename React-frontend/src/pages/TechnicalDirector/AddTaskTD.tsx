@@ -81,6 +81,7 @@ export default function AddTaskTD() {
         if (editingTask) {
             setEditingTaskId(editingTask.id);
             setAddTaskForm(taskToFormValues(editingTask));
+            setEditingTaskId(editingTask.id);
         }
     }, [editingTask]);
 
@@ -526,7 +527,7 @@ export default function AddTaskTD() {
                                 onChange={handleAttachmentChange}
                                 accept="*/*"
                             />
-                            <div className="flex items-center bg-[#F4F4F4] rounded-[5px] overflow-hidden">
+                            <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                                 <div
                                     className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2"
                                     title={attachmentFiles.length > 0 ? attachmentFiles.map((f) => f.name).join(", ") : undefined}

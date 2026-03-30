@@ -46,159 +46,7 @@ const getProfileUrl = (path: string | undefined): string => {
   return `${apiBaseUrl}${urlPath}`;
 };
 
-function formatTimeForDisplay(value: string): string {
-  if (!value || !value.match(/^\d{1,2}:\d{2}$/)) return "--:--";
-  const [hStr, mStr] = value.split(":");
-  const h24 = parseInt(hStr, 10);
-  const m = mStr || "00";
-  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
-  const ampm = h24 < 12 ? "AM" : "PM";
-  return `${h12}:${m} ${ampm}`;
-}
-
-/* Unused - using TimePickerWheel
-function TimePicker({ value, onChange }: { value: string; onChange: (val: string) => void }) {
-  const [hourStr, minStr] = value ? value.split(":") : ["", ""];
-  let hour12 = hourStr ? parseInt(hourStr, 10) : "";
-  let ampm = "AM";
-  if (typeof hour12 === "number") {
-    if (hour12 >= 12) { if (hour12 > 12) hour12 -= 12; ampm = "PM"; }
-    else if (hour12 === 0) hour12 = 12;
-  }
-  const h = hour12 ? String(hour12).padStart(2, "0") : "";
-  const m = minStr || "";
-  const handleTimeChange = (newH: string, newM: string, newAmPm: string) => {
-    if (!newH && !newM) { onChange(""); return; }
-    const safeH = newH || "12", safeM = newM || "00";
-    let h24 = parseInt(safeH, 10);
-    if (newAmPm === "PM" && h24 < 12) h24 += 12;
-    if (newAmPm === "AM" && h24 === 12) h24 = 0;
-    onChange(`${String(h24).padStart(2, "0")}:${safeM.padStart(2, "0")}`);
-  };
-  return (
-    <div className="flex items-center w-full rounded-sm bg-[#F2F3F4] px-3 py-2 border border-transparent focus-within:border-[#AEACAC52] focus-within:ring-1 focus-within:ring-[#AEACAC52] transition-all">
-      <input type="text" maxLength={2} value={h} placeholder="hh" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 12) num = 12; handleTimeChange(val ? String(num) : "", m, ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
-      <span className="text-[#353535] font-bold mx-1">:</span>
-      <input type="text" maxLength={2} value={m} placeholder="mm" onChange={(e) => { const val = e.target.value.replace(/\D/g, ""); let num = parseInt(val, 10); if (num > 59) num = 59; handleTimeChange(h, val ? String(num) : "", ampm); }} className="w-6 bg-transparent text-center text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none" />
-      <select value={ampm} onChange={(e) => handleTimeChange(h, m, e.target.value)} className="ml-auto bg-transparent text-[14px] text-[#353535] focus:outline-none cursor-pointer font-medium">
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
-    </div>
-  );
-}
-*/
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId =
-  | "project"
-  | "module"
-  | "taskName"
-  | "type"
-  | "assignTo"
-  | "type_start_time"
-  | "type_end_time"
-  | null;
-
-interface FormDropdownProps {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
-  dropdownRef: React.RefObject<HTMLDivElement | null>;
-  searchable?: boolean;
-}
-
-function FormDropdown({
-  label,
-  options,
-  value,
-  onChange,
-  isOpen,
-  onToggle,
-  onClose,
-  triggerRef,
-  dropdownRef,
-  searchable = false,
-}: FormDropdownProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const displayLabel = value
-    ? (options.find((o) => o.value === value)?.label ?? value)
-    : label;
-
-  const filteredOptions = searchable
-    ? options.filter(
-      (opt) =>
-        opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        opt.value === "", // always keep placeholder
-    )
-    : options;
-
-  return (
-    <div className="relative w-full">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={`flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-[14px] transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] cursor-pointer ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={label}
-      >
-        <span>{displayLabel}</span>
-        <img
-          src={ArrowDown}
-          alt="arrow"
-          className={`ml-2 h-5 w-5 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
-        >
-          {searchable && (
-            <div className="px-2 pb-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="Search..."
-                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
-              />
-            </div>
-          )}
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {filteredOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                role="option"
-                onClick={() => {
-                  onChange(opt.value);
-                  setSearchQuery("");
-                  onClose();
-                }}
-                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface TaskDropdownProps {
   label: string;
@@ -258,7 +106,7 @@ function TaskDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+        className={`inline-flex items-center justify-between rounded-md bg-[#F2F3F4] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -328,92 +176,7 @@ function TaskDropdown({
   );
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-}
 
-function AttachmentPreviewItem({
-  file,
-  onRemove,
-  onPreviewClick,
-}: {
-  file: File;
-  onRemove: () => void;
-  onPreviewClick?: (file: File) => void;
-}) {
-  const isImage = file.type.startsWith("image/");
-  const [previewUrl] = useState<string | null>(() =>
-    isImage ? URL.createObjectURL(file) : null,
-  );
-  useEffect(() => {
-    return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    };
-  }, [previewUrl]);
-  return (
-    <li className="flex items-center gap-3 rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]">
-      <button
-        type="button"
-        onClick={() => onPreviewClick?.(file)}
-        className="flex items-center gap-3 min-w-0 flex-1 text-left hover:opacity-90 cursor-pointer"
-      >
-        {previewUrl ? (
-          <img
-            src={previewUrl}
-            alt=""
-            className="h-12 w-12 shrink-0 rounded object-cover border border-slate-200 cursor-pointer"
-          />
-        ) : (
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded border border-slate-200 bg-slate-100 text-slate-500 cursor-pointer">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-          </div>
-        )}
-        <div className="min-w-0 flex-1">
-          <span className="truncate block" title={file.name}>
-            {file.name}
-          </span>
-          <span className="text-xs text-[#8B8B8B]">
-            {formatFileSize(file.size)}
-          </span>
-        </div>
-      </button>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
-        aria-label={`Remove ${file.name}`}
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
-    </li>
-  );
-}
 
 interface Task {
   id: number;
@@ -589,7 +352,7 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
@@ -762,7 +525,7 @@ const PERIOD_OPTIONS = [
   "Custom",
 ];
 
-export default function TeamtaskPM() {
+export default function TeamtaskTD() {
   const [searchParams] = useSearchParams();
   const { pathname } = useLocation();
   const isTeam =
@@ -810,42 +573,10 @@ export default function TeamtaskPM() {
   }, [searchParams]);
   const [selectedShow, setSelectedShow] = useState<string | null>("Show");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [modules, setModules] = useState<string[]>([]);
-  const [addTaskForm, setAddTaskForm] = useState({
-    projectName: "",
-    module: "",
-    taskName: "",
-    type: "",
-    actualStartDate: "",
-    actualEndDate: "",
-    startTime: "",
-    dueTime: "",
-    assignTo: "",
-    description: "",
-    checklist: "",
-  });
 
-  const employeesForAssignDropdown = useMemo(() => {
-    const all = Array.isArray(employees) ? employees : [];
-    if (!addTaskForm.projectName) return all;
-    const proj = projects.find(p => p.project_name === addTaskForm.projectName);
-    if (!proj) return all;
-
-    const raw = (proj.members || "").trim();
-    if (!raw) return all;
-    const tokens = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
-
-    return all.filter(isEmployeeActiveForProjectAssignment).filter((emp) => {
-      const name = (emp.full_name || "").trim();
-      const idStr = String(emp.id);
-      return tokens.some((t: string) => t === idStr || t.toLowerCase() === name.toLowerCase());
-    });
-  }, [employees, projects, addTaskForm.projectName]);
   const employeeOptions = useMemo(() => {
     const raw = Array.isArray(employees) ? employees : [];
     if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All" || selectedProject === "Projects") {
@@ -870,10 +601,7 @@ export default function TeamtaskPM() {
     "Select Projects",
     ...projects.map((p) => p.project_name),
   ];
-  const modalProjectOptions = projects.map((p) => ({
-    value: p.project_name,
-    label: p.project_name,
-  }));
+
 
   const merged = [
     ...localTasks,
@@ -985,12 +713,9 @@ export default function TeamtaskPM() {
   }, [deletedIds]);
 
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openEditTask = (task: Task) => {
-    setAddTaskForm(taskToFormValues(task));
-    setEditingTaskId(task.id);
-    setAddTaskModalOpen(true);
+    navigate("/td/teamtasks/add", { state: { task, from: "teamtasks" } });
   };
 
   const openDeleteTask = (task: Task) => {
@@ -1029,43 +754,7 @@ export default function TeamtaskPM() {
     }
   };
 
-  const resetTaskFormAndClose = () => {
-    setAddTaskModalOpen(false);
-    setEditingTaskId(null);
-    setAttachmentFiles([]);
-    setAddTaskForm({
-      projectName: "",
-      module: "",
-      taskName: "",
-      type: "",
-      actualStartDate: "",
-      actualEndDate: "",
-      startTime: "",
-      dueTime: "",
-      assignTo: "",
-      description: "",
-      checklist: "",
-    });
-  };
-  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-  const [openFormDropdown, setOpenFormDropdown] =
-    useState<FormDropdownId>(null);
-  const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
-  const formProjectMenuRef = useRef<HTMLDivElement>(null);
-  const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
-  const formModuleMenuRef = useRef<HTMLDivElement>(null);
-  const formTaskNameTriggerRef = useRef<HTMLButtonElement>(null);
-  const formTaskNameMenuRef = useRef<HTMLDivElement>(null);
-  const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
-  const formTypeMenuRef = useRef<HTMLDivElement>(null);
-  const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
-  const formAssignMenuRef = useRef<HTMLDivElement>(null);
-  const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
-  const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
-  const formEndTimeTriggerRef = useRef<HTMLButtonElement>(null);
-  const formEndTimeMenuRef = useRef<HTMLDivElement>(null);
-  const [attachmentPreviewFile, setAttachmentPreviewFile] =
-    useState<File | null>(null);
+
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
   const employeeTriggerRef = useRef<HTMLButtonElement>(null);
@@ -1087,43 +776,9 @@ export default function TeamtaskPM() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openDropdown]);
 
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.currentTarget;
-    const files = input.files;
-    if (!files?.length) return;
-    const newFiles = Array.from(files);
-    setAttachmentFiles((prev) => [...prev, ...newFiles]);
-    input.value = "";
-  };
 
-  const removeAttachment = (index: number) => {
-    setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-  };
 
-  useEffect(() => {
-    if (openFormDropdown === null) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const refs: React.RefObject<HTMLElement | null>[] =
-        openFormDropdown === "project"
-          ? [formProjectTriggerRef, formProjectMenuRef]
-          : openFormDropdown === "module"
-            ? [formModuleTriggerRef, formModuleMenuRef]
-            : openFormDropdown === "taskName"
-              ? [formTaskNameTriggerRef, formTaskNameMenuRef]
-              : openFormDropdown === "type"
-                ? [formTypeTriggerRef, formTypeMenuRef]
-                : openFormDropdown === "type_start_time"
-                  ? [formStartTimeTriggerRef, formStartTimeMenuRef]
-                  : openFormDropdown === "type_end_time"
-                    ? [formEndTimeTriggerRef, formEndTimeMenuRef]
-                    : [formAssignTriggerRef, formAssignMenuRef];
-      const inside = refs.some((r) => r.current && r.current.contains(target));
-      if (!inside) setOpenFormDropdown(null);
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [openFormDropdown]);
+
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -1153,26 +808,7 @@ export default function TeamtaskPM() {
       .finally(() => setLoading(false));
   }, [isTeam, statusFilter]);
 
-  useEffect(() => {
-    if (!addTaskForm.projectName) {
-      setModules([]);
-      return;
-    }
-    const selectedProj = projects.find(
-      (p) => p.project_name === addTaskForm.projectName,
-    );
-    if (selectedProj) {
-      api
-        .post<{ success: boolean; modules: { label: string }[] }>(
-          "/api/projects/filters/modules",
-          { projectId: selectedProj.id },
-        )
-        .then(({ data }) => {
-          setModules(data.modules.map((m) => m.label));
-        })
-        .catch(() => setModules([]));
-    }
-  }, [addTaskForm.projectName, projects]);
+
 
 
   const tasksByStatus = {
@@ -1531,8 +1167,8 @@ export default function TeamtaskPM() {
                   category: addTaskForm.type,
                   startdate: addTaskForm.actualStartDate,
                   dueDate: addTaskForm.actualEndDate,
-                  perferstart_time: addTaskForm.startTime,
-                  perferend_time: addTaskForm.dueTime,
+                  startTime: addTaskForm.startTime,
+                  dueTime: addTaskForm.dueTime,
                   assignedTo:
                     employees.find((e) => e.full_name === addTaskForm.assignTo)
                       ?.id || addTaskForm.assignTo,
@@ -1552,15 +1188,6 @@ export default function TeamtaskPM() {
                 };
 
                 if (isEditing && existing) {
-                  const today = new Date().toISOString().split("T")[0];
-                  if (payload.startdate < today) {
-                    toast.error("Actual Start Date cannot be in the past.");
-                    return;
-                  }
-                  if (payload.dueDate < payload.startdate) {
-                    toast.error("Actual End Date cannot be before Actual Start Date.");
-                    return;
-                  }
                   api
                     .patch(`/api/tasks/${existing.id}`, {
                       task_name: payload.taskName,
@@ -1571,8 +1198,8 @@ export default function TeamtaskPM() {
                       checklist: payload.checklist,
                       modules_name: payload.modules,
                       Actual_start_time: payload.startdate,
-                      perferstart_time: payload.perferstart_time,
-                      perferend_time: payload.perferend_time,
+                      start_time: payload.startTime,
+                      due_time: payload.dueTime,
                     })
                     .then(() => {
                       handleFiles(existing.id);
@@ -1583,15 +1210,6 @@ export default function TeamtaskPM() {
                         .then((res) => setList(res.data.tasks ?? []));
                     });
                 } else {
-                  const today = new Date().toISOString().split("T")[0];
-                  if (payload.startdate < today) {
-                    toast.error("Actual Start Date cannot be in the past.");
-                    return;
-                  }
-                  if (payload.dueDate < payload.startdate) {
-                    toast.error("Actual End Date cannot be before Actual Start Date.");
-                    return;
-                  }
                   api.post("/api/tasks", payload).then((res) => {
                     if (res.data.success && res.data.task_id) {
                       handleFiles(res.data.task_id);
@@ -1731,7 +1349,6 @@ export default function TeamtaskPM() {
                     <input
                       type="date"
                       value={addTaskForm.actualStartDate}
-                      min={new Date().toISOString().split("T")[0]}
                       onChange={(e) =>
                         setAddTaskForm((f) => ({
                           ...f,
@@ -1749,7 +1366,6 @@ export default function TeamtaskPM() {
                     <input
                       type="date"
                       value={addTaskForm.actualEndDate}
-                      min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
                       onChange={(e) =>
                         setAddTaskForm((f) => ({
                           ...f,

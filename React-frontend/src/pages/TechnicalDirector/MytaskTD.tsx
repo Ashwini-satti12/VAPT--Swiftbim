@@ -138,7 +138,7 @@ export function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-[14px] cursor-pointer"
+        className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -149,7 +149,7 @@ export function FormDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 h-5 w-5 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -274,7 +274,7 @@ export function TaskDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -574,7 +574,7 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
@@ -1367,7 +1367,7 @@ export default function MytaskTD() {
                   />
                 </svg>
               </button>
-              <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+              <h3 className="flex-1 text-center text-[18px] font-semibold text-[#353535]">
                 Delete Task
               </h3>
               <div className="w-9" />
