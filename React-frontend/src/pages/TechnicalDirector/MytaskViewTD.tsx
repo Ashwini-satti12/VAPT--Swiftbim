@@ -32,6 +32,7 @@ interface Task {
   perferstart_time?: string;
   perferend_time?: string;
   end_time?: string;
+  outputfilepath?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -66,6 +67,12 @@ function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
 }
 
 type StatusKey = "todo" | "in_progress" | "completed" | "approved" | "rejected";
+
+const getTaskImageUrl = (filename: string) => {
+  if (!filename) return "";
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "";
+  return `${apiBaseUrl}/uploads/task/${filename}`;
+};
 
 const STATUS_STYLE: Record<
   StatusKey,
@@ -136,8 +143,9 @@ export default function MytaskViewTD() {
       api
         .get(`/api/tasks/${taskId}`)
         .then((res) => {
-          setTask(res.data);
-          setStatusDisplay(normalizeStatus(res.data.status, res.data.Approval));
+          setTask(res.data.tasks?.[0] || res.data);
+          const t = res.data.tasks?.[0] || res.data;
+          setStatusDisplay(normalizeStatus(t.status, t.Approval));
         })
         .catch((err) => {
           console.error("Error fetching task:", err);
@@ -186,8 +194,20 @@ export default function MytaskViewTD() {
     formData.append("image", selectedImage);
 
     try {
-      await api.post(`/api/tasks/${task.id}/output-files`, formData);
+      const res = await api.post(`/api/tasks/${task.id}/output-files`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       toast.success("Work submitted successfully");
+      
+      // Update task state with new file paths
+      const newFiles = res.data.files || [];
+      setTask(prev => {
+        if (!prev) return prev;
+        const existing = prev.outputfilepath ? prev.outputfilepath.split(",").filter(Boolean) : [];
+        const updated = [...existing, ...newFiles].join(",");
+        return { ...prev, outputfilepath: updated };
+      });
+
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
@@ -254,14 +274,14 @@ export default function MytaskViewTD() {
   return (
     <div className="bg-white min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between px-6">
         <Link
           to={backToUrl}
           className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
         >
           <img src={backIcon} alt="Back" className="w-5 h-5" />
         </Link>
-        <h1 className="flex-1 text-center text-2xl font-semibold text-black">
+        <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
           {task.task_name || "Task Name"}
         </h1>
         <div className="w-9" />
@@ -298,7 +318,10 @@ export default function MytaskViewTD() {
                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200 cursor-pointer"
                 role="listbox"
               >
-                {STATUS_OPTIONS.map((opt) => (
+                {STATUS_OPTIONS.filter(
+                  (opt) =>
+                    !(statusDisplay === "completed" && opt.value === "in_progress"),
+                ).map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -324,45 +347,45 @@ export default function MytaskViewTD() {
 
         {/* Two columns: Task details (left) + Submit Work (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-[14px]">
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Project Name</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">{task.project_name || "—"}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                 Modules Name
               </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {String(task.modules_name || task.module || "—")}
               </span>
             </div>
             <div className="flex gap-2 items-center">
-              <span className="text-black shrink-0 w-28">Category</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {String(task.category || task.type || "—")}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned By</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.uploader_full_name ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned To</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned To</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.assigned_full_name ?? task.assign_to ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Start Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.start_date || task.Actual_start_time
                   ? formatDateDDMMYYYY(
@@ -372,32 +395,38 @@ export default function MytaskViewTD() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Due Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Due Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                 Preferred Time
               </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.perferstart_time ||
-                task.perferend_time ||
-                task.start_time ||
-                task.due_time ||
-                task.end_time
-                  ? `${formatTimeAMPM(task.perferstart_time || task.start_time)} - ${formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)}`
-                  : "hh:mm AM/PM - hh:mm AM/PM"}
+                {task.perferstart_time || task.start_time
+                  ? formatTimeAMPM(task.perferstart_time || task.start_time)
+                  : "-NIL-"}
               </span>
             </div>
+            <div className="flex gap-2 text-sm">
+              <span className="text-black shrink-0 w-28">End Time</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">
+                {task.perferend_time || task.due_time || task.end_time
+                  ? formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)
+                  : "-NIL-"}
+              </span>
+            </div>
+            
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-            <h4 className="text-black text-md mb-1">Submit Work</h4>
-            <p className="text-xs text-[#8B8B8B] mb-4">
+            <h4 className="text-[#020202] text-[18px]  mb-1">Submit Work</h4>
+            <p className="text-[14px] text-[#8B8B8B] mb-4">
               Choose your finished work or error screenshots to update the team
               on your progress.
             </p>
@@ -439,7 +468,7 @@ export default function MytaskViewTD() {
                 type="button"
                 disabled={submittingWork}
                 onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] text-black hover:bg-[#D5E6FF] whitespace-nowrap disabled:opacity-50 cursor-pointer"
               >
                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                 <span className="mr-2">Select Image</span>
@@ -448,7 +477,7 @@ export default function MytaskViewTD() {
                 type="button"
                 disabled={!selectedImage || submittingWork}
                 onClick={handleImageSubmit}
-                className="inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap disabled:opacity-50 cursor-pointer"
               >
                 <FiCheck className="w-4 h-4 text-[#008F22]" />
                 {submittingWork ? "Submitting..." : "Submit Image"}
@@ -456,6 +485,35 @@ export default function MytaskViewTD() {
             </div>
           </div>
         </div>
+
+        {/* Uploaded Work Display */}
+        {task.outputfilepath && task.outputfilepath.split(",").filter(Boolean).length > 0 && (
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-4 font-semibold">Uploaded Work</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {task.outputfilepath.split(",").filter(Boolean).map((filename, idx) => (
+                <div key={idx} className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                  <a 
+                    href={getTaskImageUrl(filename)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full h-full"
+                  >
+                    <img 
+                      src={getTaskImageUrl(filename)} 
+                      alt={`Uploaded work ${idx + 1}`} 
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                         (e.target as HTMLImageElement).src = ImageIcon;
+                         (e.target as HTMLImageElement).className = "w-10 h-10 m-auto mt-4 opacity-20";
+                      }}
+                    />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Task Description */}
         <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">

@@ -148,6 +148,16 @@ export default function AddTaskBC() {
             }
         }
 
+        const today = new Date().toISOString().split("T")[0];
+        if (addTaskForm.actualStartDate < today && !editingTaskId) {
+            setAddError("Actual Start Date cannot be in the past.");
+            return;
+        }
+        if (addTaskForm.actualEndDate < addTaskForm.actualStartDate) {
+            setAddError("Actual End Date cannot be before Actual Start Date.");
+            return;
+        }
+
         setAddSubmitting(true);
         const payload = {
             projectid: projects.find((p) => p.project_name === addTaskForm.projectName)?.id || addTaskForm.projectName,
@@ -155,8 +165,8 @@ export default function AddTaskBC() {
             category: addTaskForm.type,
             startdate: addTaskForm.actualStartDate,
             dueDate: addTaskForm.actualEndDate,
-            startTime: addTaskForm.startTime,
-            dueTime: addTaskForm.dueTime,
+            perferstart_time: addTaskForm.startTime,
+            perferend_time: addTaskForm.dueTime,
             assignedTo: employees.find((e) => e.full_name === addTaskForm.assignTo)?.id || addTaskForm.assignTo,
             description: addTaskForm.description,
             checklist: addTaskForm.checklist,
@@ -184,8 +194,8 @@ export default function AddTaskBC() {
                     checklist: payload.checklist,
                     modules_name: payload.modules,
                     Actual_start_time: payload.startdate,
-                    start_time: payload.startTime,
-                    due_time: payload.dueTime,
+                    perferstart_time: payload.perferstart_time,
+                    perferend_time: payload.perferend_time,
                 })
                 .then(() => {
                     handleFiles(editingTaskId);
@@ -202,10 +212,10 @@ export default function AddTaskBC() {
                     navigate(location.state?.from === "teamtasks" ? "/bc/teamtasks" : "/bc/mytasks");
                 }
             })
-            .catch((err) => {
-                setAddError(err.response?.data?.message || "Failed to create task.");
-            })
-            .finally(() => setAddSubmitting(false));
+                .catch((err) => {
+                    setAddError(err.response?.data?.message || "Failed to create task.");
+                })
+                .finally(() => setAddSubmitting(false));
         }
     };
 
@@ -242,9 +252,9 @@ export default function AddTaskBC() {
                 if (name) involvedNames.add(name);
             });
         }
-        
+
         const validEmployees = employees.filter(e => e.full_name && involvedNames.has(e.full_name) && isEmployeeActiveForProjectAssignment(e));
-        
+
         return [
             { value: "", label: "Select Assign To" },
             ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => ({ value: e.full_name, label: e.full_name })),
@@ -307,11 +317,11 @@ export default function AddTaskBC() {
                                     { value: "", label: "Select Module" },
                                     ...(projects.find((p) => p.project_name === addTaskForm.projectName)?.modules
                                         ? (projects
-                                              .find((p) => p.project_name === addTaskForm.projectName)!
-                                              .modules!.split(",")
-                                              .map((m) => m.trim())
-                                              .filter(Boolean)
-                                              .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
+                                            .find((p) => p.project_name === addTaskForm.projectName)!
+                                            .modules!.split(",")
+                                            .map((m) => m.trim())
+                                            .filter(Boolean)
+                                            .map((m) => ({ value: m, label: m })) as { value: string; label: string }[])
                                         : []),
                                 ]}
                                 value={addTaskForm.module}
@@ -384,6 +394,7 @@ export default function AddTaskBC() {
                                 <input
                                     type="date"
                                     value={addTaskForm.actualStartDate}
+                                    min={new Date().toISOString().split("T")[0]}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualStartDate: e.target.value }))}
                                     placeholder="dd/mm/yyyy"
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
@@ -394,6 +405,7 @@ export default function AddTaskBC() {
                                 <input
                                     type="date"
                                     value={addTaskForm.actualEndDate}
+                                    min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, actualEndDate: e.target.value }))}
                                     placeholder="dd/mm/yyyy"
                                     className="w-full px-4 py-2 text-[14px] text-[#353535] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
