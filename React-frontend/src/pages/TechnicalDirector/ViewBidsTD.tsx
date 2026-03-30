@@ -351,10 +351,10 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         <div className="flex items-center">
           <button
             onClick={onBack}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+            className="p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer flex items-center justify-center"
             title="Back to Bidding"
           >
-            <img src={backIcon} alt="Back" className="w-6 h-6 object-contain" />
+            <img src={backIcon} alt="Back" className="w-5 h-5 object-contain" />
           </button>
         </div>
 
@@ -538,7 +538,7 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
         </div>
 
         {/* ── Vendor Bids Table ── */}
-        <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-[400px] relative">
+        <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-[400px] relative">
           {/* Table header bar */}
           {/* <div className="px-4 py-4 border-b border-gray-100 flex items-center justify-between bg-white flex-shrink-0">
                         <h3 className="text-base font-bold text-[#353535] font-gantari">
@@ -575,38 +575,38 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto custom-scrollbar smooth-scroll flex-shrink-0">
+            <div className="overflow-x-auto custom-scrollbar smooth-scroll flex-1">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                   <tr className=" bg-white">
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Sl.No
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Vendor Name
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Contact Email
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Bid Amount
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Timeline
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Team Size
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Bid Date
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Rank
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       View Vendor
                     </th>
-                    <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Action
                     </th>
                   </tr>
@@ -640,44 +640,44 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                           className={`${isRejected ? "opacity-60" : ""} ${index % 2 === 1 ? "bg-[#F2F2F2]" : "bg-white"}`}
                         >
                           {/* Sl.No */}
-                          <td className="px-3 py-6 text-center text-sm text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {slNo}
                           </td>
 
                           {/* Vendor Name */}
-                          <td className="px-3 py-6 text-center text-sm font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] font-semibold text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {bid.vendor_name}
                           </td>
 
                           {/* Email */}
-                          <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {bid.vendor_email || "—"}
                           </td>
 
                           {/* Bid Amount */}
-                          <td className="px-3 py-6 text-center text-sm font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] font-bold text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {formatCurrency(bid.bid_amount)}
                           </td>
 
                           {/* Timeline */}
-                          <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {bid.timeline || "—"}
                           </td>
 
                           {/* Team Size */}
-                          <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {bid.team_size > 0 ? bid.team_size : "—"}
                           </td>
 
                           {/* Bid Date */}
-                          <td className="px-3 py-6 text-center text-sm text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {formatDate(bid.created_at)}
                           </td>
 
                           {/* Rank */}
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                             <span
-                              className={`inline-flex px-3 py-1.5 rounded-lg text-xs font-bold font-gantari ${getRankBg(bid.rank, bid.status)}`}
+                              className={`inline-flex px-3 py-2 rounded-md text-[14px] font-bold font-gantari ${getRankBg(bid.rank, bid.status)}`}
                             >
                               {isRejected ? "Rejected" : rankLabel(bid.rank)}
                             </span>
@@ -688,11 +688,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                             <button
                               onClick={() => handleViewVendor(bid)}
                               disabled={viewBusy}
-                              className="flex items-center justify-center gap-1.5 mx-auto px-4 py-3 rounded-md text-xs font-bold bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
+                              className="flex items-center justify-center gap-1.5 mx-auto px-4 py-2 rounded-md text-[14px] font-bold bg-[#DD4342] text-white shadow-sm shadow-red-100 transition-all font-gantari disabled:opacity-60 cursor-pointer"
                               title="View vendor profile"
                             >
                               {viewBusy ? (
-                                <span className="animate-spin w-3.5 h-3.5 border-b-2 border-white rounded-full inline-block" />
+                                <span className="animate-spin w-2 h-2 border-b-2 border-white rounded-full inline-block" />
                               ) : (
                                 <img
                                   src={viewIcon}
@@ -707,11 +707,11 @@ export default function ViewBidsTD({ project, onBack }: ViewBidsTDProps) {
                           {/* Action */}
                           <td className="px-3 py-6 text-center whitespace-nowrap align-middle">
                             {bid.status === "shortlisted" ? (
-                              <span className="inline-flex px-4 py-1.5 rounded-lg text-[10px] font-bold font-gantari bg-[#E6F4EA] text-[#1E7E34]">
+                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-bold font-gantari bg-[#E6F4EA] text-[#1E7E34]">
                                 Accepted
                               </span>
                             ) : bid.status === "lost" ? (
-                              <span className="inline-flex px-4 py-1.5 rounded-lg text-[10px] font-bold font-gantari bg-[#FCE8E8] text-[#D93025]">
+                              <span className="inline-flex px-4 py-2 rounded-md text-[14px] font-bold font-gantari bg-[#FCE8E8] text-[#D93025]">
                                 Rejected
                               </span>
                             ) : (

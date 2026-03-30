@@ -1256,7 +1256,7 @@ export default function ProjectsPM() {
               className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
               title="Close"
             >
-              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+             <img src={backIcon} alt="Close" className="w-5 h-5" />
             </button>
             <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">Add New Project</h3>
           </div>

@@ -20,7 +20,11 @@ import editIcon from '../../assets/ProjectManager/consultant/editIcon.svg';
 import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+import projectViewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
+import projectEditIcon from '../../assets/ProjectManager/project/editIcon.svg';
+import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
+
+const SHOW_OPTIONS = ["1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 interface Employee {
   id: number;
   full_name: string;
@@ -128,8 +132,8 @@ const PANEL_ACCESS_OPTIONS = [
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -139,7 +143,7 @@ const SCROLLBAR_STYLE = `
     border-radius: 10px;
   }
   .custom-scrollbar {
-    scrollbar-width: auto;
+    scrollbar-width: thin;
     scrollbar-color: #979797 transparent;
   }
 `;
@@ -172,23 +176,26 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Determine if we should show placeholder color or prefix
+  const isPlaceholder = !value || value === placeholder;
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
-          ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+        className={`w-full flex items-center justify-between gap-4 transition-all outline-none font-gantari ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={` ${styleType === "header" || styleType === "form"
-            ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+        <span className={`whitespace-nowrap truncate overflow-hidden ${styleType === "header" || styleType === "form"
+            ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
             : ""
           }`}>
-          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+          {styleType === "header" && value && !isPlaceholder ? (
             <>
               <span className="text-[14px]">{placeholder}:</span>{" "}
               <span className="font-semibold">{toCamelCase(value)}</span>
@@ -200,11 +207,11 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : ""}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
         />
       </button>
       {isOpen && (
-        <div className={`absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
+        <div className={`absolute top-full left-0 w-full mt-1 bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
           {styleType === "table" ? (
             <div className="flex flex-col py-2">
               {options.map((option) => (
@@ -215,7 +222,7 @@ function CustomDropdown({
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-6 py-3 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                  className={`w-full text-left px-6 py-2 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 >
                   {option}
                 </button>
@@ -223,10 +230,21 @@ function CustomDropdown({
             </div>
           ) : (
             <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-              {styleType === "header" && (
-                <div className="px-4 py-2 text-[14px] font-bold text-[#8B8B8B] bg-[#F9F9F9] border-b border-[#F0F0F0]">
+              {(styleType === "header" || styleType === "form") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (placeholder === "Show") {
+                      setIsOpen(false);
+                    } else {
+                      onChange("All");
+                      setIsOpen(false);
+                    }
+                  }}
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-[#FFFFFF]'}`}
+                >
                   {placeholder}
-                </div>
+                </button>
               )}
               {options.map((option) => (
                 <button
@@ -236,7 +254,7 @@ function CustomDropdown({
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+                  className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent'}`}
                 >
                   {option}
                 </button>
@@ -614,6 +632,41 @@ export default function ConsultantTD() {
     }
   }
 
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this consultant?")) {
+      try {
+        await api.delete(`/api/employees/${id}`);
+        setList((prev) => prev.filter((e) => e.id !== id));
+      } catch (err) {
+        console.error("Delete failed:", err);
+      }
+    }
+  };
+
+  const openEditModel = (emp: Employee) => {
+    setEditId(emp.id);
+    setActiveView("edit");
+    const currentPicUrl = emp.profile_picture ? getProfileUrl(emp.profile_picture) : null;
+    setCurrentProfilePicture(currentPicUrl);
+    setEditForm({
+      full_name: emp.full_name,
+      email: emp.email,
+      phone_number: emp.phone_number || "",
+      user_role: emp.user_role || "Consultant",
+      department: emp.department || "",
+      address: emp.address || "",
+      dob: emp.dob || "",
+      password: "",
+      user_type: emp.user_type || "",
+      doj: emp.doj || "",
+      salary: emp.salary || "",
+      accountnumber: emp.accountnumber || "",
+      profile_picture: null,
+      roles: emp.Allpannel ? emp.Allpannel.split(",").map((r: string) => r.trim()) : [],
+      active: emp.active === "active" ? "Active" : "Deactivate",
+    });
+  };
+
   function handleStatusToggle(id: number, newStatus: string) {
     // Backend expects 'active' or 'inactive', but frontend uses 'deactive' for display
     // Map: 'Active' -> 'active', 'Deactivate' -> 'inactive'
@@ -734,25 +787,21 @@ export default function ConsultantTD() {
                     value={selectedShow}
                     onChange={(val) => setSelectedShow(val)}
                     placeholder="Show"
-                    className="flex-1 sm:min-w-[120px]"
+                    className="flex-1 sm:min-w-[150px]"
                     styleType="header"
                   />
                 )}
                 <CustomDropdown
                   options={['All', 'Employee', 'Trainee']}
-                  value={typeFilter === 'All' ? 'Type' : typeFilter}
+                  value={typeFilter}
                   onChange={(val) => setTypeFilter(val)}
                   placeholder="Type"
-                  className="flex-1 sm:min-w-[120px]"
+                  className="flex-1 sm:min-w-[150px]"
                   styleType="header"
                 />
                 <CustomDropdown
                   options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
-                  value={
-                    statusFilter === 'All'
-                      ? 'Status'
-                      : statusFilter
-                  }
+                  value={statusFilter}
                   onChange={(val) => {
                     let nextStatus = val;
                     if (viewMode === 'card') {
@@ -761,7 +810,7 @@ export default function ConsultantTD() {
                     setStatusFilter(nextStatus);
                   }}
                   placeholder="Status"
-                  className="flex-1 sm:min-w-[120px] "
+                  className="flex-1 sm:min-w-[150px] "
                   styleType="header"
                 />
               </div>
@@ -794,7 +843,7 @@ export default function ConsultantTD() {
                         <div className="absolute top-3 right-3 z-10">
                           <div className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${emp.active === 'active' ? 'bg-[#E0FFE8] border-emerald-100' : 'bg-[#FFEEEE] border-red-100'}`}>
                             <span className={`w-2 h-2 rounded-full ${emp.active === 'active' ? 'bg-[#166534]' : 'bg-[#E00100]'}`}></span>
-                            <span className={`text-[11px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
+                            <span className={`text-[14px] font-semibold ${emp.active === 'active' ? 'text-[#008F22]' : 'text-[#E00100]'}`}>
                               {emp.active === 'active' ? 'Active' : 'Deactivate'}
                             </span>
                           </div>
@@ -875,30 +924,7 @@ export default function ConsultantTD() {
                           {canAdd && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setEditId(emp.id);
-                                setActiveView('edit');
-                                // Store current profile picture URL for display
-                                const currentPicUrl = emp.profile_picture ? getProfileUrl(emp.profile_picture) : null;
-                                setCurrentProfilePicture(currentPicUrl);
-                                setEditForm({
-                                  full_name: emp.full_name,
-                                  email: emp.email,
-                                  phone_number: emp.phone_number || '',
-                                  user_role: emp.user_role || 'Consultant',
-                                  department: emp.department || '',
-                                  address: emp.address || '',
-                                  dob: emp.dob || '',
-                                  password: '',
-                                  user_type: emp.user_type || '',
-                                  doj: emp.doj || '',
-                                  salary: emp.salary || '',
-                                  accountnumber: emp.accountnumber || '',
-                                  profile_picture: null,
-                                  roles: emp.Allpannel ? emp.Allpannel.split(',').map((r: string) => r.trim()) : [],
-                                  active: emp.active === 'active' ? 'Active' : 'Deactivate',
-                                });
-                              }}
+                              onClick={() => openEditModel(emp)}
                               className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                             >
                               <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
@@ -923,6 +949,7 @@ export default function ConsultantTD() {
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Email ID</th>
                           <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Contact Info</th>
                           <th className="px-3 py-4 text-center text-base font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
+                          <th className="px-3 py-4 text-center text-base font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
@@ -1012,6 +1039,27 @@ export default function ConsultantTD() {
                                       className="w-[140px]"
                                       styleType="table"
                                     />
+                                  </div>
+                                </td>
+                                <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                  <div className="flex items-center justify-center gap-3">
+                                    <button
+                                      onClick={() => navigate(`/td/consultants/${emp.id}`)}
+                                      className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-white text-[14px] font-semibold rounded-md transition-all cursor-pointer"
+                                    >
+                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="View" /> View
+                                    </button>
+                                    {canAdd && (
+                                      <>
+                                        <button
+                                          onClick={() => openEditModel(emp)}
+                                          className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-white text-[14px] font-semibold rounded-md transition-all cursor-pointer"
+                                        >
+                                          <img src={projectEditIcon} className="w-4 h-4 brightness-0 invert" alt="Edit" /> Edit
+                                        </button>
+                                        
+                                      </>
+                                    )}
                                   </div>
                                 </td>
                               </tr>
