@@ -126,23 +126,23 @@ const PANEL_ACCESS_OPTIONS = [
   'All',
 ];
 
-const SCROLLBAR_STYLE = `
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #979797;
-    border-radius: 10px;
-  }
-  .custom-scrollbar {
-    scrollbar-width: auto;
-    scrollbar-color: #979797 transparent;
-  }
-`;
+// const SCROLLBAR_STYLE = `
+//   .custom-scrollbar::-webkit-scrollbar {
+//     width: 10px;
+//     height: 10px;
+//   }
+//   .custom-scrollbar::-webkit-scrollbar-track {
+//     background: transparent;
+//   }
+//   .custom-scrollbar::-webkit-scrollbar-thumb {
+//     background: #979797;
+//     border-radius: 10px;
+//   }
+//   .custom-scrollbar {
+//     scrollbar-width: auto;
+//     scrollbar-color: #979797 transparent;
+//   }
+// `;
 
 function CustomDropdown({
   options,
@@ -172,23 +172,26 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Determine if we should show placeholder color
+  const isPlaceholder = !value || value === placeholder || value === "All" || value === "Show" || value === "Type" || value === "Status";
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari ${styleType === "header"
-          ? "px-3 py-1.5 bg-[#E8E8E8] rounded-[10px] text-[#353535] text-[14px] font-semibold"
+        className={`w-full flex items-center justify-between transition-all outline-none font-gantari ${styleType === "header"
+          ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2 min-w-[140px] rounded-md border font-Gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            : `px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={` ${styleType === "header" || styleType === "form"
-            ? (value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Type" && value !== "Status" ? "text-[#353535]" : "text-[#8B8B8B]")
+        <span className={`whitespace-nowrap ${styleType === "header" || styleType === "form"
+            ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
             : ""
           }`}>
-          {styleType === "header" && value && value !== placeholder && value !== "All" && value !== "Show" && value !== "Status" && value !== "Type" ? (
+          {styleType === "header" && value && !isPlaceholder ? (
             <>
               <span className="text-[14px]">{placeholder}:</span>{" "}
               <span className="font-semibold">{toCamelCase(value)}</span>
@@ -200,11 +203,11 @@ function CustomDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : ""}`}
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180' : ''} ${styleType === "table" ? "opacity-70" : (isPlaceholder ? "opacity-60 grayscale" : "opacity-90")}`}
         />
       </button>
       {isOpen && (
-        <div className={`absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
+        <div className={`absolute top-full left-0 w-full mt-1 bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
           {styleType === "table" ? (
             <div className="flex flex-col py-2">
               {options.map((option) => (
@@ -215,7 +218,7 @@ function CustomDropdown({
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-6 py-3 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                  className={`w-full text-left px-6 py-2 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 >
                   {option}
                 </button>
@@ -223,11 +226,11 @@ function CustomDropdown({
             </div>
           ) : (
             <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-              {styleType === "header" && (
-                <div className="px-4 py-2 text-[14px] font-bold text-[#8B8B8B] bg-[#F9F9F9] border-b border-[#F0F0F0]">
+              {/* {styleType === "header" && (
+                <div className="px-4 py-2 text-[14px] font-semibold text-[#8B8B8B] hover:text-[#353535] transition-colors bg-[#FFFFFF] border-b border-[#F0F0F0]">
                   {placeholder}
                 </div>
-              )}
+              )} */}
               {options.map((option) => (
                 <button
                   key={option}
@@ -236,7 +239,7 @@ function CustomDropdown({
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
+                  className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? 'text-[#8B8B8B]' : 'text-[#8B8B8B]'}`}
                 >
                   {option}
                 </button>
