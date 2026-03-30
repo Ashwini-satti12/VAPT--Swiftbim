@@ -651,7 +651,7 @@ export default function ProjectsTD() {
         {showProjectView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-6 border-b border-slate-50 mt-[-20px]">
               <button
                 type="button"
                 onClick={() => {
@@ -659,7 +659,7 @@ export default function ProjectsTD() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
                 title="Close"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
@@ -669,8 +669,8 @@ export default function ProjectsTD() {
                   {selectedProjectForView?.project_name ?? "Loading..."}
                 </h3>
                 <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
+                  <p className="text-[14px] md:text-[14px] font-gantari font-semibold text-[#353535]">
                     Overall Progress Tracker
                   </p>
                 </div>
@@ -686,9 +686,10 @@ export default function ProjectsTD() {
               </div>
             ) : (
               /* Project View Content */
-              <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
-                {/* Task Status Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Fixed KPI Cards at top */}
+                <div className="px-4 md:px-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
                   {/* To Do Tasks */}
                   <button
                     type="button"
@@ -700,14 +701,14 @@ export default function ProjectsTD() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-left mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
                         To Do Tasks
                       </p>
                     </div>
-                    <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.todo}
                     </p>
                   </button>
@@ -723,14 +724,14 @@ export default function ProjectsTD() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
                         In Progress Tasks
                       </p>
                     </div>
-                    <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.inProgress}
                     </p>
                   </button>
@@ -746,14 +747,14 @@ export default function ProjectsTD() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
                         Paused Tasks
                       </p>
                     </div>
-                    <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.paused}
                     </p>
                   </button>
@@ -769,22 +770,25 @@ export default function ProjectsTD() {
                             : ""),
                       )
                     }
-                    className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                    className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">
+                      <p className="text-[#353535] group-hover:text-white text-[18px] font-gantari font-semibold">
                         Completed Tasks
                       </p>
                     </div>
-                    <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                    <p className="text-[#353535] group-hover:text-white text-[20px] font-gantari font-bold leading-none mt-auto self-center lg:self-center">
                       {loadingTaskStats ? "..." : taskStats.completed}
                     </p>
                   </button>
+                  </div>
                 </div>
 
-                <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8 lg:p-4">
-                  <div className="max-h-[290px] overflow-y-auto custom-scrollbar pr-2">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                {/* Scrollable Content Below KPI Cards */}
+                <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-2 pb-10 pt-4">
+                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-2">
+                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4">
                       {loadingTaskStats ? (
                         <div className="col-span-full text-center py-8 text-gray-500">
                           Loading tower data...
@@ -807,21 +811,21 @@ export default function ProjectsTD() {
                           return (
                             <div
                               key={tower.id}
-                              className="bg-white border border-slate-200 rounded-[12px] p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[180px]"
+                              className="bg-white border border-slate-200 rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
                             >
                               <div className="flex justify-between items-start">
                                 <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
                                   {tower.name}
                                 </h5>
                                 <div
-                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full shrink-0 ${statusBg}`}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}
                                 >
                                   <span
                                     className="w-1.5 h-1.5 rounded-full"
                                     style={{ backgroundColor: statusColor }}
                                   ></span>
                                   <span
-                                    className="text-[12px] font-bold font-Gantari"
+                                    className="text-[12px] font-bold font-gantari"
                                     style={{ color: statusColor }}
                                   >
                                     {tower.status}
@@ -829,27 +833,27 @@ export default function ProjectsTD() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-between mt-4">
-                                <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
-                                  <svg className="w-full h-full transform -rotate-90">
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 64 64">
                                     <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="32"
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
                                       stroke="#F2F3F5"
-                                      strokeWidth="6"
+                                      strokeWidth="5"
                                       fill="transparent"
                                     />
                                     <circle
-                                      cx="40"
-                                      cy="40"
-                                      r="32"
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
                                       stroke={statusColor}
-                                      strokeWidth="6"
+                                      strokeWidth="5"
                                       fill="transparent"
-                                      strokeDasharray={201}
+                                      strokeDasharray={163.36}
                                       strokeDashoffset={
-                                        201 - (tower.progress / 100) * 201
+                                        163.36 - (tower.progress / 100) * 163.36
                                       }
                                       strokeLinecap="round"
                                       style={{
@@ -858,20 +862,20 @@ export default function ProjectsTD() {
                                       }}
                                     />
                                   </svg>
-                                  <span className="absolute text-[15px] font-bold text-[#1A1A1A] font-Gantari">
+                                  <span className="absolute text-[13px] font-bold text-[#8B8B8B] font-Gantari">
                                     {tower.progress}%
                                   </span>
                                 </div>
 
                                 <div className="flex flex-col items-end">
-                                  <p className="text-[14px] font-medium text-[#999999] font-Gantari mb-1">
+                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
                                     Tasks Done
                                   </p>
                                   <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                    <p className="text-[20px] font-bold text-[#1A1A1A] font-Gantari">
+                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
                                       {tower.completedTasks}
                                     </p>
-                                    <p className="text-[16px] font-bold text-[#999999] font-Gantari">
+                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
                                       /{tower.totalTasks}
                                     </p>
                                   </div>
@@ -891,19 +895,19 @@ export default function ProjectsTD() {
 
                 <div className="space-y-4">
                   {/* Project Description */}
-                  <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8 lg:p-4">
-                    <h4 className="text-xl font-Gantari font-semibold text-[#000000]">
+                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 md:p-8 lg:p-4">
+                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
                       Project Description
                     </h4>
-                    <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                    <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
                       {selectedProjectForView.description ??
                         "No description available"}
                     </p>
                   </div>
 
                   {/* Team Overview Section */}
-                  <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-                    <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                  <div className="border border-slate-200 rounded-md md:rounded-md p-6 lg:p-4">
+                    <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
                       Team Overview
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
@@ -928,7 +932,7 @@ export default function ProjectsTD() {
                         if (pmIds.length === 0 && pmNames.length === 0) {
                           return (
                             <div className="min-w-0">
-                              <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                              <p className="text-[14px] font-Gantari font-semibold text-[#000000] mb-2">
                                 Project Manager
                               </p>
                               <div className="flex items-center -space-x-3">
@@ -936,7 +940,7 @@ export default function ProjectsTD() {
                                   className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0"
                                   title="Not assigned"
                                 >
-                                  <span className="text-slate-600 text-xs font-bold">
+                                  <span className="text-slate-600 text-[14px] font-bold">
                                     PM
                                   </span>
                                 </div>
@@ -1327,30 +1331,30 @@ export default function ProjectsTD() {
 
                   {/* Project Details Section */}
                   <div className="rounded-lg border border-slate-200 p-6 md:p-4">
-                    <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                    <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
                       Project Details
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                       <div className="space-y-4 md:space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Client Name
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                             {selectedProjectForView.client_name || "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Actual Start Date
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.start_date
                               ? new Date(
                                   selectedProjectForView.start_date,
@@ -1363,60 +1367,60 @@ export default function ProjectsTD() {
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Total Project Hours
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.total_hours
                               ? `${selectedProjectForView.total_hours}hrs`
                               : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Budget
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.budget
                               ? `${selectedProjectForView.budget}$`
                               : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Total Resources Available
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.resources || "N/A"}
                           </span>
                         </div>
                       </div>
                       <div className="space-y-4 md:space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Location
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.location || "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Actual End Date
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
                           <span className="text-md font-Gantari font-medium text-[#666666]">
@@ -1432,43 +1436,44 @@ export default function ProjectsTD() {
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Hours/Day
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.per_day
                               ? `${selectedProjectForView.per_day}hrs`
                               : "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Required Resources
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
-                          <span className="text-md font-Gantari font-medium text-[#666666]">
+                          <span className="text-[16px] font-gantari font-medium text-[#616161]">
                             {selectedProjectForView.required_resources || "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Project Document
                           </span>
-                          <span className="hidden sm:inline text-[#999999] mr-4">
+                          <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
                           <div className="flex items-center gap-3">
-                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
                               No Document Available
                             </span>
                           </div>
                         </div>
                       </div>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -1492,7 +1497,7 @@ export default function ProjectsTD() {
                   Payment Milestones
                 </h3>
                 <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
-                  {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1
+                  {currentProject?.project_name ?? "Prestige Park Grove"}_Tower 1
                   to 09
                 </p>
               </div>
