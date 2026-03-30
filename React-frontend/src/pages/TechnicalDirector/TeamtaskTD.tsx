@@ -17,6 +17,7 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import { toast } from "react-hot-toast";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
@@ -503,9 +504,9 @@ function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
     assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
     description: str(t.description ?? ""),
     checklist: str(t.checklist ?? ""),
@@ -1524,8 +1525,8 @@ export default function TeamtaskPM() {
                   category: addTaskForm.type,
                   startdate: addTaskForm.actualStartDate,
                   dueDate: addTaskForm.actualEndDate,
-                  startTime: addTaskForm.startTime,
-                  dueTime: addTaskForm.dueTime,
+                  perferstart_time: addTaskForm.startTime,
+                  perferend_time: addTaskForm.dueTime,
                   assignedTo:
                     employees.find((e) => e.full_name === addTaskForm.assignTo)
                       ?.id || addTaskForm.assignTo,
@@ -1545,6 +1546,15 @@ export default function TeamtaskPM() {
                 };
 
                 if (isEditing && existing) {
+                  const today = new Date().toISOString().split("T")[0];
+                  if (payload.startdate < today) {
+                    toast.error("Actual Start Date cannot be in the past.");
+                    return;
+                  }
+                  if (payload.dueDate < payload.startdate) {
+                    toast.error("Actual End Date cannot be before Actual Start Date.");
+                    return;
+                  }
                   api
                     .patch(`/api/tasks/${existing.id}`, {
                       task_name: payload.taskName,
@@ -1555,8 +1565,8 @@ export default function TeamtaskPM() {
                       checklist: payload.checklist,
                       modules_name: payload.modules,
                       Actual_start_time: payload.startdate,
-                      start_time: payload.startTime,
-                      due_time: payload.dueTime,
+                      perferstart_time: payload.perferstart_time,
+                      perferend_time: payload.perferend_time,
                     })
                     .then(() => {
                       handleFiles(existing.id);
@@ -1567,6 +1577,15 @@ export default function TeamtaskPM() {
                         .then((res) => setList(res.data.tasks ?? []));
                     });
                 } else {
+                  const today = new Date().toISOString().split("T")[0];
+                  if (payload.startdate < today) {
+                    toast.error("Actual Start Date cannot be in the past.");
+                    return;
+                  }
+                  if (payload.dueDate < payload.startdate) {
+                    toast.error("Actual End Date cannot be before Actual Start Date.");
+                    return;
+                  }
                   api.post("/api/tasks", payload).then((res) => {
                     if (res.data.success && res.data.task_id) {
                       handleFiles(res.data.task_id);
@@ -1706,6 +1725,7 @@ export default function TeamtaskPM() {
                     <input
                       type="date"
                       value={addTaskForm.actualStartDate}
+                      min={new Date().toISOString().split("T")[0]}
                       onChange={(e) =>
                         setAddTaskForm((f) => ({
                           ...f,
@@ -1723,6 +1743,7 @@ export default function TeamtaskPM() {
                     <input
                       type="date"
                       value={addTaskForm.actualEndDate}
+                      min={addTaskForm.actualStartDate || new Date().toISOString().split("T")[0]}
                       onChange={(e) =>
                         setAddTaskForm((f) => ({
                           ...f,
