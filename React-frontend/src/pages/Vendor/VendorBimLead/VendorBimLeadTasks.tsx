@@ -10,7 +10,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
-import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+
 
 interface Task {
     id: number;
@@ -34,7 +34,7 @@ interface Project {
 interface Employee {
     id: number;
     full_name: string;
-  active?: string;
+    active?: string;
 }
 
 export default function VendorBimLeadTasks() {
@@ -48,7 +48,7 @@ export default function VendorBimLeadTasks() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
         task_name: "", description: "", status: "To Do", priority: "Medium",
-        due_date: "", project_id: "", assigned_to: "", category: "General",
+        due_date: "", project_id: "", assigned_to: "", category: "",
         actual_start_date: "", actual_end_date: "", checklist: "",
         start_time: "", end_time: ""
     });
@@ -86,7 +86,7 @@ export default function VendorBimLeadTasks() {
                 setAttachmentFiles([]);
                 setCreateForm({
                     task_name: "", description: "", status: "To Do", priority: "Medium",
-                    due_date: "", project_id: "", assigned_to: "", category: "General",
+                    due_date: "", project_id: "", assigned_to: "", category: "",
                     actual_start_date: "", actual_end_date: "", checklist: "",
                     start_time: "", end_time: ""
                 });
@@ -127,7 +127,7 @@ export default function VendorBimLeadTasks() {
     };
 
     const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
-    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
+    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
         Medium: "text-orange-600 bg-orange-50 border-orange-100",
@@ -293,7 +293,10 @@ export default function VendorBimLeadTasks() {
                                                         Edit
                                                     </button>
                                                     <button
-                                                        onClick={() => setOpenMenuTaskId(null)}
+                                                        onClick={() => {
+                                                            setOpenMenuTaskId(null);
+                                                            handleDelete(task.id);
+                                                        }}
                                                         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[#616161] hover:text-[#DD4342] cursor-pointer"
                                                     >
                                                         <img src={deleteIcon} alt="delete" className="w-4 h-4" />

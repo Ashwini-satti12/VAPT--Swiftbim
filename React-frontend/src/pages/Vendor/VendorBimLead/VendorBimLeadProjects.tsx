@@ -6,7 +6,7 @@ import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
-import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+// import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
@@ -92,7 +92,7 @@ export default function VendorBimLeadProjects() {
   const [createDescription, setCreateDescription] = useState("");
   const [createDeliverables, setCreateDeliverables] = useState("");
 
-  const [createSubmitting, setCreateSubmitting] = useState(false);
+  // const [createSubmitting, setCreateSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editDropdownOpen, setEditDropdownOpen] = useState<string | null>(null);
 
@@ -107,7 +107,7 @@ export default function VendorBimLeadProjects() {
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [editError, setEditError] = useState("");
