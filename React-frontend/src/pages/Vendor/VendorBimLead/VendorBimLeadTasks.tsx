@@ -22,8 +22,11 @@ interface Task {
     project_id?: number;
     project_name?: string;
     assigned_to?: number;
+    /** Resolved assignee name; derived from backend's assigned_full_name for vendor_task */
     assigned_to_name?: string;
     category?: string;
+    /** For compatibility with /api/vendors/vendor-tasks */
+    assigned_full_name?: string;
 }
 
 interface Project {
@@ -47,10 +50,19 @@ export default function VendorBimLeadTasks() {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
-        task_name: "", description: "", status: "To Do", priority: "",
-        due_date: "", project_id: "", assigned_to: "", category: "",
-        actual_start_date: "", actual_end_date: "", checklist: "",
-        start_time: "", end_time: ""
+        task_name: "",
+        description: "",
+        status: "Todo",
+        priority: "",
+        due_date: "",
+        project_id: "",
+        assigned_to: "",
+        category: "",
+        actual_start_date: "",
+        actual_end_date: "",
+        checklist: "",
+        start_time: "",
+        end_time: "",
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
     const [openFormDropdown, setOpenFormDropdown] = useState<string | null>(null);
@@ -71,7 +83,16 @@ export default function VendorBimLeadTasks() {
 
     const fetchTasks = () => {
         api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
-            .then(({ data }) => setTasks(data.tasks ?? []))
+            .then(({ data }) => {
+                const raw = data.tasks ?? [];
+                const mapped = raw.map((t) => ({
+                    ...t,
+                    assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
+                    // Backend stores this in vendor_task.category
+                    priority: (t as any).priority ?? (t as any).category ?? t.priority,
+                }));
+                setTasks(mapped);
+            })
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));
     };
@@ -114,16 +135,52 @@ export default function VendorBimLeadTasks() {
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
-        api.post("/api/vendors/vendor-tasks", createForm)
-            .then(() => {
+        // Transform UI form keys to backend vendor_task keys
+        const payload = {
+            task_name: createForm.task_name,
+            description: createForm.description,
+            status: createForm.status === "To Do" ? "Todo" : createForm.status,
+            category: createForm.priority || "Medium",
+            due_date: createForm.actual_end_date || undefined,
+            start_date: createForm.actual_start_date || undefined,
+            start_time: createForm.start_time || undefined,
+            end_time: createForm.end_time || undefined,
+            project_id:
+                createForm.project_id ? Number(createForm.project_id) : undefined,
+            assigned_to:
+                createForm.assigned_to ? Number(createForm.assigned_to) : undefined,
+            // Use "category" selection for type, and "modules"/category selection for module
+            modules: createForm.category || undefined,
+            checklist: createForm.checklist || undefined,
+        };
+
+        api.post("/api/vendors/vendor-tasks", payload)
+            .then((res) => {
+                const taskId = res.data?.task_id ?? res.data?.id;
                 setShowCreateModal(false);
                 setAttachmentFiles([]);
                 setCreateForm({
-                    task_name: "", description: "", status: "To Do", priority: "Medium",
-                    due_date: "", project_id: "", assigned_to: "", category: "",
-                    actual_start_date: "", actual_end_date: "", checklist: "",
-                    start_time: "", end_time: ""
+                    task_name: "",
+                    description: "",
+                    status: "Todo",
+                    priority: "Medium",
+                    due_date: "",
+                    project_id: "",
+                    assigned_to: "",
+                    category: "",
+                    actual_start_date: "",
+                    actual_end_date: "",
+                    checklist: "",
+                    start_time: "",
+                    end_time: "",
                 });
+                if (taskId && attachmentFiles.length > 0) {
+                    const formData = new FormData();
+                    attachmentFiles.forEach((f) => formData.append("image", f));
+                    api.post(`/api/vendors/vendor-tasks/${taskId}/output-files`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }).catch(() => toast.error("Failed to upload attachments"));
+                }
                 fetchTasks();
             })
             .finally(() => setCreateSubmitting(false));
@@ -133,7 +190,7 @@ export default function VendorBimLeadTasks() {
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
         );
-        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus })
             .then(() => toast.success("Status updated"))
             .catch(() => {
                 toast.error("Failed to update status");
@@ -160,7 +217,7 @@ export default function VendorBimLeadTasks() {
             .catch(() => toast.error("Failed to delete task"));
     };
 
-    const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
+    const statusOptions = ["Todo", "InProgress", "Completed"];
     const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",

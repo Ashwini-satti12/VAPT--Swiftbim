@@ -70,6 +70,8 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
+  /** Comma-separated filenames under `uploads/task/` */
+  outputfilepath?: string;
 }
 
 /** Normalize various date strings to yyyy-mm-dd for <input type="date" />. */
@@ -792,6 +794,12 @@ export default function MytaskPMV() {
 
     const openEditTask = (task: Task) => {
         setAddTaskForm(buildFormFromTask(task, employees));
+        const raw = (task.outputfilepath || "").toString();
+        const existingNames = raw
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        setExistingAttachmentNames(existingNames);
         setAttachmentFiles([]);
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
@@ -823,6 +831,7 @@ export default function MytaskPMV() {
     const resetTaskFormAndClose = () => {
         setAddTaskModalOpen(false);
         setEditingTaskId(null);
+        setExistingAttachmentNames([]);
         setAttachmentFiles([]);
         setAddTaskForm({
             projectName: "",
@@ -838,6 +847,7 @@ export default function MytaskPMV() {
             checklist: "",
         });
     };
+    const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>([]);
     const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
     const [openFormDropdown, setOpenFormDropdown] =
         useState<FormDropdownId>(null);
@@ -914,11 +924,12 @@ export default function MytaskPMV() {
         if (statusFilter) params.status = statusFilter;
         if (isTeam) {
             params.condition = "1";
-            params.employeeid = "all";
         }
 
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                params,
+            }),
             // Use vendor resources (new_swiftbim.vendor_resource_profiles)
             // instead of global employees for the dropdowns.
             api.get<{ success?: boolean; resources?: Employee[] }>(
@@ -1424,49 +1435,63 @@ export default function MytaskPMV() {
                                         attachmentFiles.forEach((f) =>
                                             formData.append("image", f),
                                         );
-                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                                        api.post(
+                                            `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                                            formData,
+                                            {
                                             headers: {
                                                 "Content-Type": "multipart/form-data",
                                             },
-                                        });
+                                            },
+                                        );
                                     }
                                 };
 
                                 if (isEditing && existing) {
                                     api
-                                        .patch(`/api/tasks/${existing.id}`, {
+                                        .patch(`/api/vendors/vendor-tasks/${existing.id}`, {
+                                            project_id:
+                                                projectId ??
+                                                addTaskForm.projectName,
                                             task_name: addTaskForm.taskName,
                                             assigned_to: assignedToVal,
-                                            due_date: addTaskForm.actualEndDate || undefined,
+                                            due_date:
+                                                addTaskForm.actualEndDate ||
+                                                undefined,
                                             category: addTaskForm.type,
                                             description: addTaskForm.description,
                                             checklist: addTaskForm.checklist,
-                                            modules_name: addTaskForm.module,
-                                            Actual_start_time:
-                                                addTaskForm.actualStartDate || undefined,
-                                            perferstart_time:
+                                            modules: addTaskForm.module,
+                                            start_date:
+                                                addTaskForm.actualStartDate ||
+                                                undefined,
+                                            start_time:
                                                 addTaskForm.startTime || undefined,
-                                            perferend_time: addTaskForm.dueTime || undefined,
+                                            end_time: addTaskForm.dueTime || undefined,
                                         })
                                         .then(() => {
                                             handleFiles(existing.id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    { params: listReloadParams },
+                                                )
                                                 .then((res) =>
                                                     setList(res.data.tasks ?? []),
                                                 );
                                         });
                                 } else {
-                                    api.post("/api/tasks", payload).then((res) => {
+                                    api.post("/api/vendors/vendor-tasks", payload).then((res) => {
                                         if (res.data.success && res.data.task_id) {
                                             handleFiles(res.data.task_id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
-                                                .then((r) => setList(r.data.tasks ?? []));
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    { params: listReloadParams },
+                                                )
+                                                .then((r) =>
+                                                    setList(r.data.tasks ?? []),
+                                                );
                                         }
                                     });
                                 }
@@ -1771,13 +1796,17 @@ export default function MytaskPMV() {
                                                 value={
                                                     attachmentFiles.length > 0
                                                         ? `${attachmentFiles.length} file(s) selected`
-                                                        : ""
+                                                        : existingAttachmentNames.length > 0
+                                                            ? `${existingAttachmentNames.length} existing file(s)`
+                                                            : ""
                                                 }
                                                 placeholder="Upload Files"
                                                 className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
                                                 title={
                                                     attachmentFiles.length > 0
                                                         ? attachmentFiles.map((f) => f.name).join(", ")
+                                                        : existingAttachmentNames.length > 0
+                                                            ? existingAttachmentNames.join(", ")
                                                         : undefined
                                                 }
                                             />
@@ -1789,6 +1818,26 @@ export default function MytaskPMV() {
                                             </label>
                                         </div>
                                     </div>
+                                    {existingAttachmentNames.length > 0 && (
+                                        <ul className="mt-2 space-y-1">
+                                            {existingAttachmentNames.map((filename, index) => (
+                                                <li
+                                                    key={`${filename}-${index}`}
+                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                >
+                                                    <span
+                                                        className="truncate min-w-0"
+                                                        title={filename}
+                                                    >
+                                                        {filename}
+                                                    </span>
+                                                    <span className="text-[11px] text-[#8B8B8B]">
+                                                        existing
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                     {attachmentFiles.length > 0 && (
                                         <ul className="mt-2 space-y-1">
                                             {attachmentFiles.map((file: File, index: number) => (

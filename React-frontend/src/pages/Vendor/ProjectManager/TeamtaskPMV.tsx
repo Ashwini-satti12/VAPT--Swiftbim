@@ -936,11 +936,10 @@ export default function TeamtaskPMV() {
         if (statusFilter) params.status = statusFilter;
         if (isTeam) {
             params.condition = "1";
-            params.employeeid = "all";
         }
 
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ success?: boolean; resources?: Employee[] }>(
                 "/api/vendors/vendor-resource-profiles",
             ),
@@ -1453,49 +1452,70 @@ export default function TeamtaskPMV() {
                                         attachmentFiles.forEach((f) =>
                                             formData.append("image", f),
                                         );
-                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: {
-                                                "Content-Type": "multipart/form-data",
+                                        api.post(
+                                            `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                                            formData,
+                                            {
+                                                headers: {
+                                                    "Content-Type":
+                                                        "multipart/form-data",
+                                                },
                                             },
-                                        });
+                                        );
                                     }
                                 };
 
                                 if (isEditing && existing) {
                                     api
-                                        .patch(`/api/tasks/${existing.id}`, {
-                                            task_name: addTaskForm.taskName,
-                                            assigned_to: assignedToVal,
-                                            due_date: addTaskForm.actualEndDate || undefined,
-                                            category: addTaskForm.type,
-                                            description: addTaskForm.description,
-                                            checklist: addTaskForm.checklist,
-                                            modules_name: addTaskForm.module,
-                                            Actual_start_time:
-                                                addTaskForm.actualStartDate || undefined,
-                                            perferstart_time:
-                                                addTaskForm.startTime || undefined,
-                                            perferend_time: addTaskForm.dueTime || undefined,
-                                        })
+                                        .patch(
+                                            `/api/vendors/vendor-tasks/${existing.id}`,
+                                            {
+                                                project_id:
+                                                    projectId ??
+                                                    addTaskForm.projectName,
+                                                task_name: addTaskForm.taskName,
+                                                assigned_to: assignedToVal,
+                                                due_date:
+                                                    addTaskForm.actualEndDate ||
+                                                    undefined,
+                                                category: addTaskForm.type,
+                                                description:
+                                                    addTaskForm.description,
+                                                checklist:
+                                                    addTaskForm.checklist,
+                                                modules: addTaskForm.module,
+                                                start_date:
+                                                    addTaskForm.actualStartDate ||
+                                                    undefined,
+                                                start_time:
+                                                    addTaskForm.startTime ||
+                                                    undefined,
+                                                end_time: addTaskForm.dueTime || undefined,
+                                            },
+                                        )
                                         .then(() => {
                                             handleFiles(existing.id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    { params: listReloadParams },
+                                                )
                                                 .then((res) =>
                                                     setList(res.data.tasks ?? []),
                                                 );
                                         });
                                 } else {
-                                    api.post("/api/tasks", payload).then((res) => {
+                                    api.post("/api/vendors/vendor-tasks", payload).then((res) => {
                                         if (res.data.success && res.data.task_id) {
                                             handleFiles(res.data.task_id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
-                                                .then((r) => setList(r.data.tasks ?? []));
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    { params: listReloadParams },
+                                                )
+                                                .then((r) =>
+                                                    setList(r.data.tasks ?? []),
+                                                );
                                         }
                                     });
                                 }

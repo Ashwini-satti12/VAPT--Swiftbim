@@ -18,14 +18,18 @@ interface Task {
     task_name: string;
     description?: string;
     status: string;
+    /** UI label for vendor_task.category */
     priority: string;
+    category?: string;
     due_date?: string;
     project_id?: number;
     project_name?: string;
     assigned_to?: number;
+    /** Resolved assignee name from vendor_task; derived from assigned_full_name */
     assigned_to_name?: string;
-    team_id?: number;
-    team_name?: string;
+    assigned_full_name?: string;
+    /** Use vendor_task.modules to store selected Team/Department */
+    modules?: string;
 }
 
 interface Project {
@@ -42,7 +46,8 @@ interface Employee {
 }
 
 interface Team {
-    id: number;
+    id?: number;
+    team_id?: number;
     team_name: string;
 }
 
@@ -215,10 +220,22 @@ export default function VendorBimLeadTeamTasks() {
             api.get<{ teams?: Team[] }>("/api/vendors/vendor-teams"),
         ])
             .then(([tasksRes, projectsRes, empRes, teamsRes]) => {
-                setTasks(tasksRes.data.tasks ?? []);
+                const raw = tasksRes.data.tasks ?? [];
+                const mapped = raw.map((t) => ({
+                    ...t,
+                    assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
+                    // Backend stores priority in `category`
+                    priority: (t as any).priority ?? (t as any).category ?? t.priority,
+                }));
+                setTasks(mapped);
                 setProjects(projectsRes.data.projects ?? []);
                 setEmployees(empRes.data.employees ?? []);
-                setTeams(teamsRes.data.teams ?? []);
+                const normalizedTeams = (teamsRes.data.teams ?? []).map((t: Team) => ({
+                    ...t,
+                    id: (t as any).id ?? (t as any).team_id,
+                    team_id: (t as any).team_id ?? (t as any).id,
+                }));
+                setTeams(normalizedTeams);
             })
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));
@@ -278,7 +295,7 @@ export default function VendorBimLeadTeamTasks() {
     }));
 
     const modalTeamOptions = teams.map((t) => ({
-        value: String(t.id),
+        value: String((t as any).team_id ?? t.id),
         label: t.team_name,
     }));
 
@@ -355,12 +372,14 @@ export default function VendorBimLeadTeamTasks() {
         const payload = {
             task_name: createForm.taskName,
             description: createForm.description,
-            status: "To Do",
-            priority: createForm.priority || "Medium",
+            status: "Todo",
+            // Backend stores this in vendor_task.category
+            category: createForm.priority || "Medium",
             due_date: createForm.actualEndDate,
             project_id: projectId ?? createForm.projectName,
             assigned_to: assignedToVal,
-            team_id: createForm.teamId || undefined,
+            // Store selected Team/Department in modules column
+            modules: createForm.teamId || undefined,
             checklist: createForm.checklist,
             start_date: createForm.actualStartDate,
             start_time: createForm.startTime,
@@ -374,9 +393,13 @@ export default function VendorBimLeadTeamTasks() {
                     if (taskId) {
                         const formData = new FormData();
                         attachmentFiles.forEach((f) => formData.append("image", f));
-                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                            headers: { "Content-Type": "multipart/form-data" },
-                        });
+                        api.post(
+                            `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                            formData,
+                            {
+                                headers: { "Content-Type": "multipart/form-data" },
+                            },
+                        );
                     }
                 }
                 resetAndClose();
@@ -391,8 +414,16 @@ export default function VendorBimLeadTeamTasks() {
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
         );
+        const backendStatus =
+            newStatus === "To Do"
+                ? "Todo"
+                : newStatus === "In Progress"
+                    ? "InProgress"
+                    : newStatus === "Completed"
+                        ? "Completed"
+                        : newStatus;
         api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
-            status: newStatus.replace(/\s+/g, ""),
+            status: backendStatus,
         })
             .then(() => toast.success("Status updated"))
             .catch(() => {
@@ -436,12 +467,23 @@ export default function VendorBimLeadTeamTasks() {
         return matchesEmployee && matchesProject;
     });
 
-    const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
+    const statusOptions = ["Todo", "InProgress", "Completed"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
         Medium: "text-orange-600 bg-orange-50 border-orange-100",
         Low: "text-green-600 bg-green-50 border-green-100",
         Urgent: "text-purple-600 bg-purple-50 border-purple-100",
+    };
+
+    const resolveTeamName = (modulesValue?: string): string => {
+        if (!modulesValue) return "General Team";
+        // We store teamId (or teamId as string) in `vendor_task.modules`.
+        const maybeId = Number(modulesValue);
+        if (!Number.isNaN(maybeId)) {
+            const team = teams.find((t) => Number((t as any).id ?? (t as any).team_id) === maybeId);
+            return team?.team_name || "General Team";
+        }
+        return modulesValue;
     };
 
     const normalizeStatus = (
@@ -572,7 +614,7 @@ export default function VendorBimLeadTeamTasks() {
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#DD4342] bg-red-50 px-2.5 py-1 rounded-md mb-2 inline-block">
-                                                {task.team_name || "General Team"}
+                                                {resolveTeamName(task.modules)}
                                             </span>
                                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">
                                                 {task.project_name || "Internal"}
@@ -1155,7 +1197,7 @@ export default function VendorBimLeadTeamTasks() {
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">
-                                        {selectedTask.team_name || "General Team"}
+                                        {resolveTeamName(selectedTask?.modules)}
                                     </span>
                                     <h3 className="text-2xl font-bold text-[#1A1A1A]">
                                         {selectedTask.task_name}
