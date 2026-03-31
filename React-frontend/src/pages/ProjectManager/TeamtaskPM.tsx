@@ -326,7 +326,7 @@ function TaskDropdown({
                   onSelect(opt);
                   onClose();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
               >
                 {opt}
               </button>
@@ -621,13 +621,13 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-slate-900 text-xl truncate">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
           {task.task_name || "Task Name"}
         </h4>
-        <div className="relative" ref={menuRef}>
+        <div className="relative shrink-0" ref={menuRef}>
           <button
             type="button"
             draggable={false}
@@ -635,15 +635,15 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-0.5 rounded cursor-pointer"
+            className="p-1 rounded cursor-pointer leading-none"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out cursor-pointer ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"} ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out cursor-pointer ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"} ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
               <button
@@ -660,7 +660,7 @@ function TaskCard({
                   alt="view"
                   className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
-                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                   View
                 </span>
               </button>
@@ -680,7 +680,7 @@ function TaskCard({
                       alt="edit"
                       className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
                     </span>
                   </button>
@@ -698,7 +698,7 @@ function TaskCard({
                       alt="delete"
                       className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete
                     </span>
                   </button>
@@ -708,9 +708,15 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-        <span>{startStr}</span>
-        <span>{endStr}</span>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex flex-col">
+          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="text-xs text-slate-600">Progress</span>
@@ -743,7 +749,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned To: ${task.assigned_full_name}`}
                   >
                     {src ? (
@@ -772,7 +778,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned By: ${task.uploader_full_name}`}
                   >
                     {src ? (
@@ -788,10 +794,14 @@ function TaskCard({
         <Link
           to={`/tasks/${task.id}`}
           draggable={false}
-          className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
         >
           Details
-          <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+          />
         </Link>
       </div>
     </div>
@@ -986,9 +996,7 @@ export default function TeamtaskPM() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openEditTask = (task: Task) => {
-    setAddTaskForm(taskToFormValues(task));
-    setEditingTaskId(task.id);
-    setAddTaskModalOpen(true);
+    navigate("/tasks/add", { state: { task } });
   };
 
   const openDeleteTask = (task: Task) => {
