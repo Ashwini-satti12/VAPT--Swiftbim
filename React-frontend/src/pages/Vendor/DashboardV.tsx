@@ -11,7 +11,10 @@ type DashboardStats = {
     active_opportunities: number;
     bids_submitted: number;
     proposals_awaiting: number;
-    active_projects: number;
+    total_projects: number;
+    completed_projects: number;
+    in_progress_tasks: number;
+    completed_tasks: number;
 };
 
 type InvolvedPerson = {
@@ -46,7 +49,10 @@ const defaultStats: DashboardStats = {
     active_opportunities: 0,
     bids_submitted: 0,
     proposals_awaiting: 0,
-    active_projects: 0,
+    total_projects: 0,
+    completed_projects: 0,
+    in_progress_tasks: 0,
+    completed_tasks: 0,
 };
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
@@ -126,17 +132,29 @@ export default function DashboardV() {
         return () => clearInterval(id);
     }, []);
 
-    // GET /api/vendors/dashboard/stats → KPI cards
+    // GET stats → KPI cards
     useEffect(() => {
-        api.get<DashboardStats>('/api/vendors/dashboard/stats')
-            .then(({ data }) => setStats({
+        // Vendor-specific stats (Bidding)
+        api.get<any>('/api/vendors/dashboard/stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
                 active_opportunities: Number(data?.active_opportunities) || 0,
                 bids_submitted: Number(data?.bids_submitted) || 0,
                 proposals_awaiting: Number(data?.proposals_awaiting) || 0,
-                active_projects: Number(data?.active_projects) || 0,
-            }))
-            .catch(() => setStats(defaultStats))
+            })))
+            .catch(() => {})
             .finally(() => setLoading(false));
+
+        // Standard project/task stats
+        api.get<any>('/api/dashboard/stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
+                total_projects: Number(data?.totalProjects) || 0,
+                completed_projects: Number(data?.completedProjects) || 0,
+                in_progress_tasks: Number(data?.inProgressTasks) || 0,
+                completed_tasks: Number(data?.completedTasks) || 0,
+            })))
+            .catch(() => {});
     }, []);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
@@ -241,40 +259,15 @@ export default function DashboardV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions — vendor-specific metrics
+    // KPI card definitions
     const kpiCards = [
-        {
-            title: 'Active\nOpportunities',
-            value: stats.active_opportunities,
-            barColor: '#DE3D3A',
-            label: 'Active Opportunities',
-            percent: 75,
-            link: '/v/opportunities'
-        },
-        {
-            title: 'Bids\nSubmitted',
-            value: stats.bids_submitted,
-            barColor: '#3B82F6',
-            label: 'Total Bids Submitted',
-            percent: 50,
-            link: '/v/mybids'
-        },
-        {
-            title: 'Proposals\nAwaiting',
-            value: stats.proposals_awaiting,
-            barColor: '#E47E00',
-            label: 'Proposals Awaiting',
-            percent: 30,
-            link: '/v/proposals'
-        },
-        {
-            title: 'Active\nProjects',
-            value: stats.active_projects,
-            barColor: '#00882E',
-            label: 'Active Projects',
-            percent: 20,
-            link: '/v/projects?status=Active'
-        },
+        { label: 'Active Opportunities', value: stats.active_opportunities },
+        { label: 'Total Bids Submitted', value: stats.bids_submitted },
+        { label: 'Proposals Awaiting', value: stats.proposals_awaiting },
+        { label: 'Total Projects', value: stats.total_projects },
+        { label: 'Completed Projects', value: stats.completed_projects },
+        { label: 'In Progress Tasks', value: stats.in_progress_tasks },
+        { label: 'Completed Tasks', value: stats.completed_tasks },
     ];
 
     if (loading) {
@@ -290,8 +283,8 @@ export default function DashboardV() {
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
-                {/* KPI Grid — same style as DashboardTD */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* KPI Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
                     {kpiCards.map((card, i) => (
                         <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0">
                             <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
