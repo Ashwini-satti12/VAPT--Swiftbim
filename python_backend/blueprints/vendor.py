@@ -330,33 +330,26 @@ def vendor_dashboard_stats():
     """
     GET /api/vendors/dashboard/stats
     Returns KPI counts for the vendor's own dashboard.
-    Looks up the vendor record by the logged-in user's email.
+    Looks up the vendor employee record from the main DB
+    (`snh6_swiftproject.vendor_employee`) using the logged-in user's email.
     """
-    cur = vendor_cursor()
 
-    # Try to find the vendor's own record by email
-    email = getattr(g, "user_email", None)
-    vendor_id = None
-    if email:
-        cur.execute(
-            "SELECT id FROM vendor_onboarding WHERE contact_email = %s OR email = %s LIMIT 1",
-            (email, email),
-        )
-        row = cur.fetchone()
-        if row:
-            vendor_id = row["id"]
+    # My Bids endpoint counts for the logged-in vendor employee only:
+    #   WHERE vb.vendor_id = g.user_id
+    # Dashboard card "Total Bids Submitted" must match that count.
+    conn = get_db()
+    user_id = getattr(g, "user_id", None)
 
     # Count active opportunities (bidding entries that are active)
     active_opportunities = 0
     bids_submitted = 0
     proposals_awaiting = 0
     active_projects = 0
-    vendor_id = getattr(g, "user_id", None)  # Use employee ID directly
 
     try:
-        main_cur = get_db().cursor(dictionary=True)
+        main_cur = conn.cursor(dictionary=True)
         # Ensure tables exist (now in main DB)
-        main_cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bidding (
+        main_cur.execute("""CREATE TABLE IF NOT EXISTS snh6_swiftproject.vendor_bidding (
             id INT AUTO_INCREMENT PRIMARY KEY, project_id INT NOT NULL,
             project_name VARCHAR(255) NOT NULL, description TEXT,
             outsource_budget DECIMAL(15,2), budget_ceiling DECIMAL(15,2),
@@ -364,7 +357,7 @@ def vendor_dashboard_stats():
             company_id INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uniq_project (project_id))"""
         )
-        main_cur.execute("""CREATE TABLE IF NOT EXISTS vendor_bids (
+        main_cur.execute("""CREATE TABLE IF NOT EXISTS snh6_swiftproject.vendor_bids (
             id INT AUTO_INCREMENT PRIMARY KEY, opportunity_id INT NOT NULL,
             vendor_id INT NOT NULL, bid_amount DECIMAL(15,2), notes TEXT,
             timeline VARCHAR(255), team_size INT DEFAULT 0,
@@ -373,34 +366,32 @@ def vendor_dashboard_stats():
             UNIQUE KEY uniq_vendor_opportunity (vendor_id, opportunity_id))"""
         )
         main_cur.execute(
-            "SELECT COUNT(*) AS cnt FROM vendor_bidding WHERE status = 'active'"
+            "SELECT COUNT(*) AS cnt FROM snh6_swiftproject.vendor_bidding WHERE status = 'active'"
         )
         r = main_cur.fetchone()
         active_opportunities = r["cnt"] if r else 0
     except Exception:
         active_opportunities = 0
 
-    if vendor_id:
+    if user_id:
         try:
-            main_cur = get_db().cursor(dictionary=True)
+            main_cur = conn.cursor(dictionary=True)
             main_cur.execute(
-                "SELECT COUNT(*) AS cnt FROM vendor_bids WHERE vendor_id = %s",
-                (vendor_id,),
+                """
+                SELECT
+                    COUNT(*) AS total_cnt,
+                    SUM(CASE WHEN status = 'shortlisted' THEN 1 ELSE 0 END) AS shortlisted_cnt
+                FROM snh6_swiftproject.vendor_bids
+                WHERE vendor_id = %s
+                """,
+                (user_id,),
             )
             r = main_cur.fetchone()
-            bids_submitted = r["cnt"] if r else 0
+            bids_submitted = int((r or {}).get("total_cnt") or 0)
+            # Treat "Proposals Awaiting" as bids currently in shortlisted stage.
+            proposals_awaiting = int((r or {}).get("shortlisted_cnt") or 0)
         except Exception:
             bids_submitted = 0
-
-        try:
-            cur.execute(
-                """SELECT COUNT(*) AS cnt FROM vendor_proposals
-                   WHERE vendor_id = %s AND status = 'pending'""",
-                (vendor_id,),
-            )
-            r = cur.fetchone()
-            proposals_awaiting = r["cnt"] if r else 0
-        except Exception:
             proposals_awaiting = 0
 
     return jsonify({
@@ -420,8 +411,8 @@ def vendor_dashboard_stats():
 def vendor_dashboard_priority_tasks():
     """
     GET /api/vendors/dashboard/priority-tasks
-    Returns today's tasks assigned to or uploaded by the logged-in vendor user.
-    Mirrors the TD /api/dashboard/priority-tasks endpoint.
+    Returns upcoming (due today or later) vendor tasks that are not completed,
+    for the logged-in vendor company (all vendor_employee under same vendor_id).
     """
     from datetime import date, datetime, time, timedelta
     from decimal import Decimal
@@ -459,51 +450,220 @@ def vendor_dashboard_priority_tasks():
             return float(v)
         return v
 
+    # Resolve vendor company employees for the logged-in vendor employee id.
+    # We derive the vendor "company key" from snh6_swiftproject.vendor_employee.vendor_id
+    # so this works even if g.user_type / g.company_id are not set consistently.
+    vendor_employee_ids = [user_id]
     try:
-        cur.execute(
-            """SELECT t.id, t.task_name, t.due_date, t.status, t.category,
-                      t.perferstart_time, t.perferend_time,
-                      t.projectid, t.assigned_to, t.uploaderid,
-                      e_assigned.full_name AS assigned_full_name,
-                      e_assigned.profile_picture AS assigned_profile_picture,
-                      e_uploader.full_name AS uploader_full_name,
-                      e_uploader.profile_picture AS uploader_profile_picture,
-                      p.project_name
-               FROM tasks t
-               LEFT JOIN projects p ON t.projectid = p.id
-               LEFT JOIN employee e_assigned ON t.assigned_to = e_assigned.id
-               LEFT JOIN employee e_uploader ON t.uploaderid = e_uploader.id
-               WHERE (t.assigned_to = %s OR t.uploaderid = %s)
-                 AND (t.status IN ('Todo', 'InProgress', 'Pause'))
-                 AND DATE(t.due_date) = %s
-               ORDER BY t.due_date ASC, COALESCE(t.perferstart_time, '00:00:00') ASC
-               LIMIT 20""",
-            (user_id, user_id, today),
+        ecur = conn.cursor(dictionary=True)
+        ecur.execute(
+            "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+            (user_id,),
         )
-        rows = cur.fetchall()
+        row = ecur.fetchone() or {}
+        company_vendor_id = row.get("vendor_id")
+        if company_vendor_id is not None:
+            ecur.execute(
+                "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
+                (company_vendor_id,),
+            )
+            rows = ecur.fetchall() or []
+            ids = [r["id"] for r in rows if r.get("id") is not None]
+            if ids:
+                vendor_employee_ids = ids
+    except Exception:
+        vendor_employee_ids = [user_id]
+
+    placeholders = ",".join(["%s"] * len(vendor_employee_ids))
+
+    _ensure_vendor_task_table()
+    _ensure_vp_table()
+
+    try:
+        # Note: include tasks either uploaded/created by vendor company members (vt.vendor_id)
+        # OR assigned to vendor company members (vt.assigned_to).
+        cur.execute(
+            f"""
+            SELECT
+                vt.id,
+                vt.task_name,
+                vt.due_date,
+                vt.status,
+                vt.category,
+                vt.perferstart_time,
+                vt.perferend_time,
+                vt.project_id AS projectid,
+                vp.project_name,
+                vt.assigned_to,
+                vt.vendor_id AS uploaderid,
+                ve_uploader.full_name AS uploader_full_name,
+                ve_uploader.profile_picture AS uploader_profile_picture
+            FROM snh6_swiftproject.vendor_task vt
+            LEFT JOIN snh6_swiftproject.vendor_projects vp ON vt.project_id = vp.id
+            LEFT JOIN snh6_swiftproject.vendor_employee ve_uploader ON vt.vendor_id = ve_uploader.id
+            WHERE (vt.vendor_id IN ({placeholders}) OR vt.assigned_to IN ({placeholders}))
+              AND vt.status IN ('Todo', 'InProgress', 'Pause')
+              AND DATE(vt.due_date) >= %s
+            ORDER BY DATE(vt.due_date) ASC, COALESCE(vt.perferstart_time, '00:00:00') ASC
+            LIMIT 20
+            """,
+            [*vendor_employee_ids, *vendor_employee_ids, today],
+        )
+        rows = cur.fetchall() or []
+
         tasks = []
         for r in rows:
             d = {k: _serialize_value(v) for k, v in r.items()}
             involved = []
-            if d.get("assigned_to") and d.get("assigned_full_name"):
-                involved.append({
-                    "id": d["assigned_to"],
-                    "full_name": d["assigned_full_name"],
-                    "profile_picture": d.get("assigned_profile_picture"),
-                })
             if d.get("uploaderid") and d.get("uploader_full_name"):
-                if not any(p.get("id") == d["uploaderid"] for p in involved):
-                    involved.append({
+                involved.append(
+                    {
                         "id": d["uploaderid"],
                         "full_name": d["uploader_full_name"],
                         "profile_picture": d.get("uploader_profile_picture"),
-                    })
+                    }
+                )
             d["involved_persons"] = involved
             tasks.append(d)
     except Exception:
         tasks = []
 
     return jsonify({"tasks": tasks})
+
+
+# ---------------------------------------------------------------------------
+# Vendor Dashboard Project/Task Stats (for main vendor Dashboard)
+# ---------------------------------------------------------------------------
+
+@bp.route("/dashboard/project-stats", methods=["GET"])
+@login_required
+def vendor_dashboard_project_stats():
+    """
+    GET /api/vendors/dashboard/project-stats
+
+    Returns high-level project / task KPIs for the logged-in vendor company
+    (all vendor_employee under same vendor_id), to drive the Vendor Dashboard cards:
+
+    - totalProjects: count of vendor_projects visible to the vendor company
+    - completedProjects: vendor_projects with progress = 100 (or status = 'Completed')
+    - inProgressTasks: vendor_task rows (created-by anyone in vendor company OR assigned_to anyone in company) with status = 'InProgress'
+    - completedTasks: vendor_task rows (created-by anyone in vendor company OR assigned_to anyone in company) with status = 'Completed'
+    """
+    user_id = getattr(g, "user_id", None)
+    if not user_id:
+        return jsonify(
+            {
+                "total_projects": 0,
+                "completed_projects": 0,
+                "in_progress_tasks": 0,
+                "completed_tasks": 0,
+            }
+        )
+
+    try:
+        _ensure_vp_table()
+        _ensure_vendor_task_table()
+        conn = get_db()
+        cur = conn.cursor(dictionary=True)
+
+        # Vendor dashboards are company-wide: resolve all vendor_employee ids
+        # for the same `vendor_employee.vendor_id` as the logged-in employee.
+        vendor_employee_ids = [int(user_id)]
+        try:
+            ecur = conn.cursor(dictionary=True)
+            ecur.execute(
+                "SELECT vendor_id FROM snh6_swiftproject.vendor_employee WHERE id = %s LIMIT 1",
+                (user_id,),
+            )
+            row = ecur.fetchone() or {}
+            company_vendor_id = row.get("vendor_id")
+            if company_vendor_id is not None:
+                ecur.execute(
+                    "SELECT id FROM snh6_swiftproject.vendor_employee WHERE vendor_id = %s",
+                    (company_vendor_id,),
+                )
+                rows = ecur.fetchall() or []
+                ids = [int(r["id"]) for r in rows if r.get("id") is not None]
+                if ids:
+                    vendor_employee_ids = ids
+        except Exception:
+            vendor_employee_ids = [int(user_id)]
+
+        placeholders = ",".join(["%s"] * len(vendor_employee_ids))
+
+        total_projects = 0
+        completed_projects = 0
+        in_progress_tasks = 0
+        completed_tasks = 0
+
+        try:
+            cur.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_projects,
+                    SUM(
+                        CASE
+                            WHEN (vp.progress IS NOT NULL AND CAST(vp.progress AS DECIMAL(10,2)) >= 100)
+                              OR (vp.status = 'Completed')
+                            THEN 1 ELSE 0
+                        END
+                    ) AS completed_projects
+                FROM snh6_swiftproject.vendor_projects vp
+                WHERE vp.vendor_id IN ("""
+                + placeholders
+                + """)
+                """,
+                vendor_employee_ids,
+            )
+            row = cur.fetchone() or {}
+            total_projects = int(row.get("total_projects") or 0)
+            completed_projects = int(row.get("completed_projects") or 0)
+        except Exception:
+            total_projects = 0
+            completed_projects = 0
+
+        # Tasks: count items created by the vendor company OR assigned to anyone in the company.
+        try:
+            cur.execute(
+                """
+                SELECT
+                    SUM(CASE WHEN status = 'InProgress' THEN 1 ELSE 0 END) AS in_progress_tasks,
+                    SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
+                FROM snh6_swiftproject.vendor_task
+                WHERE vendor_id IN ("""
+                + placeholders
+                + """)
+                   OR assigned_to IN ("""
+                + placeholders
+                + """)
+                """,
+                [*vendor_employee_ids, *vendor_employee_ids],
+            )
+            row = cur.fetchone() or {}
+            in_progress_tasks = int(row.get("in_progress_tasks") or 0)
+            completed_tasks = int(row.get("completed_tasks") or 0)
+        except Exception:
+            in_progress_tasks = 0
+            completed_tasks = 0
+
+        return jsonify(
+            {
+                "totalProjects": total_projects,
+                "completedProjects": completed_projects,
+                "inProgressTasks": in_progress_tasks,
+                "completedTasks": completed_tasks,
+            }
+        )
+    except Exception:
+        # Fail-safe: do not break the dashboard if something goes wrong.
+        return jsonify(
+            {
+                "totalProjects": 0,
+                "completedProjects": 0,
+                "inProgressTasks": 0,
+                "completedTasks": 0,
+            }
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -575,7 +735,7 @@ def submit_bid(opportunity_id):
 
     # Verify the opportunity exists and is still active
     try:
-        cur.execute("SELECT id, project_name, bid_deadline FROM vendor_bidding WHERE id = %s AND status = 'active'",
+        cur.execute("SELECT id, project_name, bid_deadline FROM snh6_swiftproject.vendor_bidding WHERE id = %s AND status = 'active'",
                     (opportunity_id,))
         opp = cur.fetchone()
         if not opp:

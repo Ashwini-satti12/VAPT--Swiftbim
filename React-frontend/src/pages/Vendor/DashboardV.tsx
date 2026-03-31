@@ -145,8 +145,8 @@ export default function DashboardV() {
             .catch(() => {})
             .finally(() => setLoading(false));
 
-        // Standard project/task stats
-        api.get<any>('/api/dashboard/stats')
+        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
+        api.get<any>('/api/vendors/dashboard/project-stats')
             .then(({ data }) => setStats(prev => ({
                 ...prev,
                 total_projects: Number(data?.totalProjects) || 0,
