@@ -291,6 +291,8 @@ interface Task {
     vendor_id?: number;
     assigned_profile_picture?: string;
     uploader_profile_picture?: string;
+    /** Comma-separated filenames stored under `uploads/task/` (vendor_task.outputfilepath). */
+    outputfilepath?: string;
 }
 
 interface Employee {
@@ -795,6 +797,12 @@ export default function TeamtaskEV() {
     const openEditTask = (task: Task) => {
         setAddTaskForm(buildFormFromTask(task, employees));
         setAttachmentFiles([]);
+        const raw = (task.outputfilepath || "").toString();
+        const existingNames = raw
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean);
+        setExistingAttachmentNames(existingNames);
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -826,6 +834,7 @@ export default function TeamtaskEV() {
         setAddTaskModalOpen(false);
         setEditingTaskId(null);
         setAttachmentFiles([]);
+        setExistingAttachmentNames([]);
         setAddTaskForm({
             projectName: "",
             module: "",
@@ -841,6 +850,9 @@ export default function TeamtaskEV() {
         });
     };
     const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    const [existingAttachmentNames, setExistingAttachmentNames] = useState<
+        string[]
+    >([]);
     const [openFormDropdown, setOpenFormDropdown] =
         useState<FormDropdownId>(null);
     const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
@@ -916,11 +928,12 @@ export default function TeamtaskEV() {
         if (statusFilter) params.status = statusFilter;
         if (isTeam) {
             params.condition = "1";
-            params.employeeid = "all";
         }
 
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
+                params,
+            }),
             api.get<{ success?: boolean; resources?: Employee[] }>(
                 "/api/vendors/vendor-resource-profiles",
             ),
@@ -1428,14 +1441,19 @@ export default function TeamtaskEV() {
                                         : addTaskForm.assignTo;
 
                                 const payload = {
-                                    projectid: projectId ?? addTaskForm.projectName,
-                                    taskName: addTaskForm.taskName,
+                                    task_name: addTaskForm.taskName,
+                                    project_id:
+                                        projectId ?? addTaskForm.projectName,
                                     category: addTaskForm.type,
-                                    startdate: addTaskForm.actualStartDate,
-                                    dueDate: addTaskForm.actualEndDate,
-                                    startTime: addTaskForm.startTime,
-                                    dueTime: addTaskForm.dueTime,
-                                    assignedTo: assignedToVal,
+                                    start_date:
+                                        addTaskForm.actualStartDate || undefined,
+                                    due_date:
+                                        addTaskForm.actualEndDate || undefined,
+                                    start_time:
+                                        addTaskForm.startTime || undefined,
+                                    // Backend maps `due_time` -> vendor_task.end_time
+                                    due_time: addTaskForm.dueTime || undefined,
+                                    assigned_to: assignedToVal,
                                     description: addTaskForm.description,
                                     checklist: addTaskForm.checklist,
                                     modules: addTaskForm.module,
@@ -1447,48 +1465,52 @@ export default function TeamtaskEV() {
                                         attachmentFiles.forEach((f) =>
                                             formData.append("image", f),
                                         );
-                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: {
-                                                "Content-Type": "multipart/form-data",
+                                        api.post(
+                                            `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                                            formData,
+                                            {
+                                                headers: {
+                                                    "Content-Type":
+                                                        "multipart/form-data",
+                                                },
                                             },
-                                        });
+                                        );
                                     }
                                 };
 
                                 if (isEditing && existing) {
                                     api
-                                        .patch(`/api/tasks/${existing.id}`, {
-                                            task_name: addTaskForm.taskName,
-                                            assigned_to: assignedToVal,
-                                            due_date: addTaskForm.actualEndDate || undefined,
-                                            category: addTaskForm.type,
-                                            description: addTaskForm.description,
-                                            checklist: addTaskForm.checklist,
-                                            modules_name: addTaskForm.module,
-                                            Actual_start_time:
-                                                addTaskForm.actualStartDate || undefined,
-                                            perferstart_time:
-                                                addTaskForm.startTime || undefined,
-                                            perferend_time: addTaskForm.dueTime || undefined,
-                                        })
+                                        .patch(
+                                            `/api/vendors/vendor-tasks/${existing.id}`,
+                                            payload,
+                                        )
                                         .then(() => {
                                             handleFiles(existing.id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    {
+                                                        params: listReloadParams,
+                                                    },
+                                                )
                                                 .then((res) =>
                                                     setList(res.data.tasks ?? []),
                                                 );
                                         });
                                 } else {
-                                    api.post("/api/tasks", payload).then((res) => {
+                                    api.post(
+                                        "/api/vendors/vendor-tasks",
+                                        payload,
+                                    ).then((res) => {
                                         if (res.data.success && res.data.task_id) {
                                             handleFiles(res.data.task_id);
                                             api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
+                                                .get<{ tasks?: Task[] }>(
+                                                    "/api/vendors/vendor-tasks",
+                                                    {
+                                                        params: listReloadParams,
+                                                    },
+                                                )
                                                 .then((r) => setList(r.data.tasks ?? []));
                                         }
                                     });
@@ -1786,13 +1808,17 @@ export default function TeamtaskEV() {
                                                 value={
                                                     attachmentFiles.length > 0
                                                         ? `${attachmentFiles.length} file(s) selected`
-                                                        : ""
+                                                        : existingAttachmentNames.length > 0
+                                                            ? `${existingAttachmentNames.length} existing file(s)`
+                                                            : ""
                                                 }
                                                 placeholder="Upload Files"
                                                 className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
                                                 title={
                                                     attachmentFiles.length > 0
                                                         ? attachmentFiles.map((f) => f.name).join(", ")
+                                                        : existingAttachmentNames.length > 0
+                                                            ? existingAttachmentNames.join(", ")
                                                         : undefined
                                                 }
                                             />
@@ -1804,6 +1830,28 @@ export default function TeamtaskEV() {
                                             </label>
                                         </div>
                                     </div>
+                                    {existingAttachmentNames.length > 0 && (
+                                        <ul className="mt-2 space-y-1">
+                                            {existingAttachmentNames.map(
+                                                (filename, index) => (
+                                                    <li
+                                                        key={`${filename}-${index}`}
+                                                        className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                    >
+                                                        <span
+                                                            className="truncate min-w-0"
+                                                            title={filename}
+                                                        >
+                                                            {filename}
+                                                        </span>
+                                                        <span className="text-[11px] text-[#8B8B8B]">
+                                                            existing
+                                                        </span>
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    )}
                                     {attachmentFiles.length > 0 && (
                                         <ul className="mt-2 space-y-1">
                                             {attachmentFiles.map((file, index) => (
