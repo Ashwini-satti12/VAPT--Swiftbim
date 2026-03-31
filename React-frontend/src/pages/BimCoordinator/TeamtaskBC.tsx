@@ -6,6 +6,7 @@ import Group2 from "../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../assets/ProjectManager/MyTask/Group3.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
 import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     TaskDropdown,
     TaskCard,
@@ -174,7 +175,7 @@ export default function TeamtaskBC() {
     }, [openDropdown]);
 
     useEffect(() => {
-        api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
+        api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
         api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
     }, []);
 

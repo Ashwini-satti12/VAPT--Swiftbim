@@ -32,6 +32,7 @@ interface Task {
   perferstart_time?: string;
   perferend_time?: string;
   end_time?: string;
+  outputfilepath?: string;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -66,6 +67,12 @@ function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
 }
 
 type StatusKey = "todo" | "in_progress" | "completed" | "approved" | "rejected";
+
+const getTaskImageUrl = (filename: string) => {
+  if (!filename) return "";
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "";
+  return `${apiBaseUrl}/uploads/task/${filename}`;
+};
 
 const STATUS_STYLE: Record<
   StatusKey,
@@ -136,8 +143,9 @@ export default function MytaskViewTD() {
       api
         .get(`/api/tasks/${taskId}`)
         .then((res) => {
-          setTask(res.data);
-          setStatusDisplay(normalizeStatus(res.data.status, res.data.Approval));
+          setTask(res.data.tasks?.[0] || res.data);
+          const t = res.data.tasks?.[0] || res.data;
+          setStatusDisplay(normalizeStatus(t.status, t.Approval));
         })
         .catch((err) => {
           console.error("Error fetching task:", err);
@@ -186,8 +194,20 @@ export default function MytaskViewTD() {
     formData.append("image", selectedImage);
 
     try {
-      await api.post(`/api/tasks/${task.id}/output-files`, formData);
+      const res = await api.post(`/api/tasks/${task.id}/output-files`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       toast.success("Work submitted successfully");
+      
+      // Update task state with new file paths
+      const newFiles = res.data.files || [];
+      setTask(prev => {
+        if (!prev) return prev;
+        const existing = prev.outputfilepath ? prev.outputfilepath.split(",").filter(Boolean) : [];
+        const updated = [...existing, ...newFiles].join(",");
+        return { ...prev, outputfilepath: updated };
+      });
+
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
       setSelectedImagePreview(null);
@@ -252,9 +272,9 @@ export default function MytaskViewTD() {
   const style = STATUS_STYLE[statusDisplay];
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-6">
+      <div className="flex items-center justify-between px-6 pt-4 shrink-0">
         <Link
           to={backToUrl}
           className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors"
@@ -267,7 +287,8 @@ export default function MytaskViewTD() {
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
+        <div className="max-w-7xl mx-auto">
         {/* Status row */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2">
@@ -286,29 +307,32 @@ export default function MytaskViewTD() {
               type="button"
               disabled={updatingStatus}
               onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className="rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] disabled:opacity-50 cursor-pointer"
+              className="rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0"
               aria-expanded={statusDropdownOpen}
               aria-haspopup="listbox"
             >
               {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-4 h-4" />
+              <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
             </button>
             {statusDropdownOpen && !updatingStatus && (
               <div
                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200 cursor-pointer"
                 role="listbox"
               >
-                {STATUS_OPTIONS.map((opt) => (
+                {STATUS_OPTIONS.filter(
+                  (opt) =>
+                    !(statusDisplay === "completed" && opt.value === "in_progress"),
+                ).map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 cursor-pointer ${
+                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors cursor-pointer ${
                       statusDisplay === opt.value
-                        ? "bg-slate-50 font-medium"
-                        : ""
+                        ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                        : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                     }`}
                   >
                     <span
@@ -384,15 +408,21 @@ export default function MytaskViewTD() {
               </span>
               <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
-                {task.perferstart_time ||
-                task.perferend_time ||
-                task.start_time ||
-                task.due_time ||
-                task.end_time
-                  ? `${formatTimeAMPM(task.perferstart_time || task.start_time)} - ${formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)}`
-                  : "hh:mm AM/PM - hh:mm AM/PM"}
+                {task.perferstart_time || task.start_time
+                  ? formatTimeAMPM(task.perferstart_time || task.start_time)
+                  : "-NIL-"}
               </span>
             </div>
+            <div className="flex gap-2 text-sm">
+              <span className="text-black shrink-0 w-28">End Time</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">
+                {task.perferend_time || task.due_time || task.end_time
+                  ? formatTimeAMPM(task.perferend_time || task.due_time || task.end_time)
+                  : "-NIL-"}
+              </span>
+            </div>
+            
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
@@ -457,12 +487,42 @@ export default function MytaskViewTD() {
           </div>
         </div>
 
+        {/* Uploaded Work Display */}
+        {task.outputfilepath && task.outputfilepath.split(",").filter(Boolean).length > 0 && (
+          <div className="mt-6 border border-slate-200 rounded-xl p-6">
+            <h4 className="text-black text-md mb-4 font-semibold">Uploaded Work</h4>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {task.outputfilepath.split(",").filter(Boolean).map((filename, idx) => (
+                <div key={idx} className="group relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                  <a 
+                    href={getTaskImageUrl(filename)} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block w-full h-full"
+                  >
+                    <img 
+                      src={getTaskImageUrl(filename)} 
+                      alt={`Uploaded work ${idx + 1}`} 
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      onError={(e) => {
+                         (e.target as HTMLImageElement).src = ImageIcon;
+                         (e.target as HTMLImageElement).className = "w-10 h-10 m-auto mt-4 opacity-20";
+                      }}
+                    />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Task Description */}
         <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6">
           <h4 className=" text-black text-md mb-2">Task Description</h4>
           <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
             {task.description || "Event (Consultant Partnership)..."}
           </div>
+        </div>
         </div>
       </div>
     </div>

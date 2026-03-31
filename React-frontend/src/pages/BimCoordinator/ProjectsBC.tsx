@@ -1440,7 +1440,7 @@ export default function ProjectsBC() {
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Close"
               >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                <img src={backIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Add New Project
@@ -2078,14 +2078,14 @@ export default function ProjectsBC() {
                       setModuleNameTags([]);
                       setModuleNameInput("");
                     }}
-                    className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={createSubmitting}
-                    className={`w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] ${createSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                    className={`w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari ${createSubmitting ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                   >
                     {createSubmitting ? "Submitting..." : "Submit"}
                   </button>
@@ -2846,14 +2846,14 @@ export default function ProjectsBC() {
                       setEditTaskTags([]);
                       setEditTaskInput("");
                     }}
-                    className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#000000] font-semibold text-[16px] transition-all font-Gantari cursor-pointer"
                   >
                     Discard
                   </button>
                   <button
                     type="submit"
                     disabled={isEditSubmitting}
-                    className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari min-w-[160px]"
+                    className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] disabled:opacity-50 transition-all font-Gantari cursor-pointer"
                   >
                     {isEditSubmitting ? "Updating..." : "Update Project"}
                   </button>
@@ -2872,7 +2872,7 @@ export default function ProjectsBC() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Create Project
@@ -3280,7 +3280,7 @@ export default function ProjectsBC() {
                 <button
                   type="button"
                   onClick={() => setDeleteId(null)}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all "
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#E8E8E8] text-[#000000] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                 >
                   Discard
                 </button>
@@ -3298,7 +3298,7 @@ export default function ProjectsBC() {
                         setDeleteId(null);
                       });
                   }}
-                  className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all "
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                 >
                   Yes, Delete
                 </button>

@@ -85,6 +85,8 @@ function formatApiDate(value: string | undefined | null): string {
 
 export default function ManageLeave() {
     const { user } = useAuth();
+    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
 
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -145,7 +147,7 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user.full_name || 'Unknown'),
                     role: app.role || user.user_role || undefined,
                     email: app.email || user.email || undefined,
-                    leaveType: app.leave_type || app.title || othersValue,
+                    leaveType: app.type_name || app.title || othersValue,
                     leaveTypeId:
                         app.leave_type !== undefined && app.leave_type !== null
                             ? (() => {
@@ -219,11 +221,20 @@ export default function ManageLeave() {
         // allow "Others" (leaveTypeId can be 0)
         if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
+        if (leaveFrom < todayStr) {
+            alert('Leave From date cannot be in the past.');
+            return;
+        }
+        if (leaveTo < leaveFrom) {
+            alert('Leave To date must be after or on Leave From date.');
+            return;
+        }
+
         try {
             const payload: any = {
                 // Store the selected leave type text (frontend value) in DB.
                 // Backend will show it back via `tblleaves.leave_type` when holiday join doesn't match.
-                leavetype: leaveType,
+                leave_type: leaveType,
                 description: reason.trim(),
                 from_date: leaveFrom,
                 to_date: leaveTo,
@@ -261,7 +272,7 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user?.full_name || 'Unknown'),
                     role: app.role || user?.user_role || undefined,
                     email: app.email || user?.email || undefined,
-                    leaveType: app.leave_type || app.title || othersValue,
+                    leaveType: app.type_name || app.title || othersValue,
                     leaveTypeId:
                         app.leave_type !== undefined && app.leave_type !== null
                             ? (() => {
@@ -330,6 +341,15 @@ export default function ManageLeave() {
         e.preventDefault();
         if (!editingLeave || !leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
+        if (leaveFrom < todayStr) {
+            alert('Leave From date cannot be in the past.');
+            return;
+        }
+        if (leaveTo < leaveFrom) {
+            alert('Leave To date must be after or on Leave From date.');
+            return;
+        }
+
         try {
             const payload: any = {
                 leavetype: leaveType,
@@ -370,7 +390,7 @@ export default function ManageLeave() {
                     employeeName: app.full_name || (user?.full_name || 'Unknown'),
                     role: app.role || user?.user_role || undefined,
                     email: app.email || user?.email || undefined,
-                    leaveType: app.leave_type || app.title || 'Others',
+                    leaveType: app.type_name || app.title || 'Others',
                     appliedOn: formatApiDate(app.posting_date),
                     fromDate: formatApiDate(app.from_date),
                     toDate: formatApiDate(app.to_date),
@@ -410,7 +430,7 @@ export default function ManageLeave() {
                 employeeName: app.full_name || (user.full_name || 'Unknown'),
                 role: app.role || user.user_role || undefined,
                 email: app.email || user.email || undefined,
-                    leaveType: app.leave_type || app.title || othersValue,
+                    leaveType: app.type_name || app.title || othersValue,
                 leaveTypeId:
                     app.leave_type !== undefined && app.leave_type !== null
                         ? (() => {
@@ -724,6 +744,7 @@ export default function ManageLeave() {
                                     <input
                                         type="date"
                                         required
+                                        min={todayStr}
                                         value={leaveFrom}
                                         onChange={(e) => setLeaveFrom(e.target.value)}
                                         className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
@@ -747,6 +768,7 @@ export default function ManageLeave() {
                                     <input
                                         type="date"
                                         required
+                                        min={leaveFrom || todayStr}
                                         value={leaveTo}
                                         onChange={(e) => setLeaveTo(e.target.value)}
                                         className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
@@ -819,14 +841,14 @@ export default function ManageLeave() {
                             {/* Employee Name + Email (auto, disabled) */}
                             <div>
                                 <label className="block text-base font-medium text-gray-700 mb-1">
-                                    Employee Name &amp; Email
+                                    Employee Name
                                 </label>
                                 <input
                                     type="text"
                                     value={
                                         editingLeave
                                             ? `${editingLeave.employeeName}${
-                                                  editingLeave.email ? ` - ${editingLeave.email}` : ''
+                                                  editingLeave.role ? ` - ${editingLeave.role}` : ''
                                               }`
                                             : ''
                                     }
@@ -942,6 +964,7 @@ export default function ManageLeave() {
                                     <input
                                         type="date"
                                         required
+                                        min={todayStr}
                                         value={leaveFrom}
                                         onChange={(e) => setLeaveFrom(e.target.value)}
                                         className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"
@@ -965,6 +988,7 @@ export default function ManageLeave() {
                                     <input
                                         type="date"
                                         required
+                                        min={leaveFrom || todayStr}
                                         value={leaveTo}
                                         onChange={(e) => setLeaveTo(e.target.value)}
                                         className="w-full px-4 py-2.5 bg-[#F2F3F4] border border-gray-200 rounded-md text-sm text-[#353535] placeholder-[#8B8B8B] placeholder:text-sm focus:outline-none focus:ring-0 focus:border-[#D2D2D2] transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer appearance-none"

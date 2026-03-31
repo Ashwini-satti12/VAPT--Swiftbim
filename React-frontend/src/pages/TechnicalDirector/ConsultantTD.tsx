@@ -188,7 +188,7 @@ function CustomDropdown({
           ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
           : styleType === "table"
             ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
-            : `px-4 py-2 bg-[#E8E8E8] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
+            : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
         <span className={`whitespace-nowrap truncate overflow-hidden ${styleType === "header" || styleType === "form"
@@ -1279,7 +1279,7 @@ export default function ConsultantTD() {
               {/* Access Control Section */}
               <div className="mt-8">
                 <label className="block text-[18px] font-semibold text-[#000000] mb-4 font-Gantari">Select Panel Access Control</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F9F9F9] rounded-[10px]">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-4 gap-x-6 p-6 bg-[#F2F3F4] rounded-[10px]">
                   {PANEL_ACCESS_OPTIONS.map((role) => (
                     <div key={role} className="flex items-center gap-3">
                       <div

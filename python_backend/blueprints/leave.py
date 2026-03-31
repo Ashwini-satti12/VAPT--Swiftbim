@@ -82,7 +82,12 @@ def list_applications():
                         WHEN holiday.id IS NOT NULL THEN holiday.title
                         WHEN tblleaves.leave_type IS NULL OR tblleaves.leave_type = '' OR tblleaves.leave_type = '0' THEN 'Others'
                         ELSE tblleaves.leave_type
-                    END AS title
+                    END AS title,
+                    CASE
+                        WHEN holiday.id IS NOT NULL THEN holiday.title
+                        WHEN tblleaves.leave_type IS NULL OR tblleaves.leave_type = '' OR tblleaves.leave_type = '0' THEN 'Others'
+                        ELSE tblleaves.leave_type
+                    END AS type_name
              FROM tblleaves
              JOIN employee ON tblleaves.empid = employee.id
              LEFT JOIN holiday ON tblleaves.leave_type = holiday.id

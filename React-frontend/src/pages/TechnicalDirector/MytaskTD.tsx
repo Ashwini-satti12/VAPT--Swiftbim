@@ -17,6 +17,7 @@ import Arrow from "../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../assets/ProjectManager/MyTask/Dot.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import AddBtn from "../../assets/TechnicalDirector/add btn.svg";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId =
@@ -119,10 +120,10 @@ export function FormDropdown({
   const filteredOptions =
     searchable && q
       ? options.filter(
-          (opt) =>
-            opt.label.toLowerCase().includes(q) ||
-            String(opt.value).toLowerCase().includes(q),
-        )
+        (opt) =>
+          opt.label.toLowerCase().includes(q) ||
+          String(opt.value).toLowerCase().includes(q),
+      )
       : options;
 
   const displayLabel = value
@@ -137,7 +138,7 @@ export function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-[14px] cursor-pointer"
+        className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -148,7 +149,7 @@ export function FormDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 h-5 w-5 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -227,19 +228,19 @@ export function TaskDropdown({
   const q = (searchQuery || "").trim().toLowerCase();
   const filteredOptions = searchable
     ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first &&
-          (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "")
-            .trim()
-            .toLowerCase();
-          return name.includes(q);
-        });
-      })()
+      if (!q) return options;
+      const first = options[0];
+      const isPlaceholderOption = (o: string) =>
+        o === first &&
+        (first === "Select Employee" || first === "Select Projects");
+      return options.filter((opt) => {
+        if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+        const name = String(opt ?? "")
+          .trim()
+          .toLowerCase();
+        return name.includes(q);
+      });
+    })()
     : options;
 
   const listMaxHeight = `${maxVisibleItems * 40}px`;
@@ -273,7 +274,7 @@ export function TaskDropdown({
         <img
           src={ArrowDown}
           alt="arrow"
-          className={`ml-2 w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       {isOpen && (
@@ -436,6 +437,8 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
+  perferstart_time?: string;
+  perferend_time?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -476,9 +479,9 @@ export function taskToFormValues(task: Task | Record<string, unknown>): {
     ),
     actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
     startTime: timeOnly(
-      t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
+      t.perferstart_time ?? t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
     ),
-    dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
+    dueTime: timeOnly(t.perferend_time ?? t.due_time ?? t.dueTime ?? t.end_time ?? ""),
     assignTo: str(
       t.assigned_full_name ?? t.assign_to ?? t.assignTo ?? t.assigned_to ?? "",
     ),
@@ -571,7 +574,7 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
@@ -669,9 +672,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -705,9 +708,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -743,10 +746,10 @@ function TaskCard({
           className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2"
         >
           Details
-          <img 
-            src={Arrow} 
-            alt="Arrow" 
-            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]" 
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
           />
         </Link>
       </div>
@@ -942,7 +945,7 @@ export default function MytaskTD() {
           (task as Task & { projectid?: number; project_id?: number })
             ?.project_id,
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   useEffect(() => {
@@ -1029,7 +1032,11 @@ export default function MytaskTD() {
     ])
       .then(([tasksRes, empRes, projRes]) => {
         setList(tasksRes.data.tasks ?? []);
-        setEmployees(empRes.data.employees ?? []);
+        setEmployees(
+          (empRes.data.employees ?? []).filter(
+            isEmployeeActiveForProjectAssignment,
+          ),
+        );
         setProjects(projRes.data.projects ?? []);
       })
       .catch(() => {
@@ -1360,7 +1367,7 @@ export default function MytaskTD() {
                   />
                 </svg>
               </button>
-              <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+              <h3 className="flex-1 text-center text-[18px] font-semibold text-[#353535]">
                 Delete Task
               </h3>
               <div className="w-9" />

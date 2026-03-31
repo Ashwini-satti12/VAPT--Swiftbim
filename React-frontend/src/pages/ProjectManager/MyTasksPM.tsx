@@ -6,6 +6,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import api from "../../lib/api";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg"
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg"
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg"
@@ -572,7 +573,7 @@ export default function MyTasksPM() {
   }, [openDropdown]);
 
   useEffect(() => {
-    api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees(res.data.employees || []));
+    api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
     api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
   }, []);
 

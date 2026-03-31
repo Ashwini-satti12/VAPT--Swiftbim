@@ -177,7 +177,7 @@ export default function ManageLeavePM() {
           slNo: index + 1,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
-          leaveType: app.title || app.leave_type || "Others",
+          leaveType: app.type_name || app.title || app.leave_type || "Others",
           leaveTypeId:
             app.leave_type !== undefined && app.leave_type !== null
               ? Number(app.leave_type)
@@ -345,7 +345,7 @@ export default function ManageLeavePM() {
           slNo: index + 1,
           employeeName: app.full_name || "Unknown",
           role: app.role || undefined,
-          leaveType: app.title || app.leave_type || "Others",
+          leaveType: app.type_name || app.title || app.leave_type || "Others",
           leaveTypeId:
             app.leave_type !== undefined && app.leave_type !== null
               ? Number(app.leave_type)

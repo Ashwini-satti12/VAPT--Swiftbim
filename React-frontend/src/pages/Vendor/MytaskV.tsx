@@ -810,7 +810,7 @@ export default function MytaskV() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate(`/tasks/${task.id}`);
+    navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
   };
 
   const confirmDeleteTask = () => {
