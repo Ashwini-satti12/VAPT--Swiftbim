@@ -261,9 +261,9 @@ export default function AddTaskTD() {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
-            <div className="max-w-[1174px] mx-auto">
-                <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+        <div className="flex-1 min-h-0 p-2 bg-white overflow-hidden">
+            <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
+                <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
                     <button
                         type="button"
                         onClick={goBack}
@@ -278,18 +278,19 @@ export default function AddTaskTD() {
                     <div className="w-10" />
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {addError && (
-                        <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                            <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
-                                !
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {addError && (
+                            <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
+                                <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold">
+                                    !
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[13px] leading-snug">{addError}</p>
+                                </div>
                             </div>
-                            <div className="flex-1">
-                                <p className="text-[13px] leading-snug">{addError}</p>
-                            </div>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
                         <div className="md:col-span-2">
                             <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Project Name <span className="text-[#DD4342]">*</span></label>
                             <FormDropdown
@@ -556,24 +557,25 @@ export default function AddTaskTD() {
                                 </ul>
                             )}
                         </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
-                        <button
-                            type="button"
-                            onClick={goBack}
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
-                        >
-                            Discard
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={addSubmitting}
-                            className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
-                        >
-                            {addSubmitting ? "Submitting..." : "Submit"}
-                        </button>
-                    </div>
-                </form>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center pt-8">
+                            <button
+                                type="button"
+                                onClick={goBack}
+                                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={addSubmitting}
+                                className="w-full sm:w-auto px-12 py-2 rounded-lg bg-[#DBE9FE] text-[#101827] font-semibold text-[16px] transition-all font-Gantari min-w-[160px] cursor-pointer disabled:opacity-50"
+                            >
+                                {addSubmitting ? "Submitting..." : "Submit"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
             <AttachmentPreviewModal
                 file={attachmentPreviewFile}

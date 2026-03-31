@@ -526,7 +526,12 @@ export function TaskCard({
                 : status === "in_progress"
                     ? 50
                     : 100;
-    const dateRange = formatDateRange(task.start_date, task.due_date);
+    const startStr = (task.start_date || task.Actual_start_time)
+        ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+        : "—";
+    const endStr = task.due_date
+        ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+        : "";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -551,7 +556,7 @@ export function TaskCard({
         <div
             draggable
             onDragStart={handleDragStart}
-            className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative cursor-grab active:cursor-grabbing"
+            className="rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative cursor-grab active:cursor-grabbing"
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <span
@@ -560,7 +565,7 @@ export function TaskCard({
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
                     {style.label}
                 </span>
-                <div className="relative" ref={menuRef}>
+                <div className="relative shrink-0" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -568,7 +573,7 @@ export function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                        className="p-1 rounded cursor-pointer leading-none"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -576,7 +581,7 @@ export function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-0 top-full mt-2 z-[100] min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all origin-top-right overflow-hidden"
+                            className="absolute right-0 top-full mt-2 z-[100] min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all origin-top-right overflow-hidden"
                             role="menu"
                         >
                             <button
@@ -593,7 +598,7 @@ export function TaskCard({
                                     alt="view"
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                 </span>
                             </button>
@@ -611,7 +616,7 @@ export function TaskCard({
                                     alt="edit"
                                     className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Edit
                                 </span>
                             </button>
@@ -629,7 +634,7 @@ export function TaskCard({
                                     alt="delete"
                                     className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     Delete
                                 </span>
                             </button>
@@ -637,10 +642,19 @@ export function TaskCard({
                     )}
                 </div>
             </div>
-            <h4 className="font-semibold text-slate-900 text-sm mb-1">
+            <h4 className="font-semibold text-[#353535] text-[20px] truncate mb-2">
                 {task.task_name || "Task Name"}
             </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-col">
+                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">{startStr}</span>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
+                </div>
+            </div>
             <div className="flex items-center justify-between gap-2 mb-1">
                 <span className="text-xs text-slate-600">Progress</span>
                 <span className="text-xs font-medium text-slate-700">{progress}%</span>
@@ -722,10 +736,14 @@ export function TaskCard({
                 <Link
                     to={`/tasks/${task.id}`}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
                 </Link>
             </div>
         </div>
