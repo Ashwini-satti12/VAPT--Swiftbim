@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
+import { COUNTRY_CODES, getPhoneLength } from "../../utils/countryCodes";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import pmprofilebg from "../../assets/ProjectManager/consultant/pmprofilebg.jpg";
@@ -159,6 +160,8 @@ export default function ResourcesV() {
   const [activeView, setActiveView] = useState<
     "list" | "add" | "edit" | "invite" | "inactive"
   >("list");
+  const [countryCode, setCountryCode] = useState("+91");
+  const [editCountryCode, setEditCountryCode] = useState("+91");
   const [list, setList] = useState<Employee[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
   const [addSubmitting, _setAddSubmitting] = useState(false);
@@ -288,10 +291,24 @@ export default function ResourcesV() {
       if (emp) {
         setEditId(id);
         setActiveView("edit");
+
+        let savedPhone = emp.phone_number || "";
+        let foundCode = "+91";
+        let phoneWithoutCode = savedPhone;
+
+        for (const c of COUNTRY_CODES) {
+          if (savedPhone.startsWith(c)) {
+            foundCode = c;
+            phoneWithoutCode = savedPhone.slice(c.length);
+            break;
+          }
+        }
+        setEditCountryCode(foundCode);
+
         setEditForm({
           full_name: emp.full_name,
           email: emp.email,
-          phone_number: emp.phone_number || "",
+          phone_number: phoneWithoutCode,
           user_role: emp.user_role || "",
           department: emp.department || "",
           address: emp.address || "",
@@ -391,6 +408,16 @@ export default function ResourcesV() {
     e.preventDefault();
     if (!editId) return;
     setEditSubmitting(true);
+    const cleanPhone = editForm.phone_number.replace(/\D/g, "");
+    const expectedLength = getPhoneLength(editCountryCode);
+    if (!cleanPhone || cleanPhone.length !== expectedLength) {
+      setAddError(
+        `Phone number must be exactly ${expectedLength} digits for ${editCountryCode}.`,
+      );
+      setEditSubmitting(false);
+      return;
+    }
+
     api
       .post<{ success: boolean; message?: string; email_sent?: boolean }>(
         `/api/vendors/profile/resource-profiles/${editId}/assign-login`,
@@ -398,7 +425,7 @@ export default function ResourcesV() {
           email: editForm.email.trim(),
           role: editForm.user_role,
           full_name: editForm.full_name.trim(),
-          phone_number: editForm.phone_number.trim(),
+          phone_number: `${editCountryCode}${cleanPhone}`,
           // When editing, treat the password field as the login password
           // for this resource. If left blank, backend will keep the
           // existing password instead of changing it.
@@ -1079,25 +1106,49 @@ export default function ResourcesV() {
                       <label className="block text-[16px] font-medium font-gantari text-[#000000] mb-2">
                         Phone
                       </label>
-                      <input
-                        type="text"
-                        placeholder="+1 234 567 890"
-                        placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
-                        value={
-                          activeView === "add"
-                            ? form.phone_number
-                            : editForm.phone_number
-                        }
-                        onChange={(e) =>
-                          activeView === "add"
-                            ? setForm({ ...form, phone_number: e.target.value })
-                            : setEditForm({
-                                ...editForm,
-                                phone_number: e.target.value,
-                              })
-                        }
-                        className="w-full px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
-                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={
+                            activeView === "add"
+                              ? countryCode
+                              : editCountryCode
+                          }
+                          onChange={(e) =>
+                            activeView === "add"
+                              ? setCountryCode(e.target.value)
+                              : setEditCountryCode(e.target.value)
+                          }
+                          className="w-[70px] px-3 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium"
+                        >
+                          {COUNTRY_CODES.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="1234567890"
+                          placeholder-class="text-[#353535] text-[14px] font-medium font-gantari"
+                          value={
+                            activeView === "add"
+                              ? form.phone_number
+                              : editForm.phone_number
+                          }
+                          onChange={(e) =>
+                            activeView === "add"
+                              ? setForm({
+                                  ...form,
+                                  phone_number: e.target.value,
+                                })
+                              : setEditForm({
+                                  ...editForm,
+                                  phone_number: e.target.value,
+                                })
+                          }
+                          className="flex-1 px-5 py-3 bg-[#F2F3F4] rounded-md border border-[#F2F2F2] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#AEACAC52] text-[#353535] text-[14px] font-medium transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="col-span-full">

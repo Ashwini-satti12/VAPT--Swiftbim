@@ -31,7 +31,7 @@ interface Employee {
 }
 
 export default function VendorBimLeadCreateTeam() {
-    const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
     const [teams, setTeams] = useState<Team[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -43,10 +43,12 @@ export default function VendorBimLeadCreateTeam() {
     });
     const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
     const [memberDropdownOpen, setMemberDropdownOpen] = useState(false);
+    const [leaderDropdownOpen, setLeaderDropdownOpen] = useState(false);
     const [createSubmitting, setCreateSubmitting] = useState(false);
 
     const [openMenuTeamId, setOpenMenuTeamId] = useState<number | null>(null);
     const [selectedShow, setSelectedShow] = useState<string>("Show");
+    const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
     const fetchData = () => {
         setLoading(true);
@@ -118,22 +120,35 @@ export default function VendorBimLeadCreateTeam() {
                     </h2>
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <select
-                                value={selectedShow}
-                                onChange={(e) => setSelectedShow(e.target.value)}
-                                className="appearance-none rounded-md bg-[#E8E8E8] px-4 py-2 pr-8 text-sm text-[#353535] cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={() => setShowDropdownOpen(!showDropdownOpen)}
+                                className="flex items-center gap-4 rounded-md bg-[#E8E8E8] px-4 py-2 text-sm text-[#353535] cursor-pointer min-w-[100px] justify-between"
                             >
-                                {SHOW_OPTIONS.map((o) => (
-                                    <option key={o} value={o}>
-                                        {o}
-                                    </option>
-                                ))}
-                            </select>
-                            <img
-                                src={ArrowDown}
-                                alt="arrow"
-                                className="pointer-events-none absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2"
-                            />
+                                <span>{selectedShow}</span>
+                                <img
+                                    src={ArrowDown}
+                                    alt="arrow"
+                                    className={`h-2.5 w-2.5 transition-transform ${showDropdownOpen ? "rotate-180" : ""}`}
+                                />
+                            </button>
+                            {showDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {SHOW_OPTIONS.map((o) => (
+                                        <button
+                                            key={o}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedShow(o);
+                                                setShowDropdownOpen(false);
+                                            }}
+                                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-[#F2F2F2] ${selectedShow === o ? "bg-[#F2F2F2] text-[#353535] font-bold" : "text-[#353535]"}`}
+                                        >
+                                            {o}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
@@ -206,7 +221,7 @@ export default function VendorBimLeadCreateTeam() {
                             </div>
 
                             <div className="mt-auto flex items-center justify-end">
-                                <button className="text-[13px] font-bold text-[#DD4342] hover:underline transition-all">View Details</button>
+                                <button className="text-[13px] font-bold text-[#DD4342] hover:underline transition-all cursor-pointer">View Details</button>
                             </div>
                         </div>
                     ))
@@ -222,126 +237,140 @@ export default function VendorBimLeadCreateTeam() {
                             <div className="flex items-center justify-between mb-8">
                                 <button
                                     onClick={() => setShowCreateModal(false)}
-                                    className="p-2.5 rounded-xl transition-colors bg-[#F2F3F4] text-gray-500 hover:bg-gray-200"
+                                    className="p-2.5 rounded-xl transition-colors bg-[#F2F3F4] text-gray-500 hover:bg-gray-200 cursor-pointer"
                                     aria-label="Close"
                                 >
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
-                                <h3 className="text-[24px] font-bold text-[#1E293B]">New Team</h3>
+                                <h3 className="text-[24px] font-bold text-[#1E293B]">Create New Team</h3>
                                 <div className="w-10" />
                             </div>
                             <form onSubmit={handleCreate} className="space-y-6">
                                 <div className="space-y-2">
-                                    <label className="text-[16px] font-medium text-[#000000] block">Team Name *</label>
+                                    <label className="text-[16px] font-medium text-[#000000] block">Team Name</label>
                                     <input
                                         type="text"
                                         value={createForm.team_name}
                                         onChange={e => setCreateForm({ ...createForm, team_name: e.target.value })}
                                         required
                                         className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] placeholder-[#8B8B8B] focus:outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all"
-                                        placeholder="Enter team name"
+                                        placeholder="Enter Team Name"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2 relative">
-                                        <label className="text-[16px] font-medium text-[#000000] block">Project</label>
-                                        <div className="relative">
-                                            <select
-                                                value={createForm.project_id}
-                                                onChange={e => setCreateForm({ ...createForm, project_id: e.target.value })}
-                                                className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] appearance-none outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all cursor-pointer"
-                                            >
-                                                <option value="" className="text-[#8B8B8B]">Select Project</option>
-                                                {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
-                                            </select>
-                                            <img src={ArrowDown} alt="arrow" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 relative">
-                                        <label className="text-[16px] font-medium text-[#000000] block">Team/Department</label>
-                                        <div className="relative">
-                                            <select
-                                                className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] appearance-none outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all cursor-pointer"
-                                            >
-                                                <option value="" className="text-[#8B8B8B]">Select Team</option>
-                                            </select>
-                                            <img src={ArrowDown} alt="arrow" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
-                                        </div>
+
+                                <div className="space-y-2 relative">
+                                    <label className="text-[16px] font-medium text-[#000000] block">Select Project</label>
+                                    <div className="relative">
+                                        <select
+                                            value={createForm.project_id}
+                                            onChange={e => setCreateForm({ ...createForm, project_id: e.target.value })}
+                                            className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] appearance-none outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all cursor-pointer"
+                                        >
+                                            <option value="" className="text-[#8B8B8B]">Select Project</option>
+                                            {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
+                                        </select>
+                                        <img src={ArrowDown} alt="arrow" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2 relative">
-                                        <label className="text-[16px] font-medium text-[#000000] block">Assign To</label>
-                                        <div className="relative">
-                                            <select
-                                                value={createForm.leader_id}
-                                                onChange={e => setCreateForm({ ...createForm, leader_id: e.target.value })}
-                                                className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] appearance-none outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all cursor-pointer"
-                                            >
-                                                <option value="" className="text-[#8B8B8B]">Select Leader</option>
-                                                {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name}</option>)}
-                                            </select>
-                                            <img src={ArrowDown} alt="arrow" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 relative">
-                                        <label className="text-[16px] font-medium text-[#000000] block">Members</label>
-                                        <div
-                                            onClick={() => setMemberDropdownOpen(!memberDropdownOpen)}
-                                            className="w-full px-4 py-2 bg-[#F2F3F4] rounded-xl min-h-[40px] cursor-pointer flex flex-wrap gap-2 items-center transition-all hover:bg-gray-200 border border-transparent focus-within:border-[#F2F2F2]"
+
+                                <div className="space-y-2 relative">
+                                    <label className="text-[16px] font-medium text-[#000000] block">Select Team Leader</label>
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setLeaderDropdownOpen(!leaderDropdownOpen)}
+                                            className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] flex items-center justify-between outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all cursor-pointer"
                                         >
-                                            {selectedMemberIds.length === 0 ? (
-                                                <span className="text-[#8B8B8B] text-[14px]">Select team members</span>
-                                            ) : (
-                                                selectedMemberIds.map(id => (
-                                                    <span key={id} className="bg-white px-2 py-0.5 rounded-md text-[12px] font-bold text-[#353535] shadow-sm flex items-center gap-1.5 border border-gray-100">
-                                                        {getEmployeeName(id)}
-                                                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-500 font-bold">×</button>
-                                                    </span>
-                                                ))
-                                            )}
-                                        </div>
-                                        {memberDropdownOpen && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-3 z-50 max-h-[200px] overflow-y-auto custom-scrollbar">
-                                                {employees.map(emp => (
-                                                    <div key={emp.id} onClick={() => toggleMember(emp.id)}
-                                                        className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group">
-                                                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedMemberIds.includes(emp.id) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-gray-200 group-hover:border-[#DD4342]'}`}>
-                                                            {selectedMemberIds.includes(emp.id) && <span className="text-white text-xs font-bold">✓</span>}
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-700">{emp.full_name}</span>
-                                                    </div>
+                                            <span className={!createForm.leader_id ? "text-[#8B8B8B]" : ""}>
+                                                {getEmployeeName(createForm.leader_id) || "Select Team Leader"}
+                                            </span>
+                                            <img
+                                                src={ArrowDown}
+                                                alt="arrow"
+                                                className={`h-4 w-4 opacity-60 transition-transform ${leaderDropdownOpen ? "rotate-180" : ""}`}
+                                            />
+                                        </button>
+                                        {leaderDropdownOpen && (
+                                            <div className="absolute top-full left-0 right-0 z-[210] mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 max-h-40 overflow-y-auto custom-scrollbar">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCreateForm({ ...createForm, leader_id: "" });
+                                                        setLeaderDropdownOpen(false);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-[#8B8B8B] hover:bg-[#F2F2F2]"
+                                                >
+                                                    Select Team Leader
+                                                </button>
+                                                {employees.map((emp) => (
+                                                    <button
+                                                        key={emp.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCreateForm({ ...createForm, leader_id: emp.id.toString() });
+                                                            setLeaderDropdownOpen(false);
+                                                        }}
+                                                        className={`block w-full text-left px-4 py-2 text-sm hover:bg-[#F2F2F2] ${createForm.leader_id === emp.id.toString() ? "bg-[#F2F2F2] font-bold" : "text-[#353535]"}`}
+                                                    >
+                                                        {emp.full_name}
+                                                    </button>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[16px] font-medium text-[#000000] block">Description</label>
-                                    <textarea
-                                        value={createForm.description}
-                                        onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
-                                        rows={3}
-                                        className="w-full px-4 py-2 bg-[#F2F3F4] border border-transparent rounded-xl text-[14px] text-[#353535] placeholder-[#8B8B8B] resize-none outline-none focus:border-[#F2F2F2] focus:ring-1 focus:ring-[#F2F2F2] transition-all"
-                                        placeholder="Team description..."
-                                    />
+
+                                <div className="space-y-2 relative">
+                                    <label className="text-[16px] font-medium text-[#000000] block">Select Member</label>
+                                    <div
+                                        onClick={() => setMemberDropdownOpen(!memberDropdownOpen)}
+                                        className="w-full px-4 py-2 bg-[#F2F3F4] rounded-xl min-h-[40px] cursor-pointer flex flex-wrap gap-2 items-center justify-between transition-all hover:bg-gray-200 border border-transparent focus-within:border-[#F2F2F2]"
+                                    >
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedMemberIds.length === 0 ? (
+                                                <span className="text-[#8B8B8B] text-[14px]">Select Member</span>
+                                            ) : (
+                                                selectedMemberIds.map(id => (
+                                                    <span key={id} className="bg-white px-2 py-0.5 rounded-md text-[12px] font-bold text-[#353535] shadow-sm flex items-center gap-1.5 border border-gray-100">
+                                                        {getEmployeeName(id)}
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleMember(id); }} className="hover:text-red-500 font-bold cursor-pointer">×</button>
+                                                    </span>
+                                                ))
+                                            )}
+                                        </div>
+                                        <img src={ArrowDown} alt="arrow" className="h-4 w-4 opacity-60" />
+                                    </div>
+                                    {memberDropdownOpen && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 p-3 z-50 max-h-40 overflow-y-auto custom-scrollbar">
+                                            {employees.map(emp => (
+                                                <div key={emp.id} onClick={() => toggleMember(emp.id)}
+                                                    className="flex items-center gap-3 p-2.5 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors group">
+                                                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${selectedMemberIds.includes(emp.id) ? 'bg-[#DD4342] border-[#DD4342]' : 'border-gray-200 group-hover:border-[#DD4342]'}`}>
+                                                        {selectedMemberIds.includes(emp.id) && <span className="text-white text-xs font-bold">✓</span>}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-gray-700">{emp.full_name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex gap-4 pt-4">
+
+                                <div className="flex justify-center gap-4 pt-4">
                                     <button
                                         type="button"
                                         onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F3F4] text-[#475569] rounded-xl font-bold hover:bg-gray-200 transition-colors"
+                                        className="px-10 py-2 bg-[#F2F2F2] text-[#353535] rounded-lg font-bold hover:bg-gray-200 transition-colors cursor-pointer"
                                     >
-                                        Cancel
+                                        Discard
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={createSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50"
+                                        className="px-10 py-2 bg-[#DBE9FE] text-[#353535] rounded-lg font-bold hover:bg-blue-200 transition-all disabled:opacity-50 cursor-pointer"
                                     >
-                                        {createSubmitting ? "Creating..." : "Create Team"}
+                                        {createSubmitting ? "Submitting..." : "Submit"}
                                     </button>
                                 </div>
                             </form>

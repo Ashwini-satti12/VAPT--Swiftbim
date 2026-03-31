@@ -277,7 +277,7 @@ function App() {
             <Route path="v/tracker" element={<TrackerV />} />
             <Route path="v/teamreport" element={<TeamReportV />} />
             <Route path="v/chat" element={<ChatV />} />
-            <Route path="v/mytasks/view" element={<MytaskViewV />} />
+            <Route path="v/mytasks/view/:id" element={<MytaskViewV />} />
             <Route path="v/company-profile" element={<CompanyProfileV />} />
             <Route path="v/company-profile/edit" element={<CompanyProfileEditV />} />
             <Route path="v/milestones" element={<MilestonesV />} />

@@ -100,14 +100,19 @@ export default function TimesheetPM() {
 
   // Calculate task duration from start_time, end_time, Pause, and restart
   const calculateDuration = (entry: TimesheetEntry): string => {
-    if (!entry.start_time || !entry.end_time) return "-";
+    // Only use tracked time (start_time and end_time). 
+    // Fallbacks like Actual_start_time and due_date lead to incorrect, huge durations for tasks that haven't been tracked.
+    if (!entry.start_time || !entry.end_time) return "00:00:00";
 
     try {
       const start = new Date(entry.start_time);
       const end = new Date(entry.end_time);
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) return "00:00:00";
+
       let totalSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
 
-      // Subtract pause time and add restart time
+      // Subtract pause time and add restart time (these are seconds from the backend)
       const pauseSeconds = entry.Pause || 0;
       const restartSeconds = entry.restart || 0;
       totalSeconds = totalSeconds - pauseSeconds + restartSeconds;

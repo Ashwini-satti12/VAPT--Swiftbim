@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../../../lib/api";
 import { toast } from "react-hot-toast";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
@@ -43,13 +43,19 @@ export default function VendorBimLeadTasks() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedShow, setSelectedShow] = useState("Show");
+    const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
         task_name: "", description: "", status: "To Do", priority: "Medium",
-        due_date: "", project_id: "", assigned_to: "", category: "General"
+        due_date: "", project_id: "", assigned_to: "", category: "General",
+        actual_start_date: "", actual_end_date: "", checklist: "",
+        start_time: "", end_time: ""
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
+    const [openFormDropdown, setOpenFormDropdown] = useState<string | null>(null);
+    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
 
     const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
@@ -77,7 +83,13 @@ export default function VendorBimLeadTasks() {
         api.post("/api/vendors/vendor-tasks", createForm)
             .then(() => {
                 setShowCreateModal(false);
-                setCreateForm({ task_name: "", description: "", status: "To Do", priority: "Medium", due_date: "", project_id: "", assigned_to: "", category: "General" });
+                setAttachmentFiles([]);
+                setCreateForm({
+                    task_name: "", description: "", status: "To Do", priority: "Medium",
+                    due_date: "", project_id: "", assigned_to: "", category: "General",
+                    actual_start_date: "", actual_end_date: "", checklist: "",
+                    start_time: "", end_time: ""
+                });
                 fetchTasks();
             })
             .finally(() => setCreateSubmitting(false));
@@ -95,6 +107,15 @@ export default function VendorBimLeadTasks() {
             });
     };
 
+    const deleteAttachment = (index: number) => {
+        setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        setAttachmentFiles((prev) => [...prev, ...files]);
+    };
+
     const handleDelete = (taskId: number) => {
         if (!window.confirm("Are you sure you want to delete this task?")) return;
         api.delete(`/api/vendors/vendor-tasks/${taskId}`)
@@ -106,7 +127,7 @@ export default function VendorBimLeadTasks() {
     };
 
     const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
-    const SHOW_OPTIONS = ["Show", "10", "50", "100", "All"];
+    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
         Medium: "text-orange-600 bg-orange-50 border-orange-100",
@@ -158,22 +179,35 @@ export default function VendorBimLeadTasks() {
                     <h2 className="text-[24px] font-semibold text-slate-800">Tasks</h2>
                     <div className="flex items-center gap-2">
                         <div className="relative">
-                            <select
-                                value={selectedShow}
-                                onChange={(e) => setSelectedShow(e.target.value)}
-                                className="appearance-none rounded-md bg-[#E8E8E8] px-4 py-2 pr-8 text-sm text-[#353535] cursor-pointer"
+                            <button
+                                type="button"
+                                onClick={() => setShowDropdownOpen(!showDropdownOpen)}
+                                className="flex items-center gap-4 rounded-md bg-[#E8E8E8] px-4 py-2 text-sm text-[#353535] cursor-pointer min-w-[100px] justify-between"
                             >
-                                {SHOW_OPTIONS.map((o) => (
-                                    <option key={o} value={o}>
-                                        {o}
-                                    </option>
-                                ))}
-                            </select>
-                            <img
-                                src={ArrowDown}
-                                alt="arrow"
-                                className="pointer-events-none absolute right-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2"
-                            />
+                                <span>{selectedShow}</span>
+                                <img
+                                    src={ArrowDown}
+                                    alt="arrow"
+                                    className={`h-2.5 w-2.5 transition-transform ${showDropdownOpen ? "rotate-180" : ""}`}
+                                />
+                            </button>
+                            {showDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-lg shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                    {SHOW_OPTIONS.map((o) => (
+                                        <button
+                                            key={o}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedShow(o);
+                                                setShowDropdownOpen(false);
+                                            }}
+                                            className={`block w-full text-left px-4 py-2 text-sm hover:bg-[#F2F2F2] ${selectedShow === o ? "bg-[#F2F2F2] text-[#353535] font-bold" : "text-[#353535]"}`}
+                                        >
+                                            {o}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
@@ -319,66 +353,262 @@ export default function VendorBimLeadTasks() {
             {/* Create Task Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[550px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                            <div className="flex justify-between items-center mb-8">
-                                <h3 className="text-[22px] font-bold text-[#1E293B]">New Task</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2]">
-                                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                            <div className="flex items-center justify-between mb-8 relative border-b border-gray-100 pb-4">
+                                <button onClick={() => setShowCreateModal(false)} className="p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors cursor-pointer">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
+                                <h3 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-black">Add New Task</h3>
+                                <div className="w-9" />
                             </div>
-                            <form onSubmit={handleCreate} className="space-y-5">
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Task Name *</label>
-                                    <input type="text" value={createForm.task_name} onChange={e => setCreateForm({ ...createForm, task_name: e.target.value })} required
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] text-[#1E293B] font-medium" placeholder="Enter task name" />
+                            <form onSubmit={handleCreate} className="space-y-4">
+                                <div className="relative">
+                                    <label className="block text-sm font-semibold text-black mb-1">Project Name</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenFormDropdown(openFormDropdown === "project" ? null : "project")}
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                    >
+                                        <span>{projects.find(p => p.id.toString() === createForm.project_id)?.project_name || "Select Project name"}</span>
+                                        <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`} />
+                                    </button>
+                                    {openFormDropdown === "project" && (
+                                        <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                            {projects.map((p) => (
+                                                <button
+                                                    key={p.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCreateForm({ ...createForm, project_id: p.id.toString() });
+                                                        setOpenFormDropdown(null);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                >
+                                                    {p.project_name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                        <select value={createForm.project_id} onChange={e => setCreateForm({ ...createForm, project_id: e.target.value })}
-                                            className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
-                                            <option value="">Select Project</option>
-                                            {projects.map(p => <option key={p.id} value={p.id}>{p.project_name}</option>)}
-                                        </select>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <label className="block text-sm font-semibold text-black mb-1">Select Module</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "module" ? null : "module")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span>{createForm.category || "Select Module"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "module" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "module" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {["Module 1", "Module 2"].map((m) => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCreateForm({ ...createForm, category: m });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {m}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Assign To</label>
-                                        <select value={createForm.assigned_to} onChange={e => setCreateForm({ ...createForm, assigned_to: e.target.value })}
-                                            className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
-                                            <option value="">Select Employee</option>
-                                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.full_name}</option>)}
-                                        </select>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Task Name</label>
+                                        <div className="flex">
+                                            <input
+                                                type="text"
+                                                value={createForm.task_name}
+                                                onChange={(e) => setCreateForm({ ...createForm, task_name: e.target.value })}
+                                                placeholder="Enter Task / Select Task"
+                                                className="flex-1 px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-l-sm text-sm focus:outline-none"
+                                                required
+                                            />
+                                            <button type="button" className="bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] rounded-r-sm hover:bg-gray-300 cursor-pointer">Tasklist</button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Priority</label>
-                                        <select value={createForm.priority} onChange={e => setCreateForm({ ...createForm, priority: e.target.value })}
-                                            className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium appearance-none">
-                                            <option value="Low">Low</option>
-                                            <option value="Medium">Medium</option>
-                                            <option value="High">High</option>
-                                            <option value="Urgent">Urgent</option>
-                                        </select>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="relative">
+                                        <label className="block text-sm font-semibold text-black mb-1">Type</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "type" ? null : "type")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span>{createForm.priority ? createForm.priority.charAt(0).toUpperCase() + createForm.priority.slice(1) : "Select Type"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "type" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "type" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {[
+                                                    { value: "task", label: "Task" },
+                                                    { value: "bug", label: "Bug" },
+                                                    { value: "feature", label: "Feature" }
+                                                ].map((t) => (
+                                                    <button
+                                                        key={t.value}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCreateForm({ ...createForm, priority: t.value });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {t.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[14px] font-bold text-[#475569] block">Due Date</label>
-                                        <input type="date" value={createForm.due_date} onChange={e => setCreateForm({ ...createForm, due_date: e.target.value })}
-                                            className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium" />
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Actual Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={createForm.actual_start_date}
+                                            onChange={(e) => setCreateForm({ ...createForm, actual_start_date: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Actual End Date</label>
+                                        <input
+                                            type="date"
+                                            value={createForm.actual_end_date}
+                                            onChange={(e) => setCreateForm({ ...createForm, actual_end_date: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[14px] font-bold text-[#475569] block">Description</label>
-                                    <textarea value={createForm.description} onChange={e => setCreateForm({ ...createForm, description: e.target.value })} rows={3}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg text-[#1E293B] font-medium resize-none" placeholder="Task description..." />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Select Start Time</label>
+                                        <input
+                                            type="time"
+                                            value={createForm.start_time}
+                                            onChange={(e) => setCreateForm({ ...createForm, start_time: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Select End Time</label>
+                                        <input
+                                            type="time"
+                                            value={createForm.end_time}
+                                            onChange={(e) => setCreateForm({ ...createForm, end_time: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="relative">
+                                        <label className="block text-sm font-semibold text-black mb-1">Assign To</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "assignTo" ? null : "assignTo")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span>{employees.find(emp => emp.id.toString() === createForm.assigned_to)?.full_name || "Select Assign To"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "assignTo" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "assignTo" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees.map((emp) => (
+                                                    <button
+                                                        key={emp.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCreateForm({ ...createForm, assigned_to: emp.id.toString() });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {emp.full_name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex gap-4 pt-4">
-                                    <button type="button" onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancel</button>
-                                    <button type="submit" disabled={createSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
-                                        Create Task
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-black mb-1">Description</label>
+                                    <textarea
+                                        value={createForm.description}
+                                        onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                                        rows={3}
+                                        placeholder="Enter Description..."
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-black mb-1">Checklist</label>
+                                    <input
+                                        type="text"
+                                        value={createForm.checklist}
+                                        onChange={(e) => setCreateForm({ ...createForm, checklist: e.target.value })}
+                                        placeholder="Enter Reference Link"
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-black mb-1">Attachments</label>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={handleAttachmentChange}
+                                        id="task-attachments"
+                                    />
+                                    <div className="flex">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={attachmentFiles.length > 0 ? `${attachmentFiles.length} file(s) selected` : ""}
+                                            placeholder="Upload Files"
+                                            className="flex-1 px-3 py-2 bg-[#F2F3F4] text-[#101827] rounded-l-sm text-sm focus:outline-none placeholder:text-[#8B8B8B]"
+                                        />
+                                        <label htmlFor="task-attachments" className="bg-[#E2E2E2] px-6 py-2 rounded-r-sm text-sm font-medium text-[#8B8B8B] cursor-pointer hover:bg-gray-300">
+                                            Browse File
+                                        </label>
+                                    </div>
+                                    {attachmentFiles.length > 0 && (
+                                        <ul className="mt-2 space-y-1">
+                                            {attachmentFiles.map((file, idx) => (
+                                                <li key={idx} className="flex items-center justify-between bg-[#F2F3F4] px-3 py-1 rounded text-xs text-[#101827]">
+                                                    <span className="truncate">{file.name}</span>
+                                                    <button type="button" onClick={() => deleteAttachment(idx)} className="ml-2 text-black hover:text-red-500 font-bold cursor-pointer">×</button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-center gap-3 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCreateModal(false)}
+                                        className="rounded-lg bg-[#F2F2F2] px-10 py-2 text-sm font-bold text-[#8B8B8B] hover:bg-gray-200 cursor-pointer"
+                                    >
+                                        Discard
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={createSubmitting}
+                                        className="rounded-lg bg-[#DBE9FE] px-10 py-2 text-sm font-bold text-[#101827] hover:bg-blue-200 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {createSubmitting ? "Submitting..." : "Submit"}
                                     </button>
                                 </div>
                             </form>
@@ -397,7 +627,7 @@ export default function VendorBimLeadTasks() {
                                     <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">{selectedTask.category || "General"}</span>
                                     <h3 className="text-2xl font-bold text-[#1A1A1A]">{selectedTask.task_name}</h3>
                                 </div>
-                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2]">
+                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2] cursor-pointer">
                                     <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
@@ -428,7 +658,7 @@ export default function VendorBimLeadTasks() {
                                     </p>
                                 </div>
                                 <div className="pt-4 flex justify-end">
-                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari">Close</button>
+                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari cursor-pointer">Close</button>
                                 </div>
                             </div>
                         </div>

@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import alertIcon from "../assets/Chat/icon.svg";
 import sendIcon from "../assets/Chat/sendicon.svg";
 import videoIcon from "../assets/Chat/video.svg";
 import api from "../lib/api";
@@ -26,6 +25,12 @@ type MessageAttachment = {
     type: "image" | "file";
 };
 
+type ReplyPreview = {
+    id: string;
+    text: string;
+    sender: "user" | "contact";
+};
+
 type MessageItem = {
     id: string;
     text: string;
@@ -33,6 +38,7 @@ type MessageItem = {
     time: string;
     rawDate: string;
     attachments?: MessageAttachment[];
+    replyTo?: ReplyPreview;
 };
 
 interface ChatPanelProps {
@@ -198,6 +204,18 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const [isMutedVideo, setIsMutedVideo] = useState(false);
     const [isMutedAudio, setIsMutedAudio] = useState(false);
     const [currentUserAvatarUrl, setCurrentUserAvatarUrl] = useState<string | null>(null);
+    // ── Reply state ─────────────────────────────────────────────────────────────
+    const [replyingTo, setReplyingTo] = useState<MessageItem | null>(null);
+    // ── Forward state ────────────────────────────────────────────────────────────
+    const [forwardMessage, setForwardMessage] = useState<MessageItem | null>(null);
+    const [forwardSearch, setForwardSearch] = useState("");
+    const [forwardSending, setForwardSending] = useState(false);
+    // ── Three-dots menu state ─────────────────────────────────────────────────
+    const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+    const [showInChatSearch, setShowInChatSearch] = useState(false);
+    const [inChatSearch, setInChatSearch] = useState("");
+    const headerMenuRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -251,14 +269,27 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
             );
             // Use Number() comparison to avoid type mismatch (DB may return string, auth returns number)
             const myId = Number(user?.id);
-            const mapped: MessageItem[] = (data.messages || []).map((m) => ({
-                id: String(m.id),
-                text: m.message ?? "",
-                sender: Number(m.outgoing) === myId ? "user" : "contact",
-                time: formatTime(m.date),
-                rawDate: m.date,
-                attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
-            }));
+            const mapped: MessageItem[] = (data.messages || []).map((m) => {
+                let msgText = m.message ?? "";
+                let replyTo: ReplyPreview | undefined = undefined;
+                // Re-hydrate reply bubbles from the embedded ↩ prefix stored in the DB
+                if (msgText.startsWith("\u21A9 ")) {
+                    const nlIdx = msgText.indexOf("\n");
+                    if (nlIdx !== -1) {
+                        replyTo = { id: "quoted", text: msgText.slice(2, nlIdx), sender: "contact" };
+                        msgText = msgText.slice(nlIdx + 1);
+                    }
+                }
+                return {
+                    id: String(m.id),
+                    text: msgText,
+                    sender: Number(m.outgoing) === myId ? "user" : "contact",
+                    time: formatTime(m.date),
+                    rawDate: m.date,
+                    attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
+                    replyTo,
+                };
+            });
             setMessages(mapped);
             if (mapped.length > 0) {
                 lastMessageIdRef.current = parseInt(mapped[mapped.length - 1].id, 10);
@@ -292,14 +323,26 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                 const myId = Number(user?.id);
                 const newMsgs = (data.messages || []);
                 if (newMsgs.length > 0) {
-                    const mapped: MessageItem[] = newMsgs.map((m) => ({
-                        id: String(m.id),
-                        text: m.message ?? "",
-                        sender: Number(m.outgoing) === myId ? "user" : "contact",
-                        time: formatTime(m.date),
-                        rawDate: m.date,
-                        attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
-                    }));
+                    const mapped: MessageItem[] = newMsgs.map((m) => {
+                        let msgText = m.message ?? "";
+                        let replyTo: ReplyPreview | undefined = undefined;
+                        if (msgText.startsWith("\u21A9 ")) {
+                            const nlIdx = msgText.indexOf("\n");
+                            if (nlIdx !== -1) {
+                                replyTo = { id: "quoted", text: msgText.slice(2, nlIdx), sender: "contact" };
+                                msgText = msgText.slice(nlIdx + 1);
+                            }
+                        }
+                        return {
+                            id: String(m.id),
+                            text: msgText,
+                            sender: Number(m.outgoing) === myId ? "user" : "contact",
+                            time: formatTime(m.date),
+                            rawDate: m.date,
+                            attachments: Array.isArray(m.attachments) && m.attachments.length > 0 ? m.attachments : undefined,
+                            replyTo,
+                        };
+                    });
                     setMessages((prev) => {
                         const existingIds = new Set(prev.map((x) => x.id));
                         const fresh = mapped.filter((m) => !existingIds.has(m.id));
@@ -332,9 +375,52 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         };
     }, []);
 
+    // Close three-dots menu on outside click
+    useEffect(() => {
+        if (!showHeaderMenu) return;
+        const close = (e: MouseEvent) => {
+            if (headerMenuRef.current && !headerMenuRef.current.contains(e.target as Node)) {
+                setShowHeaderMenu(false);
+            }
+        };
+        window.addEventListener("mousedown", close);
+        return () => window.removeEventListener("mousedown", close);
+    }, [showHeaderMenu]);
+
     // ── Handlers ────────────────────────────────────────────────────────────────
 
     const handleCopy = (text: string) => { navigator.clipboard.writeText(text); setContextMenu(null); };
+
+    const handleReply = (messageId: string) => {
+        const msg = messages.find((m) => m.id === messageId);
+        if (msg) {
+            setReplyingTo(msg);
+            setContextMenu(null);
+            // Focus the input after a tick so the reply bar has rendered
+            setTimeout(() => inputRef.current?.focus(), 50);
+        }
+    };
+
+    const handleForwardOpen = (messageId: string) => {
+        const msg = messages.find((m) => m.id === messageId);
+        if (msg) {
+            setForwardMessage(msg);
+            setForwardSearch("");
+            setContextMenu(null);
+        }
+    };
+
+    const handleForwardSend = async (contact: Contact) => {
+        if (!forwardMessage || forwardSending) return;
+        const text = forwardMessage.text || "[Forwarded attachment]";
+        setForwardSending(true);
+        try {
+            await api.post("/api/chat/send", { to_id: contact.id, message: `↪ Forwarded\n${text}` });
+        } catch { /* ignore */ } finally {
+            setForwardSending(false);
+            setForwardMessage(null);
+        }
+    };
 
     const handleContextMenu = (e: React.MouseEvent, messageId: string) => {
         e.preventDefault(); e.stopPropagation();
@@ -372,6 +458,12 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
         setSending(true);
         const messageAttachments = buildAttachmentsFromFiles(attachments);
         const now = new Date();
+
+        // Build the reply snapshot and the full message text to send
+        const currentReply = replyingTo ? { id: replyingTo.id, text: replyingTo.text, sender: replyingTo.sender } as ReplyPreview : undefined;
+        const replyPrefix = currentReply ? `↩ ${currentReply.text.slice(0, 120)}${currentReply.text.length > 120 ? "…" : ""}\n` : "";
+        const fullText = replyPrefix + (text || "");
+
         const optimisticMsg: MessageItem = {
             id: `optimistic-${Date.now()}`,
             text: text || "",
@@ -379,9 +471,11 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
             time: formatTime(now),
             rawDate: now.toISOString(),
             attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
+            replyTo: currentReply,
         };
         setMessages((prev) => [...prev, optimisticMsg]);
         setInputMessage("");
+        setReplyingTo(null);
         const filesToUpload = [...attachments];
         setAttachments([]);
 
@@ -389,22 +483,18 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
             let newId = 0;
 
             if (filesToUpload.length > 0) {
-                // Use multipart/form-data to upload files along with the message.
-                // Do NOT set Content-Type manually — axios sets it automatically
-                // with the correct boundary when FormData is passed.
                 const formData = new FormData();
                 formData.append("to_id", String(selectedContact.id));
-                formData.append("message", text || "");
+                formData.append("message", fullText);
                 filesToUpload.forEach((f) => formData.append("attachments", f));
                 const { data } = await api.post<{ success: boolean; id: number }>("/api/chat/send", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
                 if (data.success && data.id) newId = data.id;
             } else {
-                // Plain JSON for text-only messages (unchanged behaviour)
                 const { data } = await api.post<{ success: boolean; id: number }>("/api/chat/send", {
                     to_id: selectedContact.id,
-                    message: text,
+                    message: fullText,
                 });
                 if (data.success && data.id) newId = data.id;
             }
@@ -467,6 +557,23 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     const filteredContacts = contacts.filter((c) =>
         c.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    // Messages filtered by in-chat search
+    const displayMsgs = inChatSearch
+        ? messages.filter((m) => m.text.toLowerCase().includes(inChatSearch.toLowerCase()))
+        : messages;
+
+    // Highlight matched text in message bubbles
+    const highlight = (text: string) => {
+        if (!inChatSearch) return <>{text}</>;
+        const escaped = inChatSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const parts = text.split(new RegExp(`(${escaped})`, "gi"));
+        return <>{parts.map((p, i) =>
+            p.toLowerCase() === inChatSearch.toLowerCase()
+                ? <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5">{p}</mark>
+                : p
+        )}</>;
+    };
 
     // ── Render ───────────────────────────────────────────────────────────────────
     return (
@@ -542,6 +649,86 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                 <div className="flex-1 flex flex-col min-w-0 rounded-xl border border-[#AEACAC52] bg-[#FFFFFF] overflow-hidden">
                     {selectedContact ? (
                         <>
+                            {/* Forward Modal */}
+                            {forwardMessage && createPortal(
+                                <div
+                                    className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40"
+                                    onClick={() => setForwardMessage(null)}
+                                >
+                                    <div
+                                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {/* Modal header */}
+                                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+                                            <h3 className="font-semibold text-slate-900">Forward Message</h3>
+                                            <button
+                                                type="button"
+                                                onClick={() => setForwardMessage(null)}
+                                                className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                                aria-label="Close"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        {/* Preview of message being forwarded */}
+                                        <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
+                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-1">Forwarding</p>
+                                            <p className="text-sm text-slate-700 line-clamp-2">
+                                                {forwardMessage.text || "[Attachment]"}
+                                            </p>
+                                        </div>
+                                        {/* Search */}
+                                        <div className="px-4 pt-3 pb-1">
+                                            <div className="flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2">
+                                                <IconSearch />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search contacts…"
+                                                    value={forwardSearch}
+                                                    onChange={(e) => setForwardSearch(e.target.value)}
+                                                    className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                        </div>
+                                        {/* Contact list */}
+                                        <div className="overflow-y-auto max-h-60 px-2 pb-3">
+                                            {contacts
+                                                .filter((c) => c.name.toLowerCase().includes(forwardSearch.toLowerCase()))
+                                                .map((c) => (
+                                                    <button
+                                                        key={c.id}
+                                                        type="button"
+                                                        disabled={forwardSending}
+                                                        onClick={() => handleForwardSend(c)}
+                                                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+                                                    >
+                                                        <Avatar
+                                                            name={c.name}
+                                                            src={getGlobalProfileUrl(c.id, c.profile_picture) || undefined}
+                                                            className="w-9 h-9"
+                                                        />
+                                                        <div className="flex-1 text-left min-w-0">
+                                                            <p className="font-medium text-slate-900 text-sm truncate">{c.name}</p>
+                                                            <p className="text-xs text-slate-400 truncate">{c.user_role || ""}</p>
+                                                        </div>
+                                                        <span className="shrink-0 text-slate-400">
+                                                            <IconForward />
+                                                        </span>
+                                                    </button>
+                                                ))
+                                            }
+                                            {contacts.filter((c) => c.name.toLowerCase().includes(forwardSearch.toLowerCase())).length === 0 && (
+                                                <p className="text-center text-sm text-slate-400 py-6">No contacts found.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>,
+                                document.body
+                            )}
                             {/* Conversation header */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-[#AEACAC52] bg-[#FFFFFF] flex-shrink-0">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -567,17 +754,95 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                     >
                                         <img src={videoIcon} alt="video" className="w-4 h-4" />
                                     </button>
-                                    <button
-                                        type="button"
-                                        className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer"
-                                        aria-label="Report"
-                                    >
-                                        <img src={alertIcon} alt="alert" className="w-4 h-4" />
-                                    </button>
+                                    {/* Three-dots menu */}
+                                    <div className="relative" ref={headerMenuRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowHeaderMenu((v) => !v)}
+                                            className="p-2 bg-[#F2F2F2] rounded-full cursor-pointer flex items-center justify-center"
+                                            aria-label="More options"
+                                        >
+                                            <svg className="w-4 h-4 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="5" r="1.5" />
+                                                <circle cx="12" cy="12" r="1.5" />
+                                                <circle cx="12" cy="19" r="1.5" />
+                                            </svg>
+                                        </button>
+                                        {showHeaderMenu && (
+                                            <div className="absolute right-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-1 min-w-[160px]">
+                                                <button
+                                                    type="button"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 text-left cursor-pointer transition-colors"
+                                                    onClick={() => {
+                                                        setShowInChatSearch((v) => !v);
+                                                        setInChatSearch("");
+                                                        setShowHeaderMenu(false);
+                                                    }}
+                                                >
+                                                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                    Search messages
+                                                </button>
+                                                <div className="h-px bg-slate-100 mx-3" />
+                                                <button
+                                                    type="button"
+                                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 text-left cursor-pointer transition-colors"
+                                                    onClick={async () => {
+                                                        if (!selectedContact) return;
+                                                        try {
+                                                            await api.post(`/api/chat/conversation/${selectedContact.id}/clear`);
+                                                            setMessages([]);
+                                                            lastMessageIdRef.current = 0;
+                                                        } catch (err) {
+                                                            console.error("Failed to clear chat:", err);
+                                                        } finally {
+                                                            setShowHeaderMenu(false);
+                                                        }
+                                                    }}
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                    Clear chat
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
-                             {/* Messages area */}
+                            {/* In-conversation search bar */}
+                            {showInChatSearch && (
+                                <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 bg-slate-50 flex-shrink-0">
+                                    <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <input
+                                        type="text"
+                                        placeholder="Search in conversation…"
+                                        autoFocus
+                                        value={inChatSearch}
+                                        onChange={(e) => setInChatSearch(e.target.value)}
+                                        className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none"
+                                    />
+                                    {inChatSearch && (
+                                        <span className="text-xs text-slate-400">
+                                            {messages.filter((m) => m.text.toLowerCase().includes(inChatSearch.toLowerCase())).length} found
+                                        </span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowInChatSearch(false); setInChatSearch(""); }}
+                                        className="p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                        aria-label="Close search"
+                                    >
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            )}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
                                 {messagesLoading ? (
                                     <div className="flex items-center justify-center py-12">
@@ -586,7 +851,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 ) : messages.length === 0 ? (
                                     <p className="text-center text-sm text-slate-400 py-8">No messages yet. Say hello! 👋</p>
                                 ) : (
-                                    messages.map((msg, index) => {
+                                    displayMsgs.map((msg, index) => {
                                         const prevMsg = messages[index - 1];
                                         const showDateSeparator = !prevMsg || 
                                             parseDateSafe(msg.rawDate).toDateString() !== 
@@ -646,7 +911,32 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                                                 })}
                                                             </div>
                                                         )}
-                                                        {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
+                                                        {/* Quoted reply bubble */}
+                                                        {msg.replyTo && (
+                                                            <div className={`mb-1.5 pl-2 border-l-2 rounded text-xs py-1 pr-2 max-w-full ${
+                                                                msg.sender === "user"
+                                                                    ? "border-slate-400 bg-slate-100 text-slate-500"
+                                                                    : "border-slate-500 bg-slate-200 text-slate-600"
+                                                            }`}>
+                                                                <span className="font-semibold block text-[10px] uppercase tracking-wide mb-0.5">
+                                                                    {msg.replyTo.sender === "user" ? (user?.full_name || "You") : selectedContact?.name}
+                                                                </span>
+                                                                <span className="line-clamp-2 leading-snug">
+                                                                    {msg.replyTo.text || "[Attachment]"}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        {/* Forwarded indicator */}
+                                                        {msg.text.startsWith("↪ Forwarded\n") ? (
+                                                            <>
+                                                                <span className="flex items-center gap-1 text-[10px] text-slate-400 italic mb-0.5">
+                                                                    <IconForward /> Forwarded
+                                                                </span>
+                                                                <p className="text-sm leading-relaxed">{highlight(msg.text.replace("↪ Forwarded\n", ""))}</p>
+                                                            </>
+                                                        ) : (
+                                                            msg.text && <p className="text-sm leading-relaxed">{highlight(msg.text)}</p>
+                                                        )}
                                                         <p className={`text-[10px] mt-1 text-right ${msg.sender === "user" ? "text-gray-400" : "text-gray-500"
                                                             }`}>{msg.time}</p>
                                                     </div>
@@ -674,7 +964,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                         className="fixed z-[9999] bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 min-w-[160px]"
                                         style={{ left: contextMenu!.x, top: contextMenu!.y }}
                                     >
-                                        <button type="button" onClick={() => setContextMenu(null)}
+                                        <button type="button" onClick={() => handleReply(contextMenu!.messageId)}
                                             className="group w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <span className="text-slate-500 group-hover:text-red-600"><IconReply /></span>
                                             Reply
@@ -684,7 +974,7 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconCopy /> Copy
                                         </button>
-                                        <button type="button" onClick={() => setContextMenu(null)}
+                                        <button type="button" onClick={() => handleForwardOpen(contextMenu!.messageId)}
                                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:text-red-600 text-left transition-colors cursor-pointer">
                                             <IconForward /> Forward
                                         </button>
@@ -694,6 +984,29 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
 
                             {/* Message input */}
                             <div className="p-4 border-t border-slate-200 bg-[#FFFFFF] flex-shrink-0">
+                                {/* Reply preview bar */}
+                                {replyingTo && (
+                                    <div className="flex items-start gap-2 mb-2 px-3 py-2 rounded-lg bg-slate-100 border-l-[3px] border-slate-400">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-0.5">
+                                                Replying to {replyingTo.sender === "user" ? (user?.full_name || "You") : selectedContact?.name}
+                                            </p>
+                                            <p className="text-xs text-slate-600 truncate">
+                                                {replyingTo.text || "[Attachment]"}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setReplyingTo(null)}
+                                            className="shrink-0 p-0.5 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                            aria-label="Cancel reply"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -724,8 +1037,9 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
                                 )}
                                 <div className="flex items-center gap-2 rounded-xl bg-[#FFFFFF] px-4 py-2.5 border border-[#AEACAC52]">
                                     <input
+                                        ref={inputRef}
                                         type="text"
-                                        placeholder="Type your message..."
+                                        placeholder={replyingTo ? "Type your reply..." : "Type your message..."}
                                         value={inputMessage}
                                         onChange={(e) => setInputMessage(e.target.value)}
                                         onKeyDown={handleKeyDown}

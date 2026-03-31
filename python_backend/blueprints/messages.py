@@ -101,6 +101,16 @@ def _resolve_chat_user():
     return payload.get("user_id"), payload.get("company_id"), user_type, user_role
 
 
+def _get_cleared_at(cur, user_id, user_type, contact_id):
+    """Return the last cleared_at timestamp for this user-contact pair."""
+    cur.execute(
+        "SELECT cleared_at FROM chat_clearing WHERE user_id = %s AND user_type = %s AND contact_id = %s",
+        (user_id, user_type, contact_id)
+    )
+    row = cur.fetchone()
+    return row["cleared_at"] if row else None
+
+
 def _chat_auth_required(f):
     """Decorator: accepts both employee and client JWTs for chat endpoints."""
     from functools import wraps
@@ -302,6 +312,26 @@ def get_contacts():
     return jsonify({"contacts": contacts})
 
 
+@chat_bp.route("/conversation/<int:contact_id>/clear", methods=["POST"])
+@_chat_auth_required
+def clear_conversation(contact_id):
+    """Mark the conversation as cleared for the current user."""
+    conn = get_db()
+    cur = conn.cursor()
+    user_id = g.chat_user_id
+    user_type = g.chat_user_type
+
+    cur.execute(
+        """
+        INSERT INTO chat_clearing (user_id, user_type, contact_id, cleared_at)
+        VALUES (%s, %s, %s, NOW())
+        ON DUPLICATE KEY UPDATE cleared_at = NOW()
+        """,
+        (user_id, user_type, contact_id)
+    )
+    return jsonify({"success": True})
+
+
 @chat_bp.route("/conversation/<int:contact_id>", methods=["GET"])
 @_chat_auth_required
 def get_conversation(contact_id):
@@ -310,6 +340,7 @@ def get_conversation(contact_id):
     cur = conn.cursor()
 
     user_id = g.chat_user_id
+    cleared_at = _get_cleared_at(cur, user_id, g.chat_user_type, contact_id)
 
     # For client portal, link by (employee_id, client_id) using the client-aware
     # fields in the messages table, but also fall back to the original
@@ -332,18 +363,21 @@ def get_conversation(contact_id):
                 FROM messages
                 WHERE
                   (
-                    (client_id_outgoing = %s OR client_id_incoming = %s)
-                    AND (outgoing = %s OR incoming = %s)
-                  )
-                  OR
-                  (
-                    (client_id_outgoing IS NULL OR client_id_outgoing = '')
-                    AND (client_id_incoming IS NULL OR client_id_incoming = '')
-                    AND (
-                          (outgoing = %s AND incoming = %s)
-                       OR (outgoing = %s AND incoming = %s)
+                    (
+                      (client_id_outgoing = %s OR client_id_incoming = %s)
+                      AND (outgoing = %s OR incoming = %s)
+                    )
+                    OR
+                    (
+                      (client_id_outgoing IS NULL OR client_id_outgoing = '')
+                      AND (client_id_incoming IS NULL OR client_id_incoming = '')
+                      AND (
+                            (outgoing = %s AND incoming = %s)
+                         OR (outgoing = %s AND incoming = %s)
+                      )
                     )
                   )
+                  AND (date > %s OR %s IS NULL)
                 ORDER BY date ASC
                 LIMIT 50
             """,
@@ -357,6 +391,8 @@ def get_conversation(contact_id):
                 client_id,
                 client_id,
                 employee_id,
+                cleared_at,
+                cleared_at,
             ),
         )
     else:
@@ -381,9 +417,10 @@ def get_conversation(contact_id):
                        OR
                        (outgoing = %s AND incoming = %s)
                    )
+                   AND (date > %s OR %s IS NULL)
                    ORDER BY date ASC
                    LIMIT 50""",
-                (user_id, contact_id, contact_id, user_id),
+                (user_id, contact_id, contact_id, user_id, cleared_at, cleared_at),
             )
         else:
             # Employee portal talking to a client contact. Use the same
@@ -404,18 +441,21 @@ def get_conversation(contact_id):
                     FROM messages
                     WHERE
                       (
-                        (client_id_outgoing = %s OR client_id_incoming = %s)
-                        AND (outgoing = %s OR incoming = %s)
-                      )
-                      OR
-                      (
-                        (client_id_outgoing IS NULL OR client_id_outgoing = '')
-                        AND (client_id_incoming IS NULL OR client_id_incoming = '')
-                        AND (
-                              (outgoing = %s AND incoming = %s)
-                           OR (outgoing = %s AND incoming = %s)
+                        (
+                          (client_id_outgoing = %s OR client_id_incoming = %s)
+                          AND (outgoing = %s OR incoming = %s)
+                        )
+                        OR
+                        (
+                          (client_id_outgoing IS NULL OR client_id_outgoing = '')
+                          AND (client_id_incoming IS NULL OR client_id_incoming = '')
+                          AND (
+                                (outgoing = %s AND incoming = %s)
+                             OR (outgoing = %s AND incoming = %s)
+                          )
                         )
                       )
+                      AND (date > %s OR %s IS NULL)
                     ORDER BY date ASC
                     LIMIT 50
                 """,
@@ -429,6 +469,8 @@ def get_conversation(contact_id):
                     client_id,
                     client_id,
                     employee_id,
+                    cleared_at,
+                    cleared_at,
                 ),
             )
     rows = cur.fetchall()
@@ -628,6 +670,7 @@ def get_new_messages(contact_id, last_id):
     cur = conn.cursor()
 
     user_id = g.chat_user_id
+    cleared_at = _get_cleared_at(cur, user_id, g.chat_user_type, contact_id)
 
     if g.chat_user_type == "client":
         client_id = user_id
@@ -658,6 +701,7 @@ def get_new_messages(contact_id, last_id):
                       )
                     )
                   )
+                  AND (date > %s OR %s IS NULL)
                 ORDER BY date ASC
             """,
             (
@@ -671,6 +715,8 @@ def get_new_messages(contact_id, last_id):
                 client_id,
                 client_id,
                 employee_id,
+                cleared_at,
+                cleared_at,
             ),
         )
     else:
@@ -692,8 +738,9 @@ def get_new_messages(contact_id, last_id):
                        OR
                        (outgoing = %s AND incoming = %s)
                      )
+                     AND (date > %s OR %s IS NULL)
                    ORDER BY date ASC""",
-                (last_id, user_id, contact_id, contact_id, user_id),
+                (last_id, user_id, contact_id, contact_id, user_id, cleared_at, cleared_at),
             )
         else:
             # Employee portal polling for messages with a client contact.
@@ -726,6 +773,7 @@ def get_new_messages(contact_id, last_id):
                           )
                         )
                       )
+                      AND (date > %s OR %s IS NULL)
                     ORDER BY date ASC
                 """,
                 (
@@ -739,6 +787,8 @@ def get_new_messages(contact_id, last_id):
                     client_id,
                     client_id,
                     employee_id,
+                    cleared_at,
+                    cleared_at,
                 ),
             )
     rows = cur.fetchall()
