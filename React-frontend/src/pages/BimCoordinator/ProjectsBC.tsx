@@ -102,13 +102,15 @@ function FormSelect({
       >
         <span
           className={
-            value ? "text-[#353535]" : "text-[#8B8B8B]"
+            value
+              ? "text-[#353535] font-medium"
+              : "text-[#8B8B8B] font-medium"
           }
         >
           {value || placeholder}
         </span>
         <svg
-          className={`w-5 h-5 transition-transform duration-200 ${open ? "rotate-180" : ""} text-slate-500`}
+          className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -122,23 +124,21 @@ function FormSelect({
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden">
-          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-            {options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  onChange(opt);
-                  setOpen(false);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer  
+        <div className="absolute z-[100] top-full left-0 right-0 mt-1 bg-white border border-[#E0E0E0] rounded-[5px] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] overflow-hidden max-h-48 overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => {
+                onChange(opt);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2.5 text-[14px] font-Gantari transition-colors cursor-pointer  
                 ${value === opt ? "bg-[#FFF2F2] text-[#DD4342]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F4F4F4]"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+            >
+              {opt}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -232,10 +232,10 @@ export default function ProjectsBC() {
   );
   const [selectedProjectForView, setSelectedProjectForView] =
     useState<Project | null>(null);
-  const [_showAllMembersModal, setShowAllMembersModal] = useState(false);
-  const [_allMembersList, setAllMembersList] = useState<Employee[]>([]);
-  const [_showMemberProfileModal, setShowMemberProfileModal] = useState(false);
-  const [_selectedMember, setSelectedMember] = useState<Employee | null>(null);
+  const [showAllMembersModal, setShowAllMembersModal] = useState(false);
+  const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
+  const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Employee | null>(null);
   const [pmTaskStats, setPmTaskStats] = useState({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
   const [pmTaskStatsLoading, setPmTaskStatsLoading] = useState(false);
 
@@ -462,9 +462,9 @@ export default function ProjectsBC() {
         const userId = user?.id;
         const filtered = userId
           ? allProjects.filter((p: any) => {
-              if (!p.bim_coordinator_id) return false;
-              return String(p.bim_coordinator_id).split(',').map(s => s.trim()).includes(String(userId));
-            })
+            if (!p.bim_coordinator_id) return false;
+            return String(p.bim_coordinator_id).split(',').map(s => s.trim()).includes(String(userId));
+          })
           : allProjects;
         setList(filtered.map(mapApiProjectToProject));
       })
@@ -543,7 +543,7 @@ export default function ProjectsBC() {
         {showProjectView && selectedProjectForView ? (
           <div className="flex flex-col h-full bg-white">
             {/* Project View Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
@@ -551,18 +551,18 @@ export default function ProjectsBC() {
                   setSelectedProjectForView(null);
                   setSearchParams({}, { replace: true });
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
-                title="Close"
+                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
+                title="Back"
               >
                 <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="text-center">
-                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
-                  {selectedProjectForView.project_name ?? "Prestige Park Grove"}
+                <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                  {selectedProjectForView.project_name ?? "Loading..."}
                 </h3>
                 <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                  <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">
+                  <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
+                  <p className="text-[14px] md:text-[14px] font-Gantari font-semibold text-[#353535]">
                     Overall Progress Tracker
                   </p>
                 </div>
@@ -570,16 +570,21 @@ export default function ProjectsBC() {
             </div>
 
             {/* Project View Content */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-10 pt-6 md:pt-8 custom-scrollbar space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="flex-1 flex flex-col overflow-hidden mt-4">
+              {/* Task Status Cards - Static at top */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
                 {/* Total Tasks */}
                 <button
                   type="button"
                   onClick={() => navigate('/bc/teamtasks' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                  className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
-                  <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold">Total Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Total Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                     {selectedProjectForView.total_tasks ?? 0}
                   </p>
                 </button>
@@ -587,11 +592,15 @@ export default function ProjectsBC() {
                 {/* Completed Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                  className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                  onClick={() => navigate('/bc/teamtasks?status=completed' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
-                  <p className="text-[#333333] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                  <p className="text-[#333333] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      Completed Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                     {selectedProjectForView.completed_tasks ?? 0}
                   </p>
                 </button>
@@ -599,11 +608,15 @@ export default function ProjectsBC() {
                 {/* To Do Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                  className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                  onClick={() => navigate('/bc/teamtasks?status=todo' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
-                  <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      To Do Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                     {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                   </p>
                 </button>
@@ -611,577 +624,573 @@ export default function ProjectsBC() {
                 {/* In Progress Tasks */}
                 <button
                   type="button"
-                  onClick={() => navigate('/bc/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                  className="text-left bg-[#F2F2F2] p-6 rounded-lg flex flex-col h-[100px] md:h-[120px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-slate-200"
+                  onClick={() => navigate('/bc/teamtasks?status=in_progress' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
+                  className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
                 >
-                  <p className="text-[#353535] group-hover:text-white text-xl font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-3xl font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  <div className="flex items-center justify-left mb-2">
+                    <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                      In Progress Tasks
+                    </p>
+                  </div>
+                  <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                     {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                   </p>
                 </button>
               </div>
 
 
-              {/* Tower Progress Grid */}
-              <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8 lg:p-4">
-                <div className="max-h-[290px] overflow-y-auto custom-scrollbar pr-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-                    {(selectedProjectForView.module_name
-                      ? selectedProjectForView.module_name
-                        .split(",")
-                        .map((m) => m.trim())
-                        .filter(Boolean)
-                      : []
-                    ).length > 0 ? (
-                      (selectedProjectForView.module_name
-                        ? selectedProjectForView.module_name
-                          .split(",")
-                          .map((m) => m.trim())
-                          .filter(Boolean)
-                        : []
-                      ).map((mod, i) => {
-                        const towerProgress = selectedProjectForView.progress ?? 0;
-                        const status =
-                          towerProgress === 100
-                            ? "Approved"
-                            : towerProgress > 0
-                              ? "Pending"
-                              : "Review";
-                        const statusColor =
-                          towerProgress === 100
-                            ? "#008F22"
-                            : towerProgress > 0
-                              ? "#EB7200"
-                              : "#E00100";
-                        const statusBg =
-                          towerProgress === 100
-                            ? "bg-[#E0FFE8]"
-                            : towerProgress > 0
-                              ? "bg-[#FFEAD6]"
-                              : "bg-[#FFD9D9]";
 
-                        return (
-                          <div
-                            key={i}
-                            className="bg-white border border-slate-200 rounded-[12px] p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[180px]"
-                          >
-                            <div className="flex justify-between items-start">
-                              <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
-                                {mod}
-                              </span>
-                              <div
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusBg} shrink-0`}
-                              >
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: statusColor }}
-                                ></span>
-                                <span
-                                  className="text-[12px] font-bold font-Gantari"
-                                  style={{ color: statusColor }}
-                                >
-                                  {status}
-                                </span>
+              {/* Scrollable Content below KPI cards */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
+                {/* Tower Progress Grid */}
+                <div className="border border-[#AEACAC52] rounded-md ">
+                  <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4">
+                      {selectedProjectForView.module_name ? (
+                        selectedProjectForView.module_name.split(",").map((mod, i) => {
+                          const modProgress = Math.round(selectedProjectForView.progress ?? 0);
+                          const statusColor =
+                            modProgress >= 80
+                              ? "#008F22"
+                              : modProgress >= 50
+                                ? "#EB7200"
+                                : "#E00100";
+                          const statusBg =
+                            modProgress >= 80
+                              ? "bg-[#E0FFE8]"
+                              : modProgress >= 50
+                                ? "bg-[#FFEAD6]"
+                                : "bg-[#FFD9D9]";
+                          const statusLabel =
+                            modProgress >= 80
+                              ? "Approved"
+                              : modProgress >= 50
+                                ? "Pending"
+                                : "Review";
+                          return (
+                            <div
+                              key={i}
+                              className="bg-white border border-[#AEACAC52] rounded-md p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[120px]"
+                            >
+                              <div className="flex justify-between items-start">
+                                <h5 className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">
+                                  {mod.trim()}
+                                </h5>
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0 ${statusBg}`}>
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: statusColor }}
+                                  ></span>
+                                  <span
+                                    className="text-[12px] font-bold font-Gantari"
+                                    style={{ color: statusColor }}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between mt-2">
+                                <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
+                                  <svg
+                                    className="w-full h-full transform -rotate-90"
+                                    viewBox="0 0 64 64"
+                                  >
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke="#F2F3F5"
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                    />
+                                    <circle
+                                      cx="32"
+                                      cy="32"
+                                      r="26"
+                                      stroke={statusColor}
+                                      strokeWidth="5"
+                                      fill="transparent"
+                                      strokeDasharray={163.36}
+                                      strokeDashoffset={
+                                        163.36 - (modProgress / 100) * 163.36
+                                      }
+                                      strokeLinecap="round"
+                                      style={{
+                                        transition: "stroke-dashoffset 1s ease-in-out",
+                                      }}
+                                    />
+                                  </svg>
+                                  <span className="absolute text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                    {modProgress}%
+                                  </span>
+                                </div>
+
+                                <div className="flex flex-col items-end">
+                                  <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">
+                                    Tasks Done
+                                  </p>
+                                  <div className="flex items-baseline border-t border-slate-100 pt-1">
+                                    <p className="text-[18px] font-bold text-[#353535] font-Gantari">
+                                      {selectedProjectForView.completed_tasks ?? 0}
+                                    </p>
+                                    <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">
+                                      /{selectedProjectForView.total_tasks ?? 0}
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between mt-4">
-                              <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
-                                <svg className="w-full h-full transform -rotate-90">
-                                  <circle
-                                    cx="40"
-                                    cy="40"
-                                    r="32"
-                                    stroke="#F2F3F5"
-                                    strokeWidth="6"
-                                    fill="transparent"
-                                  />
-                                  <circle
-                                    cx="40"
-                                    cy="40"
-                                    r="32"
-                                    stroke={statusColor}
-                                    strokeWidth="6"
-                                    fill="transparent"
-                                    strokeDasharray={201}
-                                    strokeDashoffset={
-                                      201 - (towerProgress / 100) * 201
-                                    }
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                                <span className="absolute text-[15px] font-bold text-[#1A1A1A] font-Gantari">
-                                  {Math.round(towerProgress)}%
-                                </span>
-                              </div>
-                              <div className="flex flex-col items-end">
-                                <p className="text-[14px] font-medium text-[#999999] font-Gantari mb-1">
-                                  Tasks Done
-                                </p>
-                                <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                  <p className="text-[20px] font-bold text-[#1A1A1A] font-Gantari">
-                                    {selectedProjectForView.completed_tasks ?? 0}
-                                  </p>
-                                  <p className="text-[16px] font-bold text-[#999999] font-Gantari">
-                                    /{selectedProjectForView.total_tasks ?? 0}
-                                  </p>
-                                </div>
+                          );
+                        })
+                      ) : (
+                        <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">
+                          Currently, no modules have been added.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {/* Project Description */}
+                <div className="border border-[#AEACAC52] rounded-md p-6 md:p-8 lg:p-4">
+                  <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
+                  <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                    {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
+                  </p>
+                </div>
+
+
+                {/* Team Overview Section */}
+                <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
+                  <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                    Team Overview
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
+                    {/* Project Manager */}
+                    {(() => {
+                      const pmIds = selectedProjectForView.project_manager_id
+                        ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
+                        : [];
+                      const pmNames = selectedProjectForView.project_manager_name
+                        ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
+                        : [];
+
+                      if (pmIds.length === 0 && pmNames.length === 0) {
+                        return (
+                          <div className="min-w-0">
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                            <div className="flex items-center -space-x-3">
+                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                <span className="text-slate-600 text-xs font-bold">PM</span>
                               </div>
                             </div>
                           </div>
                         );
-                      })
-                    ) : (
-                      <div className="col-span-full py-8 text-center text-gray-500 font-Gantari">
-                        Currently, no modules have been added.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Project Description */}
-              <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8 lg:p-4">
-                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">
-                  Project Description
-                </h4>
-                <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                  {selectedProjectForView.description ??
-                    "This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards."}
-                </p>
-              </div>
-
-              {/* Team Overview Section */}
-              <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
-                  Team Overview
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
-                  {/* Project Manager */}
-                  {(() => {
-                    const pmIds = selectedProjectForView.project_manager_id
-                      ? String(selectedProjectForView.project_manager_id).split(',').map(id => id.trim()).filter(Boolean)
-                      : [];
-                    const pmNames = selectedProjectForView.project_manager_name
-                      ? String(selectedProjectForView.project_manager_name).split(',').map(n => n.trim()).filter(Boolean)
-                      : [];
-
-                    if (pmIds.length === 0 && pmNames.length === 0) {
-                      return (
-                        <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
-                          <div className="flex items-center -space-x-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                              <span className="text-slate-600 text-xs font-bold">PM</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    const maxCount = Math.max(pmIds.length, pmNames.length);
-                    const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
-                      const pId = pmIds[i];
-                      const pName = pmNames[i];
-                      const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                      const dName = pmEmp?.full_name || pName || "Unknown";
-                      const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
-                      return { key: i, dName, url };
-                    });
-                    const visiblePm = pmEntries.slice(0, 3);
-                    const pmRemaining = Math.max(0, pmEntries.length - 3);
-                    const pmOverflowTitle =
-                      pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
-
-                    return (
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                          {maxCount > 1 ? "Project Managers" : "Project Manager"}
-                        </p>
-                        {maxCount === 1 ? (
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                              {visiblePm[0].url ? (
-                                <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                  {visiblePm[0].dName.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center -space-x-3">
-                            {visiblePm.map((entry) => (
-                              <div key={entry.key} className="relative group shrink-0">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                  {entry.url ? (
-                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {entry.dName.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {entry.dName}
-                                </div>
-                              </div>
-                            ))}
-                            {pmRemaining > 0 && (
-                              <div className="relative group shrink-0">
-                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
-                                  +{pmRemaining}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {pmOverflowTitle}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* BIM Lead */}
-                  {(() => {
-                    const blIds = selectedProjectForView.lead_id
-                      ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
-                      : [];
-                    const blNames = selectedProjectForView.lead_name
-                      ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
-                      : [];
-
-                    if (blIds.length === 0 && blNames.length === 0) {
-                      return (
-                        <div className="min-w-0">
-                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
-                          <div className="flex items-center -space-x-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                              <span className="text-slate-600 text-xs font-bold">BL</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    const maxCount = Math.max(blIds.length, blNames.length);
-                    const blEntries = Array.from({ length: maxCount }).map((_, i) => {
-                      const pId = blIds[i];
-                      const pName = blNames[i];
-                      const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
-                      const dName = blEmp?.full_name || pName || "Unknown";
-                      const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
-                      return { key: i, dName, url };
-                    });
-                    const visibleBl = blEntries.slice(0, 3);
-                    const blRemaining = Math.max(0, blEntries.length - 3);
-                    const blOverflowTitle =
-                      blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
-
-                    return (
-                      <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                          {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
-                        </p>
-                        {maxCount === 1 ? (
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
-                              {visibleBl[0].url ? (
-                                <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                  {visibleBl[0].dName.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center -space-x-3">
-                            {visibleBl.map((entry) => (
-                              <div key={entry.key} className="relative group shrink-0">
-                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                  {entry.url ? (
-                                    <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                      {entry.dName.charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {entry.dName}
-                                </div>
-                              </div>
-                            ))}
-                            {blRemaining > 0 && (
-                              <div className="relative group shrink-0">
-                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
-                                  +{blRemaining}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {blOverflowTitle}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Department Involved */}
-                  <div className="flex flex-col gap-3">
-                    <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
-                    <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
-                  </div>
-
-                  {/* Members Involved */}
-                  <div className="flex flex-col gap-3">
-                    <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
-                    {(() => {
-                      const memberIdsForView = selectedProjectForView.member
-                        ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
-                        : [];
-                      
-                      if (memberIdsForView.length === 0) {
-                        return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
                       }
 
-                      return memberIdsForView.length === 1 ? (
-                        <div className="flex items-center gap-3">
-                          {(() => {
-                            const id = memberIdsForView[0];
-                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
-                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                            return (
-                              <>
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                >
-                                  {url ? (
-                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                  )}
-                                </div>
-                                <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                  {emp?.full_name || "Unknown"}
-                                </span>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap items-center -space-x-4">
-                          {memberIdsForView.slice(0, 3).map((id, j) => {
-                            const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
-                            const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                            return (
-                              <div key={j} className="relative group shrink-0">
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
-                                  onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                  onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
-                                >
-                                  {url ? (
-                                    <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
-                                  )}
-                                </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                  {emp?.full_name || "Unknown"}
-                                </div>
+                      const maxCount = Math.max(pmIds.length, pmNames.length);
+                      const pmEntries = Array.from({ length: maxCount }).map((_, i) => {
+                        const pId = pmIds[i];
+                        const pName = pmNames[i];
+                        const pmEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                        const dName = pmEmp?.full_name || pName || "Unknown";
+                        const url = pmEmp?.profile_picture ? getGlobalProfileUrl(pmEmp.id, pmEmp.profile_picture) : null;
+                        return { key: i, dName, url };
+                      });
+                      const visiblePm = pmEntries.slice(0, 3);
+                      const pmRemaining = Math.max(0, pmEntries.length - 3);
+                      const pmOverflowTitle =
+                        pmRemaining > 0 ? pmEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+
+                      return (
+                        <div className="min-w-0">
+                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            {maxCount > 1 ? "Project Managers" : "Project Manager"}
+                          </p>
+                          {maxCount === 1 ? (
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                {visiblePm[0].url ? (
+                                  <img src={visiblePm[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                    {visiblePm[0].dName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
                               </div>
-                            );
-                          })}
-                          {memberIdsForView.length > 3 && (
-                            <div className="relative group shrink-0">
-                              <div
-                                role="button"
-                                tabIndex={0}
-                                className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  const emps = memberIdsForView
-                                    .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
-                                    .filter(Boolean) as Employee[];
-                                  setAllMembersList(emps);
-                                  setShowAllMembersModal(true);
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    const emps = memberIdsForView
-                                      .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
-                                      .filter(Boolean) as Employee[];
-                                    setAllMembersList(emps);
-                                    setShowAllMembersModal(true);
-                                  }
-                                }}
-                              >
-                                +{memberIdsForView.length - 3}
-                              </div>
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                Click to see all members
-                              </div>
+                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visiblePm[0].dName}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center -space-x-3">
+                              {visiblePm.map((entry) => (
+                                <div key={entry.key} className="relative group shrink-0">
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                    {entry.url ? (
+                                      <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {entry.dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {entry.dName}
+                                  </div>
+                                </div>
+                              ))}
+                              {pmRemaining > 0 && (
+                                <div className="relative group shrink-0">
+                                  <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                    +{pmRemaining}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {pmOverflowTitle}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
                       );
                     })()}
+
+                    {/* BIM Lead */}
+                    {(() => {
+                      const blIds = selectedProjectForView.lead_id
+                        ? String(selectedProjectForView.lead_id).split(',').map(id => id.trim()).filter(Boolean)
+                        : [];
+                      const blNames = selectedProjectForView.lead_name
+                        ? String(selectedProjectForView.lead_name).split(',').map(n => n.trim()).filter(Boolean)
+                        : [];
+
+                      if (blIds.length === 0 && blNames.length === 0) {
+                        return (
+                          <div className="min-w-0">
+                            <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">BIM Lead</p>
+                            <div className="flex items-center -space-x-3">
+                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                <span className="text-slate-600 text-xs font-bold">BL</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const maxCount = Math.max(blIds.length, blNames.length);
+                      const blEntries = Array.from({ length: maxCount }).map((_, i) => {
+                        const pId = blIds[i];
+                        const pName = blNames[i];
+                        const blEmp = pId ? allEmployees.find((e: any) => String(e.id) === pId) : null;
+                        const dName = blEmp?.full_name || pName || "Unknown";
+                        const url = blEmp?.profile_picture ? getGlobalProfileUrl(blEmp.id, blEmp.profile_picture) : null;
+                        return { key: i, dName, url };
+                      });
+                      const visibleBl = blEntries.slice(0, 3);
+                      const blRemaining = Math.max(0, blEntries.length - 3);
+                      const blOverflowTitle =
+                        blRemaining > 0 ? blEntries.slice(3).map((e) => e.dName).join(", ") : undefined;
+
+                      return (
+                        <div className="min-w-0">
+                          <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
+                            {maxCount > 1 ? "BIM Leads" : "BIM Lead"}
+                          </p>
+                          {maxCount === 1 ? (
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0">
+                                {visibleBl[0].url ? (
+                                  <img src={visibleBl[0].url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                    {visibleBl[0].dName.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <span className="text-sm font-Gantari font-medium text-[#616161] truncate">{visibleBl[0].dName}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center -space-x-3">
+                              {visibleBl.map((entry) => (
+                                <div key={entry.key} className="relative group shrink-0">
+                                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                    {entry.url ? (
+                                      <img src={entry.url} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                        {entry.dName.charAt(0).toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {entry.dName}
+                                  </div>
+                                </div>
+                              ))}
+                              {blRemaining > 0 && (
+                                <div className="relative group shrink-0">
+                                  <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 select-none">
+                                    +{blRemaining}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {blOverflowTitle}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Department Involved */}
+                    <div className="flex flex-col gap-3">
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">Department Involved</p>
+                      <p className="text-sm font-Gantari text-[#616161] truncate">{selectedProjectForView.department || 'N/A'}</p>
+                    </div>
+
+                    {/* Members Involved */}
+                    <div className="flex flex-col gap-3">
+                      <p className="text-md font-Gantari font-semibold text-[#000000]">Members Involved</p>
+                      {(() => {
+                        const memberIdsForView = selectedProjectForView.member
+                          ? selectedProjectForView.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n))
+                          : [];
+
+                        if (memberIdsForView.length === 0) {
+                          return <p className="text-sm font-Gantari font-bold text-[#999999]">N/A</p>;
+                        }
+
+                        return memberIdsForView.length === 1 ? (
+                          <div className="flex items-center gap-3">
+                            {(() => {
+                              const id = memberIdsForView[0];
+                              const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                              const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              return (
+                                <>
+                                  <div
+                                    role="button"
+                                    tabIndex={0}
+                                    className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                    onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  >
+                                    {url ? (
+                                      <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
+                                    {emp?.full_name || "Unknown"}
+                                  </span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center -space-x-4">
+                            {memberIdsForView.slice(0, 3).map((id, j) => {
+                              const emp = allEmployees.find(e => Number(e.id) === Number(id) || String(e.id) === String(id));
+                              const url = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                              return (
+                                <div key={j} className="relative group shrink-0">
+                                  <div
+                                    role="button"
+                                    tabIndex={0}
+                                    className="relative z-0 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm shrink-0 cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                    onClick={() => { if (emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' && emp) { setSelectedMember(emp); setShowMemberProfileModal(true); } }}
+                                  >
+                                    {url ? (
+                                      <img src={url} alt={emp?.full_name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <img src={ProfileIcon} alt={emp?.full_name} className="w-full h-full object-cover p-1" />
+                                    )}
+                                  </div>
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                    {emp?.full_name || "Unknown"}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {memberIdsForView.length > 3 && (
+                              <div className="relative group shrink-0">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  className="relative z-10 w-9 h-9 md:w-10 md:h-10 min-w-[2.25rem] min-h-[2.25rem] md:min-w-[2.5rem] md:min-h-[2.5rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0 cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const emps = memberIdsForView
+                                      .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                      .filter(Boolean) as Employee[];
+                                    setAllMembersList(emps);
+                                    setShowAllMembersModal(true);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      const emps = memberIdsForView
+                                        .map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)))
+                                        .filter(Boolean) as Employee[];
+                                      setAllMembersList(emps);
+                                      setShowAllMembersModal(true);
+                                    }
+                                  }}
+                                >
+                                  +{memberIdsForView.length - 3}
+                                </div>
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
+                                  Click to see all members
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Project Details Section */}
-              <div className="rounded-lg border border-slate-200 p-6 md:p-4">
-                <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-8">
-                  Project Details
-                </h4>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Client Name
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.client_name || "N/A"}
-                      </span>
+                {/* Project Details Section */}
+                <div className="rounded-lg border border-slate-200 p-6 md:p-4">
+                  <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-8">
+                    Project Details
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
+                    <div className="space-y-4 md:space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Client Name
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.client_name || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Actual Start Date
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.start_date
+                            ? new Date(
+                              selectedProjectForView.start_date,
+                            ).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Total Project Hours
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.total_hours
+                            ? `${selectedProjectForView.total_hours}hrs`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Budget
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.budget
+                            ? `${selectedProjectForView.budget}$`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Total Resources Available
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.resources || "N/A"}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Actual Start Date
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.start_date
-                          ? new Date(
-                            selectedProjectForView.start_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Total Project Hours
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.total_hours
-                          ? `${selectedProjectForView.total_hours}hrs`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Budget
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.budget
-                          ? `${selectedProjectForView.budget}$`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Total Resources Available
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.resources || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Location
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.location || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Actual End Date
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.end_date
-                          ? new Date(
-                            selectedProjectForView.end_date,
-                          ).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Hours/Day
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.per_day
-                          ? `${selectedProjectForView.per_day}hrs`
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Required Resources
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <span className="text-md font-Gantari font-medium text-[#666666]">
-                        {selectedProjectForView.required_resources || "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                        Project Document
-                      </span>
-                      <span className="hidden sm:inline text-[#999999] mr-4">
-                        :
-                      </span>
-                      <div className="flex items-center gap-3">
+                    <div className="space-y-4 md:space-y-5">
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Location
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.location || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Actual End Date
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.end_date
+                            ? new Date(
+                              selectedProjectForView.end_date,
+                            ).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                            })
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Hours/Day
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.per_day
+                            ? `${selectedProjectForView.per_day}hrs`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Required Resources
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
+                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                          {selectedProjectForView.required_resources || "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center">
+                        <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                          Project Document
+                        </span>
+                        <span className="hidden sm:inline text-[#999999] mr-4">
+                          :
+                        </span>
                         <span className="text-md font-Gantari font-medium text-[#666666]">
                           No Document Available
                         </span>
@@ -1430,14 +1439,14 @@ export default function ProjectsBC() {
         ) : showCreateModal ? (
           <div className="flex flex-col h-full bg-white">
             {/* Create Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 md:px-4 py-2 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
                   setCreateError("");
                 }}
-                className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
+                className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] transition-all cursor-pointer"
                 title="Close"
               >
                 <img src={backIcon} alt="Close" className="w-5 h-5" />
@@ -1446,7 +1455,7 @@ export default function ProjectsBC() {
                 Add New Project
               </h3>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-10 pb-10 min-h-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -1571,12 +1580,12 @@ export default function ProjectsBC() {
                             const userId = user?.id;
                             const filtered = userId
                               ? allProjects.filter((p: any) => {
-                                  if (!p.bim_coordinator_id) return false;
-                                  return String(p.bim_coordinator_id)
-                                    .split(",")
-                                    .map((s: string) => s.trim())
-                                    .includes(String(userId));
-                                })
+                                if (!p.bim_coordinator_id) return false;
+                                return String(p.bim_coordinator_id)
+                                  .split(",")
+                                  .map((s: string) => s.trim())
+                                  .includes(String(userId));
+                              })
                               : allProjects;
                             setList(filtered.map(mapApiProjectToProject));
                           })
@@ -2096,20 +2105,20 @@ export default function ProjectsBC() {
         ) : showEditModal ? (
           <div className="flex flex-col h-full bg-white">
             {/* Edit Project Header */}
-            <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+            <div className="relative flex items-center justify-center px-4 py-2 border-b border-slate-50">
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#1A1A1A] transition-all cursor-pointer"
                 title="Close"
               >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                <img src={backIcon} alt="Close" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari">
                 Edit Project Details
               </h3>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 md:px-10 pb-10 min-h-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 min-h-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -2216,12 +2225,12 @@ export default function ProjectsBC() {
                             const userId = user?.id;
                             const filtered = userId
                               ? allProjects.filter((p: any) => {
-                                  if (!p.bim_coordinator_id) return false;
-                                  return String(p.bim_coordinator_id)
-                                    .split(",")
-                                    .map((s: string) => s.trim())
-                                    .includes(String(userId));
-                                })
+                                if (!p.bim_coordinator_id) return false;
+                                return String(p.bim_coordinator_id)
+                                  .split(",")
+                                  .map((s: string) => s.trim())
+                                  .includes(String(userId));
+                              })
                               : allProjects;
                             setList(filtered.map(mapApiProjectToProject));
                           })
@@ -2231,7 +2240,7 @@ export default function ProjectsBC() {
                     .catch(() => { })
                     .finally(() => setIsEditSubmitting(false));
                 }}
-                className="mx-auto space-y-6 md:space-y-8"
+                className="mx-auto space-y-6 md:space-y-8 mt-8"
               >
                 {editError && (
                   <div className="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
@@ -2862,9 +2871,9 @@ export default function ProjectsBC() {
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             {/* Dashboard Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 px-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6">
               <h2 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
                 {title}
               </h2>
@@ -2872,7 +2881,7 @@ export default function ProjectsBC() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Create Project
@@ -2882,7 +2891,7 @@ export default function ProjectsBC() {
 
             {/* Dashboard Content with Scrollbar */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {list.length === 0 ? (
                   <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
                     No projects found.
@@ -2890,7 +2899,7 @@ export default function ProjectsBC() {
                 ) : (
                   list.map((p) => {
                     const progress = Math.round(p.progress ?? 0);
-                    const radius = 28;
+                    const radius = 22;
                     const circumference = 2 * Math.PI * radius;
                     const offset =
                       circumference - (progress / 100) * circumference;
@@ -2898,26 +2907,26 @@ export default function ProjectsBC() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className="bg-white rounded-md border border-slate-200 p-2 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
+                              <svg className="w-[52px] h-[52px] transform -rotate-90">
                                 <circle
-                                  cx="40"
-                                  cy="40"
+                                  cx="26"
+                                  cy="26"
                                   r={radius}
                                   stroke="#f1f5f9"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
                                 />
                                 <circle
-                                  cx="40"
-                                  cy="40"
+                                  cx="26"
+                                  cy="26"
                                   r={radius}
-                                  stroke="#0a9344"
-                                  strokeWidth="6"
+                                  stroke={progress >= 80 ? "#0a9344" : progress >= 1 ? "#DD4342" : "#999999"}
+                                  strokeWidth="4"
                                   fill="transparent"
                                   strokeDasharray={circumference}
                                   strokeDashoffset={offset}
@@ -2927,7 +2936,7 @@ export default function ProjectsBC() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -2940,15 +2949,16 @@ export default function ProjectsBC() {
                                     prev === p.id ? null : p.id,
                                   );
                                 }}
-                                className="p-2 rounded-full text-[#8B8B8B] hover:bg-slate-50 transition-colors cursor-pointer"
+                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
                               >
                                 <img src={threedot} alt="threeDots" className="w-5 h-5 text-[#8B8B8B]" />
                               </button>
                               <div
-                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-[100] ${openMenuProjectId === p.id
+                                className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id
                                   ? "opacity-100 scale-100 visible"
                                   : "opacity-0 scale-95 invisible"
                                   }`}
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <button
                                   onClick={(e) => {
@@ -2956,14 +2966,14 @@ export default function ProjectsBC() {
                                     setOpenMenuProjectId(null);
                                     setSearchParams({ projectId: String(p.id) });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                  className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                 >
                                   <img
                                     src={viewIcon}
                                     alt="view"
-                                    className="w-5 h-5 grayscale group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                   />
-                                  <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                  <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                   </span>
                                 </button>
@@ -2975,14 +2985,14 @@ export default function ProjectsBC() {
                                       setCurrentProject(p);
                                       setShowMilestones(true);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={paymentMilestone}
                                       alt="payment milestone"
-                                      className="w-5 h-5 transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Payment Milestones
                                     </span>
                                   </button>
@@ -3085,14 +3095,14 @@ export default function ProjectsBC() {
                                       );
                                       setShowEditModal(true);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={editIcon}
                                       alt="edit"
-                                      className="w-5 h-5 transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Edit
                                     </span>
                                   </button>
@@ -3104,14 +3114,14 @@ export default function ProjectsBC() {
                                       setOpenMenuProjectId(null);
                                       setDeleteId(p.id);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group"
+                                    className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={deleteIcon}
                                       alt="delete"
-                                      className="w-5 h-5 transition-all group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Delete
                                     </span>
                                   </button>
@@ -3120,9 +3130,9 @@ export default function ProjectsBC() {
                             </div>
                           </div>
 
-                          <div className="mb-4 ml-6 -mt-2">
-                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight truncate">
-                              {p.project_name ?? "Prestige Park Grove"}
+                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex items-center">
+                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight line-clamp-2">
+                              {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>
                         </div>
@@ -3130,7 +3140,7 @@ export default function ProjectsBC() {
                         <div
                           role="button"
                           tabIndex={0}
-                          className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto cursor-pointer"
+                          className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
                           onClick={() => setSearchParams({ projectId: String(p.id) })}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -3250,7 +3260,7 @@ export default function ProjectsBC() {
                 )}
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* Delete confirmation (Keep as modal) */}
@@ -3444,6 +3454,146 @@ export default function ProjectsBC() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* All Members Modal */}
+        {showAllMembersModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh]">
+              <div className="relative flex items-center justify-center p-6 border-b border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAllMembersModal(false)}
+                  className="absolute left-6 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <h3 className="text-[22px] font-Gantari font-semibold text-[#1A1A1A]">
+                  Team Members
+                </h3>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {allMembersList.map((emp) => {
+                    const profileUrl = emp.profile_picture
+                      ? getGlobalProfileUrl(emp.id, emp.profile_picture)
+                      : null;
+                    return (
+                      <div
+                        key={emp.id}
+                        className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all cursor-pointer group"
+                        onClick={() => {
+                          setSelectedMember(emp);
+                          setShowMemberProfileModal(true);
+                        }}
+                      >
+                        <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                          {profileUrl ? (
+                            <img
+                              src={profileUrl}
+                              alt={emp.full_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-slate-200 text-slate-500 font-bold">
+                              {(emp.full_name || "U").charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-Gantari font-bold text-[#1A1A1A] group-hover:text-[#DD4342] transition-colors leading-tight">
+                            {emp.full_name}
+                          </p>
+                          <p className="text-[13px] font-Gantari font-medium text-slate-500">
+                            {emp.user_role}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Member Profile Detail Modal */}
+        {showMemberProfileModal && selectedMember && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col items-center overflow-hidden">
+              <div className="w-full relative h-32 bg-slate-100 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowMemberProfileModal(false)}
+                  className="absolute left-6 top-6 p-2 rounded-[5px] bg-white/80 backdrop-blur-md text-gray-800 transition-colors z-10"
+                >
+                  <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                </button>
+                <div className="absolute -bottom-16 w-32 h-32 rounded-full border-4 border-white overflow-hidden shadow-lg bg-white">
+                  {selectedMember.profile_picture ? (
+                    <img
+                      src={getGlobalProfileUrl(
+                        selectedMember.id,
+                        selectedMember.profile_picture,
+                      )}
+                      alt={selectedMember.full_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-200 text-3xl font-bold text-slate-400">
+                      {(selectedMember.full_name || "U")
+                        .charAt(0)
+                        .toUpperCase()}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-20 pb-10 px-8 w-full flex flex-col items-center text-center">
+                <h3 className="text-[26px] font-Gantari font-bold text-[#1A1A1A] mb-1">
+                  {selectedMember.full_name}
+                </h3>
+                <p className="text-[16px] font-Gantari font-semibold text-[#DD4342] mb-8 bg-[#DD4342]/10 px-4 py-1 rounded-full uppercase tracking-wider">
+                  {selectedMember.user_role}
+                </p>
+
+                <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-lg mx-auto bg-slate-50/80 p-8 rounded-2xl border border-slate-100">
+                  {selectedMember.employee_id && (
+                    <div>
+                      <p className="text-[13px] font-Gantari font-bold text-[#999999] mb-1 uppercase tracking-tight">
+                        Employee ID
+                      </p>
+                      <p className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.employee_id}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedMember.phone && (
+                    <div>
+                      <p className="text-[13px] font-Gantari font-bold text-[#999999] mb-1 uppercase tracking-tight">
+                        Phone Number
+                      </p>
+                      <p className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.phone}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedMember.email && (
+                    <div className="md:col-span-2">
+                      <p className="text-[13px] font-Gantari font-bold text-[#999999] mb-1 uppercase tracking-tight">
+                        Email Address
+                      </p>
+                      <p className="text-[15px] font-Gantari font-bold text-[#1A1A1A]">
+                        {selectedMember.email}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
