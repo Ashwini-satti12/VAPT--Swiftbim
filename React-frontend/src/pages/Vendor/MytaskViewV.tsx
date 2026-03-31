@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
@@ -145,10 +145,11 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 ];
 
 export default function MytaskViewV() {
+  const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const state = location.state as { task?: Task; from?: string } | null;
   const initialTask = state?.task;
-  const fromTeamTask = state?.from === "teamtask";
+  const fromTeamTask = state?.from === "teamtask" || (id && !initialTask && location.pathname.includes("/v/mytasks/view/")); // Fallback if no state
   const navigate = useNavigate();
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
@@ -230,16 +231,34 @@ export default function MytaskViewV() {
       });
   }, []);
 
-  const refreshTaskFromApi = () => {
-    if (!task?.id) return;
-    const params = fromTeamTask ? { condition: "1" } : {};
-    api
-      .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
-      .then((res) => {
-        const found = (res.data.tasks ?? []).find((t) => t.id === task.id);
-        if (found) setTask(found);
-      })
-      .catch(() => { });
+  const refreshTaskFromApi = (taskId?: number) => {
+    const tid = taskId || task?.id || Number(id);
+    if (!tid) return;
+
+    // If it's a team task, we might still need to use the plural endpoint with condition=1
+    // or we could potentially use the same single task endpoint if the backend allows.
+    // For now, let's use the new single task endpoint for everything if possible, 
+    // but keep the team task logic if it was special.
+    
+    if (fromTeamTask) {
+       api
+        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
+        .then((res) => {
+          const found = (res.data.tasks ?? []).find((t) => t.id === tid);
+          if (found) setTask(found);
+        })
+        .catch(() => { });
+    } else {
+      api
+        .get<Task>(`/api/vendors/vendor-tasks/${tid}`)
+        .then((res) => {
+          setTask(res.data);
+        })
+        .catch((err) => {
+          console.error("Error fetching task:", err);
+          toast.error("Failed to load task details");
+        });
+    }
   };
 
   const handleImageSubmit = async () => {
@@ -280,8 +299,12 @@ export default function MytaskViewV() {
 
   // Refresh task from API so dates, category, times, uploader, and output files match the server
   useEffect(() => {
-    refreshTaskFromApi();
-  }, [refreshTaskFromApi]);
+    if (initialTask) {
+      refreshTaskFromApi(initialTask.id);
+    } else if (id) {
+      refreshTaskFromApi(Number(id));
+    }
+  }, [id, initialTask?.id]);
 
   useEffect(() => {
     if (!statusDropdownOpen) return;

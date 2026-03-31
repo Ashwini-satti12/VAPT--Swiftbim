@@ -3229,6 +3229,60 @@ def update_vendor_task(task_id):
     return jsonify({"success": True})
 
 
+@bp.route("/vendor-tasks/<int:task_id>", methods=["GET"])
+@login_required
+def get_vendor_task(task_id):
+    """
+    GET /api/vendors/vendor-tasks/<id>
+    Fetch a single vendor task with resolved project and assignee names.
+    """
+    _ensure_vendor_task_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    cur.execute(
+        """
+        SELECT
+            vt.*,
+            vp.project_name,
+            ve.full_name AS uploader_full_name
+        FROM vendor_task vt
+        LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
+        LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        WHERE vt.id = %s
+        """,
+        (task_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"success": False, "message": "Task not found"}), 404
+
+    d = {k: _serialize(v) for k, v in row.items()}
+
+    # Resolve assignee name from vendor_resource_profiles (new_swiftbim)
+    try:
+        assignee_id = d.get("assigned_to")
+        if assignee_id:
+            vendor_onboard_id = _current_vendor_onboarding_id()
+            if vendor_onboard_id:
+                vcur = vendor_cursor()
+                vcur.execute(
+                    "SELECT name FROM vendor_resource_profiles WHERE id = %s AND vendor_id = %s",
+                    (assignee_id, vendor_onboard_id),
+                )
+                vr = vcur.fetchone()
+                if vr and vr.get("name"):
+                    d["assigned_full_name"] = vr["name"]
+    except Exception:
+        pass
+
+    # For frontend compatibility
+    d["projectid"] = d.get("project_id")
+    d["due_date"] = d.get("due_date")
+
+    return jsonify(d)
+
+
 @bp.route("/vendor-tasks/<int:task_id>", methods=["DELETE"])
 @login_required
 def delete_vendor_task(task_id):
