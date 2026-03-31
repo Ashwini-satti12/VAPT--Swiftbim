@@ -7,7 +7,7 @@ import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
-import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+// import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import paymentMilestoneIcon from "../../assets/ProjectManager/project/paymentMilestone.svg";
 import threedot from "../../assets/ProjectManager/project/threedot.svg";
 
@@ -1534,7 +1534,7 @@ export default function ProjectsV() {
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-sm bg-black/40 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
                         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-                            <RiDeleteBin5Fill size={32} />
+                            {/* <RiDeleteBin5Fill size={32} /> */}
                         </div>
                         <h3 className="text-xl font-bold text-[#1E293B] mb-2 font-gantari">Delete Project</h3>
                         <p className="text-slate-500 mb-8 font-gantari">Are you sure you want to delete this project? This action cannot be undone.</p>

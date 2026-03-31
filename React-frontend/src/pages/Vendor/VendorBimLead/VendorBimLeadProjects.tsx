@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
-import { VscEye } from "react-icons/vsc";
-import { BiEdit } from "react-icons/bi";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
-import { FaCircleDollarToSlot } from "react-icons/fa6";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import threedot from "../../../assets/ProjectManager/project/threedot.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
+import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
+// import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
+import ProfileIcon from "../../../assets/ProductNavbarIcons/Profile.svg";
+import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
 
 interface Project {
   id: number;
@@ -89,7 +92,7 @@ export default function VendorBimLeadProjects() {
   const [createDescription, setCreateDescription] = useState("");
   const [createDeliverables, setCreateDeliverables] = useState("");
 
-  const [createSubmitting, setCreateSubmitting] = useState(false);
+  // const [createSubmitting, setCreateSubmitting] = useState(false);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editDropdownOpen, setEditDropdownOpen] = useState<string | null>(null);
 
@@ -104,9 +107,10 @@ export default function VendorBimLeadProjects() {
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [editError, setEditError] = useState("");
 
   const fetchProjects = () => {
     api
@@ -143,6 +147,16 @@ export default function VendorBimLeadProjects() {
       .get<{ clients?: any[] }>("/api/clients")
       .then(({ data }) => setClientsList(data.clients ?? []))
       .catch(() => setClientsList([]));
+
+    // Outside click listener for project menu
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".project-menu-container")) {
+        setOpenMenuProjectId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const nameToId = (name: string, list: Employee[]) => {
@@ -229,7 +243,7 @@ export default function VendorBimLeadProjects() {
     setCreateModuleName(p.modules || "");
     setCreateClientName(
       getClientNameById(p.client_id) ||
-        (p.client_id ? String(p.client_id) : ""),
+      (p.client_id ? String(p.client_id) : ""),
     );
     setCreateProjectManager(idToName(p.project_manager_id, allEmployees));
     setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
@@ -253,6 +267,19 @@ export default function VendorBimLeadProjects() {
   const handleEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editId) return;
+
+    if (
+      !createName.trim() ||
+      !createClientName ||
+      !createStartDate ||
+      !createEndDate ||
+      !createPriority ||
+      !createDescription
+    ) {
+      setEditError("Please fill all required fields.");
+      return;
+    }
+    setEditError("");
     setEditSubmitting(true);
     api
       .patch(`/api/vendors/vendor-projects/${editId}`, {
@@ -304,7 +331,7 @@ export default function VendorBimLeadProjects() {
           fetchProjects();
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setEditSubmitting(false));
   };
 
@@ -323,10 +350,10 @@ export default function VendorBimLeadProjects() {
   const formatDate = (d: any) =>
     d
       ? new Date(d).toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-          year: "numeric",
-        })
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      })
       : "—";
 
   const toggleMember = (id: number) => {
@@ -352,7 +379,7 @@ export default function VendorBimLeadProjects() {
           {selectedMemberIds.length === 0 ? (
             <span className="text-gray-400 font-medium">Select members</span>
           ) : (
-            selectedMemberIds.map((id) => (
+            selectedMemberIds.map((id: number) => (
               <div
                 key={id}
                 className="bg-white px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border border-[#E2E8F0]"
@@ -429,6 +456,229 @@ export default function VendorBimLeadProjects() {
     </div>
   );
 
+  const renderFormFields = () => (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">
+            Project Name <span className="text-[#DD4342]">*</span>
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] placeholder-gray-400"
+            placeholder="Enter Project name"
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">
+            Client Name <span className="text-[#DD4342]">*</span>
+          </label>
+          <input
+            type="text"
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] placeholder-gray-400"
+            placeholder="Enter Client Name"
+            value={createClientName}
+            onChange={(e) => setCreateClientName(e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">
+            Budget
+          </label>
+          <input
+            type="text"
+            readOnly
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-gray-500 cursor-not-allowed"
+            placeholder="Auto-fetched from contract"
+            value={createBudget}
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">
+            Select Project Manager <span className="text-[#DD4342]">*</span>
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() =>
+                setEditDropdownOpen((prev) => (prev === "pm" ? null : "pm"))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+            >
+              <span className={createProjectManager ? "text-[#353535]" : "text-gray-400"}>
+                {createProjectManager || "Select Project Manager"}
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "pm" ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {editDropdownOpen === "pm" && (
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateProjectManager("");
+                    setEditDropdownOpen(null);
+                  }}
+                  className="block w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#F2F2F2]"
+                >
+                  Select Project Manager
+                </button>
+                {projectManagers.map((pm) => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    onClick={() => {
+                      setCreateProjectManager(pm.full_name || "");
+                      setEditDropdownOpen(null);
+                    }}
+                    className={`block w-full text-left px-4 py-3 text-sm hover:bg-[#F2F2F2] ${createProjectManager === pm.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                  >
+                    {pm.full_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">
+            Select BIM Lead <span className="text-[#DD4342]">*</span>
+          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() =>
+                setEditDropdownOpen((prev) => (prev === "bimLead" ? null : "bimLead"))
+              }
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+            >
+              <span className={createBIMLead ? "text-[#353535]" : "text-gray-400"}>
+                {createBIMLead || "Select BIM Lead"}
+              </span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "bimLead" ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {editDropdownOpen === "bimLead" && (
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                {bimLeads.map((lead) => (
+                  <button
+                    key={lead.id}
+                    type="button"
+                    onClick={() => {
+                      setCreateBIMLead(lead.full_name || "");
+                      setEditDropdownOpen(null);
+                    }}
+                    className={`block w-full text-left px-4 py-3 text-sm hover:bg-[#F2F2F2] ${createBIMLead === lead.full_name ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                  >
+                    {lead.full_name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">Project Start Date <span className="text-[#DD4342]">*</span></label>
+          <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535]" />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">Project End Date <span className="text-[#DD4342]">*</span></label>
+          <input type="date" value={createEndDate} onChange={e => setCreateEndDate(e.target.value)}
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535]" />
+        </div>
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">Priority <span className="text-[#DD4342]">*</span></label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setEditDropdownOpen((o) => (o === "priority" ? null : "priority")) }
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-left"
+            >
+              <span className={createPriority ? "text-[#353535]" : "text-gray-400"}>
+                {createPriority || "Select Priority"}
+              </span>
+              <svg className={`w-5 h-5 text-gray-400 transition-transform ${editDropdownOpen === "priority" ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {editDropdownOpen === "priority" && (
+              <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                {["High", "Medium", "Low"].map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => {
+                      setCreatePriority(p);
+                      setEditDropdownOpen(null);
+                    }}
+                    className={`block w-full text-left px-12 py-3 text-sm hover:bg-[#F2F2F2] ${createPriority === p ? "bg-[#FFF1F1] text-[#DD4342]" : "text-[#353535]"}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="space-y-6 mt-6">
+        {renderMemberSelector()}
+        <div className="space-y-2">
+          <label className="block text-[15px] font-bold text-[#353535]">Description <span className="text-[#DD4342]">*</span></label>
+          <textarea value={createDescription} onChange={e => setCreateDescription(e.target.value)} rows={4}
+            className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg font-medium text-[#353535] resize-none" placeholder="Provide a detailed project description..." />
+        </div>
+      </div>
+      <div className="space-y-2 mt-6">
+        <label className="block text-[15px] font-bold text-[#353535]">Attach File</label>
+        <div className="relative">
+          <input
+            type="file"
+            id="edit-file-upload"
+            className="hidden"
+            onChange={(e) => setCreateFile(e.target.files?.[0] || null)}
+          />
+          {!createFile ? (
+            <label
+              htmlFor="edit-file-upload"
+              className="flex flex-col items-center justify-center w-full h-32 bg-[#F8FAFC] border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer hover:border-[#DD4342]/20 transition-all"
+            >
+              <FiUploadCloud className="w-8 h-8 mb-2 text-slate-400" />
+              <p className="text-sm text-slate-500">Click or drag and drop to upload</p>
+            </label>
+          ) : (
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-[#DD4342]/10">
+              <div className="flex items-center gap-3">
+                <FiPaperclip className="text-[#DD4342]" />
+                <span className="text-sm font-bold text-[#353535]">{createFile.name}</span>
+              </div>
+              <button type="button" onClick={() => setCreateFile(null)} className="text-slate-400 hover:text-red-500">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -462,12 +712,13 @@ export default function VendorBimLeadProjects() {
         {/* Project View (In-Page) */}
         {showEditModal ? (
           <div className="flex flex-col h-full bg-white">
-            <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50">
+            <div className="flex items-center gap-4 md:gap-6 px-6 py-6 md:px-10 md:py-8 border-b border-slate-50 cursor-pointer">
               <button
                 type="button"
                 onClick={() => {
                   setShowEditModal(false);
                   setEditDropdownOpen(null);
+                  setEditError("");
                   // Reset all form fields
                   setCreateName("");
                   setCreateBudget("");
@@ -489,22 +740,10 @@ export default function VendorBimLeadProjects() {
                   setSelectedMemberIds([]);
                   setCreateFile(null);
                 }}
-                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors"
-                title="Close"
+                className="p-3 rounded-lg bg-[#F2F2F2] text-[#000000] hover:bg-gray-200 transition-colors cursor-pointer"
+                title="Back"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="min-w-0">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A] truncate">
@@ -527,6 +766,7 @@ export default function VendorBimLeadProjects() {
                     onClick={() => {
                       setShowEditModal(false);
                       setEditDropdownOpen(null);
+                      setEditError("");
                     }}
                     className="px-12 py-3.5 rounded-xl bg-[#F1F1F1] text-[#666666] font-bold text-[16px] transition-all hover:bg-gray-200"
                   >
@@ -540,6 +780,11 @@ export default function VendorBimLeadProjects() {
                     {editSubmitting ? "Updating..." : "Update Project"}
                   </button>
                 </div>
+                {editError && (
+                  <p className="text-[#DD4342] text-sm font-bold text-center mt-4 uppercase tracking-wider">
+                    {editError}
+                  </p>
+                )}
               </form>
             </div>
           </div>
@@ -549,21 +794,9 @@ export default function VendorBimLeadProjects() {
               <button
                 type="button"
                 onClick={() => setShowProjectView(false)}
-                className="p-3 rounded-xl bg-[#F2F2F2] text-[#000000] transition-colors hover:bg-[#EAEAEA]"
+                className="p-3 rounded-lg bg-[#F2F2F2] text-[#000000] transition-colors hover:bg-[#EAEAEA]"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="min-w-0">
                 <h3 className="text-[20px] md:text-[24px] font-semibold text-[#1A1A1A] truncate">
@@ -604,10 +837,10 @@ export default function VendorBimLeadProjects() {
                     onClick={() =>
                       navigate(
                         "/vendor-bim-lead/teamtasks?status=" +
-                          stat.status +
-                          (selectedProject?.project_name
-                            ? `&project=${encodeURIComponent(selectedProject.project_name)}`
-                            : ""),
+                        stat.status +
+                        (selectedProject?.project_name
+                          ? `&project=${encodeURIComponent(selectedProject.project_name)}`
+                          : ""),
                       )
                     }
                     className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-all group"
@@ -731,10 +964,10 @@ export default function VendorBimLeadProjects() {
                     })}
                   {!(selectedProject.members || "").split(",").filter(Boolean)
                     .length && (
-                    <p className="col-span-full text-[#999] text-sm">
-                      No team members assigned
-                    </p>
-                  )}
+                      <p className="col-span-full text-[#999] text-sm">
+                        No team members assigned
+                      </p>
+                    )}
                 </div>
               </div>
             </div>
@@ -746,21 +979,9 @@ export default function VendorBimLeadProjects() {
                 <button
                   type="button"
                   onClick={() => setShowMilestones(false)}
-                  className="p-3.5 rounded-xl bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
+                  className="p-3 rounded-lg bg-[#F8F9FA] hover:bg-gray-100 transition-colors"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <img src={backIcon} alt="Back" className="w-5 h-5" />
                 </button>
                 <div>
                   <h3 className="text-[26px] font-bold">Payment Milestones</h3>
@@ -828,81 +1049,29 @@ export default function VendorBimLeadProjects() {
                     const memberIds = p.members
                       ? p.members.split(",").filter(Boolean).map(Number)
                       : [];
-                    const rad = 28;
-                    const circ = 2 * Math.PI * rad;
+
+                    const radius = 28;
+                    const circumference = 2 * Math.PI * radius;
+                    const offset =
+                      circumference - (progress / 100) * circumference;
+
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between hover:shadow-lg transition-all duration-300 group"
+                        onClick={() => {
+                          setSelectedProject(p);
+                          setShowProjectView(true);
+                        }}
+                        className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                       >
                         <div>
-                          <div className="flex justify-between items-start mb-6">
-                            <h3 className="text-[20px] font-semibold text-[#353535] leading-tight flex-1 pr-2">
-                              {p.project_name ?? "Untitled"}
-                            </h3>
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setOpenMenuProjectId((prev) =>
-                                    prev === p.id ? null : p.id,
-                                  )
-                                }
-                                className="p-1 rounded-full hover:bg-slate-50 transition-colors"
-                              >
-                                <img src={Dot} alt="" className="w-6 h-6" />
-                              </button>
-                              {openMenuProjectId === p.id && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setSelectedProject(p);
-                                      setShowProjectView(true);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"
-                                  >
-                                    <VscEye /> View Details
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      openEdit(p);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"
-                                  >
-                                    <BiEdit /> Edit
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setMilestonesProject(p);
-                                      setShowMilestones(true);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors"
-                                  >
-                                    <FaCircleDollarToSlot /> Milestones
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setOpenMenuProjectId(null);
-                                      setDeleteId(p.id);
-                                    }}
-                                    className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-red-500 font-semibold text-sm transition-colors"
-                                  >
-                                    <RiDeleteBin5Fill /> Delete
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-6 mt-4 mb-8">
-                            <div className="relative flex items-center justify-center w-20 h-20">
-                              <svg className="w-full h-full transform -rotate-90">
+                          <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                            <div className="relative flex items-center justify-center">
+                              <svg className="w-20 h-20 transform -rotate-90">
                                 <circle
                                   cx="40"
                                   cy="40"
-                                  r={rad}
+                                  r={radius}
                                   stroke="#f1f5f9"
                                   strokeWidth="6"
                                   fill="transparent"
@@ -910,60 +1079,177 @@ export default function VendorBimLeadProjects() {
                                 <circle
                                   cx="40"
                                   cy="40"
-                                  r={rad}
+                                  r={radius}
                                   stroke="#0a9344"
                                   strokeWidth="6"
                                   fill="transparent"
-                                  strokeDasharray={circ}
-                                  strokeDashoffset={
-                                    circ - (progress / 100) * circ
-                                  }
+                                  strokeDasharray={circumference}
+                                  strokeDashoffset={offset}
                                   strokeLinecap="round"
-                                  className="transition-all duration-1000"
+                                  style={{
+                                    transition:
+                                      "stroke-dashoffset 0.8s ease-in-out",
+                                  }}
                                 />
                               </svg>
-                              <span className="absolute font-bold text-sm">
+                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between mb-2">
-                                <span className="text-[13px] font-bold text-[#8B8B8B]">
-                                  Progress
-                                </span>
-                                <span className="text-[13px] font-bold text-[#353535]">
-                                  {progress}%
-                                </span>
-                              </div>
-                              <div className="h-1.5 w-full bg-[#f1f5f9] rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-[#0a9344] transition-all duration-1000"
-                                  style={{ width: `${progress}%` }}
-                                ></div>
+                            <div className="relative project-menu-container">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenMenuProjectId((prev) =>
+                                    prev === p.id ? null : p.id,
+                                  );
+                                }}
+                                className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                              >
+                                <img
+                                  src={threedot}
+                                  alt="threeDots"
+                                  className="w-5 h-5 text-[#8B8B8B]"
+                                />
+                              </button>
+                              <div
+                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                              >
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuProjectId(null);
+                                    setSelectedProject(p);
+                                    setShowProjectView(true);
+                                  }}
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                >
+                                  <img
+                                    src={viewIcon}
+                                    alt="view"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                  />
+                                  <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342] ">
+                                    View Details
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuProjectId(null);
+                                    setMilestonesProject(p);
+                                    setShowMilestones(true);
+                                  }}
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                >
+                                  <img
+                                    src={paymentMilestoneIcon}
+                                    alt="payment milestone"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                  />
+                                  <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    Payment Milestones
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenMenuProjectId(null);
+                                    openEdit(p);
+                                  }}
+                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                >
+                                  <img
+                                    src={editIcon}
+                                    alt="edit"
+                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                  />
+                                  <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    Edit
+                                  </span>
+                                </button>
+                                
                               </div>
                             </div>
                           </div>
+
+                          <div className="mb-4 ml-6 -mt-2">
+                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                              {p.project_name ?? "Untitled Project"}
+                            </h3>
+                          </div>
                         </div>
-                        <div className="border-t border-slate-50 pt-5 mt-auto flex items-center justify-between">
-                          <div className="flex -space-x-3">
-                            {memberIds.slice(0, 3).map((id) => (
-                              <div
-                                key={id}
-                                className="w-9 h-9 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-[11px] font-bold shadow-sm"
-                                title={getEmployeeName(id)}
-                              >
-                                {(getEmployeeName(id) || "?")[0]}
-                              </div>
-                            ))}
-                            {memberIds.length > 3 && (
-                              <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm">
-                                +{memberIds.length - 3}
-                              </div>
-                            )}
+
+                        <div className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto">
+                          <div className="flex -space-x-4">
+                            {(() => {
+                              const projectEmployees = memberIds
+                                .map((id) =>
+                                  allEmployees.find(
+                                    (e) => Number(e.id) === Number(id),
+                                  ),
+                                )
+                                .filter(Boolean) as Employee[];
+
+                              const visibleMembers = projectEmployees.slice(
+                                0,
+                                3,
+                              );
+                              const remainingCount = Math.max(
+                                0,
+                                projectEmployees.length - 3,
+                              );
+
+                              return (
+                                <>
+                                  {visibleMembers.map((emp) => {
+                                    const profileUrl = emp.profile_picture
+                                      ? getGlobalProfileUrl(
+                                          emp.id,
+                                          emp.profile_picture,
+                                        )
+                                      : null;
+
+                                    return (
+                                      <div
+                                        key={emp.id}
+                                        className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
+                                        title={emp.full_name}
+                                      >
+                                        {profileUrl ? (
+                                          <img
+                                            src={profileUrl}
+                                            alt={emp.full_name}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                              (
+                                                e.target as HTMLImageElement
+                                              ).src = ProfileIcon;
+                                            }}
+                                          />
+                                        ) : (
+                                          <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
+                                            {(emp.full_name || "U")
+                                              .charAt(0)
+                                              .toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                  {remainingCount > 0 && (
+                                    <div className="w-9 h-9 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                                      +{remainingCount}
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                           {p.priority && (
                             <span
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-50 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-50 text-orange-600 border border-orange-100" : "bg-green-50 text-green-600 border border-green-100"}`}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-Gantari font-bold uppercase tracking-wider ${p.priority === "High" || p.priority === "Urgent" ? "bg-red-50 text-red-600 border border-red-100" : p.priority === "Medium" ? "bg-orange-50 text-orange-600 border border-orange-100" : "bg-green-50 text-green-600 border border-green-100"}`}
                             >
                               {p.priority}
                             </span>
@@ -1051,13 +1337,13 @@ export default function VendorBimLeadProjects() {
             <div className="flex gap-4">
               <button
                 onClick={() => setDeleteId(null)}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#F2F2F2] font-bold text-slate-600 transition-colors hover:bg-slate-200 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold transition-all hover:bg-red-600 shadow-lg shadow-red-100 cursor-pointer"
               >
                 Delete
               </button>
