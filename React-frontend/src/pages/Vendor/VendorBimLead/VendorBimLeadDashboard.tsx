@@ -243,10 +243,10 @@ export default function VendorBimLeadDashboard() {
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-lg border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors">
+                        <Link key={i} to={card.link} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-lg border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer">
                             <h3 className="text-[18px] sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
                             <p className="text-[20px] sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-semibold leading-none">{card.value}</p>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             </div>
@@ -265,7 +265,7 @@ export default function VendorBimLeadDashboard() {
                             <div className="px-4">
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                    <Link to="/vendor-bim-lead/projects" className="text-sm font-medium text-[#DD4342] hover:underline font-gantari transition-colors">View all</Link>
+                                    <Link to="/vendor-bim-lead/projects" className="text-sm font-medium text-[#DD4342] hover:underline font-gantari transition-colors cursor-pointer">View all</Link>
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
@@ -279,7 +279,7 @@ export default function VendorBimLeadDashboard() {
                                     return projectList.map(({ id, projectName, tasks: projectTasks }) => (
                                         <div key={id} className="mb-6">
                                             <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                <Link to="/vendor-bim-lead/projects" className="hover:text-[#DD4342] hover:underline transition-colors" title={projectName}>{projectName}</Link>
+                                                <Link to="/vendor-bim-lead/projects" className="hover:text-[#DD4342] hover:underline transition-colors cursor-pointer" title={projectName}>{projectName}</Link>
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {
@@ -350,11 +350,11 @@ export default function VendorBimLeadDashboard() {
                         </div>
 
                         <div className="flex flex-nowrap items-center justify-center gap-2 sm:gap-4 mb-3 px-2 shrink-0">
-                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors">
+                            <button type="button" onClick={goPrevMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                             </button>
                             <span className="text-[13px] font-semibold text-slate-700 font-gantari min-w-[80px] text-center">{currentMonthName}</span>
-                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors">
+                            <button type="button" onClick={goNextMonth} className="p-1.5 rounded text-slate-600 hover:bg-slate-100 hover:text-black transition-colors cursor-pointer">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                             </button>
                         </div>
@@ -374,7 +374,7 @@ export default function VendorBimLeadDashboard() {
                                                     key={i}
                                                     type="button"
                                                     onClick={() => handleDateClick(cell)}
-                                                    className={`py-1 min-w-[22px] transition-colors rounded-lg ${isSelected ? 'text-[#DD4342] font-bold bg-[#DD4342]/10' : cell.type === 'current' ? 'text-black hover:bg-slate-50' : 'text-[#9CA3AF]'}`}
+                                                    className={`py-1 min-w-[22px] transition-colors rounded-lg cursor-pointer ${isSelected ? 'text-[#DD4342] font-bold bg-[#DD4342]/10' : cell.type === 'current' ? 'text-black hover:bg-slate-50' : 'text-[#9CA3AF]'}`}
                                                 >
                                                     {cell.day}
                                                 </button>
@@ -391,7 +391,7 @@ export default function VendorBimLeadDashboard() {
                                         setCelebrationsRequested(true);
                                         setIsCalendarExpanded(!isCalendarExpanded);
                                     }}
-                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5"
+                                    className="text-slate-500 hover:text-slate-700 transition-colors p-0.5 cursor-pointer"
                                 >
                                     <svg className={`w-5 h-4 transform transition-transform ${!isCalendarExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />

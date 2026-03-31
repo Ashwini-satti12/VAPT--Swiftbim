@@ -204,7 +204,7 @@ export default function VendorBimLeadTeamTasks() {
                             className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
-                            Assign Task
+                            AddTask
                         </button>
                     </div>
                 </div>
@@ -318,7 +318,7 @@ export default function VendorBimLeadTeamTasks() {
                         <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
                             <div className="relative flex items-center justify-center mb-8">
                                 <h3 className="text-[22px] font-bold text-[#1E293B]">Assign Team Task</h3>
-                                <button onClick={() => setShowCreateModal(false)} className="absolute left-0 p-2 rounded-lg transition-colors bg-[#F2F2F2]">
+                                <button onClick={() => setShowCreateModal(false)} className="absolute left-0 p-2 rounded-lg transition-colors bg-[#F2F2F2] cursor-pointer">
                                     <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
@@ -390,9 +390,9 @@ export default function VendorBimLeadTeamTasks() {
                                 </div>
                                 <div className="flex gap-4 pt-4">
                                     <button type="button" onClick={() => setShowCreateModal(false)}
-                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-gray-200 transition-colors">Cancel</button>
+                                        className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#475569] rounded-lg font-bold hover:bg-gray-200 transition-colors cursor-pointer">Cancel</button>
                                     <button type="submit" disabled={createSubmitting}
-                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50">
+                                        className="flex-1 px-4 py-3 bg-[#DD4342] text-white rounded-lg font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all disabled:opacity-50 cursor-pointer">
                                         Assign Task
                                     </button>
                                 </div>
@@ -412,7 +412,7 @@ export default function VendorBimLeadTeamTasks() {
                                     <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">{selectedTask.team_name || "General Team"}</span>
                                     <h3 className="text-2xl font-bold text-[#1A1A1A]">{selectedTask.task_name}</h3>
                                 </div>
-                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2]">
+                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2] cursor-pointer">
                                     <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
                             </div>
@@ -443,7 +443,7 @@ export default function VendorBimLeadTeamTasks() {
                                     </p>
                                 </div>
                                 <div className="pt-4 flex justify-end">
-                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari">Close</button>
+                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari cursor-pointer">Close</button>
                                 </div>
                             </div>
                         </div>
