@@ -5,6 +5,8 @@ import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg"
 import threeDotsIcon from "../../../assets/ProjectManager/CreateTeam/three dots.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import eyeIcon from "../../../assets/ProjectManager/consultant/eyeIcon.svg";
+import upArrow from "../../../assets/TechnicalDirector/upArrow.svg";
 // import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 
@@ -187,14 +189,19 @@ export default function VendorBimLeadCreateTeam() {
                         <p className="text-gray-500 font-medium">No teams found. Start by creating a team.</p>
                     </div>
                 ) : (
-                    displayedTeams.map(team => (
-                        <div key={(team.id ?? team.team_id) as number} className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="min-w-0 pr-4">
-                                    <p className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</p>
-                                    <h3 className="text-[18px] font-bold text-[#353535] truncate">{team.team_name}</h3>
+                    displayedTeams.map(team => {
+                        const memberIds = (team.members || "").split(",").filter(Boolean);
+                        return (
+                            <div key={(team.id ?? team.team_id) as number} className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+                                {/* Team Name */}
+                                <div className="flex flex-col mb-4 pt-1">
+                                    <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</span>
+                                    <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
+                                        {team.team_name}
+                                    </span>
                                 </div>
-                                <div className="relative">
+
+                                <div className="absolute top-6 right-6">
                                     <button
                                         onClick={() =>
                                             setOpenMenuTeamId(
@@ -208,57 +215,71 @@ export default function VendorBimLeadCreateTeam() {
                                         <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
                                     </button>
                                     {openMenuTeamId === (team.id ?? team.team_id) && (
-                                        <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+                                        <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur rounded-[15px] border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
                                             <button onClick={() => setOpenMenuTeamId(null)}
-                                                className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer">
+                                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer">
+                                                <img src={eyeIcon} alt="View" className="w-5 h-5 [filter:brightness(0)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
+                                                <span className="text-[16px] font-medium text-[#353535] group-hover/item:text-[#DD4342]">View</span>
+                                            </button>
+                                            <button onClick={() => setOpenMenuTeamId(null)}
+                                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer text-[#353535] group-hover/item:text-[#DD4342]">
                                                 <img src={editIcon} alt="Edit" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                                                <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
+                                                <span className="text-[16px] font-medium group-hover/item:text-[#DD4342]">Edit</span>
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    handleDelete(
-                                                        (team.id ?? team.team_id) as number,
-                                                    );
+                                                    handleDelete((team.id ?? team.team_id) as number);
                                                     setOpenMenuTeamId(null);
                                                 }}
-                                                className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer">
+                                                className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item cursor-pointer text-[#353535] group-hover/item:text-[#DD4342]">
                                                 <img src={deleteIcon} alt="Delete" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
-                                                <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
+                                                <span className="text-[16px] font-medium group-hover/item:text-[#DD4342]">Delete</span>
                                             </button>
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="flex flex-col mb-5">
-                                <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
-                                <span className="text-[18px] font-bold text-[#353535] truncate">{getEmployeeName(team.leader_id) || "No Lead"}</span>
-                            </div>
-                            <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+                                {/* Team Leader */}
+                                <div className="flex flex-col mb-5">
+                                    <span className="text-[15px] font-medium text-[#999999] mb-1.5">Team Leader</span>
+                                    <span className="text-[18px] font-bold text-[#353535] truncate">{getEmployeeName(team.leader_id) || "No Lead"}</span>
+                                </div>
 
-                            <div className="mb-5">
-                                <h4 className="text-[15px] font-medium text-[#999999] mb-2">Members</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {(team.members || "").split(",").filter(Boolean).map(id => {
-                                        const name = getEmployeeName(id);
-                                        return (
-                                            <div key={id} className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100" title={name}>
-                                                <div className="w-5 h-5 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-[9px] font-bold">
-                                                    {(name || "?")[0]}
+                                {/* Divider */}
+                                <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+
+                                {/* Members + Details */}
+                                <div className="mt-auto flex items-center justify-between">
+                                    <div>
+                                        <div className="flex -space-x-3">
+                                            {memberIds.slice(0, 5).map(id => {
+                                                const name = getEmployeeName(id);
+                                                return (
+                                                    <div key={id} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm flex items-center justify-center" title={name}>
+                                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600 uppercase">
+                                                            {(name || "?")[0]}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            {memberIds.length > 5 && (
+                                                <div className="w-9 h-9 rounded-full border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-400 shadow-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                                                    +{memberIds.length - 5}
                                                 </div>
-                                                <span className="text-[12px] font-bold text-gray-600">{name}</span>
-                                            </div>
-                                        );
-                                    })}
-                                    {!(team.members || "").split(",").filter(Boolean).length && <p className="text-xs text-gray-400">No members assigned</p>}
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] pr-1 cursor-pointer"
+                                    >
+                                        Details
+                                        <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+                                    </button>
                                 </div>
                             </div>
-
-                            <div className="mt-auto flex items-center justify-end">
-                                <button className="text-[13px] font-bold text-[#DD4342] hover:underline transition-all cursor-pointer">View Details</button>
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
             </div>

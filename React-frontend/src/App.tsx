@@ -312,6 +312,7 @@ function App() {
             <Route path="vendor-bim-lead/resources" element={<ResourcesV />} />
             <Route path="vendor-bim-lead/communication" element={<VendorBimLeadCommunication />} />
             <Route path="vendor-bim-lead/teamtasks" element={<VendorBimLeadTeamTasks />} />
+            <Route path="vendor-bim-lead/tasks/view/:id" element={<MytaskViewV />} />
             {/* <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskV />} /> */}
           </Route>
