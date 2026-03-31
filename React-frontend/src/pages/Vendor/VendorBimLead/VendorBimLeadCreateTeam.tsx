@@ -9,10 +9,20 @@ import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
 
 
 interface Team {
-    id: number;
+    // Backend returns team_id, but UI historically used id.
+    id?: number;
+    team_id?: number;
     team_name: string;
     project_id?: number;
     project_name?: string;
+
+    // Backend columns:
+    //  - leader (employee id)
+    //  - employee (comma-separated employee ids)
+    leader?: number;
+    employee?: string;
+
+    // UI aliases:
     members?: string;
     leader_id?: number;
     description?: string;
@@ -57,7 +67,14 @@ export default function VendorBimLeadCreateTeam() {
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
             api.get<{ employees?: Employee[] }>("/api/employees")
         ]).then(([teamsRes, projectsRes, employeesRes]) => {
-            setTeams(teamsRes.data.teams ?? []);
+            // Normalize backend response fields to match UI usage.
+            const normalized = (teamsRes.data.teams ?? []).map((t: Team) => ({
+                ...t,
+                id: t.id ?? t.team_id,
+                leader_id: t.leader_id ?? t.leader,
+                members: t.members ?? t.employee,
+            }));
+            setTeams(normalized);
             setProjects(projectsRes.data.projects ?? []);
             setEmployees(employeesRes.data.employees ?? []);
         }).finally(() => setLoading(false));
@@ -75,8 +92,10 @@ export default function VendorBimLeadCreateTeam() {
         e.preventDefault();
         setCreateSubmitting(true);
         api.post("/api/vendors/vendor-teams", {
-            ...createForm,
-            members: selectedMemberIds.join(",")
+            team_name: createForm.team_name,
+            project_id: createForm.project_id || undefined,
+            leader: createForm.leader_id ? Number(createForm.leader_id) : undefined,
+            employee: selectedMemberIds.join(","),
         })
             .then(() => {
                 setShowCreateModal(false);
@@ -169,24 +188,39 @@ export default function VendorBimLeadCreateTeam() {
                     </div>
                 ) : (
                     displayedTeams.map(team => (
-                        <div key={team.id} className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative">
+                        <div key={(team.id ?? team.team_id) as number} className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="min-w-0 pr-4">
                                     <p className="text-[15px] font-medium text-[#999999] mb-1.5">Team Name</p>
                                     <h3 className="text-[18px] font-bold text-[#353535] truncate">{team.team_name}</h3>
                                 </div>
                                 <div className="relative">
-                                    <button onClick={() => setOpenMenuTeamId(openMenuTeamId === team.id ? null : team.id)} className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer">
+                                    <button
+                                        onClick={() =>
+                                            setOpenMenuTeamId(
+                                                openMenuTeamId === (team.id ?? team.team_id)
+                                                    ? null
+                                                    : ((team.id ?? team.team_id) as number),
+                                            )
+                                        }
+                                        className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                                    >
                                         <img src={threeDotsIcon} alt="Options" className="w-[18px] h-auto object-contain" />
                                     </button>
-                                    {openMenuTeamId === team.id && (
+                                    {openMenuTeamId === (team.id ?? team.team_id) && (
                                         <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
                                             <button onClick={() => setOpenMenuTeamId(null)}
                                                 className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer">
                                                 <img src={editIcon} alt="Edit" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                                                 <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Edit</span>
                                             </button>
-                                            <button onClick={() => { handleDelete(team.id); setOpenMenuTeamId(null); }}
+                                            <button
+                                                onClick={() => {
+                                                    handleDelete(
+                                                        (team.id ?? team.team_id) as number,
+                                                    );
+                                                    setOpenMenuTeamId(null);
+                                                }}
                                                 className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer">
                                                 <img src={deleteIcon} alt="Delete" className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]" />
                                                 <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">Delete</span>
