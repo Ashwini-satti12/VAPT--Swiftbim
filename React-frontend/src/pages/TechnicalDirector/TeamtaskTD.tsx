@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
+import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
@@ -321,10 +322,10 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <h4 className="flex-1 font-semibold text-[#353535] text-[20px] truncate min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <h4 className="flex-1 min-w-0 font-semibold text-[#353535] text-[20px] truncate">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative shrink-0" ref={menuRef}>
@@ -335,7 +336,7 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-1 rounded cursor-pointer"
+            className="p-1 rounded cursor-pointer leading-none"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
@@ -343,7 +344,7 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
@@ -361,7 +362,7 @@ function TaskCard({
                   alt="view"
                   className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
-                <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                   View
                 </span>
               </button>
@@ -381,7 +382,7 @@ function TaskCard({
                       alt="edit"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
                     </span>
                   </button>
@@ -399,7 +400,7 @@ function TaskCard({
                       alt="delete"
                       className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete
                     </span>
                   </button>
@@ -409,10 +410,24 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-4 text-[14px] font-medium text-[#8B8B8B]">
-        <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex flex-col ">
+          <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {(task.start_date || task.Actual_start_time)
+              ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+              : "—"}
+          </span>
+        </div>
 
-        <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+          <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {task.due_date
+              ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+              : ""}
+          </span>
+        </div>
       </div>
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="text-xs text-[#8B8B8B]">Progress</span>
@@ -489,11 +504,11 @@ function TaskCard({
               })()}
           </div>
         </div>
-        <Link
-          to="/td/mytasks/view"
-          state={{ task, from: "teamtask" }}
+        <button
+          type="button"
           draggable={false}
-          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2"
+          onClick={() => onViewTask?.(task)}
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
         >
           Details
           <img
@@ -501,7 +516,7 @@ function TaskCard({
             alt="Arrow"
             className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
           />
-        </Link>
+        </button>
       </div>
     </div>
   );
@@ -848,7 +863,7 @@ export default function TeamtaskTD() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white p-2 overflow-hidden">
+    <div className="flex flex-col h-full bg-white px-2 py-2 overflow-hidden">
       <div className="bg-white pb-3 flex-shrink-0">
         {/* Top row: title + dropdowns + Add task */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
@@ -981,7 +996,7 @@ export default function TeamtaskTD() {
       </div>
 
       <div className="mt-2 flex-1 min-h-0 overflow-y-auto custom-scrollbar smooth-scroll">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
           <div
             className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
             onDragOver={(e) => {

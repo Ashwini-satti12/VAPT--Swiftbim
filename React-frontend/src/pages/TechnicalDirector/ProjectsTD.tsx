@@ -1488,9 +1488,9 @@ export default function ProjectsTD() {
                 type="button"
                 onClick={() => setShowMilestones(false)}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
+                title="Back"
               >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <div className="text-center">
                 <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
@@ -1529,36 +1529,36 @@ export default function ProjectsTD() {
                     : 0;
 
                 return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                    <div className="border border-slate-200 bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="border border-[#AEACAC52] bg-[#F2F2F2] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                      <p className="text-[#353535] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
                         Total Amount
                       </p>
-                      <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
+                      <p className="text-[#353535] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {totalAmount.toLocaleString()}
                       </p>
                     </div>
-                    <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                    <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                      <p className="text-[#353535] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
                         Paid Amount
                       </p>
-                      <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
+                      <p className="text-[#353535] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {paidAmount.toLocaleString()}
                       </p>
                     </div>
-                    <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                    <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                      <p className="text-[#333333] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
                         Pending Amount
                       </p>
-                      <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
+                      <p className="text-[#333333] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {pendingAmount.toLocaleString()}
                       </p>
                     </div>
-                    <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                      <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
+                    <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                      <p className="text-[#333333] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">
                         Progress
                       </p>
-                      <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
+                      <p className="text-[#333333] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">
                         {progressPercent}%
                       </p>
                     </div>
@@ -1739,7 +1739,7 @@ export default function ProjectsTD() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[16px]  font-Gantari font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Create Project
@@ -1751,7 +1751,7 @@ export default function ProjectsTD() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredList.length === 0 ? (
-                  <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                  <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-10 text-center text-slate-500">
                     No projects found.
                   </div>
                 ) : (
@@ -1768,7 +1768,7 @@ export default function ProjectsTD() {
                           .map(Number)
                       : [];
 
-                    const radius = 28;
+                    const radius = 22;
                     const circumference = 2 * Math.PI * radius;
                     const offset =
                       circumference - (progress / 100) * circumference;
@@ -1776,26 +1776,26 @@ export default function ProjectsTD() {
                     return (
                       <div
                         key={p.id}
-                        className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
+                        className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300"
                       >
                         <div>
                           <div className="flex items-start justify-between mb-4 mt-2 pr-0">
                             <div className="relative flex items-center justify-center">
-                              <svg className="w-20 h-20 transform -rotate-90">
+                              <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
                                 <circle
-                                  cx="40"
-                                  cy="40"
+                                  cx="50%"
+                                  cy="50%"
                                   r={radius}
                                   stroke="#f1f5f9"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
                                 />
                                 <circle
-                                  cx="40"
-                                  cy="40"
+                                  cx="50%"
+                                  cy="50%"
                                   r={radius}
                                   stroke="#0a9344"
-                                  strokeWidth="6"
+                                  strokeWidth="4"
                                   fill="transparent"
                                   strokeDasharray={circumference}
                                   strokeDashoffset={offset}
@@ -1806,7 +1806,7 @@ export default function ProjectsTD() {
                                   }}
                                 />
                               </svg>
-                              <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                              <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">
                                 {progress}%
                               </span>
                             </div>
@@ -1828,7 +1828,7 @@ export default function ProjectsTD() {
                                 />
                               </button>
                               <div
-                                className={`absolute right-0 mt-3 w-60 bg-white/20 backdrop-blur-md rounded-xl border border-[#595959]/50 shadow-xl transition-all origin-top-right ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                                className={`absolute right-0 mt-3 w-56 bg-white/20 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right ${openMenuProjectId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                               >
                                 <button
                                   onClick={(e) => {
@@ -1838,14 +1838,14 @@ export default function ProjectsTD() {
                                       projectId: String(p.id),
                                     });
                                   }}
-                                  className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                  className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                 >
                                   <img
                                     src={viewIcon}
                                     alt="view"
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                   />
-                                  <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                  <span className="text-[14px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                   </span>
                                 </button>
@@ -1857,14 +1857,14 @@ export default function ProjectsTD() {
                                       setCurrentProject(p);
                                       setShowMilestones(true);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={paymentMilestoneIcon}
                                       alt="payment milestone"
                                       className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Payment Milestones
                                     </span>
                                   </button>
@@ -1969,14 +1969,14 @@ export default function ProjectsTD() {
                                         );
                                       }
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={editIcon}
                                       alt="edit"
                                       className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Edit
                                     </span>
                                   </button>
@@ -1988,14 +1988,14 @@ export default function ProjectsTD() {
                                       setOpenMenuProjectId(null);
                                       setDeleteId(p.id);
                                     }}
-                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                    className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
                                       src={deleteIcon}
                                       alt="delete"
                                       className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                     />
-                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                    <span className="text-[14px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
                                       Delete
                                     </span>
                                   </button>
@@ -2004,8 +2004,8 @@ export default function ProjectsTD() {
                             </div>
                           </div>
 
-                          <div className="mb-4 ml-6 -mt-2">
-                            <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex items-center">
+                            <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
                           </div>

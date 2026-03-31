@@ -546,95 +546,134 @@ export default function ProjectsPM() {
       {showProjectView && selectedProjectForView ? (
         <div className="flex flex-col h-full bg-white">
           {/* Project View Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
             <button
               type="button"
               onClick={() => {
                 setShowProjectView(false);
                 setSearchParams({}, { replace: true });
               }}
-              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
               title="Close"
             >
-             <img src={backIcon} alt="Close" className="w-5 h-5" />
+              <img src={backIcon} alt="Close" className="w-5 h-5" />
             </button>
             <div className="text-center">
-              <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#1A1A1A]">
-                {selectedProjectForView.project_name ?? 'Prestige Park Grove'}
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-semibold text-[#000000]">
+                {selectedProjectForView.project_name ?? "Untitled Project"}
               </h3>
               <div className="flex items-center justify-center gap-2 md:gap-3 mt-0.5">
-                <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#999999]"></span>
-                <p className="text-[14px] md:text-[16px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
+                <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-[#353535]"></span>
+                <p className="text-[14px] md:text-[14px] font-Gantari font-semibold text-[#353535]">
+                  Overall Progress Tracker
+                </p>
               </div>
             </div>
           </div>
 
           {/* Project View Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-6">
-            {/* Task Status Cards */}
-            <div className="grid grid-cols-1  sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div className="flex-1 flex flex-col overflow-hidden mt-4">
+            {/* Task Status Cards - Static at top */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-6 mb-4 shrink-0">
               {/* Total Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask' + (selectedProjectForView?.project_name ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                className="text-left bg-[#F2F2F2] p-4 rounded-lg flex flex-col h-[100px] md:h-[100px] cursor-pointer justify-center items-center focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks" +
+                      (selectedProjectForView?.project_name
+                        ? `?project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
-                <div className="flex items-center justify-center gap-4">
-                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">Total Tasks</p>
-                  <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                    {selectedProjectForView.total_tasks ?? 0}
+                <div className="flex items-center justify-left mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    Total Tasks
                   </p>
                 </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                  {selectedProjectForView.total_tasks ?? 0}
+                </p>
               </button>
 
               {/* Completed Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask?status=completed' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                className="text-left bg-[#F2F2F2] p-4 rounded-lg flex flex-col h-[100px] md:h-[100px] cursor-pointer justify-center items-center focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks?status=completed" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
-                <div className="flex items-center justify-between gap-4">
-                <p className="text-[#333333] group-hover:text-white text-[18px] font-Gantari font-semibold opacity-90">Completed Tasks</p>
-                <p className="text-[#333333] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    Completed Tasks
+                  </p>
+                </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {selectedProjectForView.completed_tasks ?? 0}
                 </p>
-                </div>
               </button>
 
               {/* To Do Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask?status=todo' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                className="text-left bg-[#F2F2F2] p-4 rounded-lg flex flex-col h-[100px] md:h-[100px] cursor-pointer justify-center items-center focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks?status=todo" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
-                <div className="flex items-center justify-between gap-4">
-                <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold opacity-90">To Do Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    To Do Tasks
+                  </p>
+                </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {pmTaskStatsLoading ? "..." : pmTaskStats.todo}
                 </p>
-                </div>
               </button>
 
               {/* In Progress Tasks */}
               <button
                 type="button"
-                onClick={() => navigate('/teamtask?status=in_progress' + (selectedProjectForView?.project_name ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}` : ''))}
-                className="text-left bg-[#F2F2F2] p-4 rounded-lg flex flex-col h-[100px] md:h-[100px] cursor-pointer justify-center items-center focus:outline-none group border-1 border-[#AEACAC52] hover:bg-[#DD4342] transition-colors"
+                onClick={() =>
+                  navigate(
+                    "/pm/teamtasks?status=in_progress" +
+                      (selectedProjectForView?.project_name
+                        ? `&project=${encodeURIComponent(selectedProjectForView.project_name)}`
+                        : ""),
+                  )
+                }
+                className="text-left bg-[#F2F2F2] p-2 rounded-md flex flex-col h-[100px] md:h-[80px] cursor-pointer hover:bg-[#DD4342] transition-colors focus:outline-none group border-1 border-[#AEACAC52]"
               >
-                <div className="flex items-center justify-between gap-4">
-                <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold opacity-90">In Progress Tasks</p>
-                <p className="text-[#353535] group-hover:text-white text-[24px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#353535] group-hover:text-white text-[18px] font-Gantari font-semibold">
+                    In Progress Tasks
+                  </p>
+                </div>
+                <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
                   {pmTaskStatsLoading ? "..." : pmTaskStats.inProgress}
                 </p>
-                </div>
               </button>
             </div>
 
-
-            {/* Tower Progress Grid */}
-            <div className="border border-[#AEACAC52] rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-4">
-              <div className="max-h-[290px] overflow-y-auto custom-scrollbar pr-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+            {/* Scrollable Content below KPI cards */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-4 px-4 md:px-6 pb-6">
+              {/* Tower Progress Grid */}
+            <div className="border border-[#AEACAC52] rounded-md ">
+              <div className="max-h-[220px] overflow-y-auto custom-scrollbar p-6 md:p-8 lg:p-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-4 ">
                   {(selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).length > 0 ? (
                     (selectedProjectForView.module_name ? selectedProjectForView.module_name.split(',').map(m => m.trim()).filter(Boolean) : []).map((mod, i) => {
                       const towerProgress = selectedProjectForView.progress ?? 0;
@@ -643,30 +682,30 @@ export default function ProjectsPM() {
                       const statusBg = towerProgress === 100 ? 'bg-[#E0FFE8]' : towerProgress > 0 ? 'bg-[#FFEAD6]' : 'bg-[#FFD9D9]';
 
                       return (
-                        <div key={i} className="bg-white border border-[#AEACAC52] rounded-[12px] p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all h-[180px]">
+                        <div key={i} className="bg-white border border-[#AEACAC52] rounded-md p-5 gap-4 flex flex-col justify-start shadow-sm hover:shadow-md transition-all h-[130px]">
                           <div className="flex justify-between items-start">
                             <span className="text-[18px] font-Gantari font-bold text-[#1A1A1A] truncate pr-2">{mod}</span>
-                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full ${statusBg} shrink-0`}>
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }}></span>
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md ${statusBg} shrink-0`}>
+                              <span className="w-1.5 h-1.5 rounded-md" style={{ backgroundColor: statusColor }}></span>
                               <span className="text-[12px] font-bold font-Gantari" style={{ color: statusColor }}>{status}</span>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between mt-4">
-                            <div className="relative flex items-center justify-center w-20 h-20 shrink-0">
+                          <div className="flex items-center justify-between ">
+                            <div className="relative flex items-center justify-center w-14 h-14 shrink-0">
                               <svg className="w-full h-full transform -rotate-90">
-                                <circle cx="40" cy="40" r="32" stroke="#F2F3F5" strokeWidth="6" fill="transparent" />
+                                <circle cx="28" cy="28" r="22" stroke="#F2F3F5" strokeWidth="4" fill="transparent" />
                                 <circle
-                                  cx="40" cy="40" r="32" stroke={statusColor} strokeWidth="6" fill="transparent"
-                                  strokeDasharray={201} strokeDashoffset={201 - (towerProgress / 100) * 201} strokeLinecap="round"
+                                  cx="28" cy="28" r="22" stroke={statusColor} strokeWidth="4" fill="transparent"
+                                  strokeDasharray={138} strokeDashoffset={138 - (towerProgress / 100) * 138} strokeLinecap="round"
                                 />
                               </svg>
-                              <span className="absolute text-[15px] font-bold text-[#1A1A1A] font-Gantari">{Math.round(towerProgress)}%</span>
+                              <span className="absolute text-[12px] font-bold text-[#8B8B8B] font-Gantari">{Math.round(towerProgress)}%</span>
                             </div>
                             <div className="flex flex-col items-end">
-                              <p className="text-[14px] font-medium text-[#999999] font-Gantari mb-1">Tasks Done</p>
+                              <p className="text-[14px] font-medium text-[#8B8B8B] font-Gantari mb-1">Tasks Done</p>
                               <div className="flex items-baseline border-t border-slate-100 pt-1">
-                                <p className="text-[20px] font-bold text-[#1A1A1A] font-Gantari">{selectedProjectForView.completed_tasks ?? 0}</p>
-                                <p className="text-[16px] font-bold text-[#999999] font-Gantari">/{selectedProjectForView.total_tasks ?? 0}</p>
+                                <p className="text-[14px] font-bold text-[#1A1A1A] font-Gantari">{selectedProjectForView.completed_tasks ?? 0}</p>
+                                <p className="text-[14px] font-bold text-[#8B8B8B] font-Gantari">/{selectedProjectForView.total_tasks ?? 0}</p>
                               </div>
                             </div>
                           </div>
@@ -681,15 +720,15 @@ export default function ProjectsPM() {
             </div>
             {/* Project Description */}
             <div className="border border-[#AEACAC52] rounded-[10px] md:rounded-[10px] p-6 md:p-8 lg:p-4">
-              <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
-              <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+              <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">Project Description</h4>
+              <p className="text-[14px] font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
                 {selectedProjectForView.description ?? 'This project involves comprehensive BIM modeling and coordination for the selected facility, ensuring all architectural, structural, and MEP systems are perfectly aligned according to international standards.'}
               </p>
             </div>
 
             {/* Team Overview Section */}
             <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-              <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+              <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">
                 Team Overview
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-start">
@@ -705,10 +744,10 @@ export default function ProjectsPM() {
                   if (pmIds.length === 0 && pmNames.length === 0) {
                     return (
                       <div className="min-w-0">
-                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">Project Manager</p>
+                        <p className="text-md font-Gantari font-semibold text-[#000000] text-[20px] mb-2">Project Manager</p>
                         <div className="flex items-center -space-x-3">
                           <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                            <span className="text-slate-600 text-xs font-bold">PM</span>
+                            <span className="text-[#8B8B8B] text-[14px] font-bold">PM</span>
                           </div>
                         </div>
                       </div>
@@ -983,41 +1022,68 @@ export default function ProjectsPM() {
 
             {/* Project Details Section */}
             <div className="rounded-lg border border-[#AEACAC52] p-6 md:p-4">
-              <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-8">Project Details</h4>
+              <h4 className="text-[20px] font-Gantari font-semibold text-[#000000] mb-8">Project Details</h4>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Client Name</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">
-                      {selectedProjectForView.client_name || 'N/A'}
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Client Name
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.client_name || "N/A"}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Actual Start Date</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">
-                      {selectedProjectForView.start_date ? new Date(selectedProjectForView.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Actual Start Date
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.start_date
+                        ? new Date(selectedProjectForView.start_date).toLocaleDateString(
+                            "en-GB",
+                            { day: "2-digit", month: "2-digit", year: "numeric" }
+                          )
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Project Hours</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : 'N/A'}</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Total Project Hours
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.total_hours
+                        ? `${selectedProjectForView.total_hours}hrs`
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Budget</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.budget ? `${selectedProjectForView.budget}$` : 'N/A'}</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Budget
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.budget
+                        ? `${selectedProjectForView.budget}`
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Resources Available</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.resources || 'N/A'}</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Total Resources Available
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.resources || "N/A"}
+                    </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Project Document</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Project Document
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
                     <div className="flex flex-col gap-2">
                       {selectedProjectForView.document_attachment ? (
                         selectedProjectForView.document_attachment
@@ -1032,7 +1098,7 @@ export default function ProjectsPM() {
                                   href={url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-md font-Gantari font-medium text-blue-600 hover:underline"
+                                  className="text-[16px] font-Gantari font-medium text-blue-600 hover:underline"
                                 >
                                   {truncateFileName ? truncateFileName(fileName) : fileName}
                                 </a>
@@ -1055,7 +1121,7 @@ export default function ProjectsPM() {
                             );
                           })
                       ) : (
-                        <span className="text-md font-Gantari font-medium text-[#666666]">
+                        <span className="text-[16px] font-Gantari font-medium text-[#616161]">
                           No Document Available
                         </span>
                       )}
@@ -1064,31 +1130,48 @@ export default function ProjectsPM() {
                 </div>
                 <div className="space-y-4 md:space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Location</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.location || 'N/A'}</span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Actual End Date</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">
-                      {selectedProjectForView.end_date ? new Date(selectedProjectForView.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'N/A'}
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Location
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.location || "N/A"}
                     </span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Hours/Day</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.per_day ? `${selectedProjectForView.per_day}hrs` : 'N/A'}</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Actual End Date
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.end_date
+                        ? new Date(selectedProjectForView.end_date).toLocaleDateString(
+                            "en-GB",
+                            { day: "2-digit", month: "2-digit", year: "numeric" }
+                          )
+                        : "N/A"}
+                    </span>
                   </div>
-                  {/* <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Total Required Resources</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
-                  </div> */}
                   <div className="flex flex-col sm:flex-row sm:items-center">
-                    <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">Required Resources</span>
-                    <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                    <span className="text-md font-Gantari font-medium text-[#666666]">{selectedProjectForView.required_resources || 'N/A'}</span>
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Hours/Day
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.per_day
+                        ? `${selectedProjectForView.per_day}hrs`
+                        : "N/A"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center">
+                    <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">
+                      Required Resources
+                    </span>
+                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                    <span className="text-[16px] font-Gantari font-medium text-[#616161]">
+                      {selectedProjectForView.required_resources || "N/A"}
+                    </span>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -1103,21 +1186,21 @@ export default function ProjectsPM() {
               type="button"
               onClick={() => setShowMilestones(false)}
               className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
-              title="Close"
+              title="Back"
             >
-              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+              <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
             <div className="text-center">
-              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#1A1A1A]">
+              <h3 className="text-[20px] md:text-[24px] font-Gantari font-bold text-[#000000]">
                 Payment Milestones
               </h3>
-              <p className="text-sm font-Gantari font-bold text-[#999999] mt-0.5">
+              <p className="text-sm font-Gantari font-medium text-[#8B8B8B] mt-0.5">
                 {currentProject.project_name ?? "Prestige Park Grove"}_Tower 1 to 09
               </p>
             </div>
             <button
               onClick={() => setShowAddMilestoneModal(true)}
-              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 rounded-lg bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] shadow-sm transition-colors cursor-pointer"
+              className="absolute right-4 md:right-6 flex items-center gap-2 px-4 md:px-6 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-bold text-[14px] md:text-[16px] transition-colors cursor-pointer"
               title="Add Milestone"
             >
               <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
@@ -1135,22 +1218,22 @@ export default function ProjectsPM() {
               const progressPercent = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  <div className="border border-slate-200 bg-[#F2F2F2] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                    <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
-                    <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{totalAmount.toLocaleString()}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="border border-[#AEACAC52] bg-[#F2F2F2] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                    <p className="text-[#353535] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Total Amount</p>
+                    <p className="text-[#353535] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{totalAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                    <p className="text-[#353535] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
-                    <p className="text-[#353535] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{paidAmount.toLocaleString()}</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                    <p className="text-[#353535] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Paid Amount</p>
+                    <p className="text-[#353535] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{paidAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                    <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
-                    <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{pendingAmount.toLocaleString()}</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                    <p className="text-[#333333] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Pending Amount</p>
+                    <p className="text-[#333333] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{pendingAmount.toLocaleString()}</p>
                   </div>
-                  <div className="border border-slate-200 bg-[#F2F3F4] p-5 lg:p-6 rounded-[8px] flex flex-col justify-between min-h-[110px] group hover:bg-[#DD4342]">
-                    <p className="text-[#333333] text-xl font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
-                    <p className="text-[#333333] text-3xl text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{progressPercent}%</p>
+                  <div className="border border-[#AEACAC52] bg-[#F2F3F4] p-5 lg:p-6 rounded-md flex flex-col justify-between group hover:bg-[#DD4342]">
+                    <p className="text-[#333333] text-[18px] font-Gantari font-semibold group-hover:text-[#F2F2F2] transition-colors whitespace-nowrap">Progress</p>
+                    <p className="text-[#333333] text-[20px] text-center mt-3 font-Gantari font-bold group-hover:text-[#F2F2F2] transition-colors">{progressPercent}%</p>
                   </div>
                 </div>
               );
@@ -1171,7 +1254,7 @@ export default function ProjectsPM() {
                 </p>
                 <button
                   onClick={() => setShowAddMilestoneModal(true)}
-                  className="flex items-center gap-2 px-6 py-2 rounded-[5px] bg-[#DD4342] text-white font-Gantari font-medium text-[16px] hover:bg-[#c93a39] transition-colors cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2 rounded-md bg-[#DD4342] text-white font-Gantari font-medium text-[16px] transition-colors cursor-pointer"
                 >
                   <img src={addBtnIcon} alt="Add" className="w-5 h-5" />
                   Add Milestone
@@ -1249,11 +1332,11 @@ export default function ProjectsPM() {
       ) : showCreateModal ? (
         <div className="flex flex-col h-full bg-white">
           {/* Create Project Header */}
-          <div className="relative flex items-center justify-center px-4 md:px-6 py-4 md:py-6 border-b border-slate-50">
+          <div className="relative flex items-center justify-center px-4 md:px-6 py-2 border-b border-slate-50">
             <button
               type="button"
               onClick={() => { setShowCreateModal(false); setCreateError(''); }}
-              className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-[#000000] cursor-pointer"
+              className="absolute left-4 p-2 rounded-md bg-[#F2F2F2] text-[#000000] cursor-pointer"
               title="Close"
             >
              <img src={backIcon} alt="Close" className="w-5 h-5" />
@@ -2435,7 +2518,7 @@ export default function ProjectsPM() {
                   resetFormFields();
                   setShowCreateModal(true);
                 }}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[5px] bg-[#DD4342] text-[#F2F2F2] text-[15px] md:text-[16px] font-Gantari font-semibold transition-all hover:bg-[#c93a39] cursor-pointer"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[14px] md:text-[16px] font-Gantari font-semibold transition-all cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -2447,32 +2530,35 @@ export default function ProjectsPM() {
 
           {/* Dashboard Content with Scrollbar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4 pb-2">
               {list.length === 0 ? (
-                <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+                <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
                   No projects found.
                 </div>
               ) : (
                 list.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
-                  const radius = 28;
-                  const circumference = 2 * Math.PI * radius;
-                  const offset = circumference - (progress / 100) * circumference;
-
                   return (
-                    <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
+                    <div key={p.id} className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div>
-                        <div className="flex items-start justify-between mb-4 mt-2 pr-0">
+                        <div className="flex items-start justify-between mb-2 mt-2 pr-0">
                           <div className="relative flex items-center justify-center">
-                            <svg className="w-20 h-20 transform -rotate-90">
-                              <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                            <svg className="w-12 h-12 md:w-16 md:h-16 transform -rotate-90">
+                              <circle cx="50%" cy="50%" r={22} stroke="#f1f5f9" strokeWidth="4" fill="transparent" />
                               <circle
-                                cx="40" cy="40" r={radius} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round"
-                                style={{ transition: 'stroke-dashoffset 0.8s ease-in-out' }}
+                                cx="50%"
+                                cy="50%"
+                                r={22}
+                                stroke="#0a9344"
+                                strokeWidth="4"
+                                fill="transparent"
+                                strokeDasharray={2 * Math.PI * 22}
+                                strokeDashoffset={(2 * Math.PI * 22) - (progress / 100) * (2 * Math.PI * 22)}
+                                strokeLinecap="round"
+                                style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
                               />
                             </svg>
-                            <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">{progress}%</span>
+                            <span className="absolute text-[12px] font-Gantari font-bold text-[#353535]">{progress}%</span>
                           </div>
                           <div className="relative">
                             <button
@@ -2486,30 +2572,23 @@ export default function ProjectsPM() {
                               <img src={threedot} alt="" className='w-5 h-5' />
                             </button>
                             <div
-                              className={`absolute -right-30 w-72 bg-white/10 backdrop-blur-md rounded-[15px] border border-[#59595980] z-20 transition-all duration-200 shadow-xl overflow-hidden ${openMenuId === p.id ? 'opacity-100 visible translate-y-2' : 'opacity-0 invisible translate-y-0'}`}
+                              className={`absolute right-0 mt-3 w-60 bg-white/90 backdrop-blur-md rounded-md border border-[#595959]/50 shadow-xl transition-all origin-top-right z-50 ${openMenuId === p.id ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
-                                onClick={() => {
-                                  setOpenMenuId(null);
-                                  setSearchParams({ projectId: String(p.id) });
-                                }}
+                                onClick={() => { setOpenMenuId(null); setSearchParams({ projectId: String(p.id) }); }}
                                 className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
                               >
-                                <img src={viewIcon} alt="view" className="w-6 h-6 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
-                                <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
+                                <img src={viewIcon} alt="view" className="w-5 h-5 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">View</span>
                               </button>
                               {(isTechnicalDirector || isManagement) && (
                                 <button
-                                  onClick={() => {
-                                    setCurrentProject(p);
-                                    setShowMilestones(true);
-                                    setOpenMenuId(null);
-                                  }}
+                                  onClick={() => { setCurrentProject(p); setShowMilestones(true); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
                                 >
-                                  <img src={paymentMilestone} alt=" milestones" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
+                                  <img src={paymentMilestone} alt=" milestones" className="w-5 h-5 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Payment Milestones</span>
                                 </button>
                               )}
                               {canEdit && (
@@ -2535,7 +2614,6 @@ export default function ProjectsPM() {
                                     if (p.member) {
                                       const memIds = p.member.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
                                       setSelectedMemberIds(memIds);
-                                      // Also pre-fill single editMember field (for compatibility)
                                       const firstMember = allEmployees.find(e => e.id === memIds[0]);
                                       setEditMember(firstMember ? firstMember.full_name : '');
                                     } else {
@@ -2550,84 +2628,56 @@ export default function ProjectsPM() {
                                     setCreateDescription(p.description ?? '');
                                     setEditTaskTags(p.tasks ? p.tasks.split(',').map(t => t.trim()).filter(Boolean) : []);
                                     setEditModuleTags(p.module_name ? p.module_name.split(',').map(m => m.trim()).filter(Boolean) : []);
-
-                                    // Handle existing files
                                     const docs = p.document_attachment ? p.document_attachment.split(',').map(s => s.trim()).filter(Boolean) : [];
                                     setExistingFiles(docs);
                                     setRemovedFiles([]);
                                     setCreateFiles([]);
-
                                     setShowEditModal(true);
                                     setOpenMenuId(null);
                                   }}
                                   className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
                                 >
-                                  <img src={editIcon} alt="edit" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
+                                  <img src={editIcon} alt="edit" className="w-5 h-5 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Edit</span>
                                 </button>
                               )}
                               {canDelete && (
                                 <button
-                                  onClick={() => {
-                                    setDeleteId(p.id);
-                                    setOpenMenuId(null);
-                                  }}
+                                  onClick={() => { setDeleteId(p.id); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari cursor-pointer"
                                 >
-                                  <img src={deleteIcon} alt="delete" className="w-6 h-6 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
-                                  <span className="text-[20px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Delete</span>
+                                  <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
+                                  <span className="text-[14px] font-semibold text-[#6B6B6B] group-hover:text-[#DD4342] transition-colors">Delete</span>
                                 </button>
                               )}
-                            </div>
                           </div>
                         </div>
-
-                        <div className="mb-4 ml-6 -mt-2">
-                          <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
-                            {p.project_name ?? 'Prestige Park Grove'}
-                          </h3>
-                        </div>
                       </div>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className="flex items-center justify-between border-t border-[#E8E8E8] pt-4 mt-auto cursor-pointer"
-                        onClick={() => setSearchParams({ projectId: String(p.id) })}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            setSearchParams({ projectId: String(p.id) });
-                          }
-                        }}
+                      <div className="mb-2 ml-6 -mt-1 min-h-[45px] flex items-center">
+                        <h3 className="text-[16px] md:text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                          {p.project_name ?? "Untitled Project"}
+                        </h3>
+                      </div>
+                    </div>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
+                      onClick={() => setSearchParams({ projectId: String(p.id) })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSearchParams({ projectId: String(p.id) }); } }}
                         title="View project details"
                       >
                         <div className="hover:cursor-pointer flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
                           {(() => {
-                            const rawIds = p.member
-                              ? p.member.split(',').map(m => m.trim()).filter(Boolean)
-                              : [];
-                            const memberIds_card = rawIds.map((m) => {
-                              const n = Number(m);
-                              return Number.isNaN(n) ? m : n;
-                            });
-                            const projectEmployees = memberIds_card
-                              .map((id) =>
-                                allEmployees.find((e) =>
-                                  Number(e.id) === Number(id) || String(e.id) === String(id)
-                                )
-                              )
-                              .filter(Boolean) as Employee[];
-
+                            const rawIds = p.member ? p.member.split(',').map(m => m.trim()).filter(Boolean) : [];
+                            const memberIds_card = rawIds.map((m) => { const n = Number(m); return Number.isNaN(n) ? m : n; });
+                            const projectEmployees = memberIds_card.map((id) => allEmployees.find((e) => Number(e.id) === Number(id) || String(e.id) === String(id)) ).filter(Boolean) as Employee[];
                             const visibleMembers = projectEmployees.slice(0, 3);
                             const remainingCount = Math.max(0, projectEmployees.length - 3);
-
                             return (
                               <>
                                 {visibleMembers.map((emp) => {
-                                  const profileUrl = emp.profile_picture
-                                    ? getGlobalProfileUrl(emp.id, emp.profile_picture)
-                                    : null;
-
+                                  const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
                                   return (
                                     <div
                                       key={emp.id}
@@ -2635,31 +2685,12 @@ export default function ProjectsPM() {
                                       tabIndex={0}
                                       className="relative z-0 w-9 h-9 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm cursor-pointer hover:ring-2 hover:ring-[#DD4342]/20 transition-all"
                                       title={emp.full_name}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedMember(emp);
-                                        setShowMemberProfileModal(true);
-                                      }}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          setSelectedMember(emp);
-                                          setShowMemberProfileModal(true);
-                                        }
-                                      }}
+                                      onClick={(e) => { e.stopPropagation(); setSelectedMember(emp); setShowMemberProfileModal(true); }}
                                     >
                                       {profileUrl ? (
-                                        <img
-                                          src={profileUrl}
-                                          alt={emp.full_name}
-                                          className="w-full h-full object-cover"
-                                          onError={(e) => {
-                                            (e.target as HTMLImageElement).src = ProfileIcon;
-                                          }}
-                                        />
+                                        <img src={profileUrl} alt={emp.full_name} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
                                       ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">
-                                          {(emp.full_name || 'U').charAt(0).toUpperCase()}
-                                        </div>
+                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-[10px] font-bold text-slate-600">{(emp.full_name || 'U').charAt(0).toUpperCase()}</div>
                                       )}
                                     </div>
                                   );
@@ -2669,20 +2700,7 @@ export default function ProjectsPM() {
                                     role="button"
                                     tabIndex={0}
                                     className="relative z-10 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[11px] font-bold text-slate-500 shadow-sm cursor-pointer hover:bg-slate-100 hover:border-slate-400 active:scale-95 transition-all select-none"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      setAllMembersList(projectEmployees);
-                                      setShowAllMembersModal(true);
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        setAllMembersList(projectEmployees);
-                                        setShowAllMembersModal(true);
-                                      }
-                                    }}
-                                    title="Click to see all members"
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAllMembersList(projectEmployees); setShowAllMembersModal(true); }}
                                   >
                                     +{remainingCount}
                                   </div>
@@ -2691,11 +2709,13 @@ export default function ProjectsPM() {
                             )
                           })()}
                         </div>
-                        {p.priority && (
-                          <div className={`px-3.5 py-1 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority === 'High' ? 'bg-[#DD4342]' : 'bg-[#94D6F2]'}`}>
-                            {p.priority}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {p.priority && (
+                             <div className={`px-2.5 py-0.5 rounded-[8px] text-white text-[13px] font-bold font-Gantari shadow-sm ${p.priority.toLowerCase() === "high" ? "bg-[#DD4342]" : "bg-[#94D6F2]"}`}>
+                               {p.priority}
+                             </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2830,9 +2850,9 @@ export default function ProjectsPM() {
                 type="button"
                 onClick={() => setShowAddMilestoneModal(false)}
                 className="absolute left-8 md:left-10 p-2 rounded-md bg-[#F2F2F2] transition-colors cursor-pointer"
-                title="Close"
+                title="Back"
               >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[20px] md:text-[24px] font-Gantari font-medium text-[#000000] text-center px-12">Add Payment Milestone</h3>
             </div>
@@ -2931,13 +2951,13 @@ export default function ProjectsPM() {
                 <button
                   type="button"
                   onClick={() => setShowAddMilestoneModal(false)}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-[#F2F2F2] text-[#101827] font-semibold text-[14px] font-Gantari transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#F2F2F2] text-[#101827] font-semibold text-[14px] font-Gantari transition-all cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[14px] font-Gantari transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2 rounded-md bg-[#DBE9FE] text-[#101827] font-semibold text-[14px] font-Gantari transition-all cursor-pointer"
                 >
                   Add Milestone
                 </button>
@@ -2956,9 +2976,9 @@ export default function ProjectsPM() {
                 type="button"
                 onClick={() => setShowAllMembersModal(false)}
                 className="absolute left-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-                title="Close"
+                title="Back"
               >
-                <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
+                <img src={backIcon} alt="Back" className="w-5 h-5" />
               </button>
               <h3 className="text-[24px] font-Gantari font-bold text-[#1A1A1A]">
                 All Members ({allMembersList.length})

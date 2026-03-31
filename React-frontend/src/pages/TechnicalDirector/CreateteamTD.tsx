@@ -111,13 +111,13 @@ function TeamCard({
   }, []);
 
   return (
-    <div className="bg-white rounded-md p-4 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+    <div className="bg-white rounded-md p-3.5 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
       {/* Team Name */}
-      <div className="flex flex-col mb-4 pt-1">
+      <div className="flex flex-col mb-3 pt-1">
         <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
           Team Name
         </span>
-        <span className="text-[20px] font-semibold text-[#353535] pr-8 truncate">
+        <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
           {team.team_name || team.teamname || "Untitled Team"}
         </span>
       </div>
@@ -174,7 +174,7 @@ function TeamCard({
       </div>
 
       {/* Team Leader */}
-      <div className="flex flex-col mb-5">
+      <div className="flex flex-col mb-4">
         <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
           Team Leader
         </span>
@@ -189,7 +189,7 @@ function TeamCard({
         </span>
       </div>
 
-      <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+      <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
 
       {/* Members & Details */}
       <div className="mt-auto flex items-center justify-between">
@@ -1726,7 +1726,7 @@ export default function CreateteamTD() {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
-            <div className="relative flex items-center justify-center w-full mb-8">
+            <div className="relative flex items-center justify-center w-full mb-4">
               <button
                 onClick={() => {
                   setShowDeleteModal(false);

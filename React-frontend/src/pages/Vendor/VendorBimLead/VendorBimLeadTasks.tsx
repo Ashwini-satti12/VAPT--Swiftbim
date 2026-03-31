@@ -10,7 +10,7 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
-import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+
 
 interface Task {
     id: number;
@@ -22,8 +22,11 @@ interface Task {
     project_id?: number;
     project_name?: string;
     assigned_to?: number;
+    /** Resolved assignee name; derived from backend's assigned_full_name for vendor_task */
     assigned_to_name?: string;
     category?: string;
+    /** For compatibility with /api/vendors/vendor-tasks */
+    assigned_full_name?: string;
 }
 
 interface Project {
@@ -34,7 +37,7 @@ interface Project {
 interface Employee {
     id: number;
     full_name: string;
-  active?: string;
+    active?: string;
 }
 
 export default function VendorBimLeadTasks() {
@@ -47,10 +50,19 @@ export default function VendorBimLeadTasks() {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
-        task_name: "", description: "", status: "To Do", priority: "Medium",
-        due_date: "", project_id: "", assigned_to: "", category: "General",
-        actual_start_date: "", actual_end_date: "", checklist: "",
-        start_time: "", end_time: ""
+        task_name: "",
+        description: "",
+        status: "Todo",
+        priority: "",
+        due_date: "",
+        project_id: "",
+        assigned_to: "",
+        category: "",
+        actual_start_date: "",
+        actual_end_date: "",
+        checklist: "",
+        start_time: "",
+        end_time: "",
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
     const [openFormDropdown, setOpenFormDropdown] = useState<string | null>(null);
@@ -62,9 +74,25 @@ export default function VendorBimLeadTasks() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+    const showDropdownRef = useRef<HTMLDivElement>(null);
+    const projectDropdownRef = useRef<HTMLDivElement>(null);
+    const moduleDropdownRef = useRef<HTMLDivElement>(null);
+    const typeDropdownRef = useRef<HTMLDivElement>(null);
+    const assignDropdownRef = useRef<HTMLDivElement>(null);
+    const cardMenuRef = useRef<HTMLDivElement>(null);
+
     const fetchTasks = () => {
         api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
-            .then(({ data }) => setTasks(data.tasks ?? []))
+            .then(({ data }) => {
+                const raw = data.tasks ?? [];
+                const mapped = raw.map((t) => ({
+                    ...t,
+                    assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
+                    // Backend stores this in vendor_task.category
+                    priority: (t as any).priority ?? (t as any).category ?? t.priority,
+                }));
+                setTasks(mapped);
+            })
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));
     };
@@ -75,21 +103,84 @@ export default function VendorBimLeadTasks() {
             .then(({ data }) => setProjects(data.projects ?? []));
         api.get<{ employees?: Employee[] }>("/api/employees")
             .then(({ data }) => setEmployees(data.employees ?? []));
-    }, []);
+
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (showDropdownRef.current && !showDropdownRef.current.contains(target)) {
+                setShowDropdownOpen(false);
+            }
+            if (cardMenuRef.current && !cardMenuRef.current.contains(target)) {
+                setOpenMenuTaskId(null);
+            }
+            if (openFormDropdown) {
+                if (openFormDropdown === "project" && projectDropdownRef.current && !projectDropdownRef.current.contains(target)) {
+                    setOpenFormDropdown(null);
+                }
+                if (openFormDropdown === "module" && moduleDropdownRef.current && !moduleDropdownRef.current.contains(target)) {
+                    setOpenFormDropdown(null);
+                }
+                if (openFormDropdown === "type" && typeDropdownRef.current && !typeDropdownRef.current.contains(target)) {
+                    setOpenFormDropdown(null);
+                }
+                if (openFormDropdown === "assignTo" && assignDropdownRef.current && !assignDropdownRef.current.contains(target)) {
+                    setOpenFormDropdown(null);
+                }
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [openFormDropdown]);
 
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
-        api.post("/api/vendors/vendor-tasks", createForm)
-            .then(() => {
+        // Transform UI form keys to backend vendor_task keys
+        const payload = {
+            task_name: createForm.task_name,
+            description: createForm.description,
+            status: createForm.status === "To Do" ? "Todo" : createForm.status,
+            category: createForm.priority || "Medium",
+            due_date: createForm.actual_end_date || undefined,
+            start_date: createForm.actual_start_date || undefined,
+            start_time: createForm.start_time || undefined,
+            end_time: createForm.end_time || undefined,
+            project_id:
+                createForm.project_id ? Number(createForm.project_id) : undefined,
+            assigned_to:
+                createForm.assigned_to ? Number(createForm.assigned_to) : undefined,
+            // Use "category" selection for type, and "modules"/category selection for module
+            modules: createForm.category || undefined,
+            checklist: createForm.checklist || undefined,
+        };
+
+        api.post("/api/vendors/vendor-tasks", payload)
+            .then((res) => {
+                const taskId = res.data?.task_id ?? res.data?.id;
                 setShowCreateModal(false);
                 setAttachmentFiles([]);
                 setCreateForm({
-                    task_name: "", description: "", status: "To Do", priority: "Medium",
-                    due_date: "", project_id: "", assigned_to: "", category: "General",
-                    actual_start_date: "", actual_end_date: "", checklist: "",
-                    start_time: "", end_time: ""
+                    task_name: "",
+                    description: "",
+                    status: "Todo",
+                    priority: "Medium",
+                    due_date: "",
+                    project_id: "",
+                    assigned_to: "",
+                    category: "",
+                    actual_start_date: "",
+                    actual_end_date: "",
+                    checklist: "",
+                    start_time: "",
+                    end_time: "",
                 });
+                if (taskId && attachmentFiles.length > 0) {
+                    const formData = new FormData();
+                    attachmentFiles.forEach((f) => formData.append("image", f));
+                    api.post(`/api/vendors/vendor-tasks/${taskId}/output-files`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }).catch(() => toast.error("Failed to upload attachments"));
+                }
                 fetchTasks();
             })
             .finally(() => setCreateSubmitting(false));
@@ -99,7 +190,7 @@ export default function VendorBimLeadTasks() {
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
         );
-        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus })
             .then(() => toast.success("Status updated"))
             .catch(() => {
                 toast.error("Failed to update status");
@@ -126,8 +217,8 @@ export default function VendorBimLeadTasks() {
             .catch(() => toast.error("Failed to delete task"));
     };
 
-    const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
-    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
+    const statusOptions = ["Todo", "InProgress", "Completed"];
+    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
         Medium: "text-orange-600 bg-orange-50 border-orange-100",
@@ -178,7 +269,7 @@ export default function VendorBimLeadTasks() {
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
                     <h2 className="text-[24px] font-semibold text-slate-800">Tasks</h2>
                     <div className="flex items-center gap-2">
-                        <div className="relative">
+                        <div className="relative" ref={showDropdownRef}>
                             <button
                                 type="button"
                                 onClick={() => setShowDropdownOpen(!showDropdownOpen)}
@@ -261,7 +352,7 @@ export default function VendorBimLeadTasks() {
                                         <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
                                             {task.project_name || "Personal"}
                                         </span>
-                                        <div className="relative">
+                                        <div className="relative" ref={openMenuTaskId === task.id ? cardMenuRef : null}>
                                             <button
                                                 onClick={() =>
                                                     setOpenMenuTaskId(
@@ -293,7 +384,10 @@ export default function VendorBimLeadTasks() {
                                                         Edit
                                                     </button>
                                                     <button
-                                                        onClick={() => setOpenMenuTaskId(null)}
+                                                        onClick={() => {
+                                                            setOpenMenuTaskId(null);
+                                                            handleDelete(task.id);
+                                                        }}
                                                         className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[#616161] hover:text-[#DD4342] cursor-pointer"
                                                     >
                                                         <img src={deleteIcon} alt="delete" className="w-4 h-4" />
@@ -363,54 +457,64 @@ export default function VendorBimLeadTasks() {
                                 <div className="w-9" />
                             </div>
                             <form onSubmit={handleCreate} className="space-y-4">
-                                <div className="relative">
+                                <div className="relative" ref={projectDropdownRef}>
                                     <label className="block text-sm font-semibold text-black mb-1">Project Name</label>
-                                    <button
-                                        type="button"
-                                        onClick={() => setOpenFormDropdown(openFormDropdown === "project" ? null : "project")}
-                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
-                                    >
-                                        <span>{projects.find(p => p.id.toString() === createForm.project_id)?.project_name || "Select Project name"}</span>
-                                        <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`} />
-                                    </button>
-                                    {openFormDropdown === "project" && (
-                                        <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                            {projects.map((p) => (
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "project" ? null : "project")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span className={createForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === createForm.project_id)?.project_name || "Select Project name"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "project" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
                                                 <button
-                                                    key={p.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        setCreateForm({ ...createForm, project_id: p.id.toString() });
+                                                        setCreateForm({ ...createForm, project_id: "" });
                                                         setOpenFormDropdown(null);
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
                                                 >
-                                                    {p.project_name}
+                                                    Select Project name
                                                 </button>
-                                            ))}
-                                        </div>
-                                    )}
+                                                {projects.map((p) => (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setCreateForm({ ...createForm, project_id: p.id.toString() });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {p.project_name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div className="relative">
+                                    <div className="relative" ref={moduleDropdownRef}>
                                         <label className="block text-sm font-semibold text-black mb-1">Select Module</label>
                                         <button
                                             type="button"
                                             onClick={() => setOpenFormDropdown(openFormDropdown === "module" ? null : "module")}
-                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
                                         >
-                                            <span>{createForm.category || "Select Module"}</span>
+                                            <span className={createForm.category ? "text-[#353535]" : "text-[#8B8B8B]"}>{createForm.category || "Select Module"}</span>
                                             <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "module" ? "rotate-180" : ""}`} />
                                         </button>
                                         {openFormDropdown === "module" && (
                                             <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {["Module 1", "Module 2"].map((m) => (
+                                                {["Select Module", "Module 1", "Module 2"].map((m) => (
                                                     <button
                                                         key={m}
                                                         type="button"
                                                         onClick={() => {
-                                                            setCreateForm({ ...createForm, category: m });
+                                                            setCreateForm({ ...createForm, category: m === "Select Module" ? "" : m });
                                                             setOpenFormDropdown(null);
                                                         }}
                                                         className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
@@ -438,19 +542,20 @@ export default function VendorBimLeadTasks() {
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div className="relative">
+                                    <div className="relative" ref={typeDropdownRef}>
                                         <label className="block text-sm font-semibold text-black mb-1">Type</label>
                                         <button
                                             type="button"
                                             onClick={() => setOpenFormDropdown(openFormDropdown === "type" ? null : "type")}
-                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
                                         >
-                                            <span>{createForm.priority ? createForm.priority.charAt(0).toUpperCase() + createForm.priority.slice(1) : "Select Type"}</span>
+                                            <span className={createForm.priority ? "text-[#353535]" : "text-[#8B8B8B]"}>{createForm.priority ? createForm.priority.charAt(0).toUpperCase() + createForm.priority.slice(1) : "Select Type"}</span>
                                             <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "type" ? "rotate-180" : ""}`} />
                                         </button>
                                         {openFormDropdown === "type" && (
                                             <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
                                                 {[
+                                                    { value: "", label: "Select Type" },
                                                     { value: "task", label: "Task" },
                                                     { value: "bug", label: "Bug" },
                                                     { value: "feature", label: "Feature" }
@@ -509,18 +614,28 @@ export default function VendorBimLeadTasks() {
                                             className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
                                         />
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative" ref={assignDropdownRef}>
                                         <label className="block text-sm font-semibold text-black mb-1">Assign To</label>
                                         <button
                                             type="button"
                                             onClick={() => setOpenFormDropdown(openFormDropdown === "assignTo" ? null : "assignTo")}
-                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
                                         >
-                                            <span>{employees.find(emp => emp.id.toString() === createForm.assigned_to)?.full_name || "Select Assign To"}</span>
+                                            <span className={createForm.assigned_to ? "text-[#353535]" : "text-[#8B8B8B]"}>{employees.find(emp => emp.id.toString() === createForm.assigned_to)?.full_name || "Select Assign To"}</span>
                                             <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "assignTo" ? "rotate-180" : ""}`} />
                                         </button>
                                         {openFormDropdown === "assignTo" && (
                                             <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setCreateForm({ ...createForm, assigned_to: "" });
+                                                        setOpenFormDropdown(null);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                >
+                                                    Select Assign To
+                                                </button>
                                                 {employees.map((emp) => (
                                                     <button
                                                         key={emp.id}
