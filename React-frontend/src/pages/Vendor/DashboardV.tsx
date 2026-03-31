@@ -259,15 +259,15 @@ export default function DashboardV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions
+    // KPI card definitions + deep links to relevant filtered pages.
     const kpiCards = [
-        { label: 'Active Opportunities', value: stats.active_opportunities },
-        { label: 'Total Bids Submitted', value: stats.bids_submitted },
-        { label: 'Proposals Awaiting', value: stats.proposals_awaiting },
-        { label: 'Total Projects', value: stats.total_projects },
-        { label: 'Completed Projects', value: stats.completed_projects },
-        { label: 'In Progress Tasks', value: stats.in_progress_tasks },
-        { label: 'Completed Tasks', value: stats.completed_tasks },
+        { label: 'Active Opportunities', value: stats.active_opportunities, to: '/v/opportunities?tab=opportunities&oppStatus=active' },
+        { label: 'Total Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
+        { label: 'Proposals Awaiting', value: stats.proposals_awaiting, to: '/v/opportunities?tab=my-bids&bidStatus=shortlisted' },
+        { label: 'Total Projects', value: stats.total_projects, to: '/v/projects' },
+        { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
+        { label: 'In Progress Tasks', value: stats.in_progress_tasks, to: '/v/teamtasks?status=in_progress' },
+        { label: 'Completed Tasks', value: stats.completed_tasks, to: '/v/teamtasks?status=completed' },
     ];
 
     if (loading) {
@@ -286,10 +286,15 @@ export default function DashboardV() {
                 {/* KPI Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0">
+                        <Link
+                            key={i}
+                            to={card.to}
+                            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer"
+                            title={`Open ${card.label}`}
+                        >
                             <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
                             <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             </div>

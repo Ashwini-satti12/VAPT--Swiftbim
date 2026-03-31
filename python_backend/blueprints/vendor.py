@@ -3178,6 +3178,14 @@ def list_vendor_tasks():
     cur = conn.cursor(dictionary=True)
 
     status = request.args.get("status")
+    if status:
+        s = str(status).strip().lower().replace("-", "_").replace(" ", "_")
+        if s == "in_progress":
+            status = "InProgress"
+        elif s in ("completed", "complete", "done"):
+            status = "Completed"
+        elif s in ("todo", "to_do"):
+            status = "Todo"
     project_id = request.args.get("project_id")
     # When condition=1 (team view in frontend) we want ALL vendor tasks,
     # otherwise restrict to tasks created by the logged‑in vendor.
@@ -3200,10 +3208,14 @@ def list_vendor_tasks():
         SELECT
             vt.*,
             vp.project_name,
-            ve.full_name AS uploader_full_name
+            ve.full_name AS uploader_full_name,
+            ve.profile_picture AS uploader_profile_picture,
+            va.full_name AS assigned_full_name,
+            va.profile_picture AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
         LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
         WHERE {(' AND '.join(where)) if where else '1=1'}
         ORDER BY vt.created_at DESC
         """,
@@ -3233,8 +3245,9 @@ def list_vendor_tasks():
     for r in rows:
         d = {k: _serialize(v) for k, v in r.items()}
         # Resolve assignee name from vendor_resource_profiles using assigned_to id
+        # only when assignee is not already resolved from vendor_employee.
         assignee_id = d.get("assigned_to")
-        if assignee_id in name_map:
+        if (not d.get("assigned_full_name")) and assignee_id in name_map:
             d["assigned_full_name"] = name_map[assignee_id]
         # For frontend compatibility
         d["projectid"] = d.get("project_id")
@@ -3405,10 +3418,14 @@ def get_vendor_task(task_id):
         SELECT
             vt.*,
             vp.project_name,
-            ve.full_name AS uploader_full_name
+            ve.full_name AS uploader_full_name,
+            ve.profile_picture AS uploader_profile_picture,
+            va.full_name AS assigned_full_name,
+            va.profile_picture AS assigned_profile_picture
         FROM vendor_task vt
         LEFT JOIN vendor_projects vp ON vt.project_id = vp.id
         LEFT JOIN snh6_swiftproject.vendor_employee ve ON ve.id = vt.vendor_id
+        LEFT JOIN snh6_swiftproject.vendor_employee va ON va.id = vt.assigned_to
         WHERE vt.id = %s
         """,
         (task_id,),
@@ -3422,7 +3439,7 @@ def get_vendor_task(task_id):
     # Resolve assignee name from vendor_resource_profiles (new_swiftbim)
     try:
         assignee_id = d.get("assigned_to")
-        if assignee_id:
+        if assignee_id and not d.get("assigned_full_name"):
             vendor_onboard_id = _current_vendor_onboarding_id()
             if vendor_onboard_id:
                 vcur = vendor_cursor()
@@ -3544,6 +3561,7 @@ def list_vendor_projects():
     _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
+    status_filter = (request.args.get("status") or "").strip().lower()
 
     # Determine which vendor employee IDs' projects should be visible:
     # - For vendor users, show projects created by ANY employee in the same vendor company
@@ -3573,6 +3591,39 @@ def list_vendor_projects():
     # Mappings:
     #   projects.client_id      -> new_swiftbim.users.id
     #   projects.budget(_ceiling) -> exposed as budget / budget_ceiling for vendor view
+    status_sql = ""
+    if status_filter in {"completed", "complete", "done"}:
+        status_sql = """
+        AND (
+            LOWER(COALESCE(vp.status, '')) = 'completed'
+            OR (
+                vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                AND CAST(vp.progress AS DECIMAL(10,2)) >= 100
+            )
+        )
+        """
+    elif status_filter in {"inprogress", "in_progress", "in-progress", "active", "ongoing"}:
+        status_sql = """
+        AND (
+            LOWER(COALESCE(vp.status, '')) IN ('inprogress', 'in progress', 'active', 'ongoing')
+            OR (
+                vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                AND CAST(vp.progress AS DECIMAL(10,2)) > 0
+                AND CAST(vp.progress AS DECIMAL(10,2)) < 100
+            )
+        )
+        """
+    elif status_filter in {"todo", "pending", "not_started", "not-started"}:
+        status_sql = """
+        AND (
+            LOWER(COALESCE(vp.status, '')) IN ('todo', 'pending', 'not started', 'not_started')
+            OR (
+                vp.progress REGEXP '^[0-9]+(\\.[0-9]+)?$'
+                AND CAST(vp.progress AS DECIMAL(10,2)) <= 0
+            )
+        )
+        """
+
     cur.execute(
         f"""
         SELECT
@@ -3588,6 +3639,7 @@ def list_vendor_projects():
         LEFT JOIN new_swiftbim.users u
             ON u.id = p.client_id
         WHERE vp.vendor_id IN ({placeholders})
+        {status_sql}
         ORDER BY vp.id DESC
         """,
         vendor_employee_ids,
