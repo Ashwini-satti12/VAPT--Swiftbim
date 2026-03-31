@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(data.token);
           setUser(u);
           localStorage.setItem('user', JSON.stringify(u));
-          return { success: true };
+          return { success: true, user: u };
         }
         return { success: false, message: data.message || 'Login failed' };
       } catch (err: unknown) {

@@ -286,7 +286,7 @@ function App() {
             <Route path="v/resources" element={<ResourcesV />} />
 
             {/* Vendor PM Routes */}
-            <Route path="vpm/dashboard" element={<DashboardPMV />} />
+            <Route path="vpm/dashboard" element={<DashboardPM />} />
             <Route path="vpm/projects" element={<ProjectsPMV />} />
             <Route path="vpm/mytasks" element={<MytaskPMV />} />
             <Route path="/vpm/teamtasks" element={<TeamtaskPMV />} />
@@ -297,13 +297,13 @@ function App() {
             <Route path="vpm/communication" element={<ChatPMV />} />
 
             {/* Vendor Employee Routes */}
-            <Route path="ve/dashboard" element={<DashboardEV />} />
+            <Route path="ve/dashboard" element={<DashboardPM />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />
 
             {/* Vendor BIM Lead Routes */}
-            <Route path="vendor-bim-lead/dashboard" element={<VendorBimLeadDashboard />} />
+            <Route path="vendor-bim-lead/dashboard" element={<DashboardPM />} />
             <Route path="vendor-bim-lead/projects" element={<VendorBimLeadProjects />} />
             <Route path="vendor-bim-lead/tasks" element={<VendorBimLeadTasks />} />
             <Route path="vendor-bim-lead/opportunities" element={<BiddingV />} />

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
@@ -80,6 +81,9 @@ type CelebrationEvent = {
 };
 
 export default function DashboardPM() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -88,6 +92,19 @@ export default function DashboardPM() {
   const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
   const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
   const monthDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user || location.pathname !== '/dashboard') return;
+    const { user_role } = user;
+    if (user_role === 'Technical Director') navigate("/td/dashboard", { replace: true });
+    else if (user_role === 'BIM Lead') navigate("/bl/dashboard", { replace: true });
+    else if (user_role === 'BIM Coordinator') navigate("/bc/dashboard", { replace: true });
+    else if (user_role === 'Vendor PM') navigate("/vpm/dashboard", { replace: true });
+    else if (user_role === 'Vendor BIM Lead' || user_role === 'Vendor Bim Lead') navigate("/vendor-bim-lead/dashboard", { replace: true });
+    else if (user_role === 'Vendor Employee') navigate("/ve/dashboard", { replace: true });
+    else if (user_role === 'Vendor' || user_role === 'Vendor Admin') navigate("/v/dashboard", { replace: true });
+    else if (user_role === 'BIM Modeler') navigate("/bm/dashboard", { replace: true });
+  }, [user, navigate, location.pathname]);
 
   useEffect(() => { const id = setInterval(() => setNowMs(Date.now()), 1000); return () => clearInterval(id); }, []);
 
