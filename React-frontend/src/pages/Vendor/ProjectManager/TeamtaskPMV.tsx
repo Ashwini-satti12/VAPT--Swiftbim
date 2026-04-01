@@ -691,7 +691,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "301-350", "351-400", "401-450", "All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -723,7 +723,7 @@ export default function TeamtaskPMV() {
         const proj = searchParams.get("project");
         if (proj) setSelectedProject(proj);
     }, [searchParams]);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
@@ -1048,7 +1048,7 @@ export default function TeamtaskPMV() {
     };
 
     const showLimit =
-        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+        selectedShow === "All" || !selectedShow || selectedShow === "Show Entries"
             ? Number.POSITIVE_INFINITY
             : Math.max(1, Number(selectedShow) || 10);
 
@@ -1107,7 +1107,7 @@ export default function TeamtaskPMV() {
                         searchable={true}
                     />
                     <TaskDropdown
-                        label="Show"
+                        label="Show Entries"
                         options={SHOW_OPTIONS}
                         selected={selectedShow}
                         onSelect={setSelectedShow}
@@ -1830,26 +1830,33 @@ export default function TeamtaskPMV() {
                                                     <span className="truncate min-w-0" title={file.name}>
                                                         {file.name}
                                                     </span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeAttachment(index)}
-                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
-                                                        aria-label={`Remove ${file.name}`}
-                                                    >
-                                                        <svg
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
+                                                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const url = URL.createObjectURL(file);
+                                                                window.open(url, "_blank");
+                                                            }}
+                                                            className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                                            aria-label={`View ${file.name}`}
                                                         >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M6 18L18 6M6 6l12 12"
-                                                            />
-                                                        </svg>
-                                                    </button>
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAttachment(index)}
+                                                            className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                                            aria-label={`Remove ${file.name}`}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>

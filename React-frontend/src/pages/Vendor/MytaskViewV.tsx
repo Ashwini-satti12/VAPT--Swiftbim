@@ -151,6 +151,7 @@ export default function MytaskViewV() {
   const [selectedImagePreview, setSelectedImagePreview] = useState<
     string | null
   >(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -172,6 +173,34 @@ export default function MytaskViewV() {
     if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
     setSelectedImagePreview(URL.createObjectURL(file));
     e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      setSelectedImage(file);
+      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
+      setSelectedImagePreview(URL.createObjectURL(file));
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } else if (file) {
+      toast.error("Please drop an image file");
+    }
   };
 
   const handleStatusUpdate = async (newStatus: StatusKey) => {
@@ -375,7 +404,9 @@ export default function MytaskViewV() {
                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
                 role="listbox"
               >
-                {STATUS_OPTIONS.map((opt) => (
+                {STATUS_OPTIONS.filter((opt) =>
+                    statusDisplay === "completed" ? opt.value === "completed" : true
+                  ).map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -407,7 +438,7 @@ export default function MytaskViewV() {
             </div>
             <div className="flex gap-2">
               <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                Modules Name
+                Module Name
               </span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
@@ -464,7 +495,7 @@ export default function MytaskViewV() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Actual Due Date</span>
+              <span className="text-black shrink-0 w-28">Actual End Date</span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date
@@ -495,7 +526,14 @@ export default function MytaskViewV() {
               aria-label="Select image"
               onChange={handleSelectImage}
             />
-            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
+            <div
+              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${
+                isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               {selectedImagePreview ? (
                 <>
                   <button
@@ -516,7 +554,8 @@ export default function MytaskViewV() {
               ) : (
                 <>
                   <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2">No Image Selected</span>
+                  <span className="text-xs mt-2 text-[#616161]">No Image Selected</span>
+                  <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
                 </>
               )}
             </div>

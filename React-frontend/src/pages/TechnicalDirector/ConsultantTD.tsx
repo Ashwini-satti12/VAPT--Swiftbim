@@ -767,7 +767,7 @@ export default function ConsultantTD() {
                       onClick={() => setActiveView('deactive')}
                       className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
                     >
-                      Manage Inactive
+                      Manage Deactive
                     </button>
                   </>
                 )}
@@ -801,7 +801,7 @@ export default function ConsultantTD() {
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar ">
             {viewMode === 'card' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
                 {displayedList.length === 0 ? (
@@ -925,11 +925,11 @@ export default function ConsultantTD() {
               </div>
             ) : (
               <div className="px-4">
-                <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
+                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
                   <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
                     <table className="min-w-full border-collapse">
                       <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                        <tr className="border-b border-gray-100 bg-white">
+                        <tr className="bg-white">
                           <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
                           <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Emp ID</th>
                           <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Consultant Name</th>
@@ -1044,7 +1044,7 @@ export default function ConsultantTD() {
                                           type="button"
                                           onClick={() => openEditModel(emp)}
                                           aria-label="Edit consultant"
-                                          className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+                                          className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? 'bg-[#FFFFFF]' : 'bg-[#F2F2F2]'}`}
                                         >
                                           <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
                                         </button>
