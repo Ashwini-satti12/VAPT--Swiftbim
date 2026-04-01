@@ -821,7 +821,7 @@ export default function MytaskPMV() {
   };
 
   const openViewTask = (task: Task) => {
-    navigate(`/tasks/${task.id}`);
+    navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
   };
 
   const confirmDeleteTask = () => {
@@ -930,261 +930,20 @@ export default function MytaskPMV() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openFormDropdown]);
 
-    const openViewTask = (task: Task) => {
-        navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
-    };
-
-    const confirmDeleteTask = () => {
-        if (deleteTaskId === null) return;
-        api.delete(`/api/vendors/vendor-tasks/${deleteTaskId}`)
-            .then(() => {
-                setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-                toast.success("Task deleted");
-            })
-            .catch(() => {
-                toast.error("Failed to delete task");
-            })
-            .finally(() => {
-                setDeleteTaskId(null);
-            });
-    };
-
-    const resetTaskFormAndClose = () => {
-        setAddTaskModalOpen(false);
-        setEditingTaskId(null);
-        setExistingAttachmentNames([]);
-        setAttachmentFiles([]);
-        setAddTaskForm({
-            projectName: "",
-            module: "",
-            taskName: "",
-            type: "",
-            actualStartDate: "",
-            actualEndDate: "",
-            startTime: "",
-            dueTime: "",
-            assignTo: "",
-            description: "",
-            checklist: "",
-        });
-    };
-    const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>([]);
-    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-    const [openFormDropdown, setOpenFormDropdown] =
-        useState<FormDropdownId>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
-    const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
-    const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
-    const formAssignMenuRef = useRef<HTMLDivElement>(null);
-
-    const dropdownsContainerRef = useRef<HTMLDivElement>(null);
-    const employeeTriggerRef = useRef<HTMLButtonElement>(null);
-    const employeeMenuRef = useRef<HTMLDivElement>(null);
-    const projectsTriggerRef = useRef<HTMLButtonElement>(null);
-    const projectsMenuRef = useRef<HTMLDivElement>(null);
-    const showTriggerRef = useRef<HTMLButtonElement>(null);
-    const showMenuRef = useRef<HTMLDivElement>(null);
-    const periodTriggerRef = useRef<HTMLButtonElement>(null);
-    const periodMenuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (openDropdown === null) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            const el = dropdownsContainerRef.current;
-            if (el && !el.contains(e.target as Node)) setOpenDropdown(null);
-        };
-        document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
-    }, [openDropdown]);
-
-    const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const input = e.currentTarget;
-        const files = input.files;
-        if (!files?.length) return;
-        const newFiles = Array.from(files);
-        setAttachmentFiles((prev) => {
-            const merged = [...prev];
-            for (const f of newFiles) {
-                const dup = merged.some((x) => x.name === f.name && x.size === f.size);
-                if (!dup) merged.push(f);
-            }
-            return merged;
-        });
-        input.value = "";
-    };
-
-    const removeAttachment = (index: number) => {
-        setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    useEffect(() => {
-        if (openFormDropdown === null) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as Node;
-            const refs: React.RefObject<HTMLElement | null>[] =
-                openFormDropdown === "project"
-                    ? [formProjectTriggerRef, formProjectMenuRef]
-                    : openFormDropdown === "module"
-                        ? [formModuleTriggerRef, formModuleMenuRef]
-                        : openFormDropdown === "type"
-                            ? [formTypeTriggerRef, formTypeMenuRef]
-                            : [formAssignTriggerRef, formAssignMenuRef];
-            const inside = refs.some((r) => r.current && r.current.contains(target));
-            if (!inside) setOpenFormDropdown(null);
-        };
-        document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
-    }, [openFormDropdown]);
-
-    useEffect(() => {
-        const params: Record<string, string> = {};
-        if (statusFilter) params.status = statusFilter;
-        if (isTeam) {
-            params.condition = "1";
-        }
-
-        Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
-                params,
-            }),
-            // Use vendor resources (new_swiftbim.vendor_resource_profiles)
-            // instead of global employees for the dropdowns.
-            api.get<{ success?: boolean; resources?: Employee[] }>(
-                "/api/vendors/vendor-resource-profiles",
-            ),
-            // For Vendor PM, use vendor projects list (vendor_projects table)
-            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
-        ])
-            .then(([tasksRes, resourcesRes, projRes]) => {
-                setList(tasksRes.data.tasks ?? []);
-                setEmployees(resourcesRes.data.resources ?? []);
-                setProjects(projRes.data.projects ?? []);
-            })
-            .catch(() => {
-                setList([]);
-            })
-            .finally(() => setLoading(false));
-    }, [isTeam, statusFilter]);
-
-    const employeeOptions = useMemo(() => {
-        const rawEmployees = Array.isArray(employees) ? employees : [];
-        const baseOptions = ["Select Employee", "Show All"];
-        
-        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return [...baseOptions, ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
-        }
-        
-        const proj = (Array.isArray(projects) ? projects : []).find((p) => p?.project_name === selectedProject);
-        if (!proj) {
-            return [...baseOptions, ...rawEmployees.map((e) => e?.full_name).filter(Boolean)];
-        }
-        
-        const memberTokens = (proj.members || "").split(",").map(s => s.trim()).filter(Boolean);
-        const filtered = rawEmployees.filter(emp => {
-            const name = (emp.full_name || "").trim();
-            const idStr = String(emp.id);
-            return memberTokens.some(t => t === idStr || t.toLowerCase() === name.toLowerCase());
-        });
-        
-        return [...baseOptions, ...filtered.map(e => e.full_name)];
-    }, [employees, projects, selectedProject]);
-
-    const projectOptions = [
-        "Select Projects",
-        ...(Array.isArray(projects) ? projects : [])
-            .map((p) => p?.project_name)
-            .filter(Boolean),
-    ];
-
-    // Module options depend on the selected project: use its comma-separated modules list
-    const selectedProjectMeta = Array.isArray(projects)
-        ? projects.find((p) => p?.project_name === addTaskForm.projectName)
-        : undefined;
-    const dynamicModuleOptions =
-        (selectedProjectMeta?.modules || "")
-            .split(",")
-            .map((m: string) => m.trim())
-            .filter((m: string) => m.length > 0);
-
-    const employeesForAssignDropdown = useMemo(() => {
-        const all = Array.isArray(employees) ? employees : [];
-        const meta = projects.find((p: Project) => p?.project_name === addTaskForm.projectName);
-        const raw = (meta?.members || "").trim();
-        if (!raw) return all;
-        const tokens = raw.split(",").map((s: string) => s.trim()).filter(Boolean);
-        if (tokens.length === 0) return all;
-        return all.filter((emp: Employee) => {
-            const name = (emp.full_name || "").trim();
-            const idStr = String(emp.id);
-            return tokens.some((t: string) => {
-                const tl = t.toLowerCase();
-                return t === idStr || tl === name.toLowerCase() || name === t;
-            });
-        });
-    }, [employees, projects, addTaskForm.projectName]);
-
-    const todayInputDate = getTodayInputDate();
-    const sameCalendarDay =
-        Boolean(addTaskForm.actualStartDate) &&
-        Boolean(addTaskForm.actualEndDate) &&
-        addTaskForm.actualStartDate === addTaskForm.actualEndDate;
-
-    const listReloadParams = useMemo(() => {
-        const p: Record<string, string> = {};
-        if (statusFilter) p.status = statusFilter;
-        if (isTeam) p.condition = "1";
-        return p;
-    }, [statusFilter, isTeam]);
-
-    const counts = {
-        todo: allTasks.filter((t: Task) => getEffectiveStatus(t) === "todo").length,
-        in_progress: allTasks.filter(
-            (t: Task) => getEffectiveStatus(t) === "in_progress",
-        ).length,
-        completed: allTasks.filter((t: Task) => getEffectiveStatus(t) === "completed")
-            .length,
-    };
-    const tasksByStatus = {
-        todo: allTasks.filter((t: Task) => getEffectiveStatus(t) === "todo"),
-        in_progress: allTasks.filter(
-            (t: Task) => getEffectiveStatus(t) === "in_progress",
-        ),
-        completed: allTasks.filter(
-            (t: Task) => getEffectiveStatus(t) === "completed",
-        ),
-    };
-    const showLimit =
-        selectedShow === "All" || !selectedShow
-            ? Number.POSITIVE_INFINITY
-            : Math.max(1, Number(selectedShow) || 10);
-    const displayedTasksByStatus = {
-        todo: tasksByStatus.todo.slice(0, showLimit),
-        in_progress: tasksByStatus.in_progress.slice(0, showLimit),
-        completed: tasksByStatus.completed.slice(0, showLimit),
-    };
-
-    if (loading) {
-        return (
-            <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
-            </div>
-        );
+  useEffect(() => {
+    const params: Record<string, string> = {};
+    if (statusFilter) params.status = statusFilter;
+    if (isTeam) {
+      params.condition = "1";
     }
 
     Promise.all([
       api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", {
         params,
       }),
-      // Use vendor resources (new_swiftbim.vendor_resource_profiles)
-      // instead of global employees for the dropdowns.
       api.get<{ success?: boolean; resources?: Employee[] }>(
         "/api/vendors/vendor-resource-profiles",
       ),
-      // For Vendor PM, use vendor projects list (vendor_projects table)
       api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ])
       .then(([tasksRes, resourcesRes, projRes]) => {
