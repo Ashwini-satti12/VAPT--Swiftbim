@@ -94,6 +94,16 @@ def _parse_iso_date(val):
     return None
 
 
+def _is_concrete_calendar_date(val) -> bool:
+    """True if value is a parseable calendar date (not empty / N/A / free text)."""
+    if val is None:
+        return False
+    s = str(val).strip()
+    if not s or s.lower() in {"n/a", "na", "6 months"}:
+        return False
+    return _parse_iso_date(val) is not None
+
+
 def _add_months(d: date, months: int) -> date:
     y = d.year + (d.month - 1 + months) // 12
     m = (d.month - 1 + months) % 12 + 1
@@ -302,18 +312,19 @@ def _hydrate_vendor_projects_phase1(vendor_cur, project_dicts: list[dict]):
                 if combined_loc:
                     p["location"] = combined_loc
 
-            # 3. End Date Calculation
-            start_dt = _parse_iso_date(p.get("start_date"))
-            if not start_dt:
-                start_dt = _parse_iso_date(enq.get("project_start_date") or prop.get("project_start_date") or con.get("start_date"))
-            
-            duration_text = _first_nonempty_val(enq, duration_cols) or _first_nonempty_val(prop, duration_cols) or _first_nonempty_val(con, duration_cols) or (p.get("due_date") or "")
-            months = _duration_to_months(str(duration_text))
-            
-            if months and start_dt:
-                computed_end = _add_months(start_dt, months)
-                p["end_date"] = computed_end.isoformat()
-                p["due_date"] = computed_end.isoformat()
+            # 3. End Date Calculation — do not overwrite dates saved on vendor_projects / main merge
+            if not _is_concrete_calendar_date(p.get("due_date") or p.get("end_date")):
+                start_dt = _parse_iso_date(p.get("start_date"))
+                if not start_dt:
+                    start_dt = _parse_iso_date(enq.get("project_start_date") or prop.get("project_start_date") or con.get("start_date"))
+
+                duration_text = _first_nonempty_val(enq, duration_cols) or _first_nonempty_val(prop, duration_cols) or _first_nonempty_val(con, duration_cols) or (p.get("due_date") or "")
+                months = _duration_to_months(str(duration_text))
+
+                if months and start_dt:
+                    computed_end = _add_months(start_dt, months)
+                    p["end_date"] = computed_end.isoformat()
+                    p["due_date"] = computed_end.isoformat()
     except Exception:
         pass
 
@@ -3927,15 +3938,16 @@ def list_vendor_projects():
             -- Sync additional project metrics from main projects table using TD-compatible aliases
             COALESCE(p.no_resource, vp.no_resource)             AS resources,
             COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
-            COALESCE(p.totalhours, vp.totalhours)               AS totalhours,
-            COALESCE(p.perday, vp.perday)                       AS per_day,
+            -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
+            COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
+            COALESCE(vp.perday, p.perday)                       AS per_day,
             -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
             COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
             COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
-            COALESCE(p.perday, vp.perday)                       AS perday,
+            COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
-            COALESCE(p.start_date, vp.start_date)               AS start_date,
-            COALESCE(p.due_date, vp.due_date)                   AS due_date
+            COALESCE(vp.start_date, p.start_date)               AS start_date,
+            COALESCE(vp.due_date, p.due_date)                   AS due_date
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
             ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
