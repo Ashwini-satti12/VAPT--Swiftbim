@@ -297,7 +297,7 @@ function App() {
             <Route path="vpm/communication" element={<ChatPMV />} />
 
             {/* Vendor Employee Routes */}
-            <Route path="ve/dashboard" element={<DashboardPM />} />
+            <Route path="ve/dashboard" element={<DashboardEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />
