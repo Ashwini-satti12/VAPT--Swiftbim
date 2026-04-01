@@ -76,24 +76,31 @@ def stats():
 
     def get_tasks_in_my_projects(uid, task_status):
         """Count tasks with status (InProgress/Completed/Todo) in projects the user is involved in."""
-        if user_role in MANAGEMENT_ROLES:
-            cur.execute(
-                "SELECT COUNT(*) AS total_tasks FROM tasks WHERE Company_id = %s AND status = %s",
-                (company_id, task_status),
-            )
-            row = cur.fetchone()
-            return (row or {}).get("total_tasks") or 0
-
-        # Define params based on role for the JOIN query (matching _involved_where)
-        if user_role == "BIM Coordinator":
-            t_params = (company_id, uid, task_status)
-        elif user_role == "BIM Lead":
-            t_params = (company_id, uid, task_status)
-        elif user_role == "BIM Modeler":
-            # BIM Modeler only counts their own tasks
-            t_params = (company_id, uid, uid, task_status)
+        # Aligned with frontend normalizeStatus logic
+        if task_status == "Completed":
+            status_clause = "(t.status = 'Completed' OR t.Approval IN ('Approved', 'Rejected'))"
+            status_params = []
+        elif task_status == "InProgress":
+            status_clause = "t.status = 'InProgress' AND (t.Approval IS NULL OR t.Approval NOT IN ('Approved', 'Rejected'))"
+            status_params = []
         else:
-            t_params = (company_id, uid, uid, uid, uid, uid, uid, task_status)
+            status_clause = "t.status = %s"
+            status_params = [task_status]
+
+        # Use different parameters based on the _involved_where placeholders
+        if user_role in MANAGEMENT_ROLES:
+            t_params = (company_id,)
+        elif user_role in ("BIM Coordinator", "BIM Lead", "BIM Modeler"):
+            t_params = (company_id, uid)
+        else:
+            t_params = (company_id, uid, uid, uid, uid, uid, uid)
+
+        # Append status params
+        t_params += tuple(status_params)
+        
+        # Append modeler filter param if needed
+        if user_role == "BIM Modeler":
+            t_params += (uid,)
 
         modeler_filter = " AND t.assigned_to = %s" if user_role == "BIM Modeler" else ""
 
@@ -101,26 +108,13 @@ def stats():
             cur.execute(
                 f"""SELECT COUNT(*) AS total_tasks FROM tasks t
                     INNER JOIN projects p ON t.projectid = p.id AND {_involved_where}
-                    WHERE t.status = %s{modeler_filter}""",
+                    WHERE {status_clause}{modeler_filter}""",
                 t_params,
             )
             row = cur.fetchone()
             return (row or {}).get("total_tasks") or 0
         except Exception:
-            # Fallback: subquery by members only, no JOIN (in case project columns missing)
-            try:
-                cur.execute(
-                    """SELECT COUNT(*) AS total_tasks FROM tasks t
-                       WHERE t.status = %s AND t.projectid IN (
-                           SELECT id FROM projects p WHERE p.Company_id = %s
-                           AND FIND_IN_SET(%s, REPLACE(CONCAT(',', COALESCE(p.members,''), ','), ' ', '')) > 0
-                       )""",
-                    (task_status, company_id, uid),
-                )
-                row = cur.fetchone()
-                return (row or {}).get("total_tasks") or 0
-            except Exception:
-                return 0
+            return 0
 
     def get_total_projects(uid, status=None):
         if user_role in MANAGEMENT_ROLES:
