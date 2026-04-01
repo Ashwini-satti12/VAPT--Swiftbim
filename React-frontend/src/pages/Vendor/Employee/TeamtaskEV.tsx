@@ -1,12 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
-import {
-    Link,
-    useSearchParams,
-    useLocation,
-    useNavigate,
-} from "react-router-dom";
-import { VscEye } from "react-icons/vsc";
-import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
+import { Link, useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../../../lib/api";
 import toast from "react-hot-toast";
 import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
@@ -15,129 +8,32 @@ import Group2 from "../../../assets/ProjectManager/MyTask/Group2.svg";
 import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
 
 type DropdownId = "employee" | "projects" | "show" | "period" | null;
-type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
-const getApiBaseUrl = () => {
-    return import.meta.env.VITE_API_URL || "";
-};
-
-const getProfileUrl = (path: string | undefined): string => {
-    if (!path || path.trim() === "") return "";
-    if (path.startsWith("http")) return path;
-
-    let normalizedPath = path.replace(/\\/g, "/").trim();
-    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
-    normalizedPath = normalizedPath.replace(/^\/+/, "");
-
-    const apiBaseUrl = getApiBaseUrl();
-    let urlPath = "";
-
-    if (normalizedPath.startsWith("employee/")) {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part),
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    } else if (normalizedPath.startsWith("profiles/")) {
-        const filename = normalizedPath.replace("profiles/", "");
-        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-    } else if (!normalizedPath.includes("/")) {
-        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-    } else {
-        const parts = normalizedPath.split("/");
-        const encodedParts = parts.map((part, index) =>
-            index === 0 ? part : encodeURIComponent(part),
-        );
-        urlPath = `/uploads/${encodedParts.join("/")}`;
-    }
-
-    return `${apiBaseUrl}${urlPath}`;
-};
-
-interface FormDropdownProps {
-    label: string;
-    options: { value: string; label: string }[];
-    value: string;
-    onChange: (value: string) => void;
-    isOpen: boolean;
-    onToggle: () => void;
-    onClose: () => void;
-    triggerRef: React.RefObject<HTMLButtonElement | null>;
-    dropdownRef: React.RefObject<HTMLDivElement | null>;
+interface Employee {
+    id: number;
+    full_name?: string;
+    name?: string;
+    active?: string | null;
 }
 
-function FormDropdown({
-    label,
-    options,
-    value,
-    onChange,
-    isOpen,
-    onToggle,
-    onClose,
-    triggerRef,
-    dropdownRef,
-}: FormDropdownProps) {
-    const displayLabel = value
-        ? (options.find((o) => o.value === value)?.label ?? value)
-        : label;
-    return (
-        <div className="relative w-full">
-            <button
-                ref={triggerRef}
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onToggle();
-                }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] text-[#666666]"
-                aria-expanded={isOpen}
-                aria-haspopup="listbox"
-                aria-label={label}
-            >
-                <span className={value ? "text-black" : "text-[#8B8B8B]"}>
-                    {displayLabel}
-                </span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
-            </button>
-            {isOpen && (
-                <div
-                    ref={dropdownRef}
-                    role="listbox"
-                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg max-h-60 overflow-y-auto custom-scrollbar"
-                >
-                    {options.map((opt) => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            role="option"
-                            onClick={() => {
-                                onChange(opt.value);
-                                onClose();
-                            }}
-                            className="block w-full px-3 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] first:rounded-t-lg last:rounded-b-lg font-gantari"
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
+interface Project {
+    id: number;
+    project_name: string;
+    modules?: string;
+    /** Comma-separated resource ids or names involved in this project */
+    members?: string;
+    members_names?: string[];
+    project_manager_name?: string | null;
+    lead_name?: string | null;
+    bim_coordinator_name?: string | null;
+    uploader_name?: string | null;
 }
 
 interface TaskDropdownProps {
@@ -186,7 +82,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : "160px";
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -197,31 +93,34 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#F2F3F4] px-4 py-2 text-[14px] text-[#353535]  ${narrow ? "min-w-[90px]" : "min-w-[140px]"} font-gantari`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className="truncate">{selected ?? label}</span>
-                <svg
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <span
+                    className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}
                 >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                    />
-                </svg>
+                    {label.toLowerCase() === "show" && selected && selected !== label ? (
+                        <>
+                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
+                            <span>{selected}</span>
+                        </>
+                    ) : (
+                        (selected ?? label)
+                    )}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 w-full min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -233,14 +132,14 @@ function TaskDropdown({
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded border border-slate-200 px-3 py-2 text-[14px] text-[#353535] placeholder-slate-400 font-gantari"
+                                className="w-full rounded-md border border-slate-200 px-3 py-2 text-[14px] text-slate-800 placeholder-slate-400"
                                 aria-label={searchPlaceholder}
                             />
                         </div>
                     )}
                     <div
                         className="overflow-y-auto py-1 custom-scrollbar"
-                        style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}
+                        style={{ maxHeight: listMaxHeight }}
                     >
                         {filteredOptions.map((opt, idx) => (
                             <button
@@ -252,7 +151,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""} font-gantari`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -267,6 +166,8 @@ function TaskDropdown({
 interface Task {
     id: number;
     task_name?: string;
+    projectid?: number;
+    project_id?: number;
     status?: string;
     due_date?: string;
     project_name?: string;
@@ -283,9 +184,9 @@ interface Task {
     checklist?: string;
     assigned_full_name?: string;
     uploader_full_name?: string;
-    Approval?: string;
-    projectid?: number;
     created_at?: string;
+    Approval?: string;
+    Actual_start_time?: string;
     assigned_to?: number;
     uploaderid?: number;
     vendor_id?: number;
@@ -293,149 +194,42 @@ interface Task {
     uploader_profile_picture?: string;
 }
 
-interface Employee {
-    id: number;
-    full_name?: string;
-    name?: string;
-  active?: string;
-}
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
 
-interface Project {
-    id: number;
-    project_name: string;
-    modules?: string;
-    members?: string;
-    members_names?: string[];
-    project_manager_name?: string | null;
-    lead_name?: string | null;
-    bim_coordinator_name?: string | null;
-    uploader_name?: string | null;
-}
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
 
-function toInputDate(v: unknown): string {
-    if (v == null || v === "") return "";
-    const s = String(v).trim();
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (m) {
-        const dd = m[1].padStart(2, "0");
-        const mm = m[2].padStart(2, "0");
-        const yyyy = m[3];
-        return `${yyyy}-${mm}-${dd}`;
-    }
-    const d = new Date(s);
-    if (!Number.isNaN(d.getTime())) {
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, "0");
-        const da = String(d.getDate()).padStart(2, "0");
-        return `${y}-${mo}-${da}`;
-    }
-    return "";
-}
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
 
-function getTodayInputDate(): string {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-}
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
 
-function isEndTimeBeforeStartOnSameDay(
-    startDate: string,
-    endDate: string,
-    startTime: string,
-    endTime: string,
-): boolean {
-    if (!startTime || !endTime) return false;
-    if (startDate && endDate && startDate !== endDate) return false;
-    return endTime < startTime;
-}
-
-/** Map task (local or API shape) to form values so every detail shows in edit. */
-function taskToFormValues(task: Task | Record<string, unknown>): {
-    projectName: string;
-    module: string;
-    taskName: string;
-    type: string;
-    actualStartDate: string;
-    actualEndDate: string;
-    startTime: string;
-    dueTime: string;
-    assignTo: string;
-    description: string;
-    checklist: string;
-} {
-    const t = task as Record<string, unknown>;
-    const str = (v: unknown) => (v != null ? String(v) : "");
-    const timeOnly = (v: unknown) => {
-        if (v == null) return "";
-        const s = str(v);
-        const match = s.match(/(\d{1,2}):(\d{2})/);
-        return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
-    };
-    return {
-        projectName: str(t.project_name ?? t.projectName ?? ""),
-        module: str(t.module ?? t.modules_name ?? t.modules ?? ""),
-        taskName: str(t.task_name ?? t.taskName ?? ""),
-        type: str(t.type ?? t.category ?? ""),
-        actualStartDate: toInputDate(
-            t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
-        ),
-        actualEndDate: toInputDate(t.due_date ?? t.dueDate ?? ""),
-        startTime: timeOnly(
-            t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
-        ),
-        dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-        assignTo: str(
-            t.assign_to ??
-            t.assignTo ??
-            t.assigned_to ??
-            t.assigned_full_name ??
-            "",
-        ),
-        description: str(t.description ?? ""),
-        checklist: str(t.checklist ?? ""),
-    };
-}
-
-function buildFormFromTask(task: Task, employeeList: Employee[]) {
-    const base = taskToFormValues(task);
-    let assignTo = base.assignTo;
-
-    if (task.assigned_full_name && task.assigned_full_name.trim() !== "") {
-        assignTo = task.assigned_full_name;
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
     } else {
-        const rawId =
-            (task.assign_to as string | undefined) ??
-            (task.assigned_to as number | undefined) ??
-            base.assignTo;
-        const idNum = typeof rawId === "number" ? rawId : Number(rawId || NaN);
-        if (!Number.isNaN(idNum) && employeeList.length > 0) {
-            const emp = employeeList.find((e) => e.id === idNum);
-            const n = emp?.full_name || emp?.name;
-            if (n) assignTo = n;
-        }
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
     }
 
-    return { ...base, assignTo };
-}
-
-function formatDateRange(start?: string, end?: string): string {
-    if (!start && !end) return "—";
-    const months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
-    const fmtShort = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]}`;
-    };
-    const fmtFull = (s: string) => {
-        const d = new Date(s);
-        return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    };
-    if (start && end) return `${fmtShort(start)} - ${fmtFull(end)}`;
-    if (start) return fmtFull(start);
-    return end ? fmtFull(end) : "—";
-}
+    return `${apiBaseUrl}${urlPath}`;
+};
 
 function normalizeStatus(
     s: string | undefined,
@@ -448,26 +242,25 @@ function normalizeStatus(
     return "todo";
 }
 
-const STATUS_STYLE: Record<
-    "todo" | "in_progress" | "completed",
-    { label: string; dot: string; bg: string }
-> = {
-    todo: {
-        label: "To Do",
-        dot: "bg-orange-500",
-        bg: "bg-orange-100 text-orange-800 rounded-full",
-    },
-    in_progress: {
-        label: "In Progress",
-        dot: "bg-sky-500",
-        bg: "bg-sky-100 text-sky-800",
-    },
-    completed: {
-        label: "Completed",
-        dot: "bg-emerald-500",
-        bg: "bg-emerald-100 text-emerald-800",
-    },
-};
+/** When /api/tasks rows omit project_name, resolve from vendor projects by project id. */
+function enrichTasksWithProjectNames(tasks: Task[], projectList: Project[]): Task[] {
+    if (!Array.isArray(tasks) || tasks.length === 0) return tasks;
+    if (!Array.isArray(projectList) || projectList.length === 0) return tasks;
+    return tasks.map((t) => {
+        const row = t as Task & { projectName?: string };
+        const fromApi =
+            (t.project_name && String(t.project_name).trim()) ||
+            (row.projectName && String(row.projectName).trim());
+        if (fromApi) return { ...t, project_name: fromApi };
+        const pid = t.projectid ?? t.project_id;
+        if (pid == null) return t;
+        const idNum = Number(pid);
+        if (Number.isNaN(idNum)) return t;
+        const proj = projectList.find((p) => p.id === idNum);
+        if (!proj?.project_name) return t;
+        return { ...t, project_name: proj.project_name };
+    });
+}
 
 function TaskCard({
     task,
@@ -482,16 +275,14 @@ function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const style = STATUS_STYLE[status];
     const progress =
-        task.progress !== undefined
+        typeof task.progress === "number"
             ? task.progress
             : status === "todo"
                 ? 0
                 : status === "in_progress"
                     ? 50
                     : 100;
-    const dateRange = formatDateRange(task.start_date, task.due_date);
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -518,20 +309,40 @@ function TaskCard({
 
     const isCompleted = status === "completed";
 
+    const assigneeInitials = (task.assigned_full_name || "U")
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+    const uploaderInitials = (task.uploader_full_name || "S")
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
     return (
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-medium ${style.bg} font-gantari`}
-                >
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-                    {style.label}
-                </span>
-                <div className="relative" ref={menuRef}>
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-semibold text-[#353535] text-[20px] truncate">
+                        {task.task_name || "Task Name"}
+                    </h4>
+                    <p
+                        className="text-[13px] font-medium text-[#8B8B8B] truncate mt-0.5"
+                        title={(task.project_name || "").trim() || undefined}
+                    >
+                        {(task.project_name || "").trim() || "—"}
+                    </p>
+                </div>
+                <div className="relative shrink-0" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -539,80 +350,114 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100"
+                        className="p-0.5 rounded cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        <img src={Dot} alt="Dot" className="w-5 h-5 text-slate-600" />
                     </button>
-                    <div
-                        aria-hidden={!menuOpen}
-                        role="menu"
-                        className={`absolute top-full mt-1 z-50 min-w-[120px] rounded-2xl bg-white/30 backdrop-blur-md py-1 px-3 shadow-lg border border-[#59595980] transform-gpu transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "right-[-10] origin-top-right"} ${menuOpen ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"}`}
-                    >
-                        <button
-                            type="button"
-                            role="menuitem"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors group text-left"
-                            onClick={() => {
-                                setMenuOpen(false);
-                                onViewTask?.(task);
-                            }}
+                    {menuOpen && (
+                        <div
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
+                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+                            role="menu"
                         >
-                            <VscEye className="w-4 h-4 shrink-0 text-slate-600 group-hover:text-red-600 transition-colors" />
-                            <span>View</span>
-                        </button>
-                        {!isCompleted && (
-                            <>
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-                                    onClick={() => {
-                                        setMenuOpen(false);
-                                        onEditTask?.(task);
-                                    }}
-                                >
-                                    <HiOutlinePencil className="w-4 h-4 shrink-0" />
-                                    <span>Edit</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    role="menuitem"
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-[#DD4342] transition-colors text-left"
-                                    onClick={() => {
-                                        setMenuOpen(false);
-                                        onDeleteTask?.(task);
-                                    }}
-                                >
-                                    <HiOutlineTrash className="w-4 h-4 shrink-0" />
-                                    <span>Delete</span>
-                                </button>
-                            </>
-                        )}
-                    </div>
+                            <button
+                                type="button"
+                                role="menuitem"
+                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    onViewTask?.(task);
+                                }}
+                            >
+                                <img
+                                    src={viewIcon}
+                                    alt="view"
+                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                />
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                    View
+                                </span>
+                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
-            <h4 className="font-medium text-[#000000] text-[14px] mb-1 font-gantari">
-                {task.task_name || "Task Name"}
-            </h4>
-            <p className="text-[12px] text-[#666666] mb-2 font-gantari">{dateRange}</p>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[12px] text-[#666666] font-gantari">Progress</span>
-                <span className="text-[12px] font-medium text-[#353535] font-gantari">{progress}%</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-col ">
+                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {(task.start_date || task.Actual_start_time)
+                            ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+                            : "—"}
+                    </span>
+                </div>
+
+                <div className="flex flex-col items-end gap-1">
+                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {task.due_date
+                            ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+                            : ""}
+                    </span>
+                </div>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-[#8B8B8B]">Progress</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-[#DD4342]"
+                    className="h-full rounded-full bg-[#8B8B8B]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1">
                     <div className="flex -space-x-2">
-                        {/* Assigned To Profile */}
                         <div
-                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                             title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
                         >
                             {task.assigned_profile_picture ? (
@@ -628,23 +473,20 @@ function TaskCard({
                                             const parent = target.parentElement;
                                             if (parent) {
                                                 const span = document.createElement("span");
-                                                span.className = "text-[10px] font-bold text-[#DD4342]";
-                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                span.className = "text-[10px] font-semibold text-slate-700";
+                                                span.innerText = assigneeInitials;
                                                 parent.appendChild(span);
                                             }
                                         };
                                     }}
                                 />
                             ) : (
-                                <span className="text-[10px] font-bold text-[#DD4342]">
-                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
-                                </span>
+                                <span>{assigneeInitials}</span>
                             )}
                         </div>
 
-                        {/* Uploader Profile */}
                         <div
-                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                             title={`Assigned by: ${task.uploader_full_name || "System"}`}
                         >
                             {task.uploader_profile_picture ? (
@@ -660,36 +502,38 @@ function TaskCard({
                                             const parent = target.parentElement;
                                             if (parent) {
                                                 const span = document.createElement("span");
-                                                span.className = "text-[10px] font-bold text-[#DD4342]";
-                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                span.className = "text-[10px] font-semibold text-slate-700";
+                                                span.innerText = uploaderInitials;
                                                 parent.appendChild(span);
                                             }
                                         };
                                     }}
                                 />
                             ) : (
-                                <span className="text-[10px] font-bold text-[#DD4342]">
-                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
-                                </span>
+                                <span>{uploaderInitials}</span>
                             )}
                         </div>
                     </div>
                 </div>
-                <Link
-                    to={`/tasks/${task.id}`}
-                    state={{ task, from: "teamtask" }}
+                <button
+                    type="button"
                     draggable={false}
-                    className="inline-flex items-center text-[12px] font-medium text-[#353535] hover:text-[#000000] gap-2 font-gantari"
+                    onClick={() => onViewTask?.(task)}
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
+                </button>
             </div>
         </div>
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200","201-250","251-300", "All"];
+const SHOW_OPTIONS = ["Show", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -709,20 +553,17 @@ export default function TeamtaskEV() {
         searchParams.get("status") || searchParams.get("taskstatus");
     const [list, setList] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
 
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
-    const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [modules, setModules] = useState<string[]>([]);
-    const allTasks = list.filter((t) => t && t.id != null).filter((t: any) => {
+
+    const allTasks = list.filter((t) => t && t.id != null).filter((t) => {
         // Employee filter
         if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
             if (t.assigned_full_name !== selectedEmployee) return false;
@@ -752,6 +593,8 @@ export default function TeamtaskEV() {
         return true;
     });
 
+    const getEffectiveStatus = (t: Task): "todo" | "in_progress" | "completed" =>
+        normalizeStatus(t.status);
 
     const statusMap: Record<"todo" | "in_progress" | "completed", string> = {
         todo: "Todo",
@@ -761,12 +604,10 @@ export default function TeamtaskEV() {
 
     const handleMoveTask = (
         taskId: number,
-        newStatus: "todo" | "in_progress" | "completed",
+        newStatus: "todo" | "in_progress" | "completed"
     ) => {
         setList((prev) =>
-            prev.map((t) =>
-                t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t,
-            ),
+            prev.map((t) => (t && t.id === taskId ? { ...t, status: statusMap[newStatus] } : t))
         );
 
         api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, {
@@ -777,26 +618,16 @@ export default function TeamtaskEV() {
         });
     };
 
-    const [addTaskForm, setAddTaskForm] = useState({
-        projectName: "",
-        module: "",
-        taskName: "",
-        type: "",
-        actualStartDate: "",
-        actualEndDate: "",
-        startTime: "",
-        dueTime: "",
-        assignTo: "",
-        description: "",
-        checklist: "",
-    });
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const navigate = useNavigate();
+    const listQueryString = useMemo(() => {
+        const s = searchParams.toString();
+        return s ? `?${s}` : "";
+    }, [searchParams]);
 
     const openEditTask = (task: Task) => {
-        setAddTaskForm(buildFormFromTask(task, employees));
-        setAttachmentFiles([]);
-        setEditingTaskId(task.id);
-        setAddTaskModalOpen(true);
+        navigate(`/ve/teamtasks/edit/${task.id}${listQueryString}`, {
+            state: { task },
+        });
     };
 
     const openDeleteTask = (task: Task) => {
@@ -804,7 +635,7 @@ export default function TeamtaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate(`/tasks/${task.id}`);
+        navigate("/tasks/taskview", { state: { task, from: "ve-team" } });
     };
 
     const confirmDeleteTask = () => {
@@ -822,36 +653,6 @@ export default function TeamtaskEV() {
             });
     };
 
-    const resetTaskFormAndClose = () => {
-        setAddTaskModalOpen(false);
-        setEditingTaskId(null);
-        setAttachmentFiles([]);
-        setAddTaskForm({
-            projectName: "",
-            module: "",
-            taskName: "",
-            type: "",
-            actualStartDate: "",
-            actualEndDate: "",
-            startTime: "",
-            dueTime: "",
-            assignTo: "",
-            description: "",
-            checklist: "",
-        });
-    };
-    const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
-    const [openFormDropdown, setOpenFormDropdown] =
-        useState<FormDropdownId>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
-    const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
-    const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
-    const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
-    const formAssignMenuRef = useRef<HTMLDivElement>(null);
-
     const dropdownsContainerRef = useRef<HTMLDivElement>(null);
     const employeeTriggerRef = useRef<HTMLButtonElement>(null);
     const employeeMenuRef = useRef<HTMLDivElement>(null);
@@ -862,6 +663,8 @@ export default function TeamtaskEV() {
     const periodTriggerRef = useRef<HTMLButtonElement>(null);
     const periodMenuRef = useRef<HTMLDivElement>(null);
 
+    // No extra mapping needed here: we trust backend's assigned_full_name
+
     useEffect(() => {
         if (openDropdown === null) return;
         const handleClickOutside = (e: MouseEvent) => {
@@ -871,45 +674,6 @@ export default function TeamtaskEV() {
         document.addEventListener("click", handleClickOutside);
         return () => document.removeEventListener("click", handleClickOutside);
     }, [openDropdown]);
-
-    const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const input = e.currentTarget;
-        const files = input.files;
-        if (!files?.length) return;
-        const newFiles = Array.from(files);
-        setAttachmentFiles((prev) => {
-            const merged = [...prev];
-            for (const f of newFiles) {
-                const dup = merged.some((x) => x.name === f.name && x.size === f.size);
-                if (!dup) merged.push(f);
-            }
-            return merged;
-        });
-        input.value = "";
-    };
-
-    const removeAttachment = (index: number) => {
-        setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    useEffect(() => {
-        if (openFormDropdown === null) return;
-        const handleClickOutside = (e: MouseEvent) => {
-            const target = e.target as Node;
-            const refs: React.RefObject<HTMLElement | null>[] =
-                openFormDropdown === "project"
-                    ? [formProjectTriggerRef, formProjectMenuRef]
-                    : openFormDropdown === "module"
-                        ? [formModuleTriggerRef, formModuleMenuRef]
-                        : openFormDropdown === "type"
-                            ? [formTypeTriggerRef, formTypeMenuRef]
-                            : [formAssignTriggerRef, formAssignMenuRef];
-            const inside = refs.some((r) => r.current && r.current.contains(target));
-            if (!inside) setOpenFormDropdown(null);
-        };
-        document.addEventListener("click", handleClickOutside);
-        return () => document.removeEventListener("click", handleClickOutside);
-    }, [openFormDropdown]);
 
     useEffect(() => {
         const params: Record<string, string> = {};
@@ -927,9 +691,11 @@ export default function TeamtaskEV() {
             api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
             .then(([tasksRes, resourcesRes, projRes]) => {
-                setList(tasksRes.data.tasks ?? []);
+                const projectRows = projRes.data.projects ?? [];
+                const rawTasks = tasksRes.data.tasks ?? [];
+                setList(enrichTasksWithProjectNames(rawTasks, projectRows));
                 setEmployees(resourcesRes.data.resources ?? []);
-                setProjects(projRes.data.projects ?? []);
+                setProjects(projectRows);
             })
             .catch(() => {
                 setList([]);
@@ -937,32 +703,15 @@ export default function TeamtaskEV() {
             .finally(() => setLoading(false));
     }, [isTeam, statusFilter]);
 
-    useEffect(() => {
-        if (!addTaskForm.projectName) {
-            setModules([]);
-            return;
-        }
-        const selectedProj = projects.find(
-            (p) => p.project_name === addTaskForm.projectName,
-        );
-        if (selectedProj && selectedProj.modules) {
-            const mods = String(selectedProj.modules)
-                .split(",")
-                .map((m) => m.trim())
-                .filter((m) => m.length > 0);
-            setModules(mods);
-        } else {
-            setModules([]);
-        }
-    }, [addTaskForm.projectName, projects]);
-
+    // Data maps for dropdowns
     const getEmployeeOptions = () => {
+        const rawEmployees = Array.isArray(employees) ? employees : [];
         if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All") {
-            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
         }
-        const proj = projects.find((p) => p.project_name === selectedProject);
+        const proj = (Array.isArray(projects) ? projects : []).find((p) => p?.project_name === selectedProject);
         if (!proj) {
-            return ["Select Employee", ...employees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+            return ["Select Employee", ...rawEmployees.map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
         }
         const involvedNames = new Set<string>();
         if (proj.project_manager_name) involvedNames.add(proj.project_manager_name);
@@ -975,80 +724,41 @@ export default function TeamtaskEV() {
             });
         }
 
-        const validEmployees = employees.filter((e) => (e.full_name || e.name) && involvedNames.has((e.full_name || e.name) as string) && isEmployeeActiveForProjectAssignment(e));
+        const validEmployees = rawEmployees.filter((e) => (e?.full_name || e?.name) && involvedNames.has((e?.full_name || e?.name) as string));
 
-        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e.full_name || e.name).filter(Boolean) as string[]];
+        return ["Select Employee", ...validEmployees.filter(isEmployeeActiveForProjectAssignment).map((e) => e?.full_name || e?.name).filter(Boolean) as string[]];
     };
 
     const employeeOptions = getEmployeeOptions();
+
     const projectOptions = [
         "Select Projects",
-        ...projects.map(p => p.project_name)
+        ...(Array.isArray(projects) ? projects : [])
+            .map((p) => p?.project_name)
+            .filter(Boolean),
     ];
-    const modalProjectOptions = projects.map(p => ({ value: p.project_name, label: p.project_name }));
-    const modalModuleOptions = modules.map(m => ({ value: m, label: m }));
-
-    const employeesForAssignDropdown = useMemo(() => {
-        const all = Array.isArray(employees) ? employees : [];
-        const meta = projects.find((p) => p?.project_name === addTaskForm.projectName);
-        const raw = (meta?.members || "").trim();
-        if (!raw) return all;
-        const tokens = raw.split(",").map((s) => s.trim()).filter(Boolean);
-        if (tokens.length === 0) return all;
-        return all.filter((emp) => {
-            const name = ((emp.full_name || emp.name) || "").trim();
-            const idStr = String(emp.id);
-            return tokens.some((t) => {
-                const tl = t.toLowerCase();
-                return t === idStr || tl === name.toLowerCase() || name === t;
-            });
-        });
-    }, [employees, projects, addTaskForm.projectName]);
-
-    const todayInputDate = getTodayInputDate();
-    const sameCalendarDay =
-        Boolean(addTaskForm.actualStartDate) &&
-        Boolean(addTaskForm.actualEndDate) &&
-        addTaskForm.actualStartDate === addTaskForm.actualEndDate;
-
-    const listReloadParams = useMemo(() => {
-        const p: Record<string, string> = { condition: isTeam ? "1" : "0" };
-        if (statusFilter) p.status = statusFilter;
-        return p;
-    }, [isTeam, statusFilter]);
-
-    const modalAssignOptions = employeesForAssignDropdown
-        .filter(isEmployeeActiveForProjectAssignment)
-        .filter((e) => (e.full_name || e.name || "").trim() !== "")
-        .map((e) => ({
-            value: e.full_name || e.name || "",
-            label: e.full_name || e.name || "",
-        }));
 
     const counts = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo").length,
+        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo").length,
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => getEffectiveStatus(t) === "in_progress",
         ).length,
-        completed: allTasks.filter((t) => normalizeStatus(t.status) === "completed")
+        completed: allTasks.filter((t) => getEffectiveStatus(t) === "completed")
             .length,
     };
-
     const tasksByStatus = {
-        todo: allTasks.filter((t) => normalizeStatus(t.status) === "todo"),
+        todo: allTasks.filter((t) => getEffectiveStatus(t) === "todo"),
         in_progress: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "in_progress",
+            (t) => getEffectiveStatus(t) === "in_progress",
         ),
         completed: allTasks.filter(
-            (t) => normalizeStatus(t.status) === "completed",
+            (t) => getEffectiveStatus(t) === "completed",
         ),
     };
-
     const showLimit =
-        selectedShow === "All" || !selectedShow || selectedShow === "Show"
+        selectedShow === "All" || !selectedShow
             ? Number.POSITIVE_INFINITY
             : Math.max(1, Number(selectedShow) || 10);
-
     const displayedTasksByStatus = {
         todo: tasksByStatus.todo.slice(0, showLimit),
         in_progress: tasksByStatus.in_progress.slice(0, showLimit),
@@ -1064,10 +774,11 @@ export default function TeamtaskEV() {
     }
 
     return (
-        <div className="space-y-6 overflow-auto min-h-screen">
+        <div className="h-full min-h-0 flex flex-col overflow-hidden">
             {/* Top row: title + dropdowns + Add task */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-[24px] font-medium text-[#000000] font-gantari">
+            <div className="bg-white pb-3 flex-shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
+                <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
                     {isTeam ? "Team Task" : "My Task"}
                 </h2>
                 <div
@@ -1086,7 +797,9 @@ export default function TeamtaskEV() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={employeeTriggerRef}
                         dropdownRef={employeeMenuRef}
-                        searchable={true}
+                        searchable
+                        searchPlaceholder="Search employee..."
+                        maxVisibleItems={5}
                     />
                     <TaskDropdown
                         label="Select Projects"
@@ -1100,7 +813,9 @@ export default function TeamtaskEV() {
                         onClose={() => setOpenDropdown(null)}
                         triggerRef={projectsTriggerRef}
                         dropdownRef={projectsMenuRef}
-                        searchable={true}
+                        searchable
+                        searchPlaceholder="Search project..."
+                        maxVisibleItems={5}
                     />
                     <TaskDropdown
                         label="Show"
@@ -1115,6 +830,7 @@ export default function TeamtaskEV() {
                         triggerRef={showTriggerRef}
                         dropdownRef={showMenuRef}
                         narrow
+                        maxVisibleItems={4}
                     />
                     <TaskDropdown
                         label="Period"
@@ -1129,28 +845,14 @@ export default function TeamtaskEV() {
                         triggerRef={periodTriggerRef}
                         dropdownRef={periodMenuRef}
                         narrow
+                        maxVisibleItems={4}
                     />
                     <button
                         type="button"
-                        onClick={() => {
-                            setEditingTaskId(null);
-                            setAttachmentFiles([]);
-                            setAddTaskForm({
-                                projectName: "",
-                                module: "",
-                                taskName: "",
-                                type: "",
-                                actualStartDate: "",
-                                actualEndDate: "",
-                                startTime: "",
-                                dueTime: "",
-                                assignTo: "",
-                                description: "",
-                                checklist: "",
-                            });
-                            setAddTaskModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white"
+                        onClick={() =>
+                            navigate(`/ve/teamtasks/add${listQueryString}`)
+                        }
+                        className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer"
                     >
                         <svg
                             className="h-5 w-5"
@@ -1171,18 +873,16 @@ export default function TeamtaskEV() {
             </div>
 
             {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
+                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">To Do</span>
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.todo})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group1} alt="Group1" className="w-8 h-8" />
                     </div>
-                    <p className="text-[12px] font-medium text-[#666666] font-gantari">To Do Task</p>
-                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
-                        {counts.todo} Tasks
-                    </p>
                 </Link>
 
                 <Link
@@ -1191,15 +891,13 @@ export default function TeamtaskEV() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
+                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.in_progress})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group2} alt="Group2" className="w-8 h-8" />
                     </div>
-                    <p className="text-[12px] font-medium text-[#666666] font-gantari">In Progress Task</p>
-                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
-                        {counts.in_progress} Tasks
-                    </p>
                 </Link>
 
                 <Link
@@ -1208,22 +906,22 @@ export default function TeamtaskEV() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
+                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                 >
-                    <div className="absolute top-4 right-4 flex items-center justify-center">
-                        <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
+                    <span className="text-xl font-bold text-[#0D1829]">Completed</span>
+                    <span className="text-xl font-bold text-[#0D1829]">({counts.completed})</span>
+                    <div className="absolute top-1/2 -translate-y-1/2 right-4 flex items-center justify-center">
+                        <img src={Group3} alt="Group3" className="w-8 h-8" />
                     </div>
-                    <p className="text-[12px] font-medium text-[#666666] font-gantari">Completed Task</p>
-                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
-                        {counts.completed} Tasks
-                    </p>
                 </Link>
+            </div>
             </div>
 
             {/* Task cards under each status - drag and drop columns */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -1246,7 +944,7 @@ export default function TeamtaskEV() {
                     ))}
                 </div>
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -1269,7 +967,7 @@ export default function TeamtaskEV() {
                     ))}
                 </div>
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -1291,6 +989,7 @@ export default function TeamtaskEV() {
                         />
                     ))}
                 </div>
+            </div>
             </div>
 
             {/* Delete Task confirmation modal */}
@@ -1332,530 +1031,18 @@ export default function TeamtaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
+                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] "
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#E00100]"
                             >
                                 Yes, Delete
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Add New Task modal */}
-            {addTaskModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                    <div className="bg-[#FFFFFF] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                            <button
-                                type="button"
-                                onClick={resetTaskFormAndClose}
-                                className="p-2 rounded-md text-[#000000] bg-[#F2F3F4]"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="text-[24px] font-medium text-[#353535] font-gantari">
-                                {editingTaskId !== null ? "Edit Task" : "Add New Task"}
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <form
-                            className="flex-1 overflow-y-auto p-6"
-                            onSubmit={(e) => {
-                                e.preventDefault();
-                                if (
-                                    addTaskForm.actualStartDate &&
-                                    addTaskForm.actualStartDate < todayInputDate
-                                ) {
-                                    toast.error("Start date cannot be before today.");
-                                    return;
-                                }
-                                if (
-                                    addTaskForm.actualEndDate &&
-                                    addTaskForm.actualEndDate < todayInputDate
-                                ) {
-                                    toast.error("End date cannot be before today.");
-                                    return;
-                                }
-                                if (
-                                    isEndTimeBeforeStartOnSameDay(
-                                        addTaskForm.actualStartDate,
-                                        addTaskForm.actualEndDate,
-                                        addTaskForm.startTime,
-                                        addTaskForm.dueTime,
-                                    )
-                                ) {
-                                    toast.error(
-                                        "End time must be the same as or after start time when both dates are the same.",
-                                    );
-                                    return;
-                                }
-                                const isEditing = editingTaskId !== null;
-                                const existing = isEditing
-                                    ? list.find((t) => t.id === editingTaskId)
-                                    : null;
-
-                                const projectId =
-                                    projects.find(
-                                        (p) => p.project_name === addTaskForm.projectName,
-                                    )?.id ?? null;
-                                const assigneeId = employees.find(
-                                    (emp) =>
-                                        (emp.full_name || emp.name) === addTaskForm.assignTo,
-                                )?.id;
-                                const assignedToVal =
-                                    assigneeId != null && !Number.isNaN(Number(assigneeId))
-                                        ? assigneeId
-                                        : addTaskForm.assignTo;
-
-                                const payload = {
-                                    projectid: projectId ?? addTaskForm.projectName,
-                                    taskName: addTaskForm.taskName,
-                                    category: addTaskForm.type,
-                                    startdate: addTaskForm.actualStartDate,
-                                    dueDate: addTaskForm.actualEndDate,
-                                    startTime: addTaskForm.startTime,
-                                    dueTime: addTaskForm.dueTime,
-                                    assignedTo: assignedToVal,
-                                    description: addTaskForm.description,
-                                    checklist: addTaskForm.checklist,
-                                    modules: addTaskForm.module,
-                                };
-
-                                const handleFiles = (taskId: number | string) => {
-                                    if (attachmentFiles.length > 0) {
-                                        const formData = new FormData();
-                                        attachmentFiles.forEach((f) =>
-                                            formData.append("image", f),
-                                        );
-                                        api.post(`/api/tasks/${taskId}/output-files`, formData, {
-                                            headers: {
-                                                "Content-Type": "multipart/form-data",
-                                            },
-                                        });
-                                    }
-                                };
-
-                                if (isEditing && existing) {
-                                    api
-                                        .patch(`/api/tasks/${existing.id}`, {
-                                            task_name: addTaskForm.taskName,
-                                            assigned_to: assignedToVal,
-                                            due_date: addTaskForm.actualEndDate || undefined,
-                                            category: addTaskForm.type,
-                                            description: addTaskForm.description,
-                                            checklist: addTaskForm.checklist,
-                                            modules_name: addTaskForm.module,
-                                            Actual_start_time:
-                                                addTaskForm.actualStartDate || undefined,
-                                            perferstart_time:
-                                                addTaskForm.startTime || undefined,
-                                            perferend_time: addTaskForm.dueTime || undefined,
-                                        })
-                                        .then(() => {
-                                            handleFiles(existing.id);
-                                            api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
-                                                .then((res) =>
-                                                    setList(res.data.tasks ?? []),
-                                                );
-                                        });
-                                } else {
-                                    api.post("/api/tasks", payload).then((res) => {
-                                        if (res.data.success && res.data.task_id) {
-                                            handleFiles(res.data.task_id);
-                                            api
-                                                .get<{ tasks?: Task[] }>("/api/tasks", {
-                                                    params: listReloadParams,
-                                                })
-                                                .then((r) => setList(r.data.tasks ?? []));
-                                        }
-                                    });
-                                }
-                                resetTaskFormAndClose();
-                            }}
-                        >
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="sm:col-span-2">
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Project Name
-                                    </label>
-                                    <FormDropdown
-                                        label="Select Project"
-                                        options={[
-                                            { value: "", label: "Select Project" },
-                                            ...modalProjectOptions,
-                                        ]}
-                                        value={addTaskForm.projectName}
-                                        onChange={(v) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                projectName: v,
-                                                module: "",
-                                                assignTo: "",
-                                            }))
-                                        }
-                                        isOpen={openFormDropdown === "project"}
-                                        onToggle={() =>
-                                            setOpenFormDropdown((d) =>
-                                                d === "project" ? null : "project",
-                                            )
-                                        }
-                                        onClose={() => setOpenFormDropdown(null)}
-                                        triggerRef={formProjectTriggerRef}
-                                        dropdownRef={formProjectMenuRef}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Select Module
-                                    </label>
-                                    <FormDropdown
-                                        label="Select Module"
-                                        options={[
-                                            { value: "", label: "Select Module" },
-                                            ...modalModuleOptions,
-                                        ]}
-                                        value={addTaskForm.module}
-                                        onChange={(v) =>
-                                            setAddTaskForm((f) => ({ ...f, module: v }))
-                                        }
-                                        isOpen={openFormDropdown === "module"}
-                                        onToggle={() =>
-                                            setOpenFormDropdown((d) =>
-                                                d === "module" ? null : "module",
-                                            )
-                                        }
-                                        onClose={() => setOpenFormDropdown(null)}
-                                        triggerRef={formModuleTriggerRef}
-                                        dropdownRef={formModuleMenuRef}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Task Name
-                                    </label>
-                                    <div className="flex">
-                                        <input
-                                            type="text"
-                                            value={addTaskForm.taskName}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    taskName: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="Enter Task / Select Task"
-                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
-                                                }`}
-                                        />
-                                        {editingTaskId === null && (
-                                            <button
-                                                type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] font-gantari"
-                                            >
-                                                Tasklist
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Type
-                                        </label>
-                                        <FormDropdown
-                                            label="Select Type"
-                                            options={[
-                                                { value: "", label: "Select Type" },
-                                                { value: "task", label: "Task" },
-                                                { value: "bug", label: "Bug" },
-                                                { value: "feature", label: "Feature" },
-                                            ]}
-                                            value={addTaskForm.type}
-                                            onChange={(v) =>
-                                                setAddTaskForm((f) => ({ ...f, type: v }))
-                                            }
-                                            isOpen={openFormDropdown === "type"}
-                                            onToggle={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "type" ? null : "type",
-                                                )
-                                            }
-                                            onClose={() => setOpenFormDropdown(null)}
-                                            triggerRef={formTypeTriggerRef}
-                                            dropdownRef={formTypeMenuRef}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Actual Start Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            min={todayInputDate}
-                                            value={addTaskForm.actualStartDate}
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setAddTaskForm((f) => {
-                                                    const next = { ...f, actualStartDate: v };
-                                                    if (
-                                                        f.actualEndDate &&
-                                                        v &&
-                                                        f.actualEndDate < v
-                                                    ) {
-                                                        next.actualEndDate = v;
-                                                    }
-                                                    return next;
-                                                });
-                                            }}
-                                            placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Actual End Date
-                                        </label>
-                                        <input
-                                            type="date"
-                                            min={
-                                                addTaskForm.actualStartDate || todayInputDate
-                                            }
-                                            value={addTaskForm.actualEndDate}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    actualEndDate: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Select Start Time
-                                        </label>
-                                        <input
-                                            type="time"
-                                            value={addTaskForm.startTime}
-                                            onChange={(e) => {
-                                                const v = e.target.value;
-                                                setAddTaskForm((f) => {
-                                                    const next = { ...f, startTime: v };
-                                                    const same =
-                                                        f.actualStartDate &&
-                                                        f.actualEndDate &&
-                                                        f.actualStartDate === f.actualEndDate;
-                                                    if (same && f.dueTime && v && f.dueTime < v) {
-                                                        next.dueTime = v;
-                                                    }
-                                                    return next;
-                                                });
-                                            }}
-                                            placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Select Due Time
-                                        </label>
-                                        <input
-                                            type="time"
-                                            min={
-                                                sameCalendarDay && addTaskForm.startTime
-                                                    ? addTaskForm.startTime
-                                                    : undefined
-                                            }
-                                            value={addTaskForm.dueTime}
-                                            onChange={(e) =>
-                                                setAddTaskForm((f) => ({
-                                                    ...f,
-                                                    dueTime: e.target.value,
-                                                }))
-                                            }
-                                            placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                            Assign To
-                                        </label>
-                                        <FormDropdown
-                                            label="Select Assign To"
-                                            options={[
-                                                { value: "", label: "Select Assign To" },
-                                                ...modalAssignOptions,
-                                            ]}
-                                            value={addTaskForm.assignTo}
-                                            onChange={(v) =>
-                                                setAddTaskForm((f) => ({ ...f, assignTo: v }))
-                                            }
-                                            isOpen={openFormDropdown === "assignTo"}
-                                            onToggle={() =>
-                                                setOpenFormDropdown((d) =>
-                                                    d === "assignTo" ? null : "assignTo",
-                                                )
-                                            }
-                                            onClose={() => setOpenFormDropdown(null)}
-                                            triggerRef={formAssignTriggerRef}
-                                            dropdownRef={formAssignMenuRef}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        value={addTaskForm.description}
-                                        onChange={(e) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                description: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="Enter Description..."
-                                        rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Checklist
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={addTaskForm.checklist}
-                                        onChange={(e) =>
-                                            setAddTaskForm((f) => ({
-                                                ...f,
-                                                checklist: e.target.value,
-                                            }))
-                                        }
-                                        placeholder="Enter Reference Link"
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
-                                        Attachments
-                                    </label>
-                                    <input
-                                        ref={fileInputRef}
-                                        id="add-task-file-input"
-                                        type="file"
-                                        multiple
-                                        className="sr-only"
-                                        onChange={handleAttachmentChange}
-                                        accept="*/*"
-                                    />
-                                    <div className="flex flex-wrap gap-2">
-                                        <div className="flex flex-1 min-w-0">
-                                            <input
-                                                type="text"
-                                                readOnly
-                                                value={
-                                                    attachmentFiles.length > 0
-                                                        ? `${attachmentFiles.length} file(s) selected`
-                                                        : ""
-                                                }
-                                                placeholder="Upload Files"
-                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate font-gantari"
-                                                title={
-                                                    attachmentFiles.length > 0
-                                                        ? attachmentFiles.map((f) => f.name).join(", ")
-                                                        : undefined
-                                                }
-                                            />
-                                            <label
-                                                htmlFor="add-task-file-input"
-                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center font-gantari"
-                                            >
-                                                Browse File
-                                            </label>
-                                        </div>
-                                    </div>
-                                    {attachmentFiles.length > 0 && (
-                                        <ul className="mt-2 space-y-1">
-                                            {attachmentFiles.map((file, index) => (
-                                                <li
-                                                    key={`${file.name}-${index}`}
-                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] font-gantari"
-                                                >
-                                                    <span className="truncate min-w-0" title={file.name}>
-                                                        {file.name}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeAttachment(index)}
-                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
-                                                        aria-label={`Remove ${file.name}`}
-                                                    >
-                                                        <svg
-                                                            className="w-4 h-4"
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth={2}
-                                                                d="M6 18L18 6M6 6l12 12"
-                                                            />
-                                                        </svg>
-                                                    </button>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex justify-center gap-3 mt-6 pt-4 ">
-                                <button
-                                    type="button"
-                                    onClick={resetTaskFormAndClose}
-                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
-                                >
-                                    Discard
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="rounded-md bg-[#DD4342] px-5 py-2 text-[16px] font-medium text-white font-gantari"
-                                >
-                                    Submit
-                                </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
             )}

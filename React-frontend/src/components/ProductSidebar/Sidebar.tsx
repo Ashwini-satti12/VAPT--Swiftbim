@@ -590,6 +590,10 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       return name === "My Task" && normalizedTarget === "/ve/mytasks";
     }
 
+    if (fromState === "ve-team" && normalizedCurrent === "/tasks/taskview") {
+      return name === "Team Task" && normalizedTarget === "/ve/teamtasks";
+    }
+
     if (normalizedCurrent === normalizedTarget) return true;
     
     // Special case for dashboard matching

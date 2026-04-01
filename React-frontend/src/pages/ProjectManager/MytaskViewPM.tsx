@@ -111,11 +111,13 @@ export default function MytaskViewPM() {
   const locationState = (location.state as { task?: Task; from?: string } | null) ?? null;
   const task = locationState?.task;
   const backTo =
-    locationState?.from === "teamtask"
-      ? "/teamtask"
-      : locationState?.from === "ve"
-        ? "/ve/mytasks"
-        : "/tasks";
+    locationState?.from === "ve-team"
+      ? "/ve/teamtasks"
+      : locationState?.from === "teamtask"
+        ? "/teamtask"
+        : locationState?.from === "ve"
+          ? "/ve/mytasks"
+          : "/tasks";
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     task ? normalizeStatus(task.status, task.Approval) : "todo"

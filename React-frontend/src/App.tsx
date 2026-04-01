@@ -307,6 +307,8 @@ function App() {
             <Route path="ve/mytasks/add" element={<AddEditTaskEV />} />
             <Route path="ve/mytasks/edit/:id" element={<AddEditTaskEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks/add" element={<AddEditTaskEV />} />
+            <Route path="ve/teamtasks/edit/:id" element={<AddEditTaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />
 
