@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import api from "../../../lib/api";
 import { toast } from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
@@ -10,6 +11,41 @@ import Group3 from "../../../assets/ProjectManager/MyTask/Group3.svg";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
 import AddBtn from "../../../assets/TechnicalDirector/add btn.svg";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import Arrow from "../../../assets/ProjectManager/MyTask/arrow.svg";
+import { getGlobalProfileUrl } from "../../../lib/profileHelpers";
+import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
+import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
+import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
+
+
+function formatDateDDMMYYYY(d?: string): string {
+    if (!d) return "—";
+    const s = String(d).trim();
+    let date: Date;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+        const [y, mo, day] = s.slice(0, 10).split("-").map(Number);
+        date = new Date(y, mo - 1, day);
+    } else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/.test(s)) {
+        const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (m) date = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+        else date = new Date(s);
+    } else {
+        date = new Date(s);
+    }
+    if (Number.isNaN(date.getTime())) return "—";
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
+function formatTimeDisplay(t?: string): string {
+    if (!t) return "—";
+    const s = String(t).trim();
+    const m = s.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return s;
+    return `${m[1].padStart(2, "0")}:${m[2]}`;
+}
 
 
 interface Task {
@@ -22,8 +58,16 @@ interface Task {
     project_id?: number;
     project_name?: string;
     assigned_to?: number;
+    /** Resolved assignee name; derived from backend's assigned_full_name for vendor_task */
     assigned_to_name?: string;
     category?: string;
+    /** For compatibility with /api/vendors/vendor-tasks */
+    assigned_full_name?: string;
+    start_date?: string;
+    start_time?: string;
+    end_time?: string;
+    checklist?: string;
+    assigned_by_name?: string;
 }
 
 interface Project {
@@ -47,10 +91,19 @@ export default function VendorBimLeadTasks() {
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createForm, setCreateForm] = useState({
-        task_name: "", description: "", status: "To Do", priority: "",
-        due_date: "", project_id: "", assigned_to: "", category: "",
-        actual_start_date: "", actual_end_date: "", checklist: "",
-        start_time: "", end_time: ""
+        task_name: "",
+        description: "",
+        status: "Todo",
+        priority: "",
+        due_date: "",
+        project_id: "",
+        assigned_to: "",
+        category: "",
+        actual_start_date: "",
+        actual_end_date: "",
+        checklist: "",
+        start_time: "",
+        end_time: "",
     });
     const [createSubmitting, setCreateSubmitting] = useState(false);
     const [openFormDropdown, setOpenFormDropdown] = useState<string | null>(null);
@@ -59,8 +112,27 @@ export default function VendorBimLeadTasks() {
 
 
     const [openMenuTaskId, setOpenMenuTaskId] = useState<number | null>(null);
-    const [showViewModal, setShowViewModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const navigate = useNavigate();
+    const [editForm, setEditForm] = useState({
+        task_name: "",
+        description: "",
+        status: "",
+        priority: "",
+        due_date: "",
+        project_id: "",
+        assigned_to: "",
+        category: "",
+        actual_start_date: "",
+        actual_end_date: "",
+        checklist: "",
+        start_time: "",
+        end_time: "",
+    });
+    const [editSubmitting, setEditSubmitting] = useState(false);
+    const [editAttachmentFiles, setEditAttachmentFiles] = useState<File[]>([]);
+    const editFileInputRef = useRef<HTMLInputElement>(null);
 
     const showDropdownRef = useRef<HTMLDivElement>(null);
     const projectDropdownRef = useRef<HTMLDivElement>(null);
@@ -71,7 +143,17 @@ export default function VendorBimLeadTasks() {
 
     const fetchTasks = () => {
         api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
-            .then(({ data }) => setTasks(data.tasks ?? []))
+            .then(({ data }) => {
+                const raw = data.tasks ?? [];
+                const mapped = raw.map((t) => ({
+                    ...t,
+                    assigned_to_name: t.assigned_to_name ?? t.assigned_full_name,
+                    assigned_by_name: (t as any).assigned_by_name ?? "-",
+                    // Backend stores this in vendor_task.category
+                    priority: (t as any).priority ?? (t as any).category ?? t.priority,
+                }));
+                setTasks(mapped);
+            })
             .catch(() => setTasks([]))
             .finally(() => setLoading(false));
     };
@@ -114,16 +196,52 @@ export default function VendorBimLeadTasks() {
     const handleCreate = (e: React.FormEvent) => {
         e.preventDefault();
         setCreateSubmitting(true);
-        api.post("/api/vendors/vendor-tasks", createForm)
-            .then(() => {
+        // Transform UI form keys to backend vendor_task keys
+        const payload = {
+            task_name: createForm.task_name,
+            description: createForm.description,
+            status: createForm.status === "To Do" ? "Todo" : createForm.status,
+            category: createForm.priority || "Medium",
+            due_date: createForm.actual_end_date || undefined,
+            start_date: createForm.actual_start_date || undefined,
+            start_time: createForm.start_time || undefined,
+            end_time: createForm.end_time || undefined,
+            project_id:
+                createForm.project_id ? Number(createForm.project_id) : undefined,
+            assigned_to:
+                createForm.assigned_to ? Number(createForm.assigned_to) : undefined,
+            // Use "category" selection for type, and "modules"/category selection for module
+            modules: createForm.category || undefined,
+            checklist: createForm.checklist || undefined,
+        };
+
+        api.post("/api/vendors/vendor-tasks", payload)
+            .then((res) => {
+                const taskId = res.data?.task_id ?? res.data?.id;
                 setShowCreateModal(false);
                 setAttachmentFiles([]);
                 setCreateForm({
-                    task_name: "", description: "", status: "To Do", priority: "Medium",
-                    due_date: "", project_id: "", assigned_to: "", category: "",
-                    actual_start_date: "", actual_end_date: "", checklist: "",
-                    start_time: "", end_time: ""
+                    task_name: "",
+                    description: "",
+                    status: "Todo",
+                    priority: "Medium",
+                    due_date: "",
+                    project_id: "",
+                    assigned_to: "",
+                    category: "",
+                    actual_start_date: "",
+                    actual_end_date: "",
+                    checklist: "",
+                    start_time: "",
+                    end_time: "",
                 });
+                if (taskId && attachmentFiles.length > 0) {
+                    const formData = new FormData();
+                    attachmentFiles.forEach((f) => formData.append("image", f));
+                    api.post(`/api/vendors/vendor-tasks/${taskId}/output-files`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }).catch(() => toast.error("Failed to upload attachments"));
+                }
                 fetchTasks();
             })
             .finally(() => setCreateSubmitting(false));
@@ -133,7 +251,7 @@ export default function VendorBimLeadTasks() {
         setTasks((prev) =>
             prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
         );
-        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus.replace(/\s+/g, '') })
+        api.patch(`/api/vendors/vendor-tasks/${taskId}/status`, { status: newStatus })
             .then(() => toast.success("Status updated"))
             .catch(() => {
                 toast.error("Failed to update status");
@@ -145,9 +263,56 @@ export default function VendorBimLeadTasks() {
         setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const handleEditAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setEditAttachmentFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+        }
+    };
+
+    const deleteEditAttachment = (index: number) => {
+        setEditAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         setAttachmentFiles((prev) => [...prev, ...files]);
+    };
+
+    const handleUpdate = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTask) return;
+        setEditSubmitting(true);
+        const payload = {
+            task_name: editForm.task_name,
+            description: editForm.description,
+            status: editForm.status,
+            category: editForm.priority || "Medium",
+            due_date: editForm.actual_end_date || undefined,
+            start_date: editForm.actual_start_date || undefined,
+            start_time: editForm.start_time || undefined,
+            end_time: editForm.end_time || undefined,
+            project_id: editForm.project_id ? Number(editForm.project_id) : undefined,
+            assigned_to: editForm.assigned_to ? Number(editForm.assigned_to) : undefined,
+            modules: editForm.category || undefined,
+            checklist: editForm.checklist || undefined,
+        };
+
+        api.patch(`/api/vendors/vendor-tasks/${selectedTask.id}`, payload)
+            .then(() => {
+                if (editAttachmentFiles.length > 0) {
+                    const formData = new FormData();
+                    editAttachmentFiles.forEach((f) => formData.append("image", f));
+                    api.post(`/api/vendors/vendor-tasks/${selectedTask.id}/output-files`, formData, {
+                        headers: { "Content-Type": "multipart/form-data" },
+                    }).catch(err => console.error("Attachment upload failed", err));
+                }
+                setShowEditModal(false);
+                toast.success("Task updated");
+                fetchTasks();
+                setEditAttachmentFiles([]);
+            })
+            .catch(() => toast.error("Failed to update task"))
+            .finally(() => setEditSubmitting(false));
     };
 
     const handleDelete = (taskId: number) => {
@@ -160,7 +325,13 @@ export default function VendorBimLeadTasks() {
             .catch(() => toast.error("Failed to delete task"));
     };
 
-    const statusOptions = ["To Do", "In Progress", "Review", "Completed", "Paused"];
+    // View task interaction functions
+    const handleViewAction = (task: Task) => {
+        setOpenMenuTaskId(null);
+        navigate(`/vendor-bim-lead/tasks/view/${task.id}`, { state: { task } });
+    };
+
+    const statusOptions = ["Todo", "InProgress", "Completed"];
     const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
@@ -286,97 +457,133 @@ export default function VendorBimLeadTasks() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {(["todo", "in_progress", "completed"] as const).map((bucket) => (
                         <div key={bucket} className="space-y-3 min-h-[120px] rounded-lg p-1">
-                            {displayedTasksByStatus[bucket].map((task) => (
-                                <div
-                                    key={task.id}
-                                    className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative"
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
-                                            {task.project_name || "Personal"}
-                                        </span>
-                                        <div className="relative" ref={openMenuTaskId === task.id ? cardMenuRef : null}>
-                                            <button
-                                                onClick={() =>
-                                                    setOpenMenuTaskId(
-                                                        openMenuTaskId === task.id ? null : task.id,
-                                                    )
-                                                }
-                                                className="p-0.5 rounded cursor-pointer"
+                                    {displayedTasksByStatus[bucket].map((task) => {
+                                        const progress = normalizeStatus(task.status) === "todo" ? 0 : normalizeStatus(task.status) === "in_progress" ? 50 : 100;
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari"
                                             >
-                                                <img src={Dot} alt="Dot" className="w-4 h-4" />
-                                            </button>
-                                            {openMenuTaskId === task.id && (
-                                                <div className="absolute top-full mt-1 right-0 z-50 min-w-[150px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="font-semibold text-slate-900 text-xl truncate font-Gantari">
+                                                        {task.task_name || "Task Name"}
+                                                    </h4>
+                                                    <div className="relative" ref={openMenuTaskId === task.id ? cardMenuRef : null}>
+                                                        <button
+                                                            onClick={() =>
+                                                                setOpenMenuTaskId(
+                                                                    openMenuTaskId === task.id ? null : task.id,
+                                                                )
+                                                            }
+                                                            className="p-0.5 rounded cursor-pointer"
+                                                        >
+                                                            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                                                        </button>
+                                                        {openMenuTaskId === task.id && (
+                                                            <div className="absolute top-full mt-1 right-0 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out font-Gantari">
+                                                                <button
+                                                                    onClick={() => handleViewAction(task)}
+                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img src={viewIcon} alt="view" className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        View
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedTask(task);
+                                                                        setEditForm({
+                                                                            task_name: task.task_name,
+                                                                            description: task.description || "",
+                                                                            status: task.status,
+                                                                            priority: (task as any).priority || task.priority || "",
+                                                                            due_date: task.due_date || "",
+                                                                            project_id: task.project_id?.toString() || "",
+                                                                            assigned_to: task.assigned_to?.toString() || "",
+                                                                            category: task.category || "",
+                                                                            actual_start_date: (task as any).start_date || "",
+                                                                            actual_end_date: task.due_date || "",
+                                                                            checklist: (task as any).checklist || "",
+                                                                            start_time: (task as any).start_time || "",
+                                                                            end_time: (task as any).end_time || "",
+                                                                        });
+                                                                        setEditAttachmentFiles([]);
+                                                                        setShowEditModal(true);
+                                                                        setOpenMenuTaskId(null);
+                                                                    }}
+                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        Edit
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setOpenMenuTaskId(null);
+                                                                        handleDelete(task.id);
+                                                                    }}
+                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        Delete
+                                                                    </span>
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65] font-Gantari">
+                                                    <span>
+                                                        {(task as any).start_date 
+                                                            ? formatDateDDMMYYYY((task as any).start_date)
+                                                            : "—"}
+                                                    </span>
+                                                    <span>
+                                                        {task.due_date
+                                                            ? formatDateDDMMYYYY(task.due_date)
+                                                            : ""}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <span className="text-xs text-slate-600 font-Gantari">Progress</span>
+                                                    <span className="text-xs font-medium text-slate-700 font-Gantari">{progress}%</span>
+                                                </div>
+                                                <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+                                                    <div
+                                                        className="h-full rounded-full bg-slate-500"
+                                                        style={{ width: `${progress}%` }}
+                                                    />
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-1">
+                                                        <div className="flex -space-x-2">
+                                                            {task.assigned_to_name && (
+                                                                <div
+                                                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                                                    title={`Assigned To: ${task.assigned_to_name}`}
+                                                                >
+                                                                    <span>{task.assigned_to_name.slice(0, 2).toUpperCase()}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                     <button
-                                                        onClick={() => {
-                                                            setSelectedTask(task);
-                                                            setShowViewModal(true);
-                                                            setOpenMenuTaskId(null);
-                                                        }}
-                                                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[#616161] hover:text-[#DD4342] cursor-pointer"
+                                                        onClick={() => handleViewAction(task)}
+                                                        className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari cursor-pointer"
                                                     >
-                                                        <img src={viewIcon} alt="view" className="w-4 h-4" />
-                                                        View
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setOpenMenuTaskId(null)}
-                                                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[#616161] hover:text-[#DD4342] cursor-pointer"
-                                                    >
-                                                        <img src={editIcon} alt="edit" className="w-4 h-4" />
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setOpenMenuTaskId(null);
-                                                            handleDelete(task.id);
-                                                        }}
-                                                        className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm text-[#616161] hover:text-[#DD4342] cursor-pointer"
-                                                    >
-                                                        <img src={deleteIcon} alt="delete" className="w-4 h-4" />
-                                                        Delete
+                                                        Details
+                                                        <img src={Arrow} alt="Arrow" className="w-2 h-2" />
                                                     </button>
                                                 </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                                        {task.task_name}
-                                    </h3>
-                                    <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-                                        {task.description || "No description provided."}
-                                    </p>
-
-                                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${priorityColors[task.priority] || "text-gray-600 bg-gray-50 border-gray-100"}`}
-                                            >
-                                                {task.priority || "Medium"}
                                             </div>
-                                            {task.due_date && (
-                                                <span className="text-xs font-semibold text-gray-400">
-                                                    {new Date(task.due_date).toLocaleDateString()}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <select
-                                            value={task.status}
-                                            onChange={(e) =>
-                                                handleStatusChange(task.id, e.target.value)
-                                            }
-                                            className="text-[11px] font-bold bg-[#F2F2F2] border-none rounded-lg px-2 py-1 outline-none cursor-pointer"
-                                        >
-                                            {statusOptions.map((opt) => (
-                                                <option key={opt} value={opt}>
-                                                    {opt}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            ))}
+                                        );
+                                    })}
                             {displayedTasksByStatus[bucket].length === 0 && (
                                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                                     No tasks
@@ -675,54 +882,271 @@ export default function VendorBimLeadTasks() {
                 </div>
             )}
 
-            {/* View Task Modal */}
-            {showViewModal && selectedTask && (
+            {/* Edit Task Modal */}
+            {showEditModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl w-full max-w-[500px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-8">
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <span className="text-[10px] font-bold text-[#DD4342] bg-red-50 px-2 py-1 rounded mb-2 inline-block uppercase tracking-wider">{selectedTask.category || "General"}</span>
-                                    <h3 className="text-2xl font-bold text-[#1A1A1A]">{selectedTask.task_name}</h3>
-                                </div>
-                                <button onClick={() => setShowViewModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors bg-[#F2F2F2] cursor-pointer">
-                                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                    <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-8 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                            <div className="flex items-center justify-between mb-8 relative border-b border-gray-100 pb-4">
+                                <button onClick={() => setShowEditModal(false)} className="p-1 hover:bg-gray-100 rounded text-gray-500 transition-colors cursor-pointer">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                 </button>
+                                <h3 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold text-black">Edit Task</h3>
+                                <div className="w-9" />
                             </div>
-                            <div className="space-y-6">
-                                <div className="flex flex-wrap gap-4">
-                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
-                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Status</span>
-                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.status}</span>
-                                    </div>
-                                    <div className="bg-[#F8FAFC] rounded-xl p-4 flex-1 min-w-[150px]">
-                                        <span className="text-xs font-bold text-gray-400 block mb-1 uppercase">Priority</span>
-                                        <span className={`font-bold ${selectedTask.priority === "High" ? "text-red-500" : "text-[#1A1A1A]"}`}>{selectedTask.priority}</span>
-                                    </div>
+                            <form onSubmit={handleUpdate} className="space-y-4">
+                                <div className="relative" ref={projectDropdownRef}>
+                                    <label className="block text-sm font-semibold text-black mb-1">Project Name</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "editProject" ? null : "editProject")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === editForm.project_id)?.project_name || "Select Project name"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editProject" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "editProject" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {projects.map((p) => (
+                                                    <button
+                                                        key={p.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditForm({ ...editForm, project_id: p.id.toString() });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {p.project_name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-full bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shadow-sm">
-                                        {(selectedTask.assigned_to_name || "?")[0]}
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="relative" ref={moduleDropdownRef}>
+                                        <label className="block text-sm font-semibold text-black mb-1">Select Module</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "editModule" ? null : "editModule")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span className={editForm.category ? "text-[#353535]" : "text-[#8B8B8B]"}>{editForm.category || "Select Module"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editModule" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "editModule" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {["Module 1", "Module 2"].map((m) => (
+                                                    <button
+                                                        key={m}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditForm({ ...editForm, category: m });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {m}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-bold text-gray-400 block mb-0.5 uppercase tracking-widest">Assigned To</span>
-                                        <span className="font-bold text-[#1A1A1A]">{selectedTask.assigned_to_name || "Unassigned"}</span>
+                                        <label className="block text-sm font-semibold text-black mb-1">Task Name</label>
+                                        <input
+                                            type="text"
+                                            value={editForm.task_name}
+                                            onChange={(e) => setEditForm({ ...editForm, task_name: e.target.value })}
+                                            placeholder="Enter Task Name"
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                            required
+                                        />
                                     </div>
                                 </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div className="relative" ref={typeDropdownRef}>
+                                        <label className="block text-sm font-semibold text-black mb-1">Type</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "editType" ? null : "editType")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span className={editForm.priority ? "text-[#353535]" : "text-[#8B8B8B]"}>{editForm.priority ? editForm.priority.charAt(0).toUpperCase() + editForm.priority.slice(1) : "Select Type"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editType" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "editType" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {[
+                                                    { value: "task", label: "Task" },
+                                                    { value: "bug", label: "Bug" },
+                                                    { value: "feature", label: "Feature" }
+                                                ].map((t) => (
+                                                    <button
+                                                        key={t.value}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditForm({ ...editForm, priority: t.value });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {t.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Actual Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.actual_start_date}
+                                            onChange={(e) => setEditForm({ ...editForm, actual_start_date: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Actual End Date</label>
+                                        <input
+                                            type="date"
+                                            value={editForm.actual_end_date}
+                                            onChange={(e) => setEditForm({ ...editForm, actual_end_date: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Select Start Time</label>
+                                        <input
+                                            type="time"
+                                            value={editForm.start_time}
+                                            onChange={(e) => setEditForm({ ...editForm, start_time: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-black mb-1">Select End Time</label>
+                                        <input
+                                            type="time"
+                                            value={editForm.end_time}
+                                            onChange={(e) => setEditForm({ ...editForm, end_time: e.target.value })}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="relative" ref={assignDropdownRef}>
+                                        <label className="block text-sm font-semibold text-black mb-1">Assign To</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setOpenFormDropdown(openFormDropdown === "editAssignTo" ? null : "editAssignTo")}
+                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                        >
+                                            <span className={editForm.assigned_to ? "text-[#353535]" : "text-[#8B8B8B]"}>{employees.find(emp => emp.id.toString() === editForm.assigned_to)?.full_name || "Select Assign To"}</span>
+                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editAssignTo" ? "rotate-180" : ""}`} />
+                                        </button>
+                                        {openFormDropdown === "editAssignTo" && (
+                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                                {employees.map((emp) => (
+                                                    <button
+                                                        key={emp.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setEditForm({ ...editForm, assigned_to: emp.id.toString() });
+                                                            setOpenFormDropdown(null);
+                                                        }}
+                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                    >
+                                                        {emp.full_name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div>
-                                    <span className="text-xs font-bold text-gray-400 block mb-2 uppercase">Description</span>
-                                    <p className="text-[#6B7280] leading-relaxed bg-gray-50 p-4 rounded-xl text-sm italic">
-                                        {selectedTask.description || "No description available."}
-                                    </p>
+                                    <label className="block text-sm font-semibold text-black mb-1">Description</label>
+                                    <textarea
+                                        value={editForm.description}
+                                        onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                        rows={3}
+                                        placeholder="Enter Description..."
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none resize-none"
+                                    />
                                 </div>
-                                <div className="pt-4 flex justify-end">
-                                    <button onClick={() => setShowViewModal(false)} className="px-8 py-2.5 bg-[#DD4342] text-white rounded-xl font-bold hover:bg-[#DD4342]/90 shadow-lg shadow-red-100 transition-all font-gantari cursor-pointer">Close</button>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-black mb-1">Checklist</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.checklist}
+                                        onChange={(e) => setEditForm({ ...editForm, checklist: e.target.value })}
+                                        placeholder="Enter Reference Link"
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] text-[#353535] rounded-sm text-sm focus:outline-none"
+                                    />
                                 </div>
-                            </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-black mb-1">Attachments</label>
+                                    <input
+                                        ref={editFileInputRef}
+                                        type="file"
+                                        multiple
+                                        className="hidden"
+                                        onChange={handleEditAttachmentChange}
+                                        id="edit-task-attachments"
+                                    />
+                                    <div className="flex">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={editAttachmentFiles.length > 0 ? `${editAttachmentFiles.length} file(s) selected` : ""}
+                                            placeholder="Upload Files"
+                                            className="flex-1 px-3 py-2 bg-[#F2F3F4] text-[#101827] rounded-l-sm text-sm focus:outline-none placeholder:text-[#8B8B8B]"
+                                        />
+                                        <label htmlFor="edit-task-attachments" className="bg-[#E2E2E2] px-6 py-2 rounded-r-sm text-sm font-medium text-[#8B8B8B] cursor-pointer hover:bg-gray-300">
+                                            Browse File
+                                        </label>
+                                    </div>
+                                    {editAttachmentFiles.length > 0 && (
+                                        <ul className="mt-2 space-y-1">
+                                            {editAttachmentFiles.map((file, idx) => (
+                                                <li key={idx} className="flex items-center justify-between bg-[#F2F3F4] px-3 py-1 rounded text-xs text-[#101827]">
+                                                    <span className="truncate">{file.name}</span>
+                                                    <button type="button" onClick={() => deleteEditAttachment(idx)} className="ml-2 text-black hover:text-red-500 font-bold cursor-pointer">×</button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-center gap-3 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEditModal(false)}
+                                        className="rounded-lg bg-[#F2F2F2] px-10 py-2 text-sm font-bold text-[#8B8B8B] hover:bg-gray-200 cursor-pointer"
+                                    >
+                                        Discard
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={editSubmitting}
+                                        className="rounded-lg bg-[#DBE9FE] px-10 py-2 text-sm font-bold text-[#101827] hover:bg-blue-200 cursor-pointer disabled:opacity-50"
+                                    >
+                                        {editSubmitting ? "Updating..." : "Update Task"}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Edit Task Modal logic continues here... */}
         </div>
     );
 }

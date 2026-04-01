@@ -92,7 +92,7 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] text-[#666666]"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -129,7 +129,7 @@ function FormDropdown({
                                 onChange(opt.value);
                                 onClose();
                             }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+                            className="block w-full px-3 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] first:rounded-t-lg last:rounded-b-lg font-gantari"
                         >
                             {opt.label}
                         </button>
@@ -197,7 +197,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#F2F3F4] px-4 py-2 text-[14px] text-[#353535]  ${narrow ? "min-w-[90px]" : "min-w-[140px]"} font-gantari`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -233,7 +233,7 @@ function TaskDropdown({
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-[14px] text-[#353535] placeholder-slate-400 font-gantari"
                                 aria-label={searchPlaceholder}
                             />
                         </div>
@@ -252,7 +252,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""} font-gantari`}
                             >
                                 {opt}
                             </button>
@@ -526,7 +526,7 @@ function TaskCard({
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
+                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-medium ${style.bg} font-gantari`}
                 >
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
                     {style.label}
@@ -593,17 +593,17 @@ function TaskCard({
                     </div>
                 </div>
             </div>
-            <h4 className="font-semibold text-slate-900 text-sm mb-1">
+            <h4 className="font-medium text-[#000000] text-[14px] mb-1 font-gantari">
                 {task.task_name || "Task Name"}
             </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <p className="text-[12px] text-[#666666] mb-2 font-gantari">{dateRange}</p>
             <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
+                <span className="text-[12px] text-[#666666] font-gantari">Progress</span>
+                <span className="text-[12px] font-medium text-[#353535] font-gantari">{progress}%</span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#DD4342]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -679,7 +679,7 @@ function TaskCard({
                     to={`/tasks/${task.id}`}
                     state={{ task, from: "teamtask" }}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                    className="inline-flex items-center text-[12px] font-medium text-[#353535] hover:text-[#000000] gap-2 font-gantari"
                 >
                     Details
                     <img src={Arrow} alt="Arrow" className="w-2 h-2" />
@@ -1067,8 +1067,8 @@ export default function TeamtaskEV() {
         <div className="space-y-6 overflow-auto min-h-screen">
             {/* Top row: title + dropdowns + Add task */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-slate-800">
-                    {isTeam ? "Team Task" : "Team Task"}
+                <h2 className="text-[24px] font-medium text-[#000000] font-gantari">
+                    {isTeam ? "Team Task" : "My Task"}
                 </h2>
                 <div
                     ref={dropdownsContainerRef}
@@ -1150,7 +1150,7 @@ export default function TeamtaskEV() {
                             });
                             setAddTaskModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-3 text-sm font-medium text-white shadow-sm "
+                        className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white"
                     >
                         <svg
                             className="h-5 w-5"
@@ -1174,13 +1174,13 @@ export default function TeamtaskEV() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
+                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">To Do Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
+                    <p className="text-[12px] font-medium text-[#666666] font-gantari">To Do Task</p>
+                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
                         {counts.todo} Tasks
                     </p>
                 </Link>
@@ -1191,13 +1191,13 @@ export default function TeamtaskEV() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
+                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
+                    <p className="text-[12px] font-medium text-[#666666] font-gantari">In Progress Task</p>
+                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
                         {counts.in_progress} Tasks
                     </p>
                 </Link>
@@ -1208,13 +1208,13 @@ export default function TeamtaskEV() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow relative"
+                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Completed Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
+                    <p className="text-[12px] font-medium text-[#666666] font-gantari">Completed Task</p>
+                    <p className="mt-1 text-[20px] font-bold text-[#000000] font-gantari">
                         {counts.completed} Tasks
                     </p>
                 </Link>
@@ -1332,14 +1332,14 @@ export default function TeamtaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
                             >
                                 Yes, Delete
                             </button>
@@ -1356,7 +1356,7 @@ export default function TeamtaskEV() {
                             <button
                                 type="button"
                                 onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                className="p-2 rounded-md text-[#000000] bg-[#F2F3F4]"
                                 aria-label="Close"
                             >
                                 <svg
@@ -1373,7 +1373,7 @@ export default function TeamtaskEV() {
                                     />
                                 </svg>
                             </button>
-                            <h3 className="text-lg font-semibold text-black">
+                            <h3 className="text-[24px] font-medium text-[#353535] font-gantari">
                                 {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                             </h3>
                             <div className="w-9" />
@@ -1498,7 +1498,7 @@ export default function TeamtaskEV() {
                         >
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Project Name
                                     </label>
                                     <FormDropdown
@@ -1528,7 +1528,7 @@ export default function TeamtaskEV() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Select Module
                                     </label>
                                     <FormDropdown
@@ -1554,7 +1554,7 @@ export default function TeamtaskEV() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Task Name
                                     </label>
                                     <div className="flex">
@@ -1568,13 +1568,13 @@ export default function TeamtaskEV() {
                                                 }))
                                             }
                                             placeholder="Enter Task / Select Task"
-                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
                                                 }`}
                                         />
                                         {editingTaskId === null && (
                                             <button
                                                 type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] font-gantari"
                                             >
                                                 Tasklist
                                             </button>
@@ -1584,7 +1584,7 @@ export default function TeamtaskEV() {
 
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Type
                                         </label>
                                         <FormDropdown
@@ -1611,7 +1611,7 @@ export default function TeamtaskEV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Actual Start Date
                                         </label>
                                         <input
@@ -1633,11 +1633,11 @@ export default function TeamtaskEV() {
                                                 });
                                             }}
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Actual End Date
                                         </label>
                                         <input
@@ -1653,13 +1653,13 @@ export default function TeamtaskEV() {
                                                 }))
                                             }
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
                                         />
                                     </div>
                                 </div>
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Select Start Time
                                         </label>
                                         <input
@@ -1680,11 +1680,11 @@ export default function TeamtaskEV() {
                                                 });
                                             }}
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Select Due Time
                                         </label>
                                         <input
@@ -1702,11 +1702,11 @@ export default function TeamtaskEV() {
                                                 }))
                                             }
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                             Assign To
                                         </label>
                                         <FormDropdown
@@ -1732,7 +1732,7 @@ export default function TeamtaskEV() {
                                     </div>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Description
                                     </label>
                                     <textarea
@@ -1745,11 +1745,11 @@ export default function TeamtaskEV() {
                                         }
                                         placeholder="Enter Description..."
                                         rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none font-gantari"
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Checklist
                                     </label>
                                     <input
@@ -1766,7 +1766,7 @@ export default function TeamtaskEV() {
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1 font-gantari">
                                         Attachments
                                     </label>
                                     <input
@@ -1789,7 +1789,7 @@ export default function TeamtaskEV() {
                                                         : ""
                                                 }
                                                 placeholder="Upload Files"
-                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate font-gantari"
                                                 title={
                                                     attachmentFiles.length > 0
                                                         ? attachmentFiles.map((f) => f.name).join(", ")
@@ -1798,7 +1798,7 @@ export default function TeamtaskEV() {
                                             />
                                             <label
                                                 htmlFor="add-task-file-input"
-                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
+                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center font-gantari"
                                             >
                                                 Browse File
                                             </label>
@@ -1809,7 +1809,7 @@ export default function TeamtaskEV() {
                                             {attachmentFiles.map((file, index) => (
                                                 <li
                                                     key={`${file.name}-${index}`}
-                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827] font-gantari"
                                                 >
                                                     <span className="truncate min-w-0" title={file.name}>
                                                         {file.name}
@@ -1844,13 +1844,13 @@ export default function TeamtaskEV() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] font-gantari"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    className="rounded-md bg-[#DD4342] px-5 py-2 text-[16px] font-medium text-white font-gantari"
                                 >
                                     Submit
                                 </button>

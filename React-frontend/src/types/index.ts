@@ -19,8 +19,8 @@ export interface AuthState {
   loading: boolean;
   setUser: (u: User | null) => void;
   setToken: (t: string | null) => void;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
-  clientLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
+  clientLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string; user?: User }>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
 }

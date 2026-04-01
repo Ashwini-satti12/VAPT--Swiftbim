@@ -29,238 +29,238 @@ type DropdownId = "employee" | "projects" | "show" | "period" | null;
 export type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
 interface FormDropdownProps {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (value: string) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
-  dropdownRef: React.RefObject<HTMLDivElement | null>;
-  searchable?: boolean;
+    label: string;
+    options: { value: string; label: string }[];
+    value: string;
+    onChange: (value: string) => void;
+    isOpen: boolean;
+    onToggle: () => void;
+    onClose: () => void;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
+    dropdownRef: React.RefObject<HTMLDivElement | null>;
+    searchable?: boolean;
 }
 
 function FormDropdown({
-  label,
-  options,
-  value,
-  onChange,
-  isOpen,
-  onToggle,
-  onClose,
-  triggerRef,
-  dropdownRef,
-  searchable = false,
+    label,
+    options,
+    value,
+    onChange,
+    isOpen,
+    onToggle,
+    onClose,
+    triggerRef,
+    dropdownRef,
+    searchable = false,
 }: FormDropdownProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const displayLabel = value
-    ? (options.find((o) => o.value === value)?.label ?? value)
-    : label;
+    const [searchQuery, setSearchQuery] = useState("");
+    const displayLabel = value
+        ? (options.find((o) => o.value === value)?.label ?? value)
+        : label;
 
-  const filteredOptions = searchable
-    ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          opt.value === "", // always keep placeholder
-      )
-    : options;
+    const filteredOptions = searchable
+        ? options.filter(
+            (opt) =>
+                opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                opt.value === "", // always keep placeholder
+        )
+        : options;
 
-  return (
-    <div className="relative w-full">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={`flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] font-Gantari transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] cursor-pointer ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={label}
-      >
-        <span>{displayLabel}</span>
-        <svg
-          className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          role="listbox"
-          className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg font-Gantari"
-        >
-          {searchable && (
-            <div className="px-2 pb-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                placeholder="Search..."
-                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
-              />
-            </div>
-          )}
-          <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
-            {filteredOptions.map((opt) => (
-              <button
-                key={opt.value}
+    return (
+        <div className="relative w-full">
+            <button
+                ref={triggerRef}
                 type="button"
-                role="option"
-                onClick={() => {
-                  onChange(opt.value);
-                  setSearchQuery("");
-                  onClose();
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle();
                 }}
-                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+                className={`flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] font-Gantari transition-all border border-transparent focus:outline-none focus:border-[#AEACAC52] focus:ring-1 focus:ring-[#AEACAC52] cursor-pointer ${value ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                aria-label={label}
+            >
+                <span>{displayLabel}</span>
+                <svg
+                    className={`ml-2 h-4 w-4 shrink-0 text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                    />
+                </svg>
+            </button>
+            {isOpen && (
+                <div
+                    ref={dropdownRef}
+                    role="listbox"
+                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg font-Gantari"
+                >
+                    {searchable && (
+                        <div className="px-2 pb-1">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                placeholder="Search..."
+                                className="w-full rounded border border-slate-200 px-2 py-1 text-xs text-slate-800 placeholder-slate-400"
+                            />
+                        </div>
+                    )}
+                    <div className="max-h-60 overflow-y-auto py-1 custom-scrollbar">
+                        {filteredOptions.map((opt) => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    onChange(opt.value);
+                                    setSearchQuery("");
+                                    onClose();
+                                }}
+                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 interface TaskDropdownProps {
-  label: string;
-  options: string[];
-  selected: string | null;
-  onSelect: (value: string) => void;
-  isOpen: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
-  dropdownRef: React.RefObject<HTMLDivElement | null>;
-  narrow?: boolean;
-  searchable?: boolean;
-  searchPlaceholder?: string;
-  maxVisibleItems?: number;
+    label: string;
+    options: string[];
+    selected: string | null;
+    onSelect: (value: string) => void;
+    isOpen: boolean;
+    onToggle: () => void;
+    onClose: () => void;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
+    dropdownRef: React.RefObject<HTMLDivElement | null>;
+    narrow?: boolean;
+    searchable?: boolean;
+    searchPlaceholder?: string;
+    maxVisibleItems?: number;
 }
 
 function TaskDropdown({
-  label,
-  options,
-  selected,
-  onSelect,
-  isOpen,
-  onToggle,
-  onClose,
-  triggerRef,
-  dropdownRef,
-  narrow = false,
-  searchable = false,
-  searchPlaceholder = "Search...",
-  maxVisibleItems = 4,
+    label,
+    options,
+    selected,
+    onSelect,
+    isOpen,
+    onToggle,
+    onClose,
+    triggerRef,
+    dropdownRef,
+    narrow = false,
+    searchable = false,
+    searchPlaceholder = "Search...",
+    maxVisibleItems = 4,
 }: TaskDropdownProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const q = (searchQuery || "").trim().toLowerCase();
-  const filteredOptions = searchable
-    ? (() => {
-        if (!q) return options;
-        const first = options[0];
-        const isPlaceholderOption = (o: string) =>
-          o === first && (first === "Select Employee" || first === "Select Projects");
-        return options.filter((opt) => {
-          if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
-          const name = String(opt ?? "").trim().toLowerCase();
-          return name.includes(q);
-        });
-      })()
-    : options;
+    const [searchQuery, setSearchQuery] = useState("");
+    const q = (searchQuery || "").trim().toLowerCase();
+    const filteredOptions = searchable
+        ? (() => {
+            if (!q) return options;
+            const first = options[0];
+            const isPlaceholderOption = (o: string) =>
+                o === first && (first === "Select Employee" || first === "Select Projects");
+            return options.filter((opt) => {
+                if (isPlaceholderOption(opt)) return false; // hide placeholder when searching
+                const name = String(opt ?? "").trim().toLowerCase();
+                return name.includes(q);
+            });
+        })()
+        : options;
 
-  const listMaxHeight = `${maxVisibleItems * 40}px`;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
-  return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-        className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        aria-label={label}
-      >
-        <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
-          {label.toLowerCase() === 'show' && selected && selected !== label ? (
-            <>
-              <span className="text-sm text-[#353535]">Show:</span>{" "}
-              <span>{selected}</span>
-            </>
-          ) : (
-            selected ?? label
-          )}
-        </span>
-        <img
-          src={ArrowDown}
-          alt="arrow"
-          className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          role="listbox"
-          className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg font-Gantari ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
-        >
-          {searchable && (
-            <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                placeholder={searchPlaceholder}
-                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
-                aria-label={searchPlaceholder}
-              />
-            </div>
-          )}
-          <div
-            className="overflow-y-auto py-1 custom-scrollbar"
-            style={{ maxHeight: listMaxHeight }}
-          >
-            {filteredOptions.map((opt, idx) => (
-              <button
-                key={`${opt}-${idx}`}
+    return (
+        <div className="relative">
+            <button
+                ref={triggerRef}
                 type="button"
-                role="option"
-                onClick={() => {
-                  if (searchable) setSearchQuery("");
-                  onSelect(opt);
-                  onClose();
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggle();
                 }}
-                className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                aria-label={label}
+            >
+                <span className={`truncate font-Gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                    {label.toLowerCase() === 'show' && selected && selected !== label ? (
+                        <>
+                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span>{selected}</span>
+                        </>
+                    ) : (
+                        selected ?? label
+                    )}
+                </span>
+                <img
+                    src={ArrowDown}
+                    alt="arrow"
+                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                />
+            </button>
+            {isOpen && (
+                <div
+                    ref={dropdownRef}
+                    role="listbox"
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg font-Gantari ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
+                >
+                    {searchable && (
+                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                                placeholder={searchPlaceholder}
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                aria-label={searchPlaceholder}
+                            />
+                        </div>
+                    )}
+                    <div
+                        className="overflow-y-auto py-1 custom-scrollbar"
+                        style={{ maxHeight: listMaxHeight }}
+                    >
+                        {filteredOptions.map((opt, idx) => (
+                            <button
+                                key={`${opt}-${idx}`}
+                                type="button"
+                                role="option"
+                                onClick={() => {
+                                    if (searchable) setSearchQuery("");
+                                    onSelect(opt);
+                                    onClose();
+                                }}
+                                className={`block w-full px-4 py-2 text-left text-sm font-Gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                            >
+                                {opt}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 export interface Task {
@@ -294,6 +294,7 @@ export interface Task {
     project_id?: number;
     created_at?: string;
     Actual_start_time?: string;
+    outputfilepath?: string;
 }
 
 // Build the correct URL for a stored profile picture
@@ -338,7 +339,7 @@ const getProfileUrl = (path: string | undefined): string => {
 export interface Employee {
     id: number;
     full_name: string;
-  active?: string;
+    active?: string;
 }
 
 export interface Project {
@@ -470,6 +471,17 @@ function normalizeStatus(
     return "todo";
 }
 
+function toApiTaskStatusParam(
+    statusFilter: string | null | undefined,
+): string | undefined {
+    if (!statusFilter) return undefined;
+    const s = statusFilter.toLowerCase().trim();
+    if (s === "in_progress" || s === "inprogress") return "InProgress";
+    if (s === "completed" || s === "complete" || s === "done") return "Completed";
+    if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
+    return statusFilter;
+}
+
 
 
 function TaskCard({
@@ -501,10 +513,6 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
-            e.preventDefault();
-            return;
-        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -514,7 +522,7 @@ function TaskCard({
 
     return (
         <div
-            draggable={!isCompleted}
+            draggable
             onDragStart={handleDragStart}
             className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
@@ -729,6 +737,7 @@ export default function TeamtaskV() {
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [addError, setAddError] = useState("");
     const [addSubmitting, setAddSubmitting] = useState(false);
+    const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>([]);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -814,6 +823,12 @@ export default function TeamtaskV() {
     const openEditTask = (task: Task) => {
         setAddTaskForm(buildFormFromTask(task, employees));
         setAttachmentFiles([]);
+        setExistingAttachmentNames(
+            String(task.outputfilepath || "")
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+        );
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -823,7 +838,7 @@ export default function TeamtaskV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/v/mytasks/view/${task.id}`, { state: { task, from: "teamtask" } });
     };
 
     const confirmDeleteTask = () => {
@@ -847,6 +862,7 @@ export default function TeamtaskV() {
         setAddError("");
         setAddSubmitting(false);
         setAttachmentFiles([]);
+        setExistingAttachmentNames([]);
         setAddTaskForm({
             projectName: "",
             module: "",
@@ -949,13 +965,13 @@ export default function TeamtaskV() {
             return;
         }
         setLoadingRecentTasks(true);
-            api.get<{ tasks?: Task[]; vendor_tasks?: Task[] }>("/api/tasks", {
-                params: { condition: isTeam ? "1" : "0", employeeid: "all" },
-            }).then((res) => {
-                const tasks = res.data.tasks ?? [];
-                setRecentTasks(tasks.slice(0, 10));
-                setTasklistOpen(true);
-            })
+        api.get<{ tasks?: Task[]; vendor_tasks?: Task[] }>("/api/tasks", {
+            params: { condition: isTeam ? "1" : "0", employeeid: "all" },
+        }).then((res) => {
+            const tasks = res.data.tasks ?? [];
+            setRecentTasks(tasks.slice(0, 10));
+            setTasklistOpen(true);
+        })
             .catch(() => {
                 setRecentTasks([]);
             })
@@ -971,7 +987,8 @@ export default function TeamtaskV() {
 
     useEffect(() => {
         const params: Record<string, string> = {};
-        if (statusFilter) params.status = statusFilter;
+        const apiStatus = toApiTaskStatusParam(statusFilter);
+        if (apiStatus) params.status = apiStatus;
         if (isTeam) {
             params.condition = "1";
             params.employeeid = "all";
@@ -1069,9 +1086,9 @@ export default function TeamtaskV() {
     const modalAssignOptions = employeesForAssignDropdown
         .filter(isEmployeeActiveForProjectAssignment)
         .map((e) => ({
-        value: e.full_name,
-        label: e.full_name,
-    }));
+            value: e.full_name,
+            label: e.full_name,
+        }));
 
     if (loading) {
         return (
@@ -1204,6 +1221,7 @@ export default function TeamtaskV() {
                                     checklist: "",
                                 });
                                 setAddTaskModalOpen(true);
+                                setExistingAttachmentNames([]);
                             }}
                             className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#c43a39] transition-colors"
                         >
@@ -1312,31 +1330,31 @@ export default function TeamtaskV() {
                             />
                         ))}
                     </div>
-                <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
-                    onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                        e.preventDefault();
-                        const taskId = Number(e.dataTransfer.getData("taskId"));
-                        if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
-                    }}
-                >
-                    {displayedTasksByStatus.completed.map((task) => (
-                        <TaskCard
-                            key={task.id}
-                            task={task}
-                            status="completed"
-                            onViewTask={openViewTask}
-                            onEditTask={openEditTask}
-                            onDeleteTask={openDeleteTask}
-                        />
-                    ))}
+                    <div
+                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "move";
+                        }}
+                        onDrop={(e) => {
+                            e.preventDefault();
+                            const taskId = Number(e.dataTransfer.getData("taskId"));
+                            if (!Number.isNaN(taskId)) handleMoveTask(taskId, "completed");
+                        }}
+                    >
+                        {displayedTasksByStatus.completed.map((task) => (
+                            <TaskCard
+                                key={task.id}
+                                task={task}
+                                status="completed"
+                                onViewTask={openViewTask}
+                                onEditTask={openEditTask}
+                                onDeleteTask={openDeleteTask}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
 
             {/* Delete Task confirmation modal */}
             {deleteTaskId !== null && (
@@ -1514,6 +1532,20 @@ export default function TeamtaskV() {
                                 };
                                 if (statusFilter) reloadParams.status = statusFilter;
 
+                                const uploadTaskAttachments = async (
+                                    taskId: number,
+                                    files: File[],
+                                ) => {
+                                    if (!files.length) return;
+                                    const formData = new FormData();
+                                    for (const file of files) formData.append("image", file);
+                                    await api.post(
+                                        `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                                        formData,
+                                        { headers: { "Content-Type": "multipart/form-data" } },
+                                    );
+                                };
+
                                 if (isEditing && existing) {
                                     api
                                         .patch(
@@ -1534,7 +1566,8 @@ export default function TeamtaskV() {
                                                 checklist: addTaskForm.checklist,
                                             },
                                         )
-                                        .then(() => {
+                                        .then(async () => {
+                                            await uploadTaskAttachments(existing.id, attachmentFiles);
                                             api
                                                 .get<{ tasks?: Task[] }>(
                                                     "/api/vendors/vendor-tasks",
@@ -1550,8 +1583,12 @@ export default function TeamtaskV() {
                                         });
                                 } else {
                                     api.post("/api/vendors/vendor-tasks", payload).then(
-                                        (res) => {
+                                        async (res) => {
                                             if (res.data.success && res.data.task_id) {
+                                                await uploadTaskAttachments(
+                                                    Number(res.data.task_id),
+                                                    attachmentFiles,
+                                                );
                                                 api
                                                     .get<{ tasks?: Task[] }>(
                                                         "/api/vendors/vendor-tasks",
@@ -1960,6 +1997,24 @@ export default function TeamtaskV() {
                                                 </li>
                                             ))}
                                         </ul>
+                                    )}
+                                    {editingTaskId !== null && existingAttachmentNames.length > 0 && (
+                                        <div className="mt-3">
+                                            <p className="mb-1 text-xs text-[#616161]">
+                                                Existing attachments
+                                            </p>
+                                            <ul className="space-y-1">
+                                                {existingAttachmentNames.map((name, idx) => (
+                                                    <li
+                                                        key={`${name}-${idx}`}
+                                                        className="rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] truncate"
+                                                        title={name}
+                                                    >
+                                                        {name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                     )}
                                 </div>
                             </div>

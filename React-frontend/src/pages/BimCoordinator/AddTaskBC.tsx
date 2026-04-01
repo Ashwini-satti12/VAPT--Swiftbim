@@ -263,9 +263,9 @@ export default function AddTaskBC() {
     };
 
     return (
-        <div className="flex-1 overflow-y-auto p-2 bg-white">
-            <div className="max-w-[1174px] mx-auto">
-                <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+        <div className="flex flex-col flex-1 min-h-0 p-2 bg-white">
+            <div className="max-w-[1174px] mx-auto flex flex-col flex-1 min-h-0 w-full">
+                <div className="flex shrink-0 items-center justify-between mb-6 sm:mb-8 relative">
                     <button
                         type="button"
                         onClick={goBack}
@@ -280,6 +280,7 @@ export default function AddTaskBC() {
                     <div className="w-10" />
                 </div>
 
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {addError && (
                         <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
@@ -578,6 +579,7 @@ export default function AddTaskBC() {
                         </button>
                     </div>
                 </form>
+                </div>
             </div>
             <AttachmentPreviewModal
                 file={attachmentPreviewFile}

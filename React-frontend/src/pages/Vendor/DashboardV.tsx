@@ -11,7 +11,10 @@ type DashboardStats = {
     active_opportunities: number;
     bids_submitted: number;
     proposals_awaiting: number;
-    active_projects: number;
+    total_projects: number;
+    completed_projects: number;
+    in_progress_tasks: number;
+    completed_tasks: number;
 };
 
 type InvolvedPerson = {
@@ -42,11 +45,24 @@ type CelebrationEvent = {
     due_date?: string;
 };
 
+type Project = {
+    id: number;
+    project_name: string;
+    client_name: string | null;
+    budget: number | string | null;
+    progress: number | string | null;
+    status: string;
+    due_date: string | null;
+};
+
 const defaultStats: DashboardStats = {
     active_opportunities: 0,
     bids_submitted: 0,
     proposals_awaiting: 0,
-    active_projects: 0,
+    total_projects: 0,
+    completed_projects: 0,
+    in_progress_tasks: 0,
+    completed_tasks: 0,
 };
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
@@ -118,6 +134,7 @@ export default function DashboardV() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<DashboardStats>(defaultStats);
     const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
     const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
     const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -126,17 +143,29 @@ export default function DashboardV() {
         return () => clearInterval(id);
     }, []);
 
-    // GET /api/vendors/dashboard/stats → KPI cards
+    // GET stats → KPI cards
     useEffect(() => {
-        api.get<DashboardStats>('/api/vendors/dashboard/stats')
-            .then(({ data }) => setStats({
+        // Vendor-specific stats (Bidding)
+        api.get<any>('/api/vendors/dashboard/stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
                 active_opportunities: Number(data?.active_opportunities) || 0,
                 bids_submitted: Number(data?.bids_submitted) || 0,
                 proposals_awaiting: Number(data?.proposals_awaiting) || 0,
-                active_projects: Number(data?.active_projects) || 0,
-            }))
-            .catch(() => setStats(defaultStats))
+            })))
+            .catch(() => {})
             .finally(() => setLoading(false));
+
+        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
+        api.get<any>('/api/vendors/dashboard/project-stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
+                total_projects: Number(data?.totalProjects) || 0,
+                completed_projects: Number(data?.completedProjects) || 0,
+                in_progress_tasks: Number(data?.inProgressTasks) || 0,
+                completed_tasks: Number(data?.completedTasks) || 0,
+            })))
+            .catch(() => {});
     }, []);
 
     // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
@@ -144,6 +173,10 @@ export default function DashboardV() {
         api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
             .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
             .catch(() => setPriorityTasks([]));
+
+        api.get<{ projects?: Project[] }>('/api/vendors/vendor-projects')
+            .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
+            .catch(() => setProjects([]));
     }, []);
 
     // Celebrations
@@ -241,40 +274,15 @@ export default function DashboardV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions — vendor-specific metrics
+    // KPI card definitions + deep links to relevant filtered pages.
     const kpiCards = [
-        {
-            title: 'Active\nOpportunities',
-            value: stats.active_opportunities,
-            barColor: '#DE3D3A',
-            label: 'Active Opportunities',
-            percent: 75,
-            link: '/v/opportunities'
-        },
-        {
-            title: 'Bids\nSubmitted',
-            value: stats.bids_submitted,
-            barColor: '#3B82F6',
-            label: 'Total Bids Submitted',
-            percent: 50,
-            link: '/v/mybids'
-        },
-        {
-            title: 'Proposals\nAwaiting',
-            value: stats.proposals_awaiting,
-            barColor: '#E47E00',
-            label: 'Proposals Awaiting',
-            percent: 30,
-            link: '/v/proposals'
-        },
-        {
-            title: 'Active\nProjects',
-            value: stats.active_projects,
-            barColor: '#00882E',
-            label: 'Active Projects',
-            percent: 20,
-            link: '/v/projects?status=Active'
-        },
+        { label: 'Active Opportunities', value: stats.active_opportunities, to: '/v/opportunities?tab=opportunities&oppStatus=active' },
+        { label: 'Total Bids Submitted', value: stats.bids_submitted, to: '/v/opportunities?tab=my-bids' },
+        { label: 'Proposals Awaiting', value: stats.proposals_awaiting, to: '/v/opportunities?tab=my-bids&bidStatus=shortlisted' },
+        { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), to: '/v/projects' },
+        { label: 'Completed Projects', value: stats.completed_projects, to: '/v/projects?status=completed' },
+        { label: 'In Progress Tasks', value: stats.in_progress_tasks, to: '/v/teamtasks?status=in_progress' },
+        { label: 'Completed Tasks', value: stats.completed_tasks, to: '/v/teamtasks?status=completed' },
     ];
 
     if (loading) {
@@ -290,13 +298,18 @@ export default function DashboardV() {
             {/* Header and KPI Cards */}
             <div className="bg-white pb-6 pt-0 border-b border-transparent shrink-0">
                 <h1 className="text-[24px] font-medium font-gantari text-[#000000] mb-6">Dashboard</h1>
-                {/* KPI Grid — same style as DashboardTD */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* KPI Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-2">
                     {kpiCards.map((card, i) => (
-                        <div key={i} className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0">
+                        <Link
+                            key={i}
+                            to={card.to}
+                            className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-4 shadow-sm flex items-center justify-between min-h-0 transition-colors cursor-pointer"
+                            title={`Open ${card.label}`}
+                        >
                             <h3 className="text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">{card.label}</h3>
                             <p className="text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{card.value}</p>
-                        </div>
+                        </Link>
                     ))}
                 </div>
             </div>
@@ -313,14 +326,62 @@ export default function DashboardV() {
                     <div className="border-b border-[#AEACAC52] mb-4" aria-hidden />
 
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-                        {priorityTasks.length === 0 ? (
-                            <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
+                        {loading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+                            </div>
+                        ) : projects.length === 0 && priorityTasks.length === 0 ? (
+                            <p className="text-[#717171] text-sm font-gantari py-4">No projects or priority tasks for today.</p>
                         ) : (
                             <>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                    <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
-                                </div>
+                                {/* Projects List (Horizontal scroll or simple list) */}
+                                {projects.length > 0 && (
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">My Projects</h3>
+                                            <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {projects.slice(0, 4).map((project) => (
+                                                <Link 
+                                                    key={project.id} 
+                                                    to={`/v/projects`}
+                                                    className="bg-[#F8F9FA] p-4 rounded-xl border border-[#AEACAC52] hover:border-[#DE3D3A] transition-all group"
+                                                >
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex justify-between items-start">
+                                                            <h4 className="font-bold text-[#353535] text-[16px] font-gantari truncate pr-2 group-hover:text-[#DE3D3A]">{project.project_name}</h4>
+                                                            <span className={`text-[10px] px-2 py-1 rounded-md font-bold uppercase tracking-wider ${
+                                                                project.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                                                            }`}>
+                                                                {project.status || 'Active'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between text-[12px] text-[#717171]">
+                                                            <span>Client: {project.client_name || 'N/A'}</span>
+                                                            <span>Due: {formatDateOnly(project.due_date)}</span>
+                                                        </div>
+                                                        <div className="w-full bg-slate-200 h-1.5 rounded-full mt-1 overflow-hidden">
+                                                            <div 
+                                                                className="bg-[#DE3D3A] h-full rounded-full transition-all duration-500" 
+                                                                style={{ width: `${project.progress || 0}%` }}
+                                                            />
+                                                        </div>
+                                                        <div className="flex justify-end">
+                                                            <span className="text-[11px] font-bold text-[#353535]">{project.progress || 0}%</span>
+                                                        </div>
+                                                    </div>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {priorityTasks.length > 0 && (
+                                    <>
+                                        <div className="flex items-center justify-between mt-8 mb-3">
+                                            <h3 className="text-lg font-semibold text-[#353535] font-gantari">Tasks Priority</h3>
+                                        </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
                                     for (const task of priorityTasks) {
@@ -391,6 +452,8 @@ export default function DashboardV() {
                                         </div>
                                     ));
                                 })()}
+                                    </>
+                                )}
                             </>
                         )}
                     </div>

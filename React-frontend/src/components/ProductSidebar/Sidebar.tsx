@@ -574,6 +574,21 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isActive = (path: string, name: string) => {
     const normalizedCurrent = location.pathname.toLowerCase().replace(/\/+$/, '');
     const normalizedTarget = path.toLowerCase().replace(/\/+$/, '');
+    const fromState = (location.state as { from?: string } | null)?.from;
+    const openedFromTeamTask = fromState === "teamtask" || fromState === "teamtasks";
+    const fromTeamTaskView =
+      openedFromTeamTask &&
+      (normalizedCurrent === "/tasks/taskview" || normalizedCurrent.endsWith("/mytasks/view"));
+
+    if (fromTeamTaskView) {
+      if (name === "Team Task" && (normalizedTarget === "/teamtask" || normalizedTarget.endsWith("/teamtasks"))) return true;
+      if (name === "My Task" && (normalizedTarget === "/tasks" || normalizedTarget.endsWith("/mytasks"))) return false;
+    }
+
+    // Vendor employee opens task detail at /tasks/taskview with state.from === "ve"
+    if (fromState === "ve" && normalizedCurrent === "/tasks/taskview") {
+      return name === "My Task" && normalizedTarget === "/ve/mytasks";
+    }
 
     if (normalizedCurrent === normalizedTarget) return true;
     
