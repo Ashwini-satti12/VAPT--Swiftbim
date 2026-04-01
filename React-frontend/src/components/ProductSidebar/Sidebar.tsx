@@ -585,8 +585,11 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
       if (name === "My Task" && (normalizedTarget === "/tasks" || normalizedTarget.endsWith("/mytasks"))) return false;
     }
 
-    // Vendor employee opens task detail at /tasks/taskview with state.from === "ve"
-    if (fromState === "ve" && normalizedCurrent === "/tasks/taskview") {
+    // Vendor employee task detail: dedicated view route or legacy /tasks/taskview
+    if (
+      normalizedCurrent.startsWith("/ve/mytasks/view") ||
+      (fromState === "ve" && normalizedCurrent === "/tasks/taskview")
+    ) {
       return name === "My Task" && normalizedTarget === "/ve/mytasks";
     }
 
