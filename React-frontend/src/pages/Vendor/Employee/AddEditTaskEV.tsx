@@ -246,7 +246,7 @@ function isEndTimeBeforeStartOnSameDay(
 export default function AddEditTaskEV() {
   const { id: idParam } = useParams();
   const [searchParams] = useSearchParams();
-  const { state: locationState } = useLocation();
+  const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
 
   const editingTaskId =
@@ -258,8 +258,12 @@ export default function AddEditTaskEV() {
     return s ? `?${s}` : "";
   }, [searchParams]);
 
+  const listBasePath = pathname.includes("/ve/teamtasks")
+    ? "/ve/teamtasks"
+    : "/ve/mytasks";
+
   const goBackToList = () => {
-    navigate(`/ve/mytasks${listQs}`);
+    navigate(`${listBasePath}${listQs}`);
   };
 
   const [employees, setEmployees] = useState<Employee[]>([]);
