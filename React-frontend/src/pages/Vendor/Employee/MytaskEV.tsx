@@ -970,7 +970,7 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="p-2 rounded-md text-black bg-[#F2F2F2] transition-colors"
                                 aria-label="Close"
                             >
                                 <svg
@@ -987,7 +987,7 @@ export default function MytaskEV() {
                                     />
                                 </svg>
                             </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+                            <h3 className="flex-1 text-center text-[20px] font-medium text-[#353535]">
                                 Delete Task
                             </h3>
                             <div className="w-9" />
@@ -1001,14 +1001,14 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] "
+                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] "
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#E00100]"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[14px] font-medium text-[#E00100]"
                             >
                                 Yes, Delete
                             </button>
