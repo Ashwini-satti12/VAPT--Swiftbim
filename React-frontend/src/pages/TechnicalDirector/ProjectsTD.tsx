@@ -1336,17 +1336,7 @@ export default function ProjectsTD() {
                     </h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                       <div className="space-y-4 md:space-y-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center">
-                          <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Client Name
-                          </span>
-                          <span className="hidden sm:inline text-[#616161] mr-4">
-                            :
-                          </span>
-                          <span className="text-[16px] font-Gantari font-medium text-[#616161]">
-                            {selectedProjectForView.client_name || "N/A"}
-                          </span>
-                        </div>
+
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                             Actual Start Date
@@ -1379,17 +1369,16 @@ export default function ProjectsTD() {
                               : "N/A"}
                           </span>
                         </div>
+
                         <div className="flex flex-col sm:flex-row sm:items-center">
                           <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
-                            Budget
+                            Outsourcing Budget
                           </span>
                           <span className="hidden sm:inline text-[#616161] mr-4">
                             :
                           </span>
                           <span className="text-[16px] font-gantari font-medium text-[#616161]">
-                            {selectedProjectForView.budget
-                              ? `${selectedProjectForView.budget}$`
-                              : "N/A"}
+                            {selectedProjectForView.budget_ceiling || "N/A"}
                           </span>
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center">
@@ -2004,7 +1993,7 @@ export default function ProjectsTD() {
                             </div>
                           </div>
 
-                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex items-center">
+                          <div className="mb-2 ml-6 -mt-2 min-h-[45px] flex flex-col justify-center">
                             <h3 className="text-[18px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                               {p.project_name ?? "Untitled Project"}
                             </h3>
