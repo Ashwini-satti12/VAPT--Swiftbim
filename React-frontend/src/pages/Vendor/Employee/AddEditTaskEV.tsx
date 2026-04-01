@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import {
   useSearchParams,
   useLocation,
@@ -10,6 +12,7 @@ import toast from "react-hot-toast";
 import ArrowDown from "../../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 import { isEmployeeActiveForProjectAssignment } from "../../../utils/employeeActive";
+import { EyeIcon } from "@heroicons/react/24/outline";
 
 type FormDropdownId = "project" | "module" | "type" | "assignTo" | null;
 
@@ -246,7 +249,7 @@ function isEndTimeBeforeStartOnSameDay(
 export default function AddEditTaskEV() {
   const { id: idParam } = useParams();
   const [searchParams] = useSearchParams();
-  const { state: locationState } = useLocation();
+  const { pathname, state: locationState } = useLocation();
   const navigate = useNavigate();
 
   const editingTaskId =
@@ -258,8 +261,12 @@ export default function AddEditTaskEV() {
     return s ? `?${s}` : "";
   }, [searchParams]);
 
+  const listBasePath = pathname.includes("/ve/teamtasks")
+    ? "/ve/teamtasks"
+    : "/ve/mytasks";
+
   const goBackToList = () => {
-    navigate(`/ve/mytasks${listQs}`);
+    navigate(`${listBasePath}${listQs}`);
   };
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -419,6 +426,11 @@ export default function AddEditTaskEV() {
 
   const removeAttachment = (index: number) => {
     setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const viewAttachment = (file: File) => {
+    const url = URL.createObjectURL(file);
+    window.open(url, "_blank");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -825,68 +837,86 @@ export default function AddEditTaskEV() {
             </label>
             <input
               ref={fileInputRef}
-              id="add-edit-task-ev-file-input"
               type="file"
               multiple
-              className="sr-only"
+              className="hidden"
               onChange={handleAttachmentChange}
               accept="*/*"
             />
-            <div className="flex flex-wrap gap-2">
-              <div className="flex flex-1 min-w-0">
-                <input
-                  type="text"
-                  readOnly
-                  value={
-                    attachmentFiles.length > 0
-                      ? `${attachmentFiles.length} file(s) selected`
-                      : ""
-                  }
-                  placeholder="Upload Files"
-                  className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none truncate"
-                />
-                <label
-                  htmlFor="add-edit-task-ev-file-input"
-                  className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center"
-                >
-                  Browse File
-                </label>
-              </div>
-            </div>
-            {attachmentFiles.length > 0 && (
-              <ul className="mt-2 space-y-1">
-                {attachmentFiles.map((file, index) => (
-                  <li
-                    key={`${file.name}-${index}`}
-                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535]"
+            <div className="flex flex-col gap-4">
+              <div className="w-full">
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    readOnly
+                    value={
+                      attachmentFiles.length > 0
+                        ? `${attachmentFiles.length} file(s) selected`
+                        : ""
+                    }
+                    placeholder="Upload Files"
+                    className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                  />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }}
+                    className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center whitespace-nowrap"
                   >
-                    <span className="truncate min-w-0" title={file.name}>
-                      {file.name}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-[#F2F3F4] hover:text-slate-700"
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    Browse File
+                  </button>
+                </div>
+              </div>
+
+              {attachmentFiles.length > 0 && (
+                <div className="w-full">
+                  <ul className="space-y-2">
+                    {attachmentFiles.map((file, index) => (
+                      <li
+                        key={`${file.name}-${index}`}
+                        className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] group"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+                        <span className="truncate min-w-0 font-medium" title={file.name}>
+                          {file.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => viewAttachment(file)}
+                            className="shrink-0 p-1 rounded-full hover:bg-slate-100 text-[#353535] transition-colors"
+                            aria-label={`View ${file.name}`}
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(index)}
+                            className="shrink-0 p-1 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors text-[#353535]"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <div className="max-w-4xl mx-auto flex justify-center gap-3 mt-8 pt-4">

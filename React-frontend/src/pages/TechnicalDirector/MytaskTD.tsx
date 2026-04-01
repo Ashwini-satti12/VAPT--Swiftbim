@@ -441,6 +441,8 @@ export interface Task {
   perferstart_time?: string;
   perferend_time?: string;
   source?: "In House" | "Outsource";
+  /** Comma-separated stored filenames under /uploads/task/ (from POST .../output-files). */
+  outputfilepath?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */

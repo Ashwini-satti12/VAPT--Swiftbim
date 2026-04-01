@@ -139,6 +139,7 @@ import ProposalsPMV from './pages/Vendor/ProjectManager/ProposalsPMV';
 /* Vendor Employee */
 import DashboardEV from './pages/Vendor/Employee/DashboardEV';
 import MytaskEV from './pages/Vendor/Employee/MytaskEV';
+import MyTaskViewEV from './pages/Vendor/Employee/MyTaskViewEV';
 import AddEditTaskEV from './pages/Vendor/Employee/AddEditTaskEV';
 import TeamtaskEV from './pages/Vendor/Employee/TeamtaskEV';
 import ChatEV from './pages/Vendor/Employee/ChatEV';
@@ -305,8 +306,11 @@ function App() {
             {/* Vendor Employee Routes */}
             <Route path="ve/dashboard" element={<DashboardEV />} />
             <Route path="ve/mytasks/add" element={<AddEditTaskEV />} />
+            <Route path="ve/mytasks/view/:id" element={<MyTaskViewEV />} />
             <Route path="ve/mytasks/edit/:id" element={<AddEditTaskEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
+            <Route path="ve/teamtasks/add" element={<AddEditTaskEV />} />
+            <Route path="ve/teamtasks/edit/:id" element={<AddEditTaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />
 

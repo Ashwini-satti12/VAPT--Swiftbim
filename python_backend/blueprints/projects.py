@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
+from utils import mailer
 import mysql.connector as mysql_connector
 import os
 from werkzeug.utils import secure_filename
@@ -1015,8 +1016,21 @@ def create_project():
                 """,
                 (uid, project_id, title, msg, "project_assignment", "project", project_id, g.company_id),
             )
-        if involved:
-            conn.commit()
+    except Exception:
+        pass
+
+    # Project Creation Notification Email
+    try:
+        # Notify all involved
+        # involved set was already populated for in-app notifications
+        for uid in involved:
+            try:
+                cur.execute("SELECT full_name, email FROM employee WHERE id = %s", (uid,))
+                p_member = cur.fetchone() or {}
+                if p_member.get("email"):
+                    mailer.send_project_creation_email(p_member["full_name"], p_member["email"], project_name, start_date or "N/A", due_date or "N/A")
+            except Exception:
+                pass
     except Exception:
         pass
 

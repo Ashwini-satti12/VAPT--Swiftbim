@@ -288,7 +288,7 @@ export default function DashboardEV() {
       barColor: "#DE3D3A",
       label: "Total projects",
       percent: 75,
-      link: "/ve/projects",
+      // link: "/ve/projects",
     },
     {
       title: "Completed\nProjects",
@@ -296,7 +296,7 @@ export default function DashboardEV() {
       barColor: "#3B82F6",
       label: "Completed projects",
       percent: 50,
-      link: "/ve/projects?status=Completed",
+      // link: "/ve/projects?status=Completed",
     },
     {
       title: "Inprogress\nTasks",

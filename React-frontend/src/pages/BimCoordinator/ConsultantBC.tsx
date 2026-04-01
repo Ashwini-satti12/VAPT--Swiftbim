@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { FiPlus, FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
+import { FiGrid, FiMenu, FiChevronDown, FiX } from "react-icons/fi";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
 
@@ -10,15 +10,16 @@ const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || "";
 };
 import pmprofilebg from "../../assets/ProjectManager/consultant/pmprofilebg.jpg";
-import exportIcon from "../../assets/ProjectManager/consultant/exportIcon.svg";
 import mailIcon from "../../assets/ProjectManager/consultant/mailIcon.svg";
 import messageIcon from "../../assets/ProjectManager/consultant/messageIcon.svg";
 import callIcon from "../../assets/ProjectManager/consultant/callIcon.svg";
 import eyeIcon from "../../assets/ProjectManager/consultant/eyeIcon.svg";
 import editIcon from "../../assets/ProjectManager/consultant/editIcon.svg";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+import projectViewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import projectEditIcon from "../../assets/ProjectManager/project/editIcon.svg";
 
 const SHOW_OPTIONS = [
-  "Show",
   "1-50",
   "51-100",
   "101-150",
@@ -102,8 +103,8 @@ const getProfileUrl = (path: string | undefined): string => {
 
 const SCROLLBAR_STYLE = `
   .custom-scrollbar::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 6px;
+    height: 6px;
   }
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
@@ -113,7 +114,7 @@ const SCROLLBAR_STYLE = `
     border-radius: 10px;
   }
   .custom-scrollbar {
-    scrollbar-width: auto;
+    scrollbar-width: thin;
     scrollbar-color: #979797 transparent;
   }
 `;
@@ -157,6 +158,8 @@ function CustomDropdown({
   placeholder,
   className = "",
   styleType = "form",
+  alignMenu = "left",
+  menuMaxHeightClass = "max-h-[220px]",
 }: {
   options: string[];
   value: string;
@@ -164,6 +167,8 @@ function CustomDropdown({
   placeholder: string;
   className?: string;
   styleType?: "form" | "header" | "table";
+  alignMenu?: "left" | "right";
+  menuMaxHeightClass?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -181,69 +186,116 @@ function CustomDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isPlaceholder = !value || value === placeholder;
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between transition-all outline-none font-Gantari cursor-pointer ${
+        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 cursor-pointer ${
           styleType === "header"
-            ? "px-3 py-1.5 bg-[#E8E8E8] rounded-md text-[#353535] text-[14px] font-semibold"
+            ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
             : styleType === "table"
-              ? `px-4 py-2.5 min-w-[140px] rounded-md border font-bold text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
+              ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === "Active" ? "bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]" : "bg-[#FFE5E5] border-[#FECACA] text-[#E00100]"}`
               : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
         }`}
       >
         <span
-          className={`whitespace-nowrap ${
+          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
             styleType === "header" || styleType === "form"
-              ? value &&
-                value !== placeholder &&
-                value !== "All" &&
-                value !== "Show" &&
-                value !== "Type" &&
-                value !== "Status"
-                ? "text-[#353535]"
-                : "text-[#8B8B8B]"
+              ? isPlaceholder
+                ? "text-[#8B8B8B]"
+                : "text-[#353535]"
               : ""
           }`}
         >
-          {styleType === "header" &&
-          value &&
-          value !== placeholder &&
-          value !== "All" &&
-          value !== "Show" &&
-          value !== "Status" &&
-          value !== "Type" ? (
+          {styleType === "header" && value && !isPlaceholder ? (
             <>
-              <span className="text-sm">{placeholder}:</span>{" "}
+              <span className="text-[14px]">{placeholder}:</span>{" "}
               <span className="font-semibold">{toCamelCase(value)}</span>
             </>
           ) : (
             value || placeholder
           )}
         </span>
-        <FiChevronDown
-          className={`w-5 h-5 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : "text-slate-500"}`}
+        <img
+          src={ArrowDown}
+          alt=""
+          className={`w-4 h-4 transition-transform duration-200 shrink-0 ${isOpen ? "rotate-180" : ""} ${styleType === "table" ? "opacity-70" : isPlaceholder ? "opacity-60 grayscale" : "opacity-90"}`}
+          aria-hidden
         />
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-white border border-[#E0E0E0] rounded-md z-[100] overflow-hidden">
-          <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
-            {options.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => {
-                  onChange(option);
-                  setIsOpen(false);
-                }}
-                className="w-full text-left px-4 py-2.5 text-[14px] text-[#8B8B8B] font-Gantari hover:text-[#353535] hover:bg-[#F2F2F2] transition-colors cursor-pointer"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+        <div
+          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${
+            alignMenu === "right" ? "right-0 left-auto" : "left-0"
+          }`}
+        >
+          {styleType === "table" ? (
+            <div className="flex flex-col py-2">
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-6 py-2 text-[14px] font-normal font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? "text-[#353535]" : "text-[#8B8B8B]"}`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
+              {(styleType === "header" || styleType === "form") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      (placeholder === "Show" || placeholder === "Show entries") &&
+                      styleType === "header"
+                    ) {
+                      onChange("");
+                      setIsOpen(false);
+                    } else if (
+                      (placeholder === "Type" || placeholder === "Status") &&
+                      styleType === "header"
+                    ) {
+                      onChange("");
+                      setIsOpen(false);
+                    } else {
+                      setIsOpen(false);
+                    }
+                  }}
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                    isPlaceholder &&
+                    placeholder !== "Show" &&
+                    placeholder !== "Show entries"
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] bg-[#FFFFFF]"
+                  }`}
+                >
+                  {placeholder}
+                </button>
+              )}
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${value === option ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] bg-transparent"}`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -256,8 +308,6 @@ export default function ConsultantBC() {
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"table" | "card">("card");
-  const [currentPage, setCurrentPage] = useState(1);
-  const effectivePerPage = 10;
 
   // Missing States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -290,11 +340,8 @@ export default function ConsultantBC() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
-  const [statusFilter, setStatusFilter] = useState<
-    "All" | "Active" | "Deactive"
-  >("All");
-  const [typeFilter, setTypeFilter] = useState("All");
-  const [selectedShow, setSelectedShow] = useState<string>("Show");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [selectedShow, setSelectedShow] = useState<string>("");
   const todayISO = new Date().toISOString().split("T")[0];
 
   const COUNTRY_CODES = [
@@ -342,18 +389,13 @@ export default function ConsultantBC() {
   }, []);
 
   const filteredList = list.filter((emp) => {
-    if (statusFilter !== "All") {
-      const isActive = isEmployeeActive(emp);
-      if (statusFilter === "Active" && !isActive) return false;
-      if (statusFilter === "Deactive" && isActive) return false;
-    }
-
-    if (typeFilter !== "All") {
+    if (typeFilter === "Employee") {
       const currentType = (emp.user_type || "").toLowerCase();
-      if (typeFilter === "Employee" && currentType !== "employee") return false;
-      if (typeFilter === "Trainee" && currentType !== "trainee") return false;
+      if (currentType !== "employee") return false;
+    } else if (typeFilter === "Trainee") {
+      const currentType = (emp.user_type || "").toLowerCase();
+      if (currentType !== "trainee") return false;
     }
-
     return true;
   });
 
@@ -365,34 +407,12 @@ export default function ConsultantBC() {
       limitStart = parseInt(parts[0], 10) - 1;
       limitEnd = parseInt(parts[1], 10);
     }
-  } else if (selectedShow === "All" || selectedShow === "Show") {
-    limitStart = (currentPage - 1) * 10;
-    limitEnd = currentPage * 10;
+  } else if (selectedShow === "All") {
+    limitStart = 0;
+    limitEnd = Infinity;
   }
-  const paginatedList = filteredList.slice(limitStart, limitEnd);
 
-  function exportCsv() {
-    const headers = ["Name", "Email", "Role", "Status", "Phone", "Department"];
-    const rows = list.map((e) =>
-      [
-        e.full_name,
-        e.email,
-        e.user_role || "",
-        e.active || "",
-        e.phone_number || "",
-        e.department || "",
-      ]
-        .map((c) => `"${String(c).replace(/"/g, '""')}"`)
-        .join(","),
-    );
-    const csv = [headers.join(","), ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "consultants.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  const displayedList = filteredList.slice(limitStart, limitEnd);
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -556,8 +576,12 @@ export default function ConsultantBC() {
         }
       })
       .catch((err) => {
-        console.error("Status update failed:", err);
-      });
+        console.error("Add consultant failed:", err);
+        setAddError(
+          err.response?.data?.message || "Failed to add consultant.",
+        );
+      })
+      .finally(() => setAddSubmitting(false));
   }
 
   if (loading) {
@@ -569,164 +593,124 @@ export default function ConsultantBC() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-20px)] overflow-hidden bg-white">
-      <div className="sticky top-0 z-50 bg-white px-2 sm:px-4 pb-4 sm:pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 ">
-          <h2 className="text-[20px] sm:text-[24px] font-medium text-[#000000] font-Gantari truncate text-center sm:text-left">
-            {" "}
+    <div className="flex flex-col h-full overflow-hidden bg-white">
+      <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible px-2 sm:px-0">
+        <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
+          <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
             Consultants
-          </h2>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 sm:gap-4">
-            {canAdd && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate("/bc/consultants/add")}
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] transition-all text-[14px] sm:text-[14px] cursor-pointer"
-                >
-                  <FiPlus className="text-xl sm:text-[18px] font-medium text-[#F2F2F2] w-5 h-5 " />
-                  Add Consultant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowInviteModal(true)}
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] cursor-pointer"
-                >
-                  <FiPlus className="text-xl sm:text-[18px] font-medium text-[#F2F2F2] w-5 h-5" />
-                  Invite
-                </button>
-                <button
-                  type="button"
-                  onClick={exportCsv}
-                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[12px] sm:text-[14px] cursor-pointer"
-                >
-                  <img
-                    src={exportIcon}
-                    alt="Export"
-                    className="w-5 h-5 object-contain"
-                  />
-                  <span className="hidden xs:inline">Export to CSV</span>
-                  <span className="xs:hidden">Export</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowInactiveModal(true)}
-                  className="inline-flex items-center px-3 sm:px-4 py-2 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2]  text-[12px] sm:text-[14px] cursor-pointer"
-                >
-                  Manage Inactive
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Control Row: List/Grid View and Status Dropdown */}
-        <div className="flex flex-col sm:flex-row justify-between sm:justify-end items-start sm:items-center gap-4 mt-4 sm:mt-6 mb-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-white" : "bg-[#E0E0E0] text-[#000000]"}`}
-            >
-              <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("card")}
-              className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-white" : "bg-[#E0E0E0] text-[#000000]"}`}
-            >
-              <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            {viewMode === "table" && (
+          </h1>
+          <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
+            <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+              {canAdd && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    aria-label="Table view"
+                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "table" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                  >
+                    <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("card")}
+                    aria-label="Card view"
+                    className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === "card" ? "bg-[#DD4342] text-[#F2F2F2]" : "bg-[#E0E0E0] text-[#000000]"}`}
+                  >
+                    <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/bc/consultants/add")}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Add Consultant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInviteModal(true)}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Invite
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowInactiveModal(true)}
+                    className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                  >
+                    Manage Deactive
+                  </button>
+                </>
+              )}
+            </div>
+            <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
+              {viewMode === "table" && (
+                <CustomDropdown
+                  options={SHOW_OPTIONS}
+                  value={selectedShow}
+                  onChange={(val) => setSelectedShow(val)}
+                  placeholder="Show entries"
+                  className="w-[140px]"
+                  styleType="header"
+                  alignMenu="right"
+                  menuMaxHeightClass="max-h-[168px]"
+                />
+              )}
               <CustomDropdown
-                options={SHOW_OPTIONS.filter((o) => o !== "Show")}
-                value={selectedShow === "Show" ? "Show" : selectedShow}
-                onChange={(val) => setSelectedShow(val)}
-                placeholder="Show"
-                className="flex-1 sm:min-w-[120px]"
+                options={["All", "Employee", "Trainee"]}
+                value={typeFilter}
+                onChange={(val) => setTypeFilter(val)}
+                placeholder="Type"
+                className="w-[120px]"
                 styleType="header"
+                alignMenu="right"
               />
-            )}
-
-            <CustomDropdown
-              options={["All", "Employee", "Trainee"]}
-              value={typeFilter === "All" ? "Type" : typeFilter}
-              onChange={(val) => setTypeFilter(val)}
-              placeholder="Type"
-              className="flex-1 sm:min-w-[120px]"
-              styleType="header"
-            />
-
-            <CustomDropdown
-              options={["All", "Active", "Deactive"]}
-              value={
-                statusFilter === "All"
-                  ? "Status"
-                  : statusFilter === "Deactive"
-                    ? "Deactivate"
-                    : statusFilter
-              }
-              onChange={(val) => {
-                let nextStatus: any = val;
-                if (val === "Deactivate") nextStatus = "Deactive";
-                setStatusFilter(nextStatus);
-                setCurrentPage(1);
-              }}
-              placeholder="Status"
-              className="flex-1 sm:min-w-[120px]"
-              styleType="header"
-            />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 sm:px-4 custom-scrollbar relative">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative">
         {viewMode === "card" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredList.length === 0 ? (
-              <div className="col-span-full bg-white rounded-md border border-slate-200 p-12 text-center text-slate-500 shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
+            {displayedList.length === 0 ? (
+              <div className="col-span-full bg-white rounded-md border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                 No consultants found.
               </div>
             ) : (
-              filteredList.map((emp) => (
+              displayedList.map((emp) => (
                 <div
                   key={emp.id}
-                  className="bg-white rounded-md overflow-hidden border border-slate-200 transition-all "
+                  className="bg-white rounded-[10px] overflow-hidden border border-slate-200 transition-all"
                 >
-                  {/* Image Section */}
-                  <div className="relative h-40 overflow-hidden group">
+                  <div className="relative h-[128px] overflow-hidden group">
                     <div className="absolute inset-0 z-0">
                       <img
                         src={pmprofilebg}
                         alt="Background"
                         className="w-full h-full object-cover"
                       />
-                      <div className="absolute inset-0 bg-black/40" />
+                      <div className="absolute inset-0 bg-black/30" />
                     </div>
 
-                    {/* Top Status - Pill Shape */}
-                    <div className="absolute top-4 right-4 z-10">
+                    <div className="absolute top-3 right-3 z-10">
                       <div
-                        className={`flex items-center gap-1.5 px-2 rounded-full border ${isEmployeeActive(emp) ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
+                        className={`flex items-center gap-1.5 px-2 rounded-full border shadow-sm ${isEmployeeActive(emp) ? "bg-[#E0FFE8] border-emerald-100" : "bg-[#FFEEEE] border-red-100"}`}
                       >
                         <span
                           className={`w-2 h-2 rounded-full ${isEmployeeActive(emp) ? "bg-[#166534]" : "bg-[#E00100]"}`}
-                        ></span>
+                        />
                         <span
-                          className={`text-[11px] font-semibold ${isEmployeeActive(emp) ? "text-[#008F22]" : "text-[#E00100]"}`}
+                          className={`text-[14px] font-semibold ${isEmployeeActive(emp) ? "text-[#008F22]" : "text-[#E00100]"}`}
                         >
-                          {isEmployeeActive(emp) ? "Active" : "Deactive"}
+                          {isEmployeeActive(emp) ? "Active" : "Deactivate"}
                         </span>
                       </div>
                     </div>
 
-                    {/* User Profile Info on Image (real photo if present, otherwise initials) */}
-                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 z-10">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white flex items-center justify-center">
+                    <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
+                      <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm flex items-center justify-center">
                         {emp.profile_picture && emp.profile_picture.trim() ? (
                           <img
                             src={getProfileUrl(emp.profile_picture)}
@@ -738,26 +722,24 @@ export default function ConsultantBC() {
                             }}
                           />
                         ) : (
-                          <span className="text-[16px] sm:text-[18px] font-medium text-[#1A1A1A]">
+                          <span className="text-[20px] font-semibold text-[#1A1A1A]">
                             {emp.full_name.charAt(0).toUpperCase() || "U"}
                           </span>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-[16px] sm:text-[18px] font-Gantari font-medium text-[#F2F2F2]">
-                          {emp.full_name}
+                        <h3 className="text-[18px] sm:text-[20px] font-Gantari font-medium text-[#F2F2F2] leading-tight tracking-tight truncate">
+                          {toCamelCase(emp.full_name)}
                         </h3>
-                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2]">
+                        <p className="text-[14px] sm:text-[16px] text-[#F2F2F2] mt-1">
                           {emp.user_role || "Consultant"}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Content Area */}
-                  <div className="p-5 space-y-5">
-                    {/* Contact Buttons */}
-                    <div className="flex flex-wrap items-center gap-3">
+                  <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() =>
@@ -766,7 +748,7 @@ export default function ConsultantBC() {
                             "_blank",
                           )
                         }
-                        className="flex-1  flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari transition-all cursor-pointer"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={mailIcon} alt="Mail" className="w-4 h-4" />{" "}
                         Mail
@@ -774,7 +756,7 @@ export default function ConsultantBC() {
                       <button
                         type="button"
                         onClick={() => navigate("/chat")}
-                        className="flex-[1.4] flex items-center justify-center gap-1.5 py-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-semibold font-Gantari cursor-pointer"
+                        className="flex-[1.4] min-w-[90px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img
                           src={messageIcon}
@@ -788,7 +770,7 @@ export default function ConsultantBC() {
                         onClick={() =>
                           (window.location.href = `tel:${emp.phone_number || ""}`)
                         }
-                        className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[13px] sm:text-[14px] font-semibold font-Gantari transition-all cursor-pointer"
+                        className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
                       >
                         <img src={callIcon} alt="Call" className="w-4 h-4" />{" "}
                         Call
@@ -797,21 +779,22 @@ export default function ConsultantBC() {
 
                     <hr className="border-slate-200" />
 
-                    {/* Actions Grid */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedEmployee(emp);
                           setShowDetailsModal(true);
                         }}
-                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-Gantari cursor-pointer"
+                        aria-label="View consultant"
+                        className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                       >
                         <img
                           src={eyeIcon}
-                          alt="View"
-                          className="w-4 h-4 sm:w-5 sm:h-5"
-                        />{" "}
+                          alt=""
+                          className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
+                          aria-hidden
+                        />
                         View
                       </button>
 
@@ -821,13 +804,15 @@ export default function ConsultantBC() {
                           onClick={() =>
                             navigate(`/bc/consultants/edit/${emp.id}`)
                           }
-                          className="flex items-center justify-center gap-3 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[14px] font-Gantari cursor-pointer"
+                          aria-label="Edit consultant"
+                          className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                         >
                           <img
                             src={editIcon}
-                            alt="Edit"
-                            className="w-4 h-4 sm:w-5 sm:h-5"
-                          />{" "}
+                            alt=""
+                            className="w-4 h-4 sm:w-5 sm:h-5 shrink-0"
+                            aria-hidden
+                          />
                           Edit
                         </button>
                       )}
@@ -838,156 +823,211 @@ export default function ConsultantBC() {
             )}
           </div>
         ) : (
-          <div className="sticky top-0 z-40 border border-[#F0F0F0] rounded-[15px] overflow-hidden bg-white">
-            <div className="overflow-x-auto custom-scrollbar">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead className="sticky top-0 z-40">
-                  <tr className="bg-white">
-                    <th className="px-2 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Sl No
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Emp ID
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Consultant Name
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Email ID
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Contact Info
-                    </th>
-                    <th className="px-4 py-4 text-center text-[16px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] bg-white">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {paginatedList.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-12 text-center text-slate-500 font-Gantari"
-                      >
-                        No consultants found.
-                      </td>
+          <div className="px-2 sm:px-0">
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
+              <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
+                <table className="min-w-full border-collapse">
+                  <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                    <tr className="bg-white">
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Sl.No
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Emp ID
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Consultant Name
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Email ID
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Contact Info
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Status
+                      </th>
+                      <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">
+                        Action
+                      </th>
                     </tr>
-                  ) : (
-                    paginatedList.map((emp, idx) => {
-                      const slNo =
-                        (currentPage - 1) * effectivePerPage + idx + 1;
-                      const slNoPadded = String(slNo).padStart(2, "0");
-                      return (
-                        <tr
-                          key={emp.id}
-                          className={
-                            idx % 2 === 1 ? "bg-[#F9F9F9]" : "bg-white"
-                          }
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {displayedList.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={7}
+                          className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white"
                         >
-                          <td className="px-6 py-4 text-[14px] font-semibold font-Gantari text-[#6B6B6B]">
-                            {slNoPadded}
-                          </td>
-                          <td className="px-6 py-4 text-[14px] font-semibold font-Gantari text-[#6B6B6B] whitespace-nowrap">
-                            {emp.empid || `EMP0${emp.id + 10}`}
-                          </td>
-
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-4">
-                              <div className="relative">
-                                <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-200 border-2 border-white flex items-center justify-center">
-                                  {emp.profile_picture &&
-                                  emp.profile_picture.trim() ? (
-                                    <img
-                                      src={getProfileUrl(emp.profile_picture)}
-                                      alt={emp.full_name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        (
-                                          e.target as HTMLImageElement
-                                        ).style.display = "none";
-                                      }}
-                                    />
-                                  ) : (
-                                    <span className="text-[14px] font-medium text-[#000000]">
-                                      {emp.full_name.charAt(0).toUpperCase() ||
-                                        "U"}
-                                    </span>
-                                  )}
+                          No records found
+                        </td>
+                      </tr>
+                    ) : (
+                      displayedList.map((emp, idx) => {
+                        const slNo = (limitStart + idx + 1)
+                          .toString()
+                          .padStart(2, "0");
+                        return (
+                          <tr
+                            key={emp.id}
+                            className={
+                              idx % 2 === 1
+                                ? "bg-[#F2F2F2]"
+                                : "bg-white hover:bg-slate-50 transition-colors"
+                            }
+                          >
+                            <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                              {slNo}
+                            </td>
+                            <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                              {emp.empid ||
+                                `EMP-${(emp.id + 150).toString().padStart(4, "0")}`}
+                            </td>
+                            <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-4">
+                                <div className="relative shrink-0">
+                                  <div className="w-12 h-12 rounded-full overflow-hidden bg-white border border-slate-200 flex items-center justify-center">
+                                    {emp.profile_picture &&
+                                    emp.profile_picture.trim() ? (
+                                      <img
+                                        src={getProfileUrl(emp.profile_picture)}
+                                        alt={emp.full_name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (
+                                            e.target as HTMLImageElement
+                                          ).style.display = "none";
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-gray-400 text-[10px]">
+                                        No Photo
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${isEmployeeActive(emp) ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
+                                  />
                                 </div>
-                                <span
-                                  className={`absolute -top-1 -left-1 w-3.5 h-3.5 border-2 border-white rounded-full ${isEmployeeActive(emp) ? "bg-[#22c55e]" : "bg-[#ef4444]"}`}
-                                ></span>
+                                <span className="text-[14px] font-normal font-Gantari text-[#353535]">
+                                  {toCamelCase(emp.full_name || "-")}
+                                </span>
                               </div>
-                              <span className="text-[14px] text-center font-medium font-Gantari text-[#353535]">
-                                {emp.full_name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-center text-[14px] font-medium font-Gantari text-[#353535]">
-                            {emp.email}
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex items-center justify-center gap-3">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  window.open(
-                                    `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
-                                    "_blank",
-                                  )
-                                }
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors cursor-pointer"
-                              >
-                                <img
-                                  src={mailIcon}
-                                  className="w-5 h-5"
-                                  alt="Mail"
+                            </td>
+                            <td className="px-6 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                              {emp.email || "-"}
+                            </td>
+                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    window.open(
+                                      `https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`,
+                                      "_blank",
+                                    )
+                                  }
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                >
+                                  <img
+                                    src={mailIcon}
+                                    className="w-5 h-5"
+                                    alt="Mail"
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => navigate("/chat")}
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                >
+                                  <img
+                                    src={messageIcon}
+                                    className="w-5 h-5"
+                                    alt="Message"
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    (window.location.href = `tel:${emp.phone_number || ""}`)
+                                  }
+                                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] transition-colors hover:bg-[#D1E6FF] cursor-pointer"
+                                >
+                                  <img
+                                    src={callIcon}
+                                    className="w-5 h-5"
+                                    alt="Call"
+                                  />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
+                              <div className="flex items-center justify-center">
+                                <CustomDropdown
+                                  options={["Active", "Deactivate"]}
+                                  value={
+                                    isEmployeeActive(emp)
+                                      ? "Active"
+                                      : "Deactivate"
+                                  }
+                                  onChange={(val) =>
+                                    handleStatusChange(
+                                      emp.id,
+                                      val === "Active" ? "active" : "inactive",
+                                    )
+                                  }
+                                  placeholder="Status"
+                                  className="w-[140px]"
+                                  styleType="table"
                                 />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => navigate("/chat")}
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] cursor-pointer"
-                              >
-                                <img
-                                  src={messageIcon}
-                                  className="w-5 h-5"
-                                  alt="Message"
-                                />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  (window.location.href = `tel:${emp.phone_number || ""}`)
-                                }
-                                className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E8F1FF] cursor-pointer"
-                              >
-                                <img
-                                  src={callIcon}
-                                  className="w-5 h-5"
-                                  alt="Call"
-                                />
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex justify-center">
-                              <CustomDropdown
-                                options={["Active", "Deactivate"]}
-                                value={isEmployeeActive(emp) ? "Active" : "Deactivate"}
-                                onChange={(val) => handleStatusChange(emp.id, val === "Active" ? "active" : "inactive")}
-                                placeholder="Status"
-                                styleType="table"
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedEmployee(emp);
+                                    setShowDetailsModal(true);
+                                  }}
+                                  aria-label="View consultant"
+                                  className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
+                                >
+                                  <img
+                                    src={projectViewIcon}
+                                    className="w-4 h-4 brightness-0 invert"
+                                    alt=""
+                                    aria-hidden
+                                  />
+                                </button>
+                                {canAdd && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      navigate(
+                                        `/bc/consultants/edit/${emp.id}`,
+                                      )
+                                    }
+                                    aria-label="Edit consultant"
+                                    className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? "bg-[#FFFFFF]" : "bg-[#F2F2F2]"}`}
+                                  >
+                                    <img
+                                      src={projectEditIcon}
+                                      className="w-4 h-4"
+                                      alt=""
+                                      aria-hidden
+                                    />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -1180,30 +1220,6 @@ export default function ConsultantBC() {
                         required
                       />
                     </div>
-                    <div className="relative">
-                      <label className="block text-[14px] font-medium text-[#000000] mb-1.5 font-Gantari">
-                        Type
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={form.type}
-                          onChange={(e) =>
-                            setForm((f: any) => ({
-                              ...f,
-                              type: e.target.value,
-                            }))
-                          }
-                          className="w-full px-4 py-2.5 bg-[#F2F3F4] border-none rounded-md focus:ring-1 focus:ring-[#D1E6FF] text-[14px] text-[#353535] font-Gantari appearance-none cursor-pointer transition-all outline-none"
-                        >
-                          <option value="" disabled>
-                            Select Type
-                          </option>
-                          <option value="Trainee">Trainee</option>
-                          <option value="Consultant">Consultant</option>
-                        </select>
-                        <FiChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#353535] pointer-events-none" />
-                      </div>
-                    </div>
                     <div>
                       <label className="block text-[14px] font-medium text-[#000000] mb-1.5 font-Gantari">
                         Date of Joining
@@ -1306,7 +1322,7 @@ export default function ConsultantBC() {
                 >
                   <FiX className="w-5 h-5 font-bold" />
                 </button>
-                <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
+                <h3 className="text-[24px] font-semibold text-[#020202] font-Gantari text-center">
                   Invite New Consultant
                 </h3>
               </div>

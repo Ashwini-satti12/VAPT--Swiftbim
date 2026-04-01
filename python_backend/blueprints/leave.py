@@ -2,6 +2,7 @@
 from flask import Blueprint, request, jsonify, g
 from db import get_db
 from auth_middleware import project_app_required
+from utils import mailer
 
 bp = Blueprint("leave", __name__, url_prefix="/api/leave")
 
@@ -142,7 +143,24 @@ def apply_leave():
                    VALUES (%s, %s, %s, %s, %s, %s, %s)""",
                 (g.user_id, leavetype, description, g.company_id, starttime, endtime, leave_lop),
             )
-        return jsonify({"success": True, "id": cur.lastrowid})
+        leave_id = cur.lastrowid
+        
+        # Leave Application Confirmation Email
+        try:
+            cur.execute("SELECT full_name, email FROM employee WHERE id = %s", (g.user_id,))
+            user = cur.fetchone() or {}
+            type_name = "Leave"
+            if str(leavetype).isdigit():
+                cur.execute("SELECT title FROM holiday WHERE id = %s", (leavetype,))
+                h_row = cur.fetchone() or {}
+                type_name = h_row.get("title") or "Leave"
+            
+            if user.get("email"):
+                mailer.send_leave_application_confirmation_email(user["full_name"], user["email"], type_name, fromdate or "N/A", todate or "N/A")
+        except Exception:
+            pass
+
+        return jsonify({"success": True, "id": leave_id})
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 400
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FiPlus, FiGrid, FiMenu, FiX } from 'react-icons/fi';
+import { FiGrid, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 
@@ -11,7 +11,6 @@ const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_URL || '';
 };
 import pmprofilebg from '../../assets/ProjectManager/consultant/pmprofilebg.jpg';
-import exportIcon from '../../assets/ProjectManager/consultant/exportIcon.svg';
 import mailIcon from '../../assets/ProjectManager/consultant/mailIcon.svg';
 import messageIcon from '../../assets/ProjectManager/consultant/messageIcon.svg';
 import callIcon from '../../assets/ProjectManager/consultant/callIcon.svg';
@@ -154,7 +153,9 @@ function CustomDropdown({
   onChange,
   placeholder,
   className = "",
-  styleType = "form"
+  styleType = "form",
+  alignMenu = "left",
+  menuMaxHeightClass = "max-h-[220px]",
 }: {
   options: string[];
   value: string;
@@ -162,6 +163,10 @@ function CustomDropdown({
   placeholder: string;
   className?: string;
   styleType?: "form" | "header" | "table";
+  /** Right-align panel so it stays on-screen when the trigger is at the viewport edge */
+  alignMenu?: "left" | "right";
+  /** Max height for header/form menu list (scroll when content exceeds), e.g. ~4 rows */
+  menuMaxHeightClass?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -184,14 +189,14 @@ function CustomDropdown({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-4 transition-all outline-none font-gantari ${styleType === "header"
+        className={`w-full flex items-center justify-between gap-2 transition-all outline-none font-gantari min-w-0 ${styleType === "header"
           ? "px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold"
           : styleType === "table"
-            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-semibold text-[16px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
+            ? `px-4 py-2 min-w-[140px] rounded-md border font-gantari font-medium text-[14px] ${value === 'Active' ? 'bg-[#E1F6EB] border-[#A7F3D0] text-[#008F22]' : 'bg-[#FFE5E5] border-[#FECACA] text-[#E00100]'}`
             : `px-4 py-2 bg-[#F2F3F4] rounded-md text-[14px] border border-transparent focus:outline-none focus:border-[#AEACAC52] ${isOpen ? "!border-[#AEACAC52]" : ""}`
           }`}
       >
-        <span className={`whitespace-nowrap truncate overflow-hidden ${styleType === "header" || styleType === "form"
+        <span className={`min-w-0 flex-1 truncate overflow-hidden text-left ${styleType === "header" || styleType === "form"
             ? (isPlaceholder ? "text-[#8B8B8B]" : "text-[#353535]")
             : ""
           }`}>
@@ -211,7 +216,11 @@ function CustomDropdown({
         />
       </button>
       {isOpen && (
-        <div className={`absolute top-full left-0 w-full mt-1 bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[100] overflow-hidden`}>
+        <div
+          className={`absolute top-full mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden ${
+            alignMenu === "right" ? "right-0 left-auto" : "left-0"
+          }`}
+        >
           {styleType === "table" ? (
             <div className="flex flex-col py-2">
               {options.map((option) => (
@@ -222,26 +231,39 @@ function CustomDropdown({
                     onChange(option);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-6 py-2 text-[16px] font-medium font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
+                  className={`w-full text-left px-6 py-2 text-[14px] font-normal font-Gantari transition-colors cursor-pointer hover:bg-[#F2F2F2] hover:text-[#353535] ${value === option ? 'text-[#353535]' : 'text-[#8B8B8B]'}`}
                 >
                   {option}
                 </button>
               ))}
             </div>
           ) : (
-            <div className="max-h-[220px] overflow-y-auto custom-scrollbar">
+            <div className={`${menuMaxHeightClass} overflow-y-auto custom-scrollbar`}>
               {(styleType === "header" || styleType === "form") && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (placeholder === "Show") {
+                    if (
+                      (placeholder === "Show" || placeholder === "Show entries") &&
+                      styleType === "header"
+                    ) {
+                      onChange("");
+                      setIsOpen(false);
+                    } else if (
+                      (placeholder === "Type" || placeholder === "Status") &&
+                      styleType === "header"
+                    ) {
+                      onChange("");
                       setIsOpen(false);
                     } else {
-                      onChange("All");
                       setIsOpen(false);
                     }
                   }}
-                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${isPlaceholder && placeholder !== "Show" ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-[#FFFFFF]'}`}
+                  className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                    isPlaceholder && placeholder !== "Show" && placeholder !== "Show entries"
+                      ? "text-[#353535] bg-[#F2F2F2]"
+                      : "text-[#8B8B8B] bg-[#FFFFFF]"
+                  }`}
                 >
                   {placeholder}
                 </button>
@@ -309,9 +331,8 @@ export default function ConsultantTD() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [typeFilter, setTypeFilter] = useState('All');
-  const [selectedShow, setSelectedShow] = useState<string>("Show");
+  const [statusFilter, setStatusFilter] = useState('');
+  const [selectedShow, setSelectedShow] = useState<string>('');
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>([]);
 
@@ -428,16 +449,10 @@ export default function ConsultantTD() {
       (emp.phone_number || "").toLowerCase().includes(searchQuery);
     if (!matchesSearch) return false;
 
-    if (statusFilter !== 'All') {
-      const currentStatus = (emp.active || '').toLowerCase();
-      if (statusFilter === 'Active' && currentStatus !== 'active') return false;
-      if (statusFilter === 'deactive' && currentStatus === 'active') return false;
-    }
-
-    if (typeFilter !== 'All') {
-      const currentType = (emp.user_type || '').toLowerCase();
-      if (typeFilter === 'Employee' && currentType !== 'employee') return false;
-      if (typeFilter === 'Trainee' && currentType !== 'trainee') return false;
+    if (statusFilter === 'Active') {
+      if (emp.active !== 'active') return false;
+    } else if (statusFilter === 'Deactivate') {
+      if (emp.active !== 'deactive' && emp.active !== 'inactive') return false;
     }
 
     return true;
@@ -457,19 +472,6 @@ export default function ConsultantTD() {
   }
 
   const displayedList = filteredList.slice(limitStart, limitEnd);
-
-
-  function exportCsv() {
-    const headers = ['Name', 'Email', 'Role', 'Status', 'Phone', 'Department'];
-    const rows = list.map((e) => [e.full_name, e.email, e.user_role || '', e.active || '', e.phone_number || '', e.department || ''].map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
-    const csv = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'consultants.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
 
   function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -718,111 +720,92 @@ export default function ConsultantTD() {
     <div className="flex flex-col h-full overflow-hidden bg-white">
       {(activeView === 'list' || activeView === 'invite' || activeView === 'deactive') && (
         <>
-          <div className="sticky z-50 bg-white mb-4 mt-2">
-            {/* ROW 1 */}
-            <div className="flex flex-col lg:flex-row lg:justify-between">
-              <div className="flex-1 min-w-0">
-                <h1 className="text-[24px] font-medium text-[#000000] font-Gantari">
-                  Consultants
-                </h1>
-              </div>
-              {canAdd && (
-                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/td/consultants/add')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
-                    Add Consultant
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveView('invite')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    <FiPlus className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
-                    Invite
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exportCsv}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    <img src={exportIcon} alt="Export" className="w-[18px] h-[18px] sm:w-[24px] sm:h-[24px]" />
-                    CSV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveView('deactive')}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-base font-Gantari font-semibold whitespace-nowrap cursor-pointer"
-                  >
-                    Manage deactive
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* ROW 2 */}
-            <div className="flex flex-col sm:flex-row justify-between sm:justify-end items-start sm:items-center gap-4 mt-6 sm:mt-8 mb-2">
-              <div className="flex items-center gap-2">
-                <button
+          <div className="sticky z-50 bg-white mb-4 mt-2 overflow-visible">
+            <div className="flex w-full min-h-[44px] flex-nowrap items-center gap-2 sm:gap-3 overflow-visible">
+              <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
+                Consultants
+              </h1>
+              {/* Tight gap between action buttons and Show entries / Status (inner), title spacing unchanged */}
+              <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
+              {/* Scroll only the action buttons — avoids clipping dropdown panels */}
+              <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
+                {canAdd && (
+                  <>
+
+<button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  aria-label="Table view"
+                  className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'table' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
-                  <FiMenu className="w-5 h-5 sm:w-6 h-6" />
+                  <FiMenu className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('card')}
-                  className={`p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
+                  aria-label="Card view"
+                  className={`shrink-0 p-2 rounded-full transition-all cursor-pointer ${viewMode === 'card' ? 'bg-[#DD4342] text-[#F2F2F2]' : 'bg-[#E0E0E0] text-[#000000]'}`}
                 >
-                  <FiGrid className="w-5 h-5 sm:w-6 h-6" />
+                  <FiGrid className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate('/td/consultants/add')}
+                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    >
+                      Add Consultant
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('invite')}
+                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[15px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    >
+                      Invite
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveView('deactive')}
+                      className="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-md bg-[#DD4342] text-[#F2F2F2] text-[13px] sm:text-[16px] font-Gantari font-semibold whitespace-nowrap cursor-pointer"
+                    >
+                      Manage Deactive
+                    </button>
+                  </>
+                )}
+                
               </div>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto">
+              <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
                 {viewMode === 'table' && (
                   <CustomDropdown
                     options={SHOW_OPTIONS}
                     value={selectedShow}
                     onChange={(val) => setSelectedShow(val)}
-                    placeholder="Show"
-                    className="flex-1 sm:min-w-[150px]"
+                    placeholder="Show entries"
+                    className="w-[140px]"
                     styleType="header"
+                    alignMenu="right"
+                    menuMaxHeightClass="max-h-[168px]"
                   />
                 )}
                 <CustomDropdown
-                  options={['All', 'Employee', 'Trainee']}
-                  value={typeFilter}
-                  onChange={(val) => setTypeFilter(val)}
-                  placeholder="Type"
-                  className="flex-1 sm:min-w-[150px]"
-                  styleType="header"
-                />
-                <CustomDropdown
-                  options={viewMode === 'card' ? ['All', 'Active', 'Deactivate'] : ['All', 'Active', 'deactive']}
+                  options={['All', 'Active', 'Deactivate']}
                   value={statusFilter}
-                  onChange={(val) => {
-                    let nextStatus = val;
-                    if (viewMode === 'card') {
-                      if (val === 'Deactivate') nextStatus = 'deactive';
-                    }
-                    setStatusFilter(nextStatus);
-                  }}
+                  onChange={(val) => setStatusFilter(val)}
                   placeholder="Status"
-                  className="flex-1 sm:min-w-[150px] "
+                  className="w-[100px]"
                   styleType="header"
+                  alignMenu="right"
                 />
+              </div>
               </div>
             </div>
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex-1 overflow-y-auto custom-scrollbar ">
             {viewMode === 'card' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8 p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
                 {displayedList.length === 0 ? (
-                  <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
+                  <div className="col-span-full bg-white rounded-md border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                     No consultants found.
                   </div>
                 ) : (
@@ -849,7 +832,7 @@ export default function ConsultantTD() {
                           </div>
                         </div>
                         {/* User Profile Info on Image */}
-                        <div className="absolute inset-x-0 bottom-0 p-4 flex items-center gap-4 z-10">
+                        <div className="absolute inset-x-0 bottom-0 px-3 py-3 sm:px-3 sm:py-4 flex items-center gap-4 z-10">
                           <div className="w-14 h-14 sm:w-15 sm:h-15 rounded-full bg-white overflow-hidden shrink-0 border-2 border-white shadow-sm">
                             {emp.profile_picture && emp.profile_picture.trim() ? (
                               <img
@@ -887,9 +870,9 @@ export default function ConsultantTD() {
                       </div>
 
                       {/* Content Area */}
-                      <div className="p-4 space-y-4 sm:space-y-5">
+                      <div className="px-2.5 py-4 sm:px-3 sm:py-5 space-y-4 sm:space-y-5">
                         {/* Contact Buttons */}
-                        <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-2">
                           <button
                             onClick={() => window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${emp.email}`, '_blank')}
                             className="flex-1 min-w-[70px] flex items-center justify-center gap-1.5 p-2 bg-[#DBE9FE] rounded-md text-[#12141D] text-[12px] sm:text-[14px] font-medium font-Gantari cursor-pointer"
@@ -917,17 +900,21 @@ export default function ConsultantTD() {
                           <button
                             type="button"
                             onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                            aria-label="View consultant"
                             className="flex items-center justify-center gap-2 py-2 bg-[#DD4342] text-white rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                           >
-                            <img src={eyeIcon} alt="View" className="w-4 h-4 sm:w-5 sm:h-5" /> View
+                            <img src={eyeIcon} alt="" className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" aria-hidden />
+                            View
                           </button>
                           {canAdd && (
                             <button
                               type="button"
                               onClick={() => openEditModel(emp)}
+                              aria-label="Edit consultant"
                               className="flex items-center justify-center gap-2 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[12px] sm:text-[14px] font-medium font-gantari cursor-pointer"
                             >
-                              <img src={editIcon} alt="Edit" className="w-4 h-4 sm:w-5 sm:h-5" /> Edit
+                              <img src={editIcon} alt="" className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" aria-hidden />
+                              Edit
                             </button>
                           )}
                         </div>
@@ -938,24 +925,24 @@ export default function ConsultantTD() {
               </div>
             ) : (
               <div className="px-4">
-                <div className="bg-white rounded-lg border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
+                <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col relative w-full mb-8">
                   <div className="overflow-x-auto overflow-y-visible custom-scrollbar smooth-scroll flex-1 min-h-[280px]">
                     <table className="min-w-full border-collapse">
                       <thead className="sticky top-0 z-20 bg-white after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                        <tr className="border-b border-gray-100 bg-white">
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Emp ID</th>
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Consultant Name</th>
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Email ID</th>
-                          <th className="px-3 py-4 text-center text-base font-bold text-[#353535] bg-white font-Gantari whitespace-nowrap">Contact Info</th>
-                          <th className="px-3 py-4 text-center text-base font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
-                          <th className="px-3 py-4 text-center text-base font-semibold text-[#353535] bg-white font-Gantari whitespace-nowrap">Action</th>
+                        <tr className="bg-white">
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Sl.No</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Emp ID</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Consultant Name</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Email ID</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Contact Info</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Status</th>
+                          <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-Gantari whitespace-nowrap">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
                         {displayedList.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="px-3 py-20 text-center text-[#616161] font-medium font-Gantari bg-white">
+                            <td colSpan={7} className="px-3 py-20 text-center text-[14px] text-[#616161] font-normal font-Gantari bg-white">
                               No records found
                             </td>
                           </tr>
@@ -964,10 +951,10 @@ export default function ConsultantTD() {
                             const slNo = (limitStart + idx + 1).toString().padStart(2, '0');
                             return (
                               <tr key={emp.id} className={idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white hover:bg-slate-50 transition-colors'}>
-                                <td className="px-3 py-5 text-center text-[14px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
                                   {slNo}
                                 </td>
-                                <td className="px-3 py-5 text-center text-[14px] font-semibold font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                <td className="px-3 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
                                   {emp.empid || `EMP-${(emp.id + 150).toString().padStart(4, '0')}`}
                                 </td>
                                 <td className="px-6 py-5 border-b border-[#F0F0F0] whitespace-nowrap">
@@ -997,14 +984,14 @@ export default function ConsultantTD() {
                                       <span className={`absolute top-0 left-0 w-3 h-3 border-2 border-white rounded-full ${emp.active === 'active' ? 'bg-[#22c55e]' : 'bg-[#ef4444]'}`}></span>
                                     </div>
                                     <span
-                                      className="text-[14px] font-semibold font-Gantari text-[#353535] cursor-pointer hover:text-[#DD4342]"
+                                      className="text-[14px] font-normal font-Gantari text-[#353535] cursor-pointer hover:text-[#DD4342]"
                                       onClick={() => navigate(`/td/consultants/${emp.id}`)}
                                     >
                                       {toCamelCase(emp.full_name || '-')}
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-6 py-5 text-center text-[14px] font-medium font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
+                                <td className="px-6 py-5 text-center text-[14px] font-normal font-Gantari text-[#353535] border-b border-[#F0F0F0] whitespace-nowrap">
                                   {emp.email || '-'}
                                 </td>
                                 <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
@@ -1029,7 +1016,7 @@ export default function ConsultantTD() {
                                     </button>
                                   </div>
                                 </td>
-                                <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
+                                <td className="px-4 py-2 text-center border-b border-[#AEACAC52] whitespace-nowrap">
                                   <div className="flex items-center justify-center">
                                     <CustomDropdown
                                       options={['Active', 'Deactivate']}
@@ -1044,18 +1031,22 @@ export default function ConsultantTD() {
                                 <td className="px-6 py-5 text-center border-b border-[#F0F0F0] whitespace-nowrap">
                                   <div className="flex items-center justify-center gap-3">
                                     <button
+                                      type="button"
                                       onClick={() => navigate(`/td/consultants/${emp.id}`)}
-                                      className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-white text-[14px] font-semibold rounded-md transition-all cursor-pointer"
+                                      aria-label="View consultant"
+                                      className="flex py-2 px-2 shrink-0 items-center justify-center bg-[#DD4342] text-white rounded-md transition-all cursor-pointer"
                                     >
-                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="View" /> View
+                                      <img src={projectViewIcon} className="w-4 h-4 brightness-0 invert" alt="" aria-hidden />
                                     </button>
                                     {canAdd && (
                                       <>
                                         <button
+                                          type="button"
                                           onClick={() => openEditModel(emp)}
-                                          className="flex items-center justify-center gap-2 px-6 py-2 bg-[#DD4342] text-white text-[14px] font-semibold rounded-md transition-all cursor-pointer"
+                                          aria-label="Edit consultant"
+                                          className={`flex py-2 px-2 shrink-0 items-center justify-center rounded-md transition-all cursor-pointer ${idx % 2 === 1 ? 'bg-[#FFFFFF]' : 'bg-[#F2F2F2]'}`}
                                         >
-                                          <img src={projectEditIcon} className="w-4 h-4 brightness-0 invert" alt="Edit" /> Edit
+                                          <img src={projectEditIcon} className="w-4 h-4" alt="" aria-hidden />
                                         </button>
                                         
                                       </>
@@ -1462,7 +1453,7 @@ export default function ConsultantTD() {
                 type="button"
                 onClick={handledeactive}
                 disabled={!deactiveIds.length || deactiveSubmitting}
-                className="px-12 py-3 rounded-[5px] bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
+                className="px-12 py-2 rounded-md bg-[#D1E6FF] text-[#1A1A1A] font-semibold text-[16px] disabled:opacity-50 transition-all min-w-[180px] cursor-pointer"
               >
                 {deactiveSubmitting ? 'Updating...' : 'Update Status'}
               </button>

@@ -262,12 +262,12 @@ export default function EditConsultantBC() {
           <button
             type="button"
             onClick={() => navigate('/bc/consultants')}
-            className="p-2 rounded-md bg-[#F2F3F4] text-[#1A1A1A] transition-all cursor-pointer"
+            className="p-2 rounded-md bg-[#F2F2F2] text-[#616161] transition-all cursor-pointer"
             title="Back"
           >
             <img src={backIcon} alt="Back" className="w-5 h-5" />
           </button>
-          <h3 className="text-[20px] sm:text-[24px] font-medium text-[#0000000] font-Gantari text-center flex-1">
+          <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
             Edit Consultant Details
           </h3>
           <div className="w-10" />
@@ -370,15 +370,6 @@ export default function EditConsultantBC() {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value.trim() }))}
                   className="w-full px-4 py-2.5 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                   required
-                />
-              </div>
-              <div className="relative">
-                <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Type</label>
-                <CustomDropdown
-                  options={['Employee', 'Trainee']}
-                  value={form.user_type}
-                  onChange={(val) => setForm((f) => ({ ...f, user_type: val }))}
-                  placeholder="Select Type"
                 />
               </div>
               <div>

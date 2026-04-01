@@ -157,22 +157,22 @@ def attendance_tracker():
                 if is_offline and not time_out and time_in and d.get("id"):
                     now_time = datetime.now().strftime("%H:%M:%S")
                     total_hms = None
+                    total_decimal = None
                     try:
                         t_in = datetime.strptime(str(time_in).strip(), "%H:%M:%S")
                         t_out = datetime.strptime(now_time, "%H:%M:%S")
                         sec = int((t_out - t_in).total_seconds())
                         if sec < 0:
                             sec = 0
-                        h = sec // 3600
-                        m = (sec % 3600) // 60
-                        s = sec % 60
-                        total_hms = f"{h:02d}:{m:02d}:{s:02d}"
+                        total_hms = f"{sec // 3600:02d}:{(sec % 3600) // 60:02d}:{sec % 60:02d}"
+                        total_decimal = round(sec / 3600.0, 2)
                     except Exception:
                         total_hms = None
+                        total_decimal = None
 
                     cur.execute(
-                        "UPDATE attendance SET time_out = %s, total_hours = %s WHERE id = %s AND Company_id = %s",
-                        (now_time, total_hms, int(d.get("id")), g.company_id),
+                        "UPDATE attendance SET time_out = %s, num_hr = %s WHERE id = %s AND Company_id = %s",
+                        (now_time, total_decimal, int(d.get("id")), g.company_id),
                     )
                     conn.commit()
                     time_out = now_time

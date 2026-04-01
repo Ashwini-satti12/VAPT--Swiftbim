@@ -403,8 +403,8 @@ function TaskCard({
                         {(task.start_date || task.Actual_start_time)
                             ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
                             : "—"}
-                    </span>
-                </div>
+                </span>
+            </div>
 
                 <div className="flex flex-col items-end gap-1">
                     <span className="text-[14px] font-medium text-[#000000]">End Date</span>
@@ -505,7 +505,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -531,7 +531,7 @@ export default function MytaskEV() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
@@ -607,7 +607,9 @@ export default function MytaskEV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/tasks/taskview", { state: { task, from: "ve" } });
+        navigate(`/ve/mytasks/view/${task.id}${listQueryString}`, {
+            state: { task },
+        });
     };
 
     const confirmDeleteTask = () => {
@@ -788,7 +790,7 @@ export default function MytaskEV() {
                         maxVisibleItems={5}
                     />
                     <TaskDropdown
-                        label="Show"
+                        label="Show Entries"
                         options={SHOW_OPTIONS}
                         selected={selectedShow}
                         onSelect={setSelectedShow}
@@ -959,7 +961,7 @@ export default function MytaskEV() {
                         />
                     ))}
                 </div>
-            </div>
+                </div>
             </div>
 
             {/* Delete Task confirmation modal */}
@@ -970,7 +972,7 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors"
+                                className="p-2 rounded-md text-black bg-[#F2F2F2] transition-colors"
                                 aria-label="Close"
                             >
                                 <svg
@@ -987,7 +989,7 @@ export default function MytaskEV() {
                                     />
                                 </svg>
                             </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
+                            <h3 className="flex-1 text-center text-[20px] font-medium text-[#353535]">
                                 Delete Task
                             </h3>
                             <div className="w-9" />
@@ -1001,14 +1003,14 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] "
+                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] "
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#E00100]"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[14px] font-medium text-[#E00100]"
                             >
                                 Yes, Delete
                             </button>
@@ -1016,6 +1018,6 @@ export default function MytaskEV() {
                     </div>
                 </div>
             )}
-        </div>
+                        </div>
     );
 }
