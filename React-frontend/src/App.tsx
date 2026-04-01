@@ -99,6 +99,7 @@ import AddTaskBC from './pages/BimCoordinator/AddTaskBC';
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
 import MytaskBM from './pages/BimModeler/MytaskBM';
+import MytaskViewBM from './pages/BimModeler/MytaskViewBM';
 import TeamReportBM from './pages/BimModeler/TeamReportBM';
 import ManageLeave from './pages/BimModeler/ManageLeave';
 
@@ -261,6 +262,7 @@ function App() {
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
             <Route path="bm/mytasks" element={<MytaskBM />} />
+            <Route path="bm/mytasks/view/:id" element={<MytaskViewBM />} />
             <Route path="bm/teamreport" element={<TeamReportBM />} />
             <Route path="bm/manage-leave" element={<ManageLeave />} />
 
@@ -300,7 +302,7 @@ function App() {
             <Route path="vpm/communication" element={<ChatPMV />} />
 
             {/* Vendor Employee Routes */}
-            <Route path="ve/dashboard" element={<DashboardPM />} />
+            <Route path="ve/dashboard" element={<DashboardEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />

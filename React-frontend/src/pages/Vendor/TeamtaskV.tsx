@@ -294,6 +294,7 @@ export interface Task {
     project_id?: number;
     created_at?: string;
     Actual_start_time?: string;
+    outputfilepath?: string;
 }
 
 // Build the correct URL for a stored profile picture
@@ -470,6 +471,17 @@ function normalizeStatus(
     return "todo";
 }
 
+function toApiTaskStatusParam(
+    statusFilter: string | null | undefined,
+): string | undefined {
+    if (!statusFilter) return undefined;
+    const s = statusFilter.toLowerCase().trim();
+    if (s === "in_progress" || s === "inprogress") return "InProgress";
+    if (s === "completed" || s === "complete" || s === "done") return "Completed";
+    if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
+    return statusFilter;
+}
+
 
 
 function TaskCard({
@@ -501,10 +513,6 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
-            e.preventDefault();
-            return;
-        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -514,7 +522,7 @@ function TaskCard({
 
     return (
         <div
-            draggable={!isCompleted}
+            draggable
             onDragStart={handleDragStart}
             className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
@@ -729,6 +737,7 @@ export default function TeamtaskV() {
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
     const [addError, setAddError] = useState("");
     const [addSubmitting, setAddSubmitting] = useState(false);
+    const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>([]);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
@@ -814,6 +823,12 @@ export default function TeamtaskV() {
     const openEditTask = (task: Task) => {
         setAddTaskForm(buildFormFromTask(task, employees));
         setAttachmentFiles([]);
+        setExistingAttachmentNames(
+            String(task.outputfilepath || "")
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+        );
         setEditingTaskId(task.id);
         setAddTaskModalOpen(true);
     };
@@ -823,7 +838,7 @@ export default function TeamtaskV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate("/v/mytasks/view", { state: { task, from: "teamtask" } });
+        navigate(`/v/mytasks/view/${task.id}`, { state: { task, from: "teamtask" } });
     };
 
     const confirmDeleteTask = () => {
@@ -847,6 +862,7 @@ export default function TeamtaskV() {
         setAddError("");
         setAddSubmitting(false);
         setAttachmentFiles([]);
+        setExistingAttachmentNames([]);
         setAddTaskForm({
             projectName: "",
             module: "",
@@ -971,7 +987,8 @@ export default function TeamtaskV() {
 
     useEffect(() => {
         const params: Record<string, string> = {};
-        if (statusFilter) params.status = statusFilter;
+        const apiStatus = toApiTaskStatusParam(statusFilter);
+        if (apiStatus) params.status = apiStatus;
         if (isTeam) {
             params.condition = "1";
             params.employeeid = "all";
@@ -1204,6 +1221,7 @@ export default function TeamtaskV() {
                                     checklist: "",
                                 });
                                 setAddTaskModalOpen(true);
+                                setExistingAttachmentNames([]);
                             }}
                             className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#c43a39] transition-colors"
                         >
@@ -1514,6 +1532,20 @@ export default function TeamtaskV() {
                                 };
                                 if (statusFilter) reloadParams.status = statusFilter;
 
+                                const uploadTaskAttachments = async (
+                                    taskId: number,
+                                    files: File[],
+                                ) => {
+                                    if (!files.length) return;
+                                    const formData = new FormData();
+                                    for (const file of files) formData.append("image", file);
+                                    await api.post(
+                                        `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                                        formData,
+                                        { headers: { "Content-Type": "multipart/form-data" } },
+                                    );
+                                };
+
                                 if (isEditing && existing) {
                                     api
                                         .patch(
@@ -1534,7 +1566,8 @@ export default function TeamtaskV() {
                                                 checklist: addTaskForm.checklist,
                                             },
                                         )
-                                        .then(() => {
+                                        .then(async () => {
+                                            await uploadTaskAttachments(existing.id, attachmentFiles);
                                             api
                                                 .get<{ tasks?: Task[] }>(
                                                     "/api/vendors/vendor-tasks",
@@ -1550,8 +1583,12 @@ export default function TeamtaskV() {
                                         });
                                 } else {
                                     api.post("/api/vendors/vendor-tasks", payload).then(
-                                        (res) => {
+                                        async (res) => {
                                             if (res.data.success && res.data.task_id) {
+                                                await uploadTaskAttachments(
+                                                    Number(res.data.task_id),
+                                                    attachmentFiles,
+                                                );
                                                 api
                                                     .get<{ tasks?: Task[] }>(
                                                         "/api/vendors/vendor-tasks",
@@ -1960,6 +1997,24 @@ export default function TeamtaskV() {
                                                 </li>
                                             ))}
                                         </ul>
+                                    )}
+                                    {editingTaskId !== null && existingAttachmentNames.length > 0 && (
+                                        <div className="mt-3">
+                                            <p className="mb-1 text-xs text-[#616161]">
+                                                Existing attachments
+                                            </p>
+                                            <ul className="space-y-1">
+                                                {existingAttachmentNames.map((name, idx) => (
+                                                    <li
+                                                        key={`${name}-${idx}`}
+                                                        className="rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] truncate"
+                                                        title={name}
+                                                    >
+                                                        {name}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
                                     )}
                                 </div>
                             </div>

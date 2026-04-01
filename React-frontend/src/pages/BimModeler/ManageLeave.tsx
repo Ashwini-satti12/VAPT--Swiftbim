@@ -9,19 +9,19 @@ import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 interface LeaveEntry {
-    id: number;
-    slNo: number;
-    employeeName: string;
-    role?: string;
-    employeeId?: number;
-    email?: string;
-    leaveType: string;
-    leaveTypeId?: number | null;
-    appliedOn: string;
-    currentStatus: string;
-    fromDate?: string;
-    toDate?: string;
-    description?: string;
+  id: number;
+  slNo: number;
+  employeeName: string;
+  role?: string;
+  employeeId?: number;
+  email?: string;
+  leaveType: string;
+  leaveTypeId?: number | null;
+  appliedOn: string;
+  currentStatus: string;
+  fromDate?: string;
+  toDate?: string;
+  description?: string;
 }
 
 // Local dummy list removed; data now comes from backend /api/leave/applications
@@ -37,61 +37,84 @@ const showEntriesOptions: { value: string; label: string; start: number; end: nu
     { value: 'all', label: 'All', start: 0, end: null },
 ];
 
-const LEAVE_TYPES = ['Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave', 'Paternity Leave', 'Unpaid Leave'];
+const LEAVE_TYPES = [
+  "Sick Leave",
+  "Casual Leave",
+  "Earned Leave",
+  "Maternity Leave",
+  "Paternity Leave",
+  "Unpaid Leave",
+];
 
 function toInputDate(d: string | undefined): string {
-    if (!d) return '';
-    const s = String(d).trim();
+  if (!d) return "";
+  const s = String(d).trim();
 
-    // Already in input-friendly format: YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Already in input-friendly format: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
 
-    // DD/MM/YYYY -> YYYY-MM-DD
-    const slashParts = s.split('/');
-    if (slashParts.length === 3) {
-        const [dd, mm, yy] = slashParts;
-        if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
-    }
+  // DD/MM/YYYY -> YYYY-MM-DD
+  const slashParts = s.split("/");
+  if (slashParts.length === 3) {
+    const [dd, mm, yy] = slashParts;
+    if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+  }
 
-    // DD-MM-YYYY -> YYYY-MM-DD
-    const dashParts = s.split('-');
-    if (dashParts.length === 3) {
-        const [dd, mm, yy] = dashParts;
-        if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
-    }
+  // DD-MM-YYYY -> YYYY-MM-DD
+  const dashParts = s.split("-");
+  if (dashParts.length === 3) {
+    const [dd, mm, yy] = dashParts;
+    if (dd && mm && yy) return `${yy}-${mm}-${dd}`;
+  }
 
-    return '';
+  return "";
 }
 
 function formatApiDate(value: string | undefined | null): string {
-    if (!value) return '';
-    const s = String(value);
+  if (!value) return "";
+  const s = String(value);
 
-    // Avoid timezone shifting for plain YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-        const [yy, mm, dd] = s.split('-');
-        return `${dd}/${mm}/${yy}`;
-    }
+  // Avoid timezone shifting for plain YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [yy, mm, dd] = s.split("-");
+    return `${dd}/${mm}/${yy}`;
+  }
 
-    // Already display format
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  // Already display format
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
 
-    try {
-        const d = new Date(s);
-        if (Number.isNaN(d.getTime())) return s;
-        const day = d.getDate().toString().padStart(2, '0');
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}/${month}/${year}`;
-    } catch {
-        return s;
-    }
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    const day = d.getDate().toString().padStart(2, "0");
+    const month = (d.getMonth() + 1).toString().padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return s;
+  }
+}
+
+function useShowEntriesDropdownState() {
+  const [selectedShowEntries, setSelectedShowEntries] = useState(
+    showEntriesOptions[0].value,
+  );
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+  return {
+    selectedShowEntries,
+    setSelectedShowEntries,
+    showEntriesOpen,
+    setShowEntriesOpen,
+    showEntriesDropdownRef,
+    showEntriesDropdownContentRef,
+  };
 }
 
 export default function ManageLeave() {
-    const { user } = useAuth();
-    const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
-
+  const { user } = useAuth();
+  const todayStr = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD format
 
     const [applyModalOpen, setApplyModalOpen] = useState(false);
     const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -107,10 +130,14 @@ export default function ManageLeave() {
     const [leaveTypes, setLeaveTypes] = useState<{ id: number | null; title: string }[]>([]);
     const [othersValue, setOthersValue] = useState<string>('Others');
 
-    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
-    const [showEntriesOpen, setShowEntriesOpen] = useState(false);
-    const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-    const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
+    const {
+        selectedShowEntries,
+        setSelectedShowEntries,
+        showEntriesOpen,
+        setShowEntriesOpen,
+        showEntriesDropdownRef,
+        showEntriesDropdownContentRef,
+    } = useShowEntriesDropdownState();
     const [leaveTypeOpen, setLeaveTypeOpen] = useState(false);
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
     // Pagination state removed
@@ -223,246 +250,272 @@ export default function ManageLeave() {
     const displayedList = filteredList.slice(rangeStart, rangeEnd);
 
 
-    const handleView = (row: LeaveEntry) => {
-        setSelectedLeave(row);
-        setViewModalOpen(true);
-    };
+  const handleView = (row: LeaveEntry) => {
+    setSelectedLeave(row);
+    setViewModalOpen(true);
+  };
 
-    const handleSubmitApply = async (e: React.FormEvent) => {
-        e.preventDefault();
-        // allow "Others" (leaveTypeId can be 0)
-        if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
+  const handleSubmitApply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // allow "Others" (leaveTypeId can be 0)
+    if (!leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
 
-        if (leaveFrom < todayStr) {
-            alert('Leave From date cannot be in the past.');
-            return;
+    if (leaveFrom < todayStr) {
+      alert("Leave From date cannot be in the past.");
+      return;
+    }
+    if (leaveTo < leaveFrom) {
+      alert("Leave To date must be after or on Leave From date.");
+      return;
+    }
+
+    try {
+      const payload: any = {
+        // Store the selected leave type text (frontend value) in DB.
+        // Backend will show it back via `tblleaves.leave_type` when holiday join doesn't match.
+        leave_type: leaveType,
+        description: reason.trim(),
+        from_date: leaveFrom,
+        to_date: leaveTo,
+      };
+
+      if (leaveFrom && leaveTo) {
+        const from = new Date(leaveFrom);
+        const to = new Date(leaveTo);
+        const diffMs = to.getTime() - from.getTime();
+        if (!Number.isNaN(diffMs) && diffMs >= 0) {
+          const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+          payload.days_count = days;
         }
-        if (leaveTo < leaveFrom) {
-            alert('Leave To date must be after or on Leave From date.');
-            return;
+      }
+
+      const { data } = await api.post<{
+        success: boolean;
+        id?: number;
+        message?: string;
+      }>("/api/leave/applications", payload);
+      if (data.success === false) {
+        alert(data.message || "Failed to apply leave.");
+        return;
+      }
+
+      // Reload only this user's leaves
+      try {
+        const resp = await api.get<{ applications?: any[] }>(
+          "/api/leave/applications",
+        );
+        const apps = (resp.data.applications || []).filter(
+          (app) => app.employee_id === user?.id,
+        );
+        const mapped: LeaveEntry[] = apps.map((app, index) => ({
+          id: app.lid,
+          slNo: index + 1,
+          employeeId: app.employee_id,
+          employeeName: app.full_name || user?.full_name || "Unknown",
+          role: app.role || user?.user_role || undefined,
+          email: app.email || user?.email || undefined,
+          leaveType: app.type_name || app.title || othersValue,
+          leaveTypeId:
+            app.leave_type !== undefined && app.leave_type !== null
+              ? (() => {
+                  const parsed = Number(app.leave_type);
+                  return Number.isFinite(parsed) ? parsed : null;
+                })()
+              : null,
+          appliedOn: formatApiDate(app.posting_date),
+          fromDate: formatApiDate(app.from_date),
+          toDate: formatApiDate(app.to_date),
+          description: app.description || "",
+          currentStatus:
+            app.status === 1
+              ? "Approved"
+              : app.status === 2
+                ? "Rejected"
+                : "Pending",
+        }));
+        setLeaves(mapped);
+      } catch (err) {
+        console.error("Failed to refresh leaves after apply", err);
+      }
+
+      setLeaveType("");
+      setLeaveTypeId(null);
+      setLeaveFrom("");
+      setLeaveTo("");
+      setReason("");
+      setApplyModalOpen(false);
+    } catch (err: any) {
+      console.error("Apply leave failed", err);
+      alert(
+        err?.response?.data?.message ||
+          "Failed to apply leave. Please try again.",
+      );
+    }
+  };
+
+  const handleCloseModal = () => {
+    setApplyModalOpen(false);
+    setLeaveType("");
+    setLeaveTypeId(null);
+    setLeaveFrom("");
+    setLeaveTo("");
+    setReason("");
+  };
+
+  const handleEdit = (row: LeaveEntry) => {
+    setEditingLeave(row);
+    setLeaveType(row.leaveType);
+    setLeaveTypeId(row.leaveTypeId ?? null);
+    setLeaveFrom(toInputDate(row.fromDate));
+    setLeaveTo(toInputDate(row.toDate));
+    setReason(row.description || "");
+    setEditModalOpen(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false);
+    setEditingLeave(null);
+    setLeaveType("");
+    setLeaveTypeId(null);
+    setLeaveFrom("");
+    setLeaveTo("");
+    setReason("");
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLeave || !leaveType || !leaveFrom || !leaveTo || !reason.trim())
+      return;
+
+    if (leaveFrom < todayStr) {
+      alert("Leave From date cannot be in the past.");
+      return;
+    }
+    if (leaveTo < leaveFrom) {
+      alert("Leave To date must be after or on Leave From date.");
+      return;
+    }
+
+    try {
+      const payload: any = {
+        leavetype: leaveType,
+        description: reason.trim(),
+        from_date: leaveFrom,
+        to_date: leaveTo,
+      };
+
+      if (leaveFrom && leaveTo) {
+        const from = new Date(leaveFrom);
+        const to = new Date(leaveTo);
+        const diffMs = to.getTime() - from.getTime();
+        if (!Number.isNaN(diffMs) && diffMs >= 0) {
+          const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+          payload.days_count = days;
         }
+      }
 
-        try {
-            const payload: any = {
-                // Store the selected leave type text (frontend value) in DB.
-                // Backend will show it back via `tblleaves.leave_type` when holiday join doesn't match.
-                leave_type: leaveType,
-                description: reason.trim(),
-                from_date: leaveFrom,
-                to_date: leaveTo,
-            };
+      const { data } = await api.patch<{ success: boolean; message?: string }>(
+        `/api/leave/applications/${editingLeave.id}`,
+        payload,
+      );
 
-            if (leaveFrom && leaveTo) {
-                const from = new Date(leaveFrom);
-                const to = new Date(leaveTo);
-                const diffMs = to.getTime() - from.getTime();
-                if (!Number.isNaN(diffMs) && diffMs >= 0) {
-                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-                    payload.days_count = days;
-                }
-            }
+      if (data.success === false) {
+        alert(data.message || "Failed to update leave.");
+        return;
+      }
 
-            const { data } = await api.post<{ success: boolean; id?: number; message?: string }>(
-                '/api/leave/applications',
-                payload
-            );
-            if (data.success === false) {
-                alert(data.message || 'Failed to apply leave.');
-                return;
-            }
+      try {
+        const resp = await api.get<{ applications?: any[] }>(
+          "/api/leave/applications",
+        );
+        const apps = (resp.data.applications || []).filter(
+          (app) => app.employee_id === user?.id,
+        );
+        const mapped: LeaveEntry[] = apps.map((app, index) => ({
+          id: app.lid,
+          slNo: index + 1,
+          employeeId: app.employee_id,
+          employeeName: app.full_name || user?.full_name || "Unknown",
+          role: app.role || user?.user_role || undefined,
+          email: app.email || user?.email || undefined,
+          leaveType: app.type_name || app.title || "Others",
+          appliedOn: formatApiDate(app.posting_date),
+          fromDate: formatApiDate(app.from_date),
+          toDate: formatApiDate(app.to_date),
+          description: app.description || "",
+          currentStatus:
+            app.status === 1
+              ? "Approved"
+              : app.status === 2
+                ? "Rejected"
+                : "Pending",
+        }));
+        setLeaves(mapped);
+      } catch (err) {
+        console.error("Failed to refresh leaves after edit", err);
+      }
 
-            // Reload only this user's leaves
-            try {
-                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = (resp.data.applications || []).filter(
-                    (app) => app.employee_id === user?.id
-                );
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeId: app.employee_id,
-                    employeeName: app.full_name || (user?.full_name || 'Unknown'),
-                    role: app.role || user?.user_role || undefined,
-                    email: app.email || user?.email || undefined,
-                    leaveType: app.type_name || app.title || othersValue,
-                    leaveTypeId:
-                        app.leave_type !== undefined && app.leave_type !== null
-                            ? (() => {
-                                  const parsed = Number(app.leave_type);
-                                  return Number.isFinite(parsed) ? parsed : null;
-                              })()
-                            : null,
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                setLeaves(mapped);
-            } catch (err) {
-                console.error('Failed to refresh leaves after apply', err);
-            }
+      handleCloseEditModal();
+    } catch (err: any) {
+      console.error("Update leave failed", err);
+      alert(
+        err?.response?.data?.message ||
+          "Failed to update leave. Please try again.",
+      );
+    }
+  };
 
-            setLeaveType('');
-            setLeaveTypeId(null);
-            setLeaveFrom('');
-            setLeaveTo('');
-            setReason('');
-            setApplyModalOpen(false);
-        } catch (err: any) {
-            console.error('Apply leave failed', err);
-            alert(err?.response?.data?.message || 'Failed to apply leave. Please try again.');
-        }
-    };
+  const handleDelete = (row: LeaveEntry) => {
+    setDeleteLeave(row);
+  };
 
-    const handleCloseModal = () => {
-        setApplyModalOpen(false);
-        setLeaveType('');
-        setLeaveTypeId(null);
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-    };
+  const confirmDeleteLeave = async () => {
+    if (!deleteLeave) return;
+    try {
+      await api.delete(`/api/leave/applications/${deleteLeave.id}`);
 
-    const handleEdit = (row: LeaveEntry) => {
-        setEditingLeave(row);
-        setLeaveType(row.leaveType);
-        setLeaveTypeId(row.leaveTypeId ?? null);
-        setLeaveFrom(toInputDate(row.fromDate));
-        setLeaveTo(toInputDate(row.toDate));
-        setReason(row.description || '');
-        setEditModalOpen(true);
-    };
-
-    const handleCloseEditModal = () => {
-        setEditModalOpen(false);
-        setEditingLeave(null);
-        setLeaveType('');
-        setLeaveTypeId(null);
-        setLeaveFrom('');
-        setLeaveTo('');
-        setReason('');
-    };
-
-    const handleSubmitEdit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editingLeave || !leaveType || !leaveFrom || !leaveTo || !reason.trim()) return;
-
-        if (leaveFrom < todayStr) {
-            alert('Leave From date cannot be in the past.');
-            return;
-        }
-        if (leaveTo < leaveFrom) {
-            alert('Leave To date must be after or on Leave From date.');
-            return;
-        }
-
-        try {
-            const payload: any = {
-                leavetype: leaveType,
-                description: reason.trim(),
-                from_date: leaveFrom,
-                to_date: leaveTo,
-            };
-
-            if (leaveFrom && leaveTo) {
-                const from = new Date(leaveFrom);
-                const to = new Date(leaveTo);
-                const diffMs = to.getTime() - from.getTime();
-                if (!Number.isNaN(diffMs) && diffMs >= 0) {
-                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-                    payload.days_count = days;
-                }
-            }
-
-            const { data } = await api.patch<{ success: boolean; message?: string }>(
-                `/api/leave/applications/${editingLeave.id}`,
-                payload
-            );
-
-            if (data.success === false) {
-                alert(data.message || 'Failed to update leave.');
-                return;
-            }
-
-            try {
-                const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-                const apps = (resp.data.applications || []).filter(
-                    (app) => app.employee_id === user?.id
-                );
-                const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                    id: app.lid,
-                    slNo: index + 1,
-                    employeeId: app.employee_id,
-                    employeeName: app.full_name || (user?.full_name || 'Unknown'),
-                    role: app.role || user?.user_role || undefined,
-                    email: app.email || user?.email || undefined,
-                    leaveType: app.type_name || app.title || 'Others',
-                    appliedOn: formatApiDate(app.posting_date),
-                    fromDate: formatApiDate(app.from_date),
-                    toDate: formatApiDate(app.to_date),
-                    description: app.description || '',
-                    currentStatus:
-                        app.status === 1
-                            ? 'Approved'
-                            : app.status === 2
-                            ? 'Rejected'
-                            : 'Pending',
-                }));
-                setLeaves(mapped);
-            } catch (err) {
-                console.error('Failed to refresh leaves after edit', err);
-            }
-
-            handleCloseEditModal();
-        } catch (err: any) {
-            console.error('Update leave failed', err);
-            alert(err?.response?.data?.message || 'Failed to update leave. Please try again.');
-        }
-    };
-
-    const handleDelete = async (row: LeaveEntry) => {
-        if (!window.confirm(`Delete leave (${row.leaveType}, ${row.fromDate} - ${row.toDate})?`)) return;
-        try {
-            await api.delete(`/api/leave/applications/${row.id}`);
-
-            // Reload only this user's leaves so SL.No and list stay correct after refresh
-            if (!user?.id) return;
-            const resp = await api.get<{ applications?: any[] }>('/api/leave/applications');
-            const apps = (resp.data.applications || []).filter((app) => app.employee_id === user.id);
-            const mapped: LeaveEntry[] = apps.map((app, index) => ({
-                id: app.lid,
-                slNo: index + 1,
-                employeeId: app.employee_id,
-                employeeName: app.full_name || (user.full_name || 'Unknown'),
-                role: app.role || user.user_role || undefined,
-                email: app.email || user.email || undefined,
-                    leaveType: app.type_name || app.title || othersValue,
-                leaveTypeId:
-                    app.leave_type !== undefined && app.leave_type !== null
-                        ? (() => {
-                              const parsed = Number(app.leave_type);
-                              return Number.isFinite(parsed) ? parsed : null;
-                          })()
-                        : null,
-                appliedOn: formatApiDate(app.posting_date),
-                fromDate: formatApiDate(app.from_date),
-                toDate: formatApiDate(app.to_date),
-                description: app.description || '',
-                currentStatus:
-                    app.status === 1 ? 'Approved' : app.status === 2 ? 'Rejected' : 'Pending',
-            }));
-            setLeaves(mapped);
-        } catch (err) {
-            console.error('Failed to delete leave (BIM Modeler):', err);
-            alert('Delete failed. Please try again.');
-        }
-    };
+      // Reload only this user's leaves so SL.No and list stay correct after refresh
+      if (user?.id) {
+        const resp = await api.get<{ applications?: any[] }>(
+          "/api/leave/applications",
+        );
+        const apps = (resp.data.applications || []).filter(
+          (app) => app.employee_id === user.id,
+        );
+        const mapped: LeaveEntry[] = apps.map((app, index) => ({
+          id: app.lid,
+          slNo: index + 1,
+          employeeId: app.employee_id,
+          employeeName: app.full_name || user.full_name || "Unknown",
+          role: app.role || user.user_role || undefined,
+          email: app.email || user.email || undefined,
+          leaveType: app.type_name || app.title || othersValue,
+          leaveTypeId:
+            app.leave_type !== undefined && app.leave_type !== null
+              ? (() => {
+                  const parsed = Number(app.leave_type);
+                  return Number.isFinite(parsed) ? parsed : null;
+                })()
+              : null,
+          appliedOn: formatApiDate(app.posting_date),
+          fromDate: formatApiDate(app.from_date),
+          toDate: formatApiDate(app.to_date),
+          description: app.description || "",
+          currentStatus:
+            app.status === 1
+              ? "Approved"
+              : app.status === 2
+                ? "Rejected"
+                : "Pending",
+        }));
+        setLeaves(mapped);
+      }
+      setDeleteLeave(null);
+    } catch (err) {
+      console.error("Failed to delete leave (BIM Modeler):", err);
+      alert("Delete failed. Please try again.");
+    }
+  };
 
     return (
         <div className="p-1 space-y-6 flex flex-col h-full bg-white">
