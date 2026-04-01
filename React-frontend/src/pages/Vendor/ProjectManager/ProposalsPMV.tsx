@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import { useNavigate } from 'react-router-dom';
 import api from '../../../lib/api';
 
