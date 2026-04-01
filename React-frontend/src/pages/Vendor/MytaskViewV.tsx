@@ -83,17 +83,6 @@ function taskOutputFileUrl(storedName: string): string {
   return `${getApiBase()}/uploads/task/${encodeURIComponent(name)}`;
 }
 
-// function formatTimeAMPM(t?: string): string {
-//   if (!t) return "hh:mm AM/PM";
-//   const match = String(t).match(/(\d{1,2}):(\d{2})/);
-//   if (!match) return String(t);
-//   const h = parseInt(match[1], 10);
-//   const m = match[2];
-//   const am = h < 12;
-//   const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-//   return `${h12}:${m} ${am ? "AM" : "PM"}`;
-// }
-
 function normalizeStatus(s: string | undefined, approval?: string): StatusKey {
   if (approval?.toLowerCase() === "approved") return "approved";
   if (approval?.toLowerCase() === "rejected") return "rejected";
@@ -138,7 +127,6 @@ const STATUS_STYLE: Record<
   },
 };
 
-// For vendor view, allow the user to move task to In Progress or Completed.
 const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
   { value: "in_progress", label: "Inprogress" },
   { value: "completed", label: "Completed" },
@@ -192,7 +180,6 @@ export default function MytaskViewV() {
     const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
     try {
-      // Vendor My Task and Team Task both use vendor_task backend.
       await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
         status: backendStatus,
       });
@@ -209,7 +196,6 @@ export default function MytaskViewV() {
     }
   };
 
-  // Fetch vendor resource profiles so we can resolve assigned_to IDs to names
   useEffect(() => {
     api
       .get<{ success: boolean; resources?: Employee[] }>(
@@ -226,11 +212,6 @@ export default function MytaskViewV() {
   const refreshTaskFromApi = (taskId?: number) => {
     const tid = taskId || task?.id || Number(id);
     if (!tid) return;
-
-    // If it's a team task, we might still need to use the plural endpoint with condition=1
-    // or we could potentially use the same single task endpoint if the backend allows.
-    // For now, let's use the new single task endpoint for everything if possible, 
-    // but keep the team task logic if it was special.
     
     if (fromTeamTask) {
        api
@@ -264,7 +245,6 @@ export default function MytaskViewV() {
       await api.post(
         `/api/vendors/vendor-tasks/${task.id}/output-files`,
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } },
       );
       toast.success("Work submitted successfully");
       setSelectedImage(null);
@@ -291,7 +271,6 @@ export default function MytaskViewV() {
     setStatusDisplay(next);
   }, [task]);
 
-  // Refresh task from API so dates, category, times, uploader, and output files match the server
   useEffect(() => {
     if (initialTask) {
       refreshTaskFromApi(initialTask.id);
@@ -419,7 +398,7 @@ export default function MytaskViewV() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
           <div className="space-y-3 text-sm">
             <div className="flex gap-2">
               <span className="text-black shrink-0 w-28">Project Name</span>
@@ -484,15 +463,6 @@ export default function MytaskViewV() {
                 {formatTimeDisplay(task.start_time)}
               </span>
             </div>
-            {/* <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">Start Date</span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.start_date
-                                    ? formatDateDDMMYYYY(task.start_date)
-                                    : "-NIL-"}
-                            </span>
-                        </div> */}
             <div className="flex gap-2">
               <span className="text-black shrink-0 w-28">Actual Due Date</span>
               <span className="text-black shrink-0">:</span>
@@ -509,24 +479,6 @@ export default function MytaskViewV() {
                 {formatTimeDisplay(task.due_time ?? task.end_time)}
               </span>
             </div>
-            {/* <div className="flex gap-2">
-                            <span className="text-black shrink-0 w-28">Due Date</span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
-                            </span>
-                        </div> */}
-            {/* <div className="flex gap-2">
-                            <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                                Preferred Time
-                            </span>
-                            <span className="text-black shrink-0">:</span>
-                            <span className="text-[#616161]">
-                                {task.start_time || task.due_time
-                                    ? `${formatTimeAMPM(task.start_time)} - ${formatTimeAMPM(task.due_time)}`
-                                    : "hh:mm AM/PM - hh:mm AM/PM"}
-                            </span>
-                        </div> */}
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
@@ -620,30 +572,31 @@ export default function MytaskViewV() {
         </div>
 
         {/* Task Description & Checklist */}
-        <div className="mt-6 pt-4 border border-slate-200 rounded-xl p-6 space-y-4">
-          <div>
-            <h4 className="text-black text-md mb-2">Task Description</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+        <div className="mt-8 space-y-6 mb-10">
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Task Description</h4>
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
               {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
                 />
               ) : (
-                "—"
+                <span className="text-slate-400">—</span>
               )}
             </div>
           </div>
-          <div>
-            <h4 className="text-black text-md mb-2">Checklist / Reference</h4>
-            <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
+
+          <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Checklist / Reference</h4>
+            <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
               {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.checklist }}
                 />
               ) : (
-                "—"
+                <span className="text-slate-400">—</span>
               )}
             </div>
           </div>

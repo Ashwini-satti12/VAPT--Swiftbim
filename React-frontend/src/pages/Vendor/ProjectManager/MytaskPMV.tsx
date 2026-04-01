@@ -44,6 +44,44 @@ interface Project {
   uploader_name?: string | null;
 }
 
+const getApiBaseUrl = () => {
+    return import.meta.env.VITE_API_URL || "";
+};
+
+const getProfileUrl = (path: string | undefined): string => {
+    if (!path || path.trim() === "") return "";
+    if (path.startsWith("http")) return path;
+
+    let normalizedPath = path.replace(/\\/g, "/").trim();
+    normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
+    normalizedPath = normalizedPath.replace(/^\/+/, "");
+
+    const apiBaseUrl = getApiBaseUrl();
+    let urlPath = "";
+
+    if (normalizedPath.startsWith("employee/")) {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    } else if (normalizedPath.startsWith("profiles/")) {
+        const filename = normalizedPath.replace("profiles/", "");
+        urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
+    } else if (!normalizedPath.includes("/")) {
+        urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
+    } else {
+        const parts = normalizedPath.split("/");
+        const encodedParts = parts.map((part, index) =>
+            index === 0 ? part : encodeURIComponent(part),
+        );
+        urlPath = `/uploads/${encodedParts.join("/")}`;
+    }
+
+    return `${apiBaseUrl}${urlPath}`;
+};
+
+
 export interface Task {
   id: number;
   task_name?: string;
@@ -96,42 +134,6 @@ function toInputDate(v: unknown): string {
   return "";
 }
 
-const getApiBaseUrl = () => {
-  return import.meta.env.VITE_API_URL || "";
-};
-
-const getProfileUrl = (path: string | undefined): string => {
-  if (!path || path.trim() === "") return "";
-  if (path.startsWith("http")) return path;
-
-  let normalizedPath = path.replace(/\\/g, "/").trim();
-  normalizedPath = normalizedPath.replace(/^\d+\s+/, "");
-  normalizedPath = normalizedPath.replace(/^\/+/, "");
-
-  const apiBaseUrl = getApiBaseUrl();
-  let urlPath = "";
-
-  if (normalizedPath.startsWith("employee/")) {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) =>
-      index === 0 ? part : encodeURIComponent(part),
-    );
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  } else if (normalizedPath.startsWith("profiles/")) {
-    const filename = normalizedPath.replace("profiles/", "");
-    urlPath = `/uploads/employee/${encodeURIComponent(filename)}`;
-  } else if (!normalizedPath.includes("/")) {
-    urlPath = `/uploads/employee/${encodeURIComponent(normalizedPath)}`;
-  } else {
-    const parts = normalizedPath.split("/");
-    const encodedParts = parts.map((part, index) =>
-      index === 0 ? part : encodeURIComponent(part),
-    );
-    urlPath = `/uploads/${encodedParts.join("/")}`;
-  }
-
-  return `${apiBaseUrl}${urlPath}`;
-};
 
 function getTodayInputDate(): string {
   const d = new Date();
@@ -450,13 +452,12 @@ function TaskCard({
   onDeleteTask?: (task: Task) => void;
 }) {
   const progress =
-    typeof task.progress === "number"
-      ? task.progress
-      : status === "todo"
-        ? 0
-        : status === "in_progress"
-          ? 50
-          : 100;
+    normalizeStatus(task.status) === "todo"
+      ? 0
+      : normalizeStatus(task.status) === "in_progress"
+        ? 50
+        : 100;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -487,10 +488,10 @@ function TaskCard({
     <div
       draggable={!isCompleted}
       onDragStart={handleDragStart}
-      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+      className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <h4 className="font-semibold text-slate-900 text-xl truncate font-Gantari">
+      <div className="flex justify-between items-start mb-2">
+        <h4 className="font-semibold text-[#353535] text-[20px] truncate leading-tight font-Gantari">
           {task.task_name || "Task Name"}
         </h4>
         <div className="relative" ref={menuRef}>
@@ -501,22 +502,21 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-0.5 rounded cursor-pointer"
+            className="p-1 px-2 rounded cursor-pointer leading-none hover:bg-gray-100 transition-colors"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
-            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+            <img src={Dot} alt="Dot" className="w-5 h-5 object-contain" />
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out font-Gantari ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
-                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+              className={`absolute top-full mt-1 right-0 z-50 min-w-[170px] bg-white/40 backdrop-blur-xl rounded-[15px] border border-[#59595980] shadow-2xl py-2.5 transition-all duration-200 ease-out font-Gantari origin-top-right ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
               <button
                 type="button"
                 role="menuitem"
-                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
                 onClick={() => {
                   setMenuOpen(false);
                   onViewTask?.(task);
@@ -527,7 +527,7 @@ function TaskCard({
                   alt="view"
                   className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                 />
-                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
                   View
                 </span>
               </button>
@@ -536,7 +536,7 @@ function TaskCard({
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
                     onClick={() => {
                       setMenuOpen(false);
                       onEditTask?.(task);
@@ -545,16 +545,16 @@ function TaskCard({
                     <img
                       src={editIcon}
                       alt="edit"
-                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
                       Edit
                     </span>
                   </button>
                   <button
                     type="button"
                     role="menuitem"
-                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                    className="flex w-full items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer text-[#353535] hover:bg-white/40"
                     onClick={() => {
                       setMenuOpen(false);
                       onDeleteTask?.(task);
@@ -563,9 +563,9 @@ function TaskCard({
                     <img
                       src={deleteIcon}
                       alt="delete"
-                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
-                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                    <span className="text-[15px] font-medium group-hover:text-[#DD4342]">
                       Delete
                     </span>
                   </button>
@@ -575,26 +575,32 @@ function TaskCard({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65] font-Gantari">
-        <span>
-          {task.start_date || task.Actual_start_time
-            ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
-            : "—"}
-        </span>
+      <div className="flex items-start justify-between gap-2 mb-2 font-Gantari">
+        <div className="flex flex-col">
+            <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+            <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {task.start_date || task.Actual_start_time
+                ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+                : "—"}
+            </span>
+        </div>
 
-        <span>
-          {task.due_date
-            ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
-            : ""}
-        </span>
+        <div className="flex flex-col items-end">
+            <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+            <span className="text-[14px] font-medium text-[#8B8B8B]">
+            {task.due_date
+                ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+                : "—"}
+            </span>
+        </div>
       </div>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="text-xs text-slate-600 font-Gantari">Progress</span>
-        <span className="text-xs font-medium text-slate-700 font-Gantari">{progress}%</span>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs text-[#8B8B8B] font-Gantari">Progress</span>
+        <span className="text-xs font-medium text-[#8B8B8B] font-Gantari">{progress}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+      <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
         <div
-          className="h-full rounded-full bg-slate-500"
+          className="h-full rounded-full bg-[#8B8B8B]"
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
@@ -607,9 +613,9 @@ function TaskCard({
                 const src =
                   task.assigned_to != null && task.assigned_profile_picture
                     ? getGlobalProfileUrl(
-                        task.assigned_to,
-                        task.assigned_profile_picture,
-                      )
+                      task.assigned_to,
+                      task.assigned_profile_picture,
+                    )
                     : task.assigned_profile_picture
                       ? getProfileUrl(task.assigned_profile_picture)
                       : "";
@@ -622,7 +628,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned To: ${task.assigned_full_name}`}
                   >
                     {src ? (
@@ -643,9 +649,9 @@ function TaskCard({
                 const src =
                   task.uploaderid != null && task.uploader_profile_picture
                     ? getGlobalProfileUrl(
-                        task.uploaderid,
-                        task.uploader_profile_picture,
-                      )
+                      task.uploaderid,
+                      task.uploader_profile_picture,
+                    )
                     : task.uploader_profile_picture
                       ? getProfileUrl(task.uploader_profile_picture)
                       : "";
@@ -658,7 +664,7 @@ function TaskCard({
                   .toUpperCase();
                 return (
                   <div
-                    className="w-6 h-6 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                    className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                     title={`Assigned By: ${task.uploader_full_name}`}
                   >
                     {src ? (
@@ -675,14 +681,19 @@ function TaskCard({
               })()}
           </div>
         </div>
-        <Link
-          to={`/tasks/${task.id}`}
+        <button
+          type="button"
           draggable={false}
-          className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari"
+          onClick={() => onViewTask?.(task)}
+          className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 transition-colors cursor-pointer font-Gantari"
         >
           Details
-          <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-        </Link>
+          <img
+            src={Arrow}
+            alt="Arrow"
+            className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+          />
+        </button>
       </div>
     </div>
   );
@@ -810,7 +821,7 @@ export default function MytaskPMV() {
     };
 
     const openViewTask = (task: Task) => {
-        navigate(`/tasks/${task.id}`);
+        navigate(`/v/mytasks/view/${task.id}`, { state: { task } });
     };
 
     const confirmDeleteTask = () => {
@@ -1049,17 +1060,17 @@ export default function MytaskPMV() {
     if (loading) {
         return (
             <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#DD4342]" />
             </div>
         );
     }
 
     return (
-        <div className="h-full min-h-0 flex flex-col overflow-hidden">
-            <div className="bg-white pb-3 flex-shrink-0">
+        <div className="h-full min-h-0 flex flex-col overflow-hidden bg-white font-gantari">
+            <div className="bg-white pb-3 flex-shrink-0 px-6 pt-6">
             {/* Top row: title + dropdowns + Add task */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-[24px] font-semibold text-slate-800">
                     {isTeam ? "Team Task" : "My Task"}
                 </h2>
                 <div
@@ -1155,10 +1166,10 @@ export default function MytaskPMV() {
             </div>
 
             {/* Status summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
+                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
                 >
                     <span className="text-xl font-bold text-[#0D1829]">To Do</span>
                     <span className="text-xl font-bold text-[#0D1829]">
@@ -1175,7 +1186,7 @@ export default function MytaskPMV() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
+                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
                 >
                     <span className="text-xl font-bold text-[#0D1829]">
                         In Progress
@@ -1194,7 +1205,7 @@ export default function MytaskPMV() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
+                    className="flex p-4 gap-4 rounded-xl border py-4 shadow-sm relative transition-all bg-white border-slate-200"
                 >
                     <span className="text-xl font-bold text-[#0D1829]">Completed</span>
                     <span className="text-xl font-bold text-[#0D1829]">
@@ -1208,8 +1219,8 @@ export default function MytaskPMV() {
             </div>
 
             {/* Task cards under each status - drag and drop columns */}
-            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+            <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6">
                 <div
                     className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
