@@ -8,10 +8,10 @@ const MONTH_NAMES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((m) =>
 );
 
 type DashboardStats = {
-    active_opportunities: number;
-    bids_submitted: number;
-    proposals_awaiting: number;
-    active_projects: number;
+    total_projects: number;
+    completed_projects: number;
+    in_progress_tasks: number;
+    completed_tasks: number;
 };
 
 type InvolvedPerson = {
@@ -43,10 +43,10 @@ type CelebrationEvent = {
 };
 
 const defaultStats: DashboardStats = {
-    active_opportunities: 0,
-    bids_submitted: 0,
-    proposals_awaiting: 0,
-    active_projects: 0,
+    total_projects: 0,
+    completed_projects: 0,
+    in_progress_tasks: 0,
+    completed_tasks: 0,
 };
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
@@ -126,15 +126,38 @@ export default function DashboardPMV() {
         return () => clearInterval(id);
     }, []);
 
-    // GET /api/vendors/dashboard/stats → KPI cards
+    // Read project/task KPIs directly from vendor tables.
     useEffect(() => {
-        api.get<DashboardStats>('/api/vendors/dashboard/stats')
-            .then(({ data }) => setStats({
-                active_opportunities: Number(data?.active_opportunities) || 0,
-                bids_submitted: Number(data?.bids_submitted) || 0,
-                proposals_awaiting: Number(data?.proposals_awaiting) || 0,
-                active_projects: Number(data?.active_projects) || 0,
-            }))
+        Promise.all([
+            api.get<{ projects?: any[] }>('/api/vendors/vendor-projects'),
+            api.get<{ tasks?: any[] }>('/api/vendors/vendor-tasks', { params: { condition: '1' } }),
+        ])
+            .then(([projectsRes, tasksRes]) => {
+                const projects = Array.isArray(projectsRes.data?.projects) ? projectsRes.data.projects : [];
+                const tasks = Array.isArray(tasksRes.data?.tasks) ? tasksRes.data.tasks : [];
+
+                const completedProjects = projects.filter((p: any) => {
+                    const progressNum = Number(p?.progress);
+                    return Number.isFinite(progressNum) && progressNum >= 100;
+                }).length;
+
+                const inProgressTasks = tasks.filter((t: any) => {
+                    const s = String(t?.status || '').toLowerCase().replace(/\s+/g, '');
+                    return s === 'inprogress' || s === 'in_progress';
+                }).length;
+
+                const completedTasks = tasks.filter((t: any) => {
+                    const s = String(t?.status || '').toLowerCase().replace(/\s+/g, '');
+                    return s === 'completed';
+                }).length;
+
+                setStats({
+                    total_projects: projects.length,
+                    completed_projects: completedProjects,
+                    in_progress_tasks: inProgressTasks,
+                    completed_tasks: completedTasks,
+                });
+            })
             .catch(() => setStats(defaultStats))
             .finally(() => setLoading(false));
     }, []);
@@ -241,39 +264,39 @@ export default function DashboardPMV() {
         setDisplayYear(d.getFullYear());
     };
 
-    // KPI card definitions — vendor-specific metrics
+    // KPI card definitions — based on vendor_projects + vendor_task.status
     const kpiCards = [
         {
-            title: 'Active\nOpportunities',
-            value: stats.active_opportunities,
+            title: 'Total\nProjects',
+            value: stats.total_projects,
             barColor: '#DE3D3A',
-            label: 'Active Opportunities',
+            label: 'Total Projects',
             percent: 75,
-            link: '/vpm/opportunities'
+            link: '/vpm/projects'
         },
         {
-            title: 'Bids\nSubmitted',
-            value: stats.bids_submitted,
+            title: 'Completed\nProjects',
+            value: stats.completed_projects,
             barColor: '#3B82F6',
-            label: 'Total Bids Submitted',
+            label: 'Completed Projects',
             percent: 50,
-            link: '/vpm/opportunities'
+            link: '/vpm/projects?status=completed'
         },
         {
-            title: 'Proposals\nAwaiting',
-            value: stats.proposals_awaiting,
+            title: 'In Progress\nTasks',
+            value: stats.in_progress_tasks,
             barColor: '#E47E00',
-            label: 'Proposals Awaiting',
+            label: 'In Progress Tasks',
             percent: 30,
-            link: '/vpm/proposals'
+            link: '/vpm/mytasks?status=in_progress'
         },
         {
-            title: 'Active\nProjects',
-            value: stats.active_projects,
+            title: 'Completed\nTasks',
+            value: stats.completed_tasks,
             barColor: '#00882E',
-            label: 'Active Projects',
+            label: 'Completed Tasks',
             percent: 20,
-            link: '/vpm/projects?status=Active'
+            link: '/vpm/mytasks?status=completed'
         },
     ];
 
@@ -319,7 +342,7 @@ export default function DashboardPMV() {
                             <>
                                 <div className="flex items-center justify-between mb-3">
                                     <h3 className="text-lg font-semibold text-[#353535] font-gantari">Projects</h3>
-                                    <Link to="/v/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
+                                    <Link to="/vpm/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
@@ -333,7 +356,7 @@ export default function DashboardPMV() {
                                     return projectList.map(({ id, projectName, tasks: projectTasks }) => (
                                         <div key={id} className="mb-6">
                                             <p className="text-sm font-semibold text-[#353535] font-gantari mb-3 truncate pr-2">
-                                                <Link to="/v/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
+                                                <Link to="/vpm/projects" className="hover:text-[#DE3D3A] hover:underline" title={projectName}>{projectName}</Link>
                                             </p>
                                             <div className="space-y-4">
                                                 {projectTasks.map((task) => {

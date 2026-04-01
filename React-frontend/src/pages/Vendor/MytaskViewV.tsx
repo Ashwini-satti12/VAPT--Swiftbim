@@ -149,7 +149,7 @@ export default function MytaskViewV() {
   const location = useLocation();
   const state = location.state as { task?: Task; from?: string } | null;
   const initialTask = state?.task;
-  const fromTeamTask = state?.from === "teamtask" || (id && !initialTask && location.pathname.includes("/v/mytasks/view/")); // Fallback if no state
+  const fromTeamTask = state?.from === "teamtask";
   const navigate = useNavigate();
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
@@ -192,18 +192,10 @@ export default function MytaskViewV() {
     const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
 
     try {
-      if (fromTeamTask) {
-        // Team tasks use the main /api/tasks endpoint
-        await api.patch(`/api/tasks/${task.id}/status`, {
-          status: backendStatus,
-          projectId: task.projectid,
-        });
-      } else {
-        // Vendor personal tasks use vendor-tasks
-        await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
-          status: backendStatus,
-        });
-      }
+      // Vendor My Task and Team Task both use vendor_task backend.
+      await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
+        status: backendStatus,
+      });
       setStatusDisplay(newStatus);
       toast.success(
         `Task marked as ${newStatus === "in_progress" ? "In Progress" : "Completed"}`,
@@ -266,11 +258,13 @@ export default function MytaskViewV() {
     setSubmittingWork(true);
     const formData = new FormData();
     formData.append("image", selectedImage);
+    formData.append("image[]", selectedImage);
 
     try {
       await api.post(
         `/api/vendors/vendor-tasks/${task.id}/output-files`,
         formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
       );
       toast.success("Work submitted successfully");
       setSelectedImage(null);
