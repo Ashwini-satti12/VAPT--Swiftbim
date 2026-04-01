@@ -69,12 +69,20 @@ export default function AddTaskBL() {
     useEffect(() => {
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks"),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ projects?: Project[] }>("/api/projects"),
-        ]).then(([tasksRes, empRes, projRes]) => {
-            setList(tasksRes.data.tasks ?? []);
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
+        ]).then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
+            const internalTasks = (tasksRes.data.tasks ?? []).map((t) => ({ ...t, source: "In House" as const }));
+            const vendorTasks = (vTasksRes.data.tasks ?? []).map((t) => ({ ...t, source: "Outsource" as const }));
+            setList([...internalTasks, ...vendorTasks]);
+
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-            setProjects(projRes.data.projects ?? []);
+
+            const internalProjs = (projRes.data.projects ?? []).map((p) => ({ ...p, source: "In House" as const }));
+            const vendorProjs = (vProjRes.data.projects ?? []).map((p) => ({ ...p, source: "Outsource" as const }));
+            setProjects([...internalProjs, ...vendorProjs]);
         });
     }, []);
 
@@ -95,7 +103,13 @@ export default function AddTaskBL() {
             setModules([]);
             return;
         }
-        api.post<{ modules?: { label: string }[] }>("/api/projects/filters/modules", {
+
+        const endpoint =
+            selectedProj.source === "Outsource"
+                ? "/api/vendors/vendor-projects/filters/modules"
+                : "/api/projects/filters/modules";
+
+        api.post<{ modules?: { label: string }[] }>(endpoint, {
             projectId: selectedProj.id,
         })
             .then(({ data }) => {
@@ -215,8 +229,11 @@ export default function AddTaskBL() {
         setAddSubmitting(true);
         try {
             const isEditing = editingTaskId !== null;
+            const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+            const isOutsource = selectedProj?.source === "Outsource";
+
             const payload = {
-                project_id: projects.find((p) => p.project_name === addTaskForm.projectName)?.id,
+                project_id: selectedProj?.id,
                 project_name: addTaskForm.projectName,
                 modules_name: addTaskForm.module,
                 module: addTaskForm.module,
@@ -240,16 +257,19 @@ export default function AddTaskBL() {
 
             let taskId = editingTaskId;
             if (isEditing) {
-                await api.patch(`/api/tasks/${editingTaskId}`, payload);
+                const url = isOutsource ? `/api/vendors/vendor-tasks/${editingTaskId}` : `/api/tasks/${editingTaskId}`;
+                await api.patch(url, payload);
             } else {
-                const res = await api.post<{ task_id?: number }>("/api/tasks", payload);
-                taskId = res.data.task_id ?? null;
+                const url = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+                const res = await api.post<{ task_id?: number; id?: number }>(url, payload);
+                taskId = res.data.task_id ?? res.data.id ?? null;
             }
 
             if (taskId != null && attachmentFiles.length > 0) {
                 const formData = new FormData();
                 attachmentFiles.forEach((file) => formData.append("image", file));
-                await api.post(`/api/tasks/${taskId}/output-files`, formData, {
+                const url = isOutsource ? `/api/vendors/vendor-tasks/${taskId}/output-files` : `/api/tasks/${taskId}/output-files`;
+                await api.post(url, formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
             }

@@ -130,6 +130,7 @@ interface Project {
   tasks?: string;
   document_attachment?: string;   // path/name of attached file
   budget_ceiling?: string;
+  source?: string;
 }
 
 interface Milestone {
@@ -182,7 +183,7 @@ export default function ProjectsPM() {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [createError, setCreateError] = useState('');
   const [editError, setEditError] = useState('');
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(!!searchParams.get("projectId"));
@@ -364,10 +365,14 @@ export default function ProjectsPM() {
     }
     let cancelled = false;
     setPmTaskStatsLoading(true);
+
+    const source = searchParams.get("source") || "In House";
+    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+
     api
       .get<{
         status_counts?: { todo?: number; inprogress?: number; paused?: number; completed?: number };
-      }>(`/api/projects/${projectId}/module-progress`)
+      }>(statsApi)
       .then(({ data }) => {
         if (cancelled) return;
         const c = data?.status_counts ?? {};
@@ -391,7 +396,7 @@ export default function ProjectsPM() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id]);
+  }, [showProjectView, selectedProjectForView?.id, searchParams]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -427,26 +432,30 @@ export default function ProjectsPM() {
       .includes(normalizedName);
   };
 
-  useEffect(() => {
+  const fetchProjects = () => {
+    setLoading(true);
     const status = searchParams.get('status');
-    api.get<{ projects?: Record<string, unknown>[] }>('/api/projects', {
-      params: { status: status || undefined }
-    })
-      .then(res => {
-        const allProjects = (res.data.projects ?? []).map(mapApiProjectToProject);
+    Promise.all([
+      api.get<{ projects?: Record<string, unknown>[] }>('/api/projects', { params: { status: status || undefined } }),
+      api.get<{ projects?: Record<string, unknown>[] }>('/api/vendors/vendor-projects')
+    ])
+      .then(([res1, res2]) => {
+        const p1 = (res1.data.projects ?? []).map((r) => ({ ...mapApiProjectToProject(r), source: "In House" }));
+        const p2 = (res2.data.projects ?? []).map((r) => ({ ...mapApiProjectToProject(r), source: "Outsource" }));
+
+        const allProjects = [...p1, ...p2];
         const userId = user?.id != null ? String(user.id) : '';
         const userName = user?.full_name ?? '';
         const filtered = userId
           ? allProjects.filter((p) => {
-            // Include any project where this PM user is involved.
             return (
-              csvIncludes(p.project_manager_id, userId) ||
-              csvIncludes(p.lead_id, userId) ||
-              csvIncludes(p.bim_coordinator_id, userId) ||
-              csvIncludes(p.member, userId) ||
-              csvIncludesName(p.project_manager_name, userName) ||
-              csvIncludesName(p.lead_name, userName) ||
-              csvIncludesName(p.bim_coordinator_name, userName)
+                csvIncludes(p.project_manager_id, userId) ||
+                csvIncludes(p.lead_id, userId) ||
+                csvIncludes(p.bim_coordinator_id, userId) ||
+                csvIncludes(p.member, userId) ||
+                csvIncludesName(p.project_manager_name, userName) ||
+                csvIncludesName(p.lead_name, userName) ||
+                csvIncludesName(p.bim_coordinator_name, userName)
             );
           })
           : allProjects;
@@ -454,7 +463,11 @@ export default function ProjectsPM() {
       })
       .catch(() => { })
       .finally(() => setLoading(false));
-  }, [user?.id, user?.full_name]);
+  };
+
+  useEffect(() => {
+    fetchProjects();
+  }, [user?.id, user?.full_name, searchParams]);
 
   // Map API project to Project interface
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
@@ -522,8 +535,11 @@ export default function ProjectsPM() {
       setShowProjectView(true);
     }
 
+    const source = searchParams.get("source") || "In House";
+    const baseApi = source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
+
     api
-      .get<Record<string, unknown>>(`/api/projects/${id}`)
+      .get<Record<string, unknown>>(`${baseApi}/${id}`)
       .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
       .catch(() => {
         if (!existingProject) {
@@ -1377,41 +1393,18 @@ export default function ProjectsPM() {
                   formData.append('files', file);
                 });
 
-                api.post<{ success?: boolean; project_id?: number }>('/api/projects', formData, {
+                const isOutsource = createDepartment === "Submission Deadline";
+                formData.append('department', createDepartment);
+                const baseEndpoint = isOutsource ? '/api/vendors/vendor-projects' : '/api/projects';
+
+                api.post<{ success?: boolean; project_id?: number }>(baseEndpoint, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
                     if (data.success) {
                       setShowCreateModal(false);
                       resetFormFields();
-                      api.get<{ projects?: Record<string, unknown>[] }>('/api/projects')
-                        .then(res => setList((res.data.projects ?? []).map((r: any) => ({
-                          id: r.id,
-                          project_name: r.project_name,
-                          progress: r.progress ?? 0,
-                          total_tasks: r.total_tasks ?? 0,
-                          completed_tasks: r.completed_tasks ?? 0,
-                          priority: r.priority ?? 'Normal',
-                          budget: r.budget,
-                          module_name: r.modules,
-                          client_name: r.client_name,
-                          project_manager: r.project_manager_name,
-                          start_date: r.start_date,
-                          end_date: r.end_date ?? r.due_date,
-                          total_hours: r.totalhours,
-                          per_day: r.perday,
-                          department: r.department_name,
-                          bim_lead: r.lead_name,
-                          bim_co_ordinator: r.bim_coordinator_name,
-                          member: r.members,
-                          resources: r.resources,
-                          required_resources: r.required_resources,
-                          location: r.location,
-                          description: r.description,
-                          tasks: r.tasks,
-                          document_attachment: r.document_attachment
-                        }))))
-                        .catch(() => { });
+                      fetchProjects();
                     }
                   })
                   .catch(err => setCreateError(err.response?.data?.message || 'Failed to create project'))
@@ -1628,15 +1621,15 @@ export default function ProjectsPM() {
                   />
                 </div>
 
-                {/* ── Department dropdown ── */}
+                {/* ── Source dropdown ── */}
                 <div>
                   <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">
-                    Select Department <span className="text-[#DD4342]">*</span>
+                    Select Source <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormSelect
-                    label="Department" placeholder="Select Department"
-                    options={departments} value={createDepartment}
-                    onChange={setCreateDepartment}
+                    label="Source" placeholder="Select Source"
+                    options={['In House', 'Outsource']} value={createDepartment === 'Submission Deadline' ? 'Outsource' : createDepartment === 'Budget Ceiling' ? 'In House' : ''}
+                    onChange={(v) => setCreateDepartment(v === 'Outsource' ? 'Submission Deadline' : 'Budget Ceiling')}
                   />
                 </div>
                 {/* ── BIM Lead dropdown ── */}
@@ -1960,19 +1953,21 @@ export default function ProjectsPM() {
                   formData.append('removed_files', removedFiles.join(','));
                 }
 
-                api.put<{ success?: boolean }>(`/api/projects/${selectedProjectForEdit.id}`, formData, {
+                const isOutsource = selectedProjectForEdit?.source === "Outsource";
+                const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${selectedProjectForEdit?.id}` : `/api/projects/${selectedProjectForEdit?.id}`;
+
+                api.put<{ success?: boolean }>(baseEndpoint, formData, {
                   headers: { 'Content-Type': 'multipart/form-data' }
                 })
                   .then(({ data }) => {
                     if (!data.success) return;
 
-                    // If new task names were added while editing, create tasks for this project.
                     const createTasksPromise =
                       editTaskTags.length > 0
                         ? Promise.all(
                           editTaskTags.map((taskName) =>
-                            api.post("/api/tasks", {
-                              projectid: String(selectedProjectForEdit.id),
+                            api.post(isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks", {
+                              projectid: String(selectedProjectForEdit?.id),
                               taskName,
                             }),
                           ),
@@ -1982,42 +1977,12 @@ export default function ProjectsPM() {
                     createTasksPromise
                       .then(() => {
                         setShowEditModal(false);
-                        return api.get<{ projects?: Record<string, unknown>[] }>("/api/projects");
-                      })
-                      .then((res) => {
-                        if (!res) return;
-                        setList(
-                          (res.data.projects ?? []).map((r: any) => ({
-                            id: r.id,
-                            project_name: r.project_name,
-                            progress: r.progress ?? 0,
-                            total_tasks: r.total_tasks ?? 0,
-                            completed_tasks: r.completed_tasks ?? 0,
-                            priority: r.priority ?? "Normal",
-                            budget: r.budget,
-                            module_name: r.modules,
-                            client_name: r.client_name,
-                            project_manager: r.project_manager_name,
-                            start_date: r.start_date,
-                            end_date: r.end_date ?? r.due_date,
-                            total_hours: r.totalhours,
-                            per_day: r.perday,
-                            department: r.department_name,
-                            bim_lead: r.lead_name,
-                            bim_co_ordinator: r.bim_coordinator_name,
-                            member: r.members,
-                            resources: r.resources,
-                            required_resources: r.required_resources,
-                            location: r.location,
-                            description: r.description,
-                            tasks: r.tasks,
-                            document_attachment: r.document_attachment
-                          })),
-                        );
+                        setSelectedProjectForEdit(null);
+                        fetchProjects();
                       })
                       .catch(() => undefined);
                   })
-                  .catch(() => undefined)
+                  .catch(err => setEditError(err.response?.data?.message || 'Failed to update project'))
                   .finally(() => setIsEditSubmitting(false));
               }}
               className="max-w-5xl mx-auto px-6"
@@ -2568,7 +2533,7 @@ export default function ProjectsPM() {
                               onClick={(e) => e.stopPropagation()}
                             >
                               <button
-                                onClick={() => { setOpenMenuId(null); setSearchParams({ projectId: String(p.id) }); }}
+                                onClick={() => { setOpenMenuId(null); setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") }); }}
                                 className="group w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left font-Gantari cursor-pointer"
                               >
                                 <img src={viewIcon} alt="view" className="w-5 h-5 transition-all grayscale group-hover:grayscale-0 group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
@@ -2635,7 +2600,7 @@ export default function ProjectsPM() {
                               )}
                               {canDelete && (
                                 <button
-                                  onClick={() => { setDeleteId(p.id); setOpenMenuId(null); }}
+                                  onClick={() => { setDeleteProject(p); setOpenMenuId(null); }}
                                   className="group w-full flex items-center gap-4 px-6 py-2 transition-colors text-left font-Gantari cursor-pointer"
                                 >
                                   <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-all group-hover:[filter:brightness(0)_saturate(100%)_invert(27%)_sepia(51%)_saturate(2878%)_hue-rotate(346deg)_brightness(104%)_contrast(97%)]" />
@@ -2655,8 +2620,8 @@ export default function ProjectsPM() {
                       role="button"
                       tabIndex={0}
                       className="flex items-center justify-between border-t border-[#E8E8E8] pt-2 mt-auto cursor-pointer"
-                      onClick={() => setSearchParams({ projectId: String(p.id) })}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSearchParams({ projectId: String(p.id) }); } }}
+                      onClick={() => setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSearchParams({ projectId: String(p.id), source: String(p.source || "In House") }); } }}
                         title="View project details"
                       >
                         <div className="hover:cursor-pointer flex items-center -space-x-4" onClick={(e) => e.stopPropagation()}>
@@ -2718,49 +2683,42 @@ export default function ProjectsPM() {
         </div>
       )}
 
-      {/* Delete confirmation (Keep as modal) */}
-      {deleteId !== null && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => setDeleteId(null)}
-              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
-              title="Close"
-            >
-              <img src={closeBtnIcon} alt="Close" className="w-5 h-5" />
-            </button>
-
-            {/* Content */}
-            <h3 className="text-[18px] font-Gantari font-semibold text-[#020202] mt-[12px] mb-3">Delete Project</h3>
-            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
-              Are you sure, you want to Delete this?
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
+      {/* Delete confirmation */}
+      {deleteProject !== null && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-[20px] shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2 font-Gantari">Delete Project</h3>
+            <p className="text-gray-500 mb-8 font-Gantari">Are you sure you want to delete this project? This action cannot be undone.</p>
+            <div className="flex gap-3 justify-center">
               <button
                 type="button"
-                onClick={() => setDeleteId(null)}
-                className="w-full sm:w-auto px-5 md:px-5 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                onClick={() => setDeleteProject(null)}
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all font-Gantari cursor-pointer"
               >
-                Discard
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  if (deleteId === null) return;
-                  api.delete(`/api/projects/${deleteId}`)
+                  if (deleteProject === null) return;
+                  const isOutsource = deleteProject.source === "Outsource";
+                  const baseEndpoint = isOutsource ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
+                  
+                  api.delete(baseEndpoint)
                     .then(() => {
-                      setList(prev => prev.filter(p => p.id !== deleteId));
-                      setDeleteId(null);
+                      setList(prev => prev.filter(p => p.id !== deleteProject.id));
+                      setDeleteProject(null);
                     })
-                    .catch(() => { setDeleteId(null); });
+                    .catch(() => { });
                 }}
-                className="w-full sm:w-auto px-5 md:px-5 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                className="flex-1 px-6 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all font-Gantari shadow-lg shadow-red-200 cursor-pointer"
               >
-                Yes, Delete
+                Delete
               </button>
             </div>
           </div>

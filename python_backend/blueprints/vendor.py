@@ -3439,11 +3439,27 @@ def list_vendor_tasks():
     # otherwise restrict to tasks created by the logged‑in vendor.
     is_team_view = request.args.get("condition") == "1"
 
+    is_vendor_user_task = getattr(g, "user_type", None) == "vendor"
+    task_company_id = getattr(g, "company_id", None)
+
     where = []
     params = []
     if not is_team_view:
+        # My task view: restrict to tasks created by this user
         where.append("vt.vendor_id = %s")
         params.append(user_id)
+    elif is_vendor_user_task:
+        # Team view for vendor: no vendor_id restriction (all tasks in project)
+        pass
+    else:
+        # Team view for staff (TD/PM/BL/BC): filter by company via vendor_projects join
+        if task_company_id is not None:
+            where.append(
+                "EXISTS (SELECT 1 FROM snh6_swiftproject.vendor_projects vp2 "
+                "LEFT JOIN snh6_swiftproject.projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp2.project_name COLLATE utf8mb4_general_ci "
+                "WHERE vp2.id = vt.project_id AND mp.Company_id = %s)"
+            )
+            params.append(task_company_id)
     if status:
         where.append("vt.status = %s")
         params.append(status)
@@ -3814,9 +3830,12 @@ def list_vendor_projects():
     # Determine which vendor employee IDs' projects should be visible:
     # - For vendor users, show projects created by ANY employee in the same vendor company
     #   (so Vendor, Vendor PM, Vendor BIM Lead etc. all see the same project list).
-    # - For non-vendor users, fall back to only this user's projects.
+    # - For non-vendor (staff) users, show all vendor_projects linked to their company via
+    #   the main projects table (department = 'Submission Deadline' means Outsource).
+    is_vendor_user = getattr(g, "user_type", None) == "vendor"
+    company_id = getattr(g, "company_id", None)
     vendor_employee_ids = [user_id]
-    if getattr(g, "user_type", None) == "vendor":
+    if is_vendor_user:
         company_id = getattr(g, "company_id", None)
         if company_id is not None:
             try:
@@ -3872,6 +3891,29 @@ def list_vendor_projects():
         )
         """
 
+    if is_vendor_user:
+        # Vendor user: filter by vendor employee IDs
+        where_clause = f"vp.vendor_id IN ({placeholders})"
+        query_params = vendor_employee_ids
+    else:
+        # Staff user: only TD/PM/BL can see outsource vendor projects
+        # BC, BM and other roles should NOT see vendor_projects
+        staff_role = (getattr(g, "user_role", None) or "").strip()
+        VENDOR_PROJECTS_STAFF_ROLES = {"Technical Director", "CEO", "Project Manager", "BIM Lead"}
+        if staff_role not in VENDOR_PROJECTS_STAFF_ROLES:
+            # Role not allowed to see outsource projects – return empty
+            return jsonify({"projects": []})
+
+        # Show all outsource vendor_projects for their company
+        if company_id is not None:
+            where_clause = "p.Company_id = %s"
+            query_params = [company_id]
+        else:
+            where_clause = "1=0"  # no company, show nothing
+            query_params = []
+
+    placeholders = ",".join(["%s"] * len(query_params)) if query_params else "%s"
+
     cur.execute(
         f"""
         SELECT
@@ -3898,11 +3940,11 @@ def list_vendor_projects():
             ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
         LEFT JOIN new_swiftbim.users u
             ON u.id = p.client_id
-        WHERE vp.vendor_id IN ({placeholders})
+        WHERE {where_clause}
         {status_sql}
         ORDER BY vp.id DESC
         """,
-        vendor_employee_ids,
+        query_params,
     )
     rows = cur.fetchall()
     
@@ -3946,6 +3988,8 @@ def list_vendor_projects():
         counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
+        # Tag every vendor_project row as Outsource so frontend can route correctly
+        d["source"] = "Outsource"
         projects.append(d)
 
     # Enrich from new_swiftbim phase-1 (enquiry/proposal/contract) when fields are missing
@@ -4226,6 +4270,182 @@ def vendor_project_task_stats(project_id: int):
             },
         }
     )
+
+
+@bp.route("/vendor-projects/<int:project_id>", methods=["GET"])
+@login_required
+def get_vendor_project_detail(project_id):
+    """
+    GET /api/vendors/vendor-projects/<id>
+    Returns a single vendor project for staff/vendor view.
+    Includes hydrated client and employee names.
+    """
+    _ensure_vp_table()
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    
+    # Join with projects and users to get display names, same as list_vendor_projects
+    cur.execute(
+        """
+        SELECT
+            vp.*,
+            COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
+            COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
+            COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
+            COALESCE(p.no_resource, vp.no_resource)             AS resources,
+            COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
+            COALESCE(p.totalhours, vp.totalhours)               AS totalhours,
+            COALESCE(p.perday, vp.perday)                       AS per_day,
+            COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
+            COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
+            COALESCE(p.perday, vp.perday)                       AS perday,
+            COALESCE(p.location, vp.location)                   AS location,
+            COALESCE(p.start_date, vp.start_date)               AS start_date,
+            COALESCE(p.due_date, vp.due_date)                   AS due_date
+        FROM snh6_swiftproject.vendor_projects vp
+        LEFT JOIN snh6_swiftproject.projects p
+            ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+        LEFT JOIN new_swiftbim.users u
+            ON u.id = p.client_id
+        WHERE vp.id = %s
+        """,
+        (project_id,),
+    )
+    row = cur.fetchone()
+    if not row:
+        return jsonify({"error": "Project not found"}), 404
+
+    project = dict(row)
+    vcur = vendor_cursor()
+    _hydrate_vendor_projects_phase1(vcur, [project])
+
+    # Aggregate vendor_task counts for this project
+    cur.execute(
+        """
+        SELECT
+            COUNT(*) AS total_tasks,
+            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_tasks
+        FROM snh6_swiftproject.vendor_task
+        WHERE project_id = %s
+        """,
+        (project_id,),
+    )
+    trow = cur.fetchone() or {}
+    project["total_tasks"] = int(trow.get("total_tasks") or 0)
+    project["completed_tasks"] = int(trow.get("completed_tasks") or 0)
+    project["source"] = "Outsource"
+
+    return jsonify({k: _serialize(v) for k, v in project.items()})
+
+
+@bp.route("/vendor-projects/<int:project_id>/module-progress", methods=["GET"])
+@login_required
+def vendor_project_module_progress(project_id):
+    """
+    GET /api/vendors/vendor-projects/<id>/module-progress
+    Returns module-wise completion percentage and status counts for an outsourced project.
+    Ported logic from projects.py project_module_progress to ensure frontend compatibility.
+    """
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+
+    # 1. Fetch project to get its defined modules
+    cur.execute(
+        "SELECT id, modules FROM snh6_swiftproject.vendor_projects WHERE id = %s",
+        (project_id,),
+    )
+    proj = cur.fetchone()
+    if not proj:
+        return jsonify({"success": False, "message": "Project not found"}), 404
+
+    # 2. Fetch all vendor tasks for this project
+    cur.execute(
+        "SELECT status, modules_name FROM snh6_swiftproject.vendor_task WHERE project_id = %s",
+        (project_id,),
+    )
+    tasks = cur.fetchall()
+
+    # Aggregate status counts
+    status_counts = {"todo": 0, "inprogress": 0, "paused": 0, "completed": 0}
+    for t in tasks:
+        s = str(t.get("status") or "").lower()
+        if s in {"todo", "pending"}: status_counts["todo"] += 1
+        elif s in {"inprogress", "in progress", "active"}: status_counts["inprogress"] += 1
+        elif s in {"pause", "paused"}: status_counts["paused"] += 1
+        elif s in {"completed", "complete", "done"}: status_counts["completed"] += 1
+
+    # Overall completion %
+    total_tasks = len(tasks)
+    completed_tasks = status_counts["completed"]
+    overall_percentage = round((completed_tasks / total_tasks * 100), 2) if total_tasks > 0 else 0.0
+
+    # 3. Determine module list
+    raw_modules = (proj.get("modules") or "").strip()
+    module_names = []
+    if raw_modules:
+        # Compatibility: split by semicolon or comma
+        sep = ";" if ";" in raw_modules else ","
+        module_names = [m.strip() for m in raw_modules.split(sep) if m.strip()]
+    else:
+        # Fallback to tasks
+        derived = {str(t.get("modules_name") or "").strip() for t in tasks}
+        module_names = sorted([m for m in derived if m])
+
+    # 4. Aggregate by module
+    module_stats = []
+    for mname in module_names:
+        m_tasks = [t for t in tasks if str(t.get("modules_name") or "").strip() == mname]
+        m_total = len(m_tasks)
+        m_completed = sum(1 for t in m_tasks if str(t.get("status") or "").lower() in {"completed", "complete", "done"})
+        m_pct = round((m_completed / m_total * 100), 2) if m_total > 0 else 0.0
+        
+        module_stats.append({
+            "module_name": mname,
+            "total_tasks": m_total,
+            "completed_tasks": m_completed,
+            "completion_percentage": m_pct
+        })
+
+    return jsonify({
+        "success": True,
+        "project_id": project_id,
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "project_completion_percentage": overall_percentage,
+        "status_counts": status_counts,
+        "modules": module_stats
+    })
+
+
+@bp.route("/vendor-projects/filters/modules", methods=["POST"])
+@login_required
+def get_vendor_project_modules():
+    """
+    POST /api/vendors/vendor-projects/filters/modules
+    Returns modules for a given vendor project.
+    """
+    data = request.get_json(silent=True) or {}
+    project_id = data.get("projectId")
+    if not project_id:
+        return jsonify({"modules": []})
+
+    conn = get_db()
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        "SELECT modules FROM snh6_swiftproject.vendor_projects WHERE id = %s",
+        (project_id,),
+    )
+    row = cur.fetchone()
+    if not row or not row.get("modules"):
+        return jsonify({"modules": []})
+
+    raw = row["modules"]
+    # Usually modules are stored as "Mod1;Mod2" or similar in this system
+    sep = ";" if ";" in raw else ","
+    parts = [p.strip() for p in raw.split(sep) if p.strip()]
+    modules = [{"label": p} for p in parts]
+
+    return jsonify({"modules": modules})
 
 
 @bp.route("/vendor-projects", methods=["POST"])

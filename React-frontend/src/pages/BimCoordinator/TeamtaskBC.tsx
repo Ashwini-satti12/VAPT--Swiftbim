@@ -80,7 +80,7 @@ export default function TeamtaskBC() {
     }, [searchParams]);
     const [selectedShow, setSelectedShow] = useState<string | null>("Show");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
     const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
 
     const navigate = useNavigate();
@@ -134,7 +134,12 @@ export default function TeamtaskBC() {
         });
 
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, {
+        const isOutsource = task?.source === "Outsource";
+        const endpoint = isOutsource 
+            ? `/api/vendors/vendor-tasks/${taskId}/status` 
+            : `/api/tasks/${taskId}/status`;
+
+        api.patch(endpoint, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
             projectId
         }).catch(err => {
@@ -147,7 +152,7 @@ export default function TeamtaskBC() {
     };
 
     const openDeleteTask = (task: Task) => {
-        setDeleteTaskId(task.id);
+        setDeleteTask(task);
     };
 
     const openViewTask = (task: Task) => {
@@ -176,15 +181,30 @@ export default function TeamtaskBC() {
 
     useEffect(() => {
         api.get<{ employees: Employee[] }>("/api/employees").then(res => setEmployees((res.data.employees || []).filter(isEmployeeActiveForProjectAssignment)));
-        api.get<{ projects: Project[] }>("/api/projects").then(res => setProjects(res.data.projects || []));
+        
+        Promise.all([
+            api.get<{ projects: Project[] }>("/api/projects"),
+            api.get<{ projects: Project[] }>("/api/vendors/vendor-projects")
+        ]).then(([res1, res2]) => {
+            const internal = (res1.data.projects || []).map(p => ({ ...p, source: "In House" }));
+            const vendor = (res2.data.projects || []).map(p => ({ ...p, source: "Outsource" }));
+            setProjects([...internal, ...vendor] as Project[]);
+        });
     }, []);
 
     useEffect(() => {
         const params: Record<string, string> = { condition: "1", employeeid: "all" };
         if (statusFilter) params.status = statusFilter;
-        api
-            .get<{ tasks?: Task[] }>("/api/tasks", { params })
-            .then(({ data }) => setList(data.tasks ?? []))
+        
+        Promise.all([
+            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
+        ])
+            .then(([res1, res2]) => {
+                const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                setList([...internal, ...vendor] as Task[]);
+            })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     }, [statusFilter]);
@@ -195,13 +215,18 @@ export default function TeamtaskBC() {
     }, [localTasks, deletedIds]);
 
     const confirmDeleteTask = async () => {
-        if (deleteTaskId === null) return;
+        if (deleteTask === null) return;
         try {
-            await api.delete(`/api/tasks/${deleteTaskId}`);
-            setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-            setDeletedIds((prev) => [...prev, deleteTaskId]);
-            setDeleteTaskId(null);
+            const isOutsource = deleteTask.source === "Outsource";
+            const endpoint = isOutsource 
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+                : `/api/tasks/${deleteTask.id}`;
+
+            await api.delete(endpoint);
+            setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
+            setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
+            setDeletedIds((prev) => [...prev, deleteTask.id]);
+            setDeleteTask(null);
         } catch (error) {
             console.error("Error deleting task:", error);
         }
@@ -464,37 +489,41 @@ export default function TeamtaskBC() {
                 </div>
             </div>
 
-            {/* Delete Task confirmation modal */}
-            {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
+            {deleteTask !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                        {/* Close */}
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTask(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
+                                onClick={() => setDeleteTask(null)}
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                Discard
                             </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">Delete Task</h3>
-                            <div className="w-9" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">Are you sure, you want to Delete this Task?</p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
-                            >Discard</button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
-                            >Yes, Delete</button>
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
+                            >
+                                Yes, Delete
+                            </button>
                         </div>
                     </div>
                 </div>
