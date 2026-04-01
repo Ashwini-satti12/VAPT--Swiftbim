@@ -533,7 +533,7 @@ function TaskCard({
     );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "50-100", "101-150", "151-200","201-250","251-300","All"];
 const PERIOD_OPTIONS = [
     "Period",
     "This Week",
@@ -559,7 +559,7 @@ export default function TeamtaskEV() {
     const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [selectedProject, setSelectedProject] = useState<string | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+    const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
 
@@ -818,7 +818,7 @@ export default function TeamtaskEV() {
                         maxVisibleItems={5}
                     />
                     <TaskDropdown
-                        label="Show"
+                        label="Show Entries"
                         options={SHOW_OPTIONS}
                         selected={selectedShow}
                         onSelect={setSelectedShow}

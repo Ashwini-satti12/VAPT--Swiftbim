@@ -366,7 +366,7 @@ export default function VendorBimLeadTeamTasks() {
         const payload = {
             task_name: editForm.taskName,
             description: editForm.description,
-            status: selectedTask.status, 
+            status: selectedTask.status,
             category: editForm.priority || "Medium",
             due_date: editForm.actualEndDate || undefined,
             start_date: editForm.actualStartDate || undefined,
@@ -670,8 +670,8 @@ export default function VendorBimLeadTeamTasks() {
                         {(() => {
                             const src = task.assigned_to != null && (task as any).assigned_profile_picture
                                 ? getGlobalProfileUrl(task.assigned_to, (task as any).assigned_profile_picture)
-                                : (task as any).assigned_profile_picture 
-                                    ? getProfileUrl((task as any).assigned_profile_picture) 
+                                : (task as any).assigned_profile_picture
+                                    ? getProfileUrl((task as any).assigned_profile_picture)
                                     : "";
                             const initials = (task.assigned_to_name || "U")[0].toUpperCase();
                             return (

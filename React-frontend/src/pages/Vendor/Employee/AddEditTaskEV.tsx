@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import {
   useSearchParams,
   useLocation,
@@ -867,26 +869,33 @@ export default function AddEditTaskEV() {
                     <span className="truncate min-w-0" title={file.name}>
                       {file.name}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-[#F2F3F4] hover:text-slate-700"
-                      aria-label={`Remove ${file.name}`}
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const url = URL.createObjectURL(file);
+                                                                window.open(url, "_blank");
+                                                            }}
+                                                            className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                                            aria-label={`View ${file.name}`}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAttachment(index)}
+                                                            className="p-1 rounded text-black hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                                                            aria-label={`Remove ${file.name}`}
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                   </li>
                 ))}
               </ul>
