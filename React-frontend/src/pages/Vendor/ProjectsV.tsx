@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
+import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
@@ -29,17 +30,21 @@ interface Project {
     due_date?: string;
     totalhours?: string;
     perday?: string;
+    per_day?: string;
     department?: string;
     lead_id?: string;
     bim_coordinator_id?: string;
     members?: string;
     no_resource?: string;
+    resources?: string;
     no_resources_required?: string;
+    required_resources?: string;
     priority?: string;
     location?: string;
     description?: string;
     budget_ceiling?: string;
     bidding_end_date?: string;
+    end_date?: string;
     proposal_id?: number;
     opportunity_id?: number;
     deliverables?: string;
@@ -54,6 +59,9 @@ interface Employee {
 }
 
 export default function ProjectsV() {
+    const { user: authUser } = useAuth();
+    const userRole = authUser?.user_role || "";
+
     const [list, setList] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [openMenuProjectId, setOpenMenuProjectId] = useState<number | null>(null);
@@ -359,9 +367,9 @@ export default function ProjectsV() {
             ""
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-        setCreateEndDate(p.due_date || "");
+        setCreateEndDate(p.end_date || p.due_date || "");
         setCreateTotalHours(p.totalhours || "");
-        setCreatePerDay(p.perday || "");
+        setCreatePerDay(p.per_day || p.perday || "");
         // Resolve BIM Lead from bimLeads array (vendor BIM Leads from vendor-by-role API)
         // Fall back to allEmployees if not found in bimLeads
         setCreateBIMLead(
@@ -370,8 +378,8 @@ export default function ProjectsV() {
             ""
         );
         setCreateBIMCoOrdinator(idToName(p.bim_coordinator_id, allEmployees));
-        setCreateResources(p.no_resource || "");
-        setCreateRequiredResources(p.no_resources_required || "");
+        setCreateResources(p.resources || p.no_resource || "");
+        setCreateRequiredResources(p.required_resources || p.no_resources_required || "");
         setCreatePriority(p.priority || "");
         setCreateLocation(p.location || "");
         // Strip HTML tags / entities so the textarea shows clean text
@@ -608,18 +616,20 @@ export default function ProjectsV() {
                 </div>
 
                 {/* Row 2: Client Budget (read-only), Outsourcing Budget */}
-                <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">
-                        Budget
-                    </label>
-                    <input
-                        type="text"
-                        readOnly
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
-                        placeholder="Auto-fetched from contract"
-                        value={createBudget}
-                    />
-                </div>
+                {userRole === "Vendor" && (
+                    <div className="space-y-2">
+                        <label className="block text-[16px] font-medium text-[#000000]">
+                            Budget
+                        </label>
+                        <input
+                            type="text"
+                            readOnly
+                            className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] font-medium text-gray-500 cursor-not-allowed"
+                            placeholder="Auto-fetched from contract"
+                            value={createBudget}
+                        />
+                    </div>
+                )}
 
                 {/* Row 3: Bidding End Date, Project Manager */}
                 <div className="space-y-2">
@@ -796,7 +806,16 @@ export default function ProjectsV() {
                 {/* Row 5: Start Date, End Date */}
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-                    <input type="date" value={createStartDate} onChange={e => setCreateStartDate(e.target.value)}
+                    <input type="date" value={createStartDate} 
+                        onChange={e => {
+                            const val = e.target.value;
+                            setCreateStartDate(val);
+                            if (val && (!createEndDate || createEndDate === "")) {
+                                const d = new Date(val);
+                                d.setMonth(d.getMonth() + 6);
+                                setCreateEndDate(d.toISOString().split('T')[0]);
+                            }
+                        }}
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" />
                 </div>
                 <div className="space-y-2">
@@ -1071,64 +1090,73 @@ export default function ProjectsV() {
                             </div>
 
 
-                            {/* Team Overview */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-4">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000] mb-8">
+                            {/* Team Roles Section */}
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-8 space-y-6">
+                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">
                                     Team Overview
                                 </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8 md:gap-12 items-center">
-                                    {/* Project Manager/Technical Lead */}
-                                    <div className="min-w-0">
-                                        <p className="text-md font-Gantari font-semibold text-[#000000] mb-2">
-                                            Team Members
-                                        </p>
-                                        <div className="flex items-center -space-x-3">
-                                            {(() => {
-                                                const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
-                                                const projectMembers = memberIds.map(id => {
-                                                    return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
-                                                }).filter(Boolean);
-
-                                                const visibleMembers = projectMembers.slice(0, 3);
-                                                const remainingCount = Math.max(0, projectMembers.length - 3);
-
-                                                return (
-                                                    <>
-                                                        {visibleMembers.map((emp: any) => {
-                                                            const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                            return (
-                                                                <div key={emp.id} className="relative group shrink-0">
-                                                                    <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                                                        {profileUrl ? (
-                                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                        ) : (
-                                                                            <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                                                                {(emp.full_name || "M").charAt(0).toUpperCase()}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                        {emp.full_name}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        {remainingCount > 0 && (
-                                                            <div className="relative group shrink-0">
-                                                                <div className="relative z-10 w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-500 shadow-sm shrink-0">
-                                                                    +{remainingCount}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        {projectMembers.length === 0 && (
-                                                            <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
-                                                                <span className="text-slate-600 text-xs font-bold">TM</span>
-                                                            </div>
-                                                        )}
-                                                    </>
-                                                );
-                                            })()}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    {[
+                                        { label: "Project Manager", id: selectedProject.project_manager_id },
+                                        { label: "BIM Lead", id: selectedProject.lead_id },
+                                        { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
+                                    ].map((role) => (
+                                        <div key={role.label} className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                                                <span className="text-slate-400 font-bold text-sm">
+                                                    {getEmployeeName(role.id) ? getEmployeeName(role.id).charAt(0).toUpperCase() : "??"}
+                                                </span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-xs font-bold text-[#999999] uppercase tracking-wider">
+                                                    {role.label}
+                                                </p>
+                                                <p className="text-[15px] font-bold text-[#353535] truncate">
+                                                    {getEmployeeName(role.id) || "Not assigned"}
+                                                </p>
+                                            </div>
                                         </div>
+                                    ))}
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-100">
+                                    <p className="text-xs font-bold text-[#999999] uppercase tracking-wider mb-4">
+                                        Team Members
+                                    </p>
+                                    <div className="flex flex-wrap gap-3">
+                                        {(() => {
+                                            const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
+                                            const projectMembers = memberIds.map(id => {
+                                                return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                            }).filter(Boolean);
+
+                                            return (
+                                                <>
+                                                    {projectMembers.map((emp: any) => {
+                                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                        return (
+                                                            <div key={emp.id} className="relative group shrink-0">
+                                                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
+                                                                    {profileUrl ? (
+                                                                        <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
+                                                                            {(emp.full_name || "M").charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none text-center">
+                                                                    {emp.full_name}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {projectMembers.length === 0 && (
+                                                        <p className="text-sm font-medium text-slate-400 italic">No team members assigned</p>
+                                                    )}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -1136,83 +1164,88 @@ export default function ProjectsV() {
 
                             {/* Project Details */}
                             <div className="rounded-lg border border-slate-200 p-6 md:p-8">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#1A1A1A] mb-6">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#1A1A1A] mb-6">
                                     Project Details
                                 </h4>
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                                     <div className="space-y-4 md:space-y-5">
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Priority
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.priority || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Budget
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.budget || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Actual Start Date
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
                                                 {formatDate(selectedProject.start_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Location
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Total Project Hours
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.location || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.totalhours ? `${selectedProject.totalhours}hrs` : "N/A"}
+                                            </span>
+                                        </div>
+                                        {userRole === "Vendor" && (
+                                            <>
+                                                <div className="flex flex-col sm:flex-row sm:items-center">
+                                                    <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                        Budget
+                                                    </span>
+                                                    <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                                    <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                        {selectedProject.budget ? `${selectedProject.budget}$` : "N/A"}
+                                                    </span>
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Total Resources Available
+                                            </span>
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.resources || selectedProject.no_resource || "N/A"}
                                             </span>
                                         </div>
                                     </div>
+
                                     <div className="space-y-4 md:space-y-5">
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Location
+                                            </span>
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.location || "N/A"}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row sm:items-center">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Actual End Date
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {formatDate(selectedProject.due_date)}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {formatDate(selectedProject.end_date || selectedProject.due_date)}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Total Project Hours
-                                            </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.totalhours || "—"}
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
                                                 Hours/Day
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.perday || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.per_day || selectedProject.perday ? `${selectedProject.per_day || selectedProject.perday}hrs` : "N/A"}
                                             </span>
                                         </div>
                                         <div className="flex flex-col sm:flex-row sm:items-center">
-                                            <span className="w-full sm:w-48 text-md font-Gantari font-medium text-[#353535]">
-                                                Modules
+                                            <span className="w-full sm:w-48 text-[16px] font-gantari font-medium text-[#353535]">
+                                                Required Resources
                                             </span>
-                                            <span className="hidden sm:inline text-[#999999] mr-4">:</span>
-                                            <span className="text-md font-Gantari font-medium text-[#666666]">
-                                                {selectedProject.modules || "—"}
+                                            <span className="hidden sm:inline text-[#616161] mr-4">:</span>
+                                            <span className="text-[16px] font-gantari font-medium text-[#616161]">
+                                                {selectedProject.required_resources || selectedProject.no_resources_required || "N/A"}
                                             </span>
                                         </div>
                                     </div>
@@ -1398,6 +1431,15 @@ export default function ProjectsV() {
                                                         <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                                                             {p.project_name ?? "Untitled Project"}
                                                         </h3>
+                                                        {(userRole === "Vendor") && (
+                                                            <div className="mt-1 space-y-0.5">
+                                                                {p.budget_ceiling && (
+                                                                    <p className="text-[13px] font-Gantari font-medium text-[#666666]">
+                                                                        Outsourcing Budget: <span className="font-bold text-[#353535]">{p.budget_ceiling}</span>
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
 

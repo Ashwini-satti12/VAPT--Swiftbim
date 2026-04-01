@@ -148,6 +148,7 @@ interface Project {
   description?: string;
   tasks?: string;
   document_attachment?: string;
+  budget_ceiling?: string;
 }
 
 interface Milestone {
@@ -385,6 +386,7 @@ export default function ProjectsBL() {
     tasks: r.tasks != null ? String(r.tasks) : undefined,
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
+    budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
   });
 
   const fetchMilestones = (projectId: number) => {
@@ -991,11 +993,7 @@ export default function ProjectsBL() {
                 </h4>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-4 md:gap-y-6 lg:gap-x-20">
                   <div className="space-y-4 md:space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Client Name</span>
-                      <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.client_name || "N/A"}</span>
-                    </div>
+
                     <div className="flex flex-col sm:flex-row sm:items-center">
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Actual Start Date</span>
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>
@@ -1011,9 +1009,9 @@ export default function ProjectsBL() {
                       <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.total_hours ? `${selectedProjectForView.total_hours}hrs` : "N/A"}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
-                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Budget</span>
+                      <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Outsourcing Budget</span>
                       <span className="hidden sm:inline text-[#616161] mr-4">:</span>
-                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.budget ? `${selectedProjectForView.budget}` : "N/A"}</span>
+                      <span className="text-[16px] font-Gantari font-medium text-[#616161]">{selectedProjectForView.budget_ceiling || "N/A"}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center">
                       <span className="w-full sm:w-48 text-[16px] font-Gantari font-medium text-[#353535]">Resources Available</span>
