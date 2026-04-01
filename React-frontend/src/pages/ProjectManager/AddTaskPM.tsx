@@ -561,24 +561,24 @@ export default function AddTaskPM() {
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col overflow-hidden p-2 bg-white">
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-        <div className="max-w-[1174px] mx-auto">
-          <div className="flex items-center justify-between mb-8 sm:mb-10 relative">
+    <div className="h-full flex-1 min-h-0 p-2 bg-white overflow-hidden overflow-y-hidden">
+      <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col overflow-hidden overflow-y-hidden">
+        <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
             <button
               type="button"
               onClick={goBack}
-              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all"
+              className="p-2 rounded-lg bg-[#F4F4F4] text-[#1A1A1A] transition-all cursor-pointer"
               title="Back"
             >
               <img src={backIcon} alt="Back" className="w-5 h-5" />
             </button>
-            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#000000] font-Gantari text-center flex-1">
+            <h3 className="text-[20px] sm:text-[24px] font-semibold text-[#020202] font-Gantari text-center flex-1">
               {editingTaskId !== null ? "Edit Task" : "Add New Task"}
             </h3>
             <div className="w-10" />
-          </div>
+        </div>
 
+        <div className="flex-1 min-h-0 pr-1 -mr-1 overflow-y-auto custom-scrollbar">
           <form onSubmit={handleSubmit} className="space-y-6">
             {addError && (
               <div className="mb-3 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">

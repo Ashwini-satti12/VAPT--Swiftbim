@@ -94,18 +94,18 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={value ? "text-[#353535]" : "text-[#616161]"}>
+                <span className={value ? "text-[#353535]" : "text-[#8B8B8B]"}>
                     {displayLabel}
                 </span>
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
@@ -137,7 +137,7 @@ function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -195,7 +195,7 @@ function TaskDropdown({
             });
         })()
         : options;
-    const listMaxHeight = searchable ? `${maxVisibleItems * 40}px` : undefined;
+    const listMaxHeight = `${maxVisibleItems * 40}px`;
 
     return (
         <div className="relative">
@@ -206,15 +206,15 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
                     {label.toLowerCase() === 'show' && selected && selected !== label ? (
                         <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
                             <span>{selected}</span>
                         </>
                     ) : (
@@ -224,14 +224,14 @@ function TaskDropdown({
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full z-10 mt-1 rounded-lg border border-gray-200 bg-white shadow-lg ${narrow ? "right-0 min-w-[110px]" : "left-0 min-w-[160px]"}`}
                 >
                     {searchable && (
                         <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
@@ -262,7 +262,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -471,7 +471,7 @@ function TaskCard({
     onDeleteTask?: (task: Task) => void;
 }) {
     const progress =
-        task.progress !== undefined
+        typeof task.progress === "number"
             ? task.progress
             : status === "todo"
                 ? 0
@@ -504,14 +504,29 @@ function TaskCard({
 
     const isCompleted = status === "completed";
 
+    const assigneeInitials = (task.assigned_full_name || "U")
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+    const uploaderInitials = (task.uploader_full_name || "S")
+        .split(" ")
+        .filter(Boolean)
+        .map((p) => p[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+
     return (
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-center justify-between gap-2 mb-2">
-                <h4 className="font-semibold text-slate-900 text-xl truncate">
+                <h4 className="font-semibold text-[#353535] text-[20px] truncate">
                     {task.task_name || "Task Name"}
                 </h4>
                 <div className="relative" ref={menuRef}>
@@ -522,15 +537,15 @@ function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                        className="p-0.5 rounded cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
-                        <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                        <img src={Dot} alt="Dot" className="w-5 h-5 text-slate-600" />
                     </button>
                     {menuOpen && (
                         <div
-                            className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"}
+                            className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
                                 ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
                             role="menu"
                         >
@@ -548,62 +563,80 @@ function TaskCard({
                                     alt="view"
                                     className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                                 />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65]">
-                <span>{(task.start_date || task.Actual_start_time) ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, '0')}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}` : "—"}</span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="flex flex-col ">
+                    <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {(task.start_date || task.Actual_start_time)
+                            ? `${new Date(task.start_date || task.Actual_start_time!).getDate().toString().padStart(2, "0")}-${(new Date(task.start_date || task.Actual_start_time!).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.start_date || task.Actual_start_time!).getFullYear()}`
+                            : "—"}
+                    </span>
+                </div>
 
-                <span>{task.due_date ? `${new Date(task.due_date).getDate().toString().padStart(2, '0')}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, '0')}-${new Date(task.due_date).getFullYear()}` : ""}</span>
+                <div className="flex flex-col items-end gap-1">
+                    <span className="text-[14px] font-medium text-[#000000]">End Date</span>
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
+                        {task.due_date
+                            ? `${new Date(task.due_date).getDate().toString().padStart(2, "0")}-${(new Date(task.due_date).getMonth() + 1).toString().padStart(2, "0")}-${new Date(task.due_date).getFullYear()}`
+                            : ""}
+                    </span>
+                </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-[#8B8B8B]">Progress</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#8B8B8B]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -612,7 +645,7 @@ function TaskCard({
                     <div className="flex -space-x-2">
                         {/* Assigned To Profile */}
                         <div
-                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            className="w-7 h-7 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                             title={`Assigned to: ${task.assigned_full_name || "Unassigned"}`}
                         >
                             {task.assigned_profile_picture ? (
@@ -628,23 +661,21 @@ function TaskCard({
                                             const parent = target.parentElement;
                                             if (parent) {
                                                 const span = document.createElement("span");
-                                                span.className = "text-[10px] font-bold text-[#DD4342]";
-                                                span.innerText = (task.assigned_full_name || "U").charAt(0).toUpperCase();
+                                                span.className = "text-[10px] font-semibold text-slate-700";
+                                                span.innerText = assigneeInitials;
                                                 parent.appendChild(span);
                                             }
                                         };
                                     }}
                                 />
                             ) : (
-                                <span className="text-[10px] font-bold text-[#DD4342]">
-                                    {(task.assigned_full_name || "U").charAt(0).toUpperCase()}
-                                </span>
+                                <span>{assigneeInitials}</span>
                             )}
                         </div>
 
                         {/* Uploader Profile */}
                         <div
-                            className="w-7 h-7 rounded-full border-2 border-white bg-[#F0F0F0] flex items-center justify-center overflow-hidden shrink-0"
+                            className="w-7 h-7 rounded-full bg-slate-200 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
                             title={`Assigned by: ${task.uploader_full_name || "System"}`}
                         >
                             {task.uploader_profile_picture ? (
@@ -660,29 +691,32 @@ function TaskCard({
                                             const parent = target.parentElement;
                                             if (parent) {
                                                 const span = document.createElement("span");
-                                                span.className = "text-[10px] font-bold text-[#DD4342]";
-                                                span.innerText = (task.uploader_full_name || "S").charAt(0).toUpperCase();
+                                                span.className = "text-[10px] font-semibold text-slate-700";
+                                                span.innerText = uploaderInitials;
                                                 parent.appendChild(span);
                                             }
                                         };
                                     }}
                                 />
                             ) : (
-                                <span className="text-[10px] font-bold text-[#DD4342]">
-                                    {(task.uploader_full_name || "S").charAt(0).toUpperCase()}
-                                </span>
+                                <span>{uploaderInitials}</span>
                             )}
                         </div>
                     </div>
                 </div>
-                <Link
-                    to={`/tasks/${task.id}`}
+                <button
+                    type="button"
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 cursor-pointer"
+                    onClick={() => onViewTask?.(task)}
+                    className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
-                    <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                </Link>
+                    <img
+                        src={Arrow}
+                        alt="Arrow"
+                        className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
+                    />
+                </button>
             </div>
         </div>
     );
@@ -1013,7 +1047,7 @@ export default function MytaskBM() {
                 {/* Top row: title + dropdowns + Add task */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
                     <h2 className="text-[24px] font-semibold text-slate-800 font-Gantari">
-                        {ismy ? "my Task" : "My Task"}
+                        My Task
                     </h2>
                     <div
                         ref={dropdownsContainerRef}
@@ -1100,7 +1134,7 @@ export default function MytaskBM() {
                                 });
                                 setAddTaskModalOpen(true);
                             }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm cursor-pointer"
+                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm cursor-pointer"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1112,7 +1146,7 @@ export default function MytaskBM() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                     <Link
                         to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative cursor-pointer"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "todo" ? "bg-orange-50 border-orange-300 ring-1 ring-orange-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">To Do</span>
 
@@ -1128,7 +1162,7 @@ export default function MytaskBM() {
                                 ? pathname
                                 : `${pathname}?status=in_progress`
                         }
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative cursor-pointer"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "in_progress" ? "bg-sky-50 border-sky-300 ring-1 ring-sky-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">In Progress</span>
 
@@ -1144,7 +1178,7 @@ export default function MytaskBM() {
                                 ? pathname
                                 : `${pathname}?status=completed`
                         }
-                        className="flex p-4 gap-4 rounded-xl border border-slate-200 bg-white py-4 shadow-sm hover:shadow-md transition-shadow relative cursor-pointer"
+                        className={`flex p-4 gap-4 rounded-xl border py-4 shadow-sm hover:shadow-md transition-all relative cursor-pointer ${statusFilter === "completed" ? "bg-emerald-50 border-emerald-300 ring-1 ring-emerald-300" : "bg-white border-slate-200"}`}
                     >
                         <span className="text-xl font-bold text-[#0D1829]">Completed</span>
 
@@ -1158,9 +1192,9 @@ export default function MytaskBM() {
 
             {/* Task columns scrollable area */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -1183,7 +1217,7 @@ export default function MytaskBM() {
                     ))}
                 </div>
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";
@@ -1206,7 +1240,7 @@ export default function MytaskBM() {
                     ))}
                 </div>
                 <div
-                    className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                    className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = "move";

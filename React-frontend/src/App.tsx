@@ -68,6 +68,7 @@ import EditConsultantBL from './pages/BimLead/EditConsultantBL';
 import ConsultantdetailsBL from './pages/BimLead/ConsultantdetailsBL';
 import ProjectsBL from './pages/BimLead/ProjectsBL';
 import MytaskBL from './pages/BimLead/MytaskBL';
+import AddTaskBL from './pages/BimLead/AddTaskBL';
 import TeamtaskBL from './pages/BimLead/TeamtaskBL';
 import CreateteamBL from './pages/BimLead/CreateteamBL';
 import TrackerBL from './pages/BimLead/TrackerBL';
@@ -226,6 +227,8 @@ function App() {
             <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
+            <Route path="bl/mytasks/add" element={<AddTaskBL />} />
+            <Route path="bl/teamtasks/add" element={<AddTaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
             <Route path="bl/createteam" element={<CreateteamBL />} />
             <Route path="bl/tracker" element={<TrackerBL />} />

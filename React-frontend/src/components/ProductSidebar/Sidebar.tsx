@@ -574,6 +574,16 @@ export default function ProductSidebar({ onMenuClick }: SidebarProps) {
   const isActive = (path: string, name: string) => {
     const normalizedCurrent = location.pathname.toLowerCase().replace(/\/+$/, '');
     const normalizedTarget = path.toLowerCase().replace(/\/+$/, '');
+    const fromState = (location.state as { from?: string } | null)?.from;
+    const openedFromTeamTask = fromState === "teamtask" || fromState === "teamtasks";
+    const fromTeamTaskView =
+      openedFromTeamTask &&
+      (normalizedCurrent === "/tasks/taskview" || normalizedCurrent.endsWith("/mytasks/view"));
+
+    if (fromTeamTaskView) {
+      if (name === "Team Task" && (normalizedTarget === "/teamtask" || normalizedTarget.endsWith("/teamtasks"))) return true;
+      if (name === "My Task" && (normalizedTarget === "/tasks" || normalizedTarget.endsWith("/mytasks"))) return false;
+    }
 
     if (normalizedCurrent === normalizedTarget) return true;
     

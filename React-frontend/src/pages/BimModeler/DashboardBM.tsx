@@ -204,28 +204,28 @@ export default function DashboardBM() {
                 <h1 className="text-xl font-medium font-gantari text-slate-800 mb-6">Dashboard</h1>
                 {/* KPI Grid — same style as DashboardTD */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
+                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-[16px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Total Projects</h3>
+                        <p className="text-[18px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.totalProjects}</p>
                     </Link>
-                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
+                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-[16px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Projects</h3>
+                        <p className="text-[18px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedProjects}</p>
                     </Link>
-                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
+                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-[16px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">In-Progress Task</h3>
+                        <p className="text-[18px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.inProgressTasks}</p>
                     </Link>
-                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-xl border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
-                        <h3 className="text-sm sm:text-base text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
-                        <p className="text-xl sm:text-2xl text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
+                    <Link to="/bm/mytasks" className="bg-[#F2F2F2] group hover:bg-[#DD4342] rounded-md border border-[#AEACAC52] px-4 py-6 shadow-sm flex items-center justify-between min-h-0 cursor-pointer no-underline">
+                        <h3 className="text-[16px] sm:text-[18px] text-[#353535] group-hover:text-[#F2F2F2] font-semibold font-gantari">Completed Task</h3>
+                        <p className="text-[18px] sm:text-[20px] text-[#353535] group-hover:text-[#F2F2F2] font-bold leading-none">{stats.completedTasks}</p>
                     </Link>
                 </div>
             </div>
 
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4 overflow-visible lg:overflow-hidden">
                 {/* Today's Priority — projects with today's tasks (same as DashboardTD) */}
-                <div className="lg:col-span-2 flex flex-col bg-white rounded-2xl border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
+                <div className="lg:col-span-2 flex flex-col bg-white rounded-md border border-[#AEACAC52] shadow-sm pt-4 pl-4 pb-4 pr-0 h-[500px] lg:h-full overflow-hidden">
                     <div className="mb-4 shrink-0">
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
@@ -312,7 +312,7 @@ export default function DashboardBM() {
 
                 {/* Calendar & Celebrations — same design as DashboardTD */}
                 <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-full overflow-hidden">
-                    <div className="bg-white rounded-2xl border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
+                    <div className="bg-white rounded-md border border-[#AEACAC52] pl-4 pb-4 pr-0 shadow-sm flex flex-col h-full min-h-0">
                         <div className="flex flex-wrap items-center justify-between gap-3 mb-4 shrink-0 pt-2 px-2">
                             <div className="flex flex-col items-start min-w-[70px]">
                                 <span className="text-[15px] lg:text-[17px] font-semibold text-black font-gantari leading-tight">{currentMonthName}</span>

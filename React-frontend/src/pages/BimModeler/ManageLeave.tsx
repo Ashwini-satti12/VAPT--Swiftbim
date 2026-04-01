@@ -3,6 +3,10 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import viewIcon from '../../assets/BIMModeler/ManageLeave/view icon.svg';
+import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
+import closeIcon from '../../assets/ProductNavbarIcons/close button.svg';
+import editIcon from '../../assets/ProjectManager/project/editIcon.svg';
+import deleteIcon from '../../assets/ProjectManager/project/deleteIcon.svg';
 
 interface LeaveEntry {
     id: number;
@@ -23,6 +27,7 @@ interface LeaveEntry {
 // Local dummy list removed; data now comes from backend /api/leave/applications
 
 const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
+    { value: 'show', label: 'Show', start: 0, end: 50 },
     { value: '1-50', label: '1-50', start: 0, end: 50 },
     { value: '51-100', label: '51-100', start: 50, end: 100 },
     { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -105,6 +110,7 @@ export default function ManageLeave() {
     const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
     const [leaveTypeOpen, setLeaveTypeOpen] = useState(false);
     const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
     // Pagination state removed
@@ -186,6 +192,12 @@ export default function ManageLeave() {
             document.addEventListener('mousedown', handleClickOutside);
         }
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showEntriesOpen]);
+
+    useEffect(() => {
+        if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+            showEntriesDropdownContentRef.current.scrollTop = 0;
+        }
     }, [showEntriesOpen]);
 
     useEffect(() => {
@@ -453,7 +465,7 @@ export default function ManageLeave() {
     };
 
     return (
-        <div className="p-1 md:p-6 space-y-6 flex flex-col h-full bg-white">
+        <div className="p-1 space-y-6 flex flex-col h-full bg-white">
             {/* Header: Title + Show entries + Apply button */}
             <div className="flex items-center justify-between flex-shrink-0 px-2 pb-4 gap-4 flex-wrap">
                 <h2 className="text-[24px] font-semibold text-[#000000]">Manage Leaves</h2>
@@ -465,37 +477,44 @@ export default function ManageLeave() {
                                 e.stopPropagation();
                                 setShowEntriesOpen((o) => !o);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md hover:bg-[#DDDDDD] transition-all cursor-pointer border-0"
+                            className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px]"
                         >
-                            <span className="text-sm font-medium text-[#353535] font-gantari">Show:</span>
-                            <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#353535" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                                style={{ transform: showEntriesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                <path d="M6 9l6 6 6-6" />
-                            </svg>
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                {selectedShowEntries === 'show' ? (
+                                    <span className="text-[14px] font-medium text-[#616161] font-gantari">Show</span>
+                                ) : (
+                                    <>
+                                        <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">Show:</span>
+                                        <span className="text-[14px] font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </div>
+                            <img
+                                src={ArrowDown}
+                                alt=""
+                                className={`w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''}`}
+                            />
                         </button>
                         {showEntriesOpen && (
                             <div
-                                className="absolute top-full left-0 mt-1 z-50 bg-white rounded-md shadow-md min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
+                                ref={showEntriesDropdownContentRef}
+                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-full py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
                                 onMouseDown={(e) => e.preventDefault()}
                             >
-                                {showEntriesOptions.map((opt) => {
-                                    const isSelected = selectedShowEntries === opt.value;
-                                    return (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedShowEntries(opt.value);
-                                                setShowEntriesOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${isSelected ? 'text-black bg-[#F0F2F7]' : 'text-gray-500 hover:text-black hover:bg-[#F0F2F7] active:text-black active:bg-[#F0F2F7]'}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    );
-                                })}
+                                {showEntriesOptions.map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedShowEntries(opt.value);
+                                            setShowEntriesOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-sm font-medium font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? 'text-[#8B8B8B]' : 'text-[#8B8B8B]'} hover:bg-[#F2F2F2] hover:text-[#353535]`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
                             </div>
                         )}
                     </div>
@@ -515,19 +534,19 @@ export default function ManageLeave() {
                     <table className="min-w-full border-collapse">
                         <thead className="relative after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
                             <tr className="bg-[#FFFFFFF] text-[#353535]">
-                                <th className="px-4 py-4 text-center text-base font-semibold rounded-tl-2xl">Sl.No</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold">Employee Name</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold">Role</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold">Leave Type</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold">Applied On</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold">Status</th>
-                                <th className="px-4 py-4 text-center text-base font-semibold rounded-tr-2xl">Action</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold rounded-tl-2xl font-gantari">Sl.No</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold font-gantari">Employee Name</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold font-gantari">Role</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold font-gantari">Leave Type</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold font-gantari">Applied On</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold font-gantari">Status</th>
+                                <th className="px-4 py-4 text-center text-[16px] font-semibold rounded-tr-2xl font-gantari">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {displayedList.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 font-medium">
+                                    <td colSpan={7} className="px-4 py-6 text-center text-[14px] text-gray-400 font-medium">
                                         No leave records found
                                     </td>
                                 </tr>
@@ -541,22 +560,22 @@ export default function ManageLeave() {
                                             key={row.id}
                                             className={`${index % 2 === 1 ? 'bg-[#F2F2F2] hover:bg-gray-100' : 'bg-white'} transition-colors`}
                                         >
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600 font-medium">{slNoDisplay}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-800 font-semibold">{row.employeeName}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600">{row.role ?? '-'}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600">{row.leaveType}</td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-600">{row.appliedOn}</td>
-                                            <td className="px-4 py-3 text-center text-sm font-medium">
-<span className={`px-2 py-0.5 rounded ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFD9D9] text-[#E00100]' : 'bg-amber-100 text-amber-700'}`}>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari">{slNoDisplay}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari">{row.employeeName}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari">{row.role ?? '-'}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari">{row.leaveType}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] text-[#353535] font-gantari">{row.appliedOn}</td>
+                                            <td className="px-4 py-6 text-center text-[14px] font-medium font-gantari">
+<span className={`px-2 py-0.5 rounded text-[14px] ${row.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : row.currentStatus === 'Rejected' ? 'bg-[#FFD9D9] text-[#E00100]' : 'bg-[#FFEAD6] text-[#EB7200]'}`}>
                                                 {row.currentStatus}
                                             </span>
                                             </td>
-                                            <td className="px-4 py-3 text-center text-sm">
+                                            <td className="px-4 py-6 text-center text-[14px] font-gantari">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         type="button"
                                                         onClick={() => handleView(row)}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#DD4342] text-white rounded-md font-medium shadow-sm transition-opacity cursor-pointer"
+                                                        className="inline-flex items-center gap-2 px-3 py-2 bg-[#DD4342] text-white rounded-md text-[14px] font-medium shadow-sm transition-opacity cursor-pointer"
                                                     >
                                                         <img src={viewIcon} alt="" className="w-[16px] h-[16px] shrink-0 [filter:brightness(0)_invert(1)]" />
                                                         View
@@ -566,16 +585,28 @@ export default function ManageLeave() {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleEdit(row)}
-                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#E8E8E8] text-[#353535] hover:bg-[#D2D2D2] transition-colors cursor-pointer"
+                                                                className="inline-flex items-center justify-center py-2 px-2 rounded-md bg-[#E8E8E8] text-[#353535] transition-colors cursor-pointer"
+                                                                aria-label="Edit"
+                                                                title="Edit"
                                                             >
-                                                                Edit
+                                                                <img
+                                                                    src={editIcon}
+                                                                    alt=""
+                                                                    className="w-5 h-5 object-contain [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)]"
+                                                                />
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDelete(row)}
-                                                                className="inline-flex items-center px-3 py-1.5 rounded-md text-xs font-medium bg-[#C62828] text-white hover:bg-[#B71C1C] transition-colors cursor-pointer"
+                                                                className="inline-flex items-center justify-center p-2 rounded-md bg-[#E8E8E8] text-[#353535] transition-colors cursor-pointer"
+                                                                aria-label="Delete"
+                                                                title="Delete"
                                                             >
-                                                                Delete
+                                                                <img
+                                                                    src={deleteIcon}
+                                                                    alt=""
+                                                                    className="w-5 h-5 object-contain [filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                />
                                                             </button>
                                                         </>
                                                     )}
@@ -598,22 +629,17 @@ export default function ManageLeave() {
                         className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Modal header - title centered */}
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0">
-                            <div />
-                            <h3 className="text-lg font-bold text-[#353535] text-center">Apply Leave</h3>
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535] cursor-pointer"
-                                    aria-label="Close"
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
+                        {/* Modal header - close left, title centered */}
+                        <div className="relative flex items-center justify-center px-6 py-4 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={handleCloseModal}
+                                className="absolute left-6 top-1/2 -translate-y-1/2 p-2 rounded bg-[#F2F2F2] transition-colors text-[#353535] cursor-pointer"
+                                aria-label="Close"
+                            >
+                                <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                            </button>
+                            <h3 className="text-[24px] font-medium text-[#353535] text-center">Apply Leave</h3>
                         </div>
 
                         {/* Modal body */}
@@ -820,21 +846,16 @@ export default function ManageLeave() {
                         className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-4 flex-shrink-0">
-                            <div />
-                            <h3 className="text-lg font-bold text-[#353535] text-center">Edit Leave</h3>
-                            <div className="flex justify-end">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseEditModal}
-                                    className="p-1 rounded hover:bg-gray-100 transition-colors text-[#353535] cursor-pointer"
-                                    aria-label="Close"
-                                >
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 6L6 18M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
+                        <div className="relative flex items-center justify-center px-6 py-4 flex-shrink-0">
+                            <button
+                                type="button"
+                                onClick={handleCloseEditModal}
+                                className="absolute left-6 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-100 transition-colors text-[#353535] cursor-pointer"
+                                aria-label="Close"
+                            >
+                                <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                            </button>
+                            <h3 className="text-[24px] font-bold text-[#353535] text-center">Edit Leave</h3>
                         </div>
 
                         <form onSubmit={handleSubmitEdit} className="flex flex-col flex-1 overflow-y-auto p-6 space-y-4">
@@ -1053,18 +1074,16 @@ export default function ManageLeave() {
                             <button
                                 type="button"
                                 onClick={() => { setViewModalOpen(false); setSelectedLeave(null); }}
-                                className="absolute left-4 top-6 p-1.5 rounded bg-[#E0E0E0] hover:bg-gray-300 transition-colors text-black cursor-pointer"
+                                className="absolute left-4 top-6 p-1.5 rounded bg-[#F2F2F2] transition-colors text-black cursor-pointer"
                                 aria-label="Close"
                             >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M18 6L6 18M6 6l12 12" />
-                                </svg>
+                                <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
                             </button>
-                            <h3 className="text-lg font-bold text-black">Leave Details</h3>
+                            <h3 className="text-[24px] font-medium text-black">Leave Details</h3>
                         </div>
-                        <div className="px-6 pb-6 pt-4">
+                        <div className="px-6 pb-6 pt-6">
                             {/* Rows with fixed label width so colons align vertically (like second image) */}
-                            <div className="space-y-3 text-sm">
+                            <div className="space-y-5 text-[14px] font-gantari">
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Employee Name</span>
                                     <span className="shrink-0 text-black">:</span>
@@ -1098,7 +1117,7 @@ export default function ManageLeave() {
                                 <div className="flex items-center gap-1">
                                     <span className="w-[140px] shrink-0 font-semibold text-black">Current Status</span>
                                     <span className="shrink-0 text-black">:</span>
-                                    <span className={`inline-block font-medium px-2 py-0.5 rounded ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFD9D9] text-[#E00100]' : 'bg-amber-100 text-amber-700'}`}>
+                                    <span className={`inline-block font-medium px-2 py-0.5 rounded text-[14px] ${selectedLeave.currentStatus === 'Approved' ? 'bg-[#E1F6EB] text-[#008F22]' : selectedLeave.currentStatus === 'Rejected' ? 'bg-[#FFD9D9] text-[#E00100]' : 'bg-[#FFEAD6] text-[#EB7200]'}`}>
                                         {selectedLeave.currentStatus}
                                     </span>
                                 </div>

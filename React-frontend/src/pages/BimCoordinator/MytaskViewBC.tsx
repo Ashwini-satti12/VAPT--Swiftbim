@@ -113,6 +113,7 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
 export default function MytaskViewBC() {
   const location = useLocation();
   const task = (location.state as { task?: Task } | null)?.task;
+  const backToUrl = "/bc/mytasks";
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     task ? normalizeStatus(task.status, task.Approval) : "todo",
@@ -277,22 +278,23 @@ export default function MytaskViewBC() {
   const style = STATUS_STYLE[statusDisplay];
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="flex-1 flex flex-col min-h-0 bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
+      <div className="flex items-center justify-between px-6 pt-4 shrink-0">
         <Link
-          to="/bc/mytasks"
+          to={backToUrl}
           className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
         >
           <img src={backIcon} alt="Back" className="w-5 h-5" />
         </Link>
-        <h1 className="flex-1 text-center text-2xl font-semibold text-black">
+        <h1 className="flex-1 text-center text-[24px] font-semibold text-black">
           {task.task_name || "Task Name"}
         </h1>
         <div className="w-9" />
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6 scroll-smooth">
+        <div className="max-w-7xl mx-auto">
         {/* Status row */}
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-2">
@@ -311,12 +313,12 @@ export default function MytaskViewBC() {
               type="button"
               disabled={updatingStatus}
               onClick={() => setStatusDropdownOpen((prev) => !prev)}
-              className={`rounded bg-[#E8E8E8] px-3 py-2 text-xs text-black flex items-center gap-1 hover:bg-[#DDDDDD] transition-all ${updatingStatus ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+              className={`rounded-[5px] bg-[#E8E8E8] px-3 py-2 text-[14px] text-[#8B8B8B] flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer border-0 ${updatingStatus ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               aria-expanded={statusDropdownOpen}
               aria-haspopup="listbox"
             >
               {updatingStatus ? "Updating..." : "Select Status"}
-              <FiChevronDown className="w-4 h-4" />
+              <FiChevronDown className="w-5 h-5 text-[#8B8B8B]" />
             </button>
             {statusDropdownOpen && !updatingStatus && (
               <div
@@ -336,10 +338,10 @@ export default function MytaskViewBC() {
                     role="option"
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 cursor-pointer ${
+                    className={`w-full text-left px-3 py-2 text-[14px] flex items-center gap-2 transition-colors cursor-pointer ${
                       statusDisplay === opt.value
-                        ? "bg-slate-50 font-medium"
-                        : ""
+                        ? "bg-[#F2F2F2] text-[#353535] font-medium"
+                        : "text-[#8B8B8B] hover:bg-[#F2F2F2] hover:text-[#353535]"
                     }`}
                   >
                     <span
@@ -355,45 +357,45 @@ export default function MytaskViewBC() {
 
         {/* Two columns: Task details (left) + Submit Work (right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6">
-          <div className="space-y-3 text-sm">
+          <div className="space-y-4 text-[14px]">
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Project Name</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Project Name</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">{task.project_name || "—"}</span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">
                 Modules Name
               </span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {String(task.modules_name || task.module || "—")}
               </span>
             </div>
             <div className="flex gap-2 items-center">
-              <span className="text-black shrink-0 w-28">Category</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Category</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {String(task.category || task.type || "—")}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned By</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned By</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.uploader_full_name ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Assigned To</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Assigned To</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.assigned_full_name ?? task.assign_to ?? "—"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Start Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.start_date || task.Actual_start_time
                   ? formatDateDDMMYYYY(
@@ -403,15 +405,15 @@ export default function MytaskViewBC() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Due Date</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 w-32">Due Date</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date ? formatDateDDMMYYYY(task.due_date) : "-NIL-"}
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Start Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">Start Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferstart_time || task.start_time
                   ? formatTimeAMPM(task.perferstart_time || task.start_time)
@@ -419,8 +421,8 @@ export default function MytaskViewBC() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">End Time</span>
-              <span className="text-black shrink-0">:</span>
+              <span className="text-[#020202] font-medium shrink-0 lg:whitespace-nowrap w-32">End Time</span>
+              <span className="text-[#020202] shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.perferend_time || task.due_time || task.end_time
                   ? formatTimeAMPM(
@@ -432,8 +434,8 @@ export default function MytaskViewBC() {
           </div>
 
           <div className="rounded-sm bg-[#F2F7FF] p-4 h-fit">
-            <h4 className="text-black text-md mb-1">Submit Work</h4>
-            <p className="text-xs text-[#8B8B8B] mb-4">
+            <h4 className="text-[#020202] text-[18px]  mb-1">Submit Work</h4>
+            <p className="text-[14px] text-[#8B8B8B] mb-4">
               Choose your finished work or error screenshots to update the team
               on your progress.
             </p>
@@ -475,7 +477,7 @@ export default function MytaskViewBC() {
                 type="button"
                 disabled={submittingWork}
                 onClick={() => fileInputRef.current?.click()}
-                className={`inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-3 text-xs text-black hover:bg-[#D5E6FF] whitespace-nowrap transition-all ${submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                className={`inline-flex items-center gap-1 rounded-sm bg-[#DBE9FE] px-4 py-2 text-[14px] text-black hover:bg-[#D5E6FF] whitespace-nowrap transition-all ${submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
                 <img src={Upload} alt="Upload" className="w-3 h-3 mr-1" />
                 <span className="mr-2">Select Image</span>
@@ -484,7 +486,7 @@ export default function MytaskViewBC() {
                 type="button"
                 disabled={!selectedImage || submittingWork}
                 onClick={handleImageSubmit}
-                className={`inline-flex items-center gap-1 rounded-sm bg-[#E1F6EB] px-4 py-3 text-xs text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap transition-all ${!selectedImage || submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+                className={`inline-flex items-center gap-1 rounded-md bg-[#E1F6EB] px-4 py-2 text-[14px] text-[#008F22] hover:bg-[#D6F5E8] whitespace-nowrap transition-all ${!selectedImage || submittingWork ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
                 <FiCheck className="w-4 h-4 text-[#008F22]" />
                 {submittingWork ? "Submitting..." : "Submit Image"}
@@ -538,6 +540,7 @@ export default function MytaskViewBC() {
           <div className="rounded-lg bg-[#F2F3F4] px-3 py-2 text-sm text-slate-800 min-h-[44px]">
             {task.description || "Event (Consultant Partnership)..."}
           </div>
+        </div>
         </div>
       </div>
     </div>

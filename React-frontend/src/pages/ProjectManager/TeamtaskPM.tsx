@@ -635,7 +635,7 @@ function TaskCard({
               e.stopPropagation();
               setMenuOpen((prev) => !prev);
             }}
-            className="p-1 rounded cursor-pointer leading-none"
+            className="p-0.5 rounded cursor-pointer"
             aria-label="More options"
             aria-expanded={menuOpen}
           >
@@ -643,7 +643,8 @@ function TaskCard({
           </button>
           {menuOpen && (
             <div
-              className={`absolute top-full mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out cursor-pointer ${isCompleted ? "right-full mr-1 origin-top-right" : "left-full ml-1 origin-top-left"} ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
+              className={`absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right
+                                ${menuOpen ? "opacity-100 scale-100 visible" : "opacity-0 scale-95 invisible"}`}
               role="menu"
             >
               <button
@@ -678,7 +679,7 @@ function TaskCard({
                     <img
                       src={editIcon}
                       alt="edit"
-                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Edit
@@ -696,7 +697,7 @@ function TaskCard({
                     <img
                       src={deleteIcon}
                       alt="delete"
-                      className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                      className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
                     />
                     <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
                       Delete

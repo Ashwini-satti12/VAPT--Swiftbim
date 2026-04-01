@@ -430,8 +430,8 @@ export default function TeamReportBC() {
             </div>
 
             {/* Table Section - same scroll/layout as TeamReportTD */}
-            <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
-                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-260px)] pr-1 pb-18">
+            <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+                <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-0 max-h-[min(calc(100vh-260px),calc(3.25rem+4*5rem))] pr-1 pb-18">
                     <table className="min-w-full border-collapse table-fixed">
                         <colgroup>
                            
