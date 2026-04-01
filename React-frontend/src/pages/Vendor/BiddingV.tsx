@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
@@ -101,6 +102,7 @@ const daysUntil = (dateStr: string) => {
 };
 
 export default function BiddingV() {
+  const [searchParams] = useSearchParams();
   const [mainTab, setMainTab] = useState<ModuleTab>("opportunities");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,7 @@ export default function BiddingV() {
 
   // My Bids State
   const [bids, setBids] = useState<Bid[]>([]);
+  const [bidStatusFilter, setBidStatusFilter] = useState<string>("all");
   const [detailBid, setDetailBid] = useState<Bid | null>(null);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [showEntries, setShowEntries] = useState("show");
@@ -147,6 +150,27 @@ export default function BiddingV() {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const tab = (searchParams.get("tab") || "").toLowerCase();
+    const oppStatus = (searchParams.get("oppStatus") || "").toLowerCase();
+    const bidStatus = (searchParams.get("bidStatus") || "").toLowerCase();
+
+    if (tab === "my-bids" || tab === "mybids") setMainTab("my-bids");
+    else setMainTab("opportunities");
+
+    if (oppStatus === "active" || oppStatus === "all" || oppStatus === "bid" || oppStatus === "closed") {
+      setOppTab(oppStatus as OppTab);
+    } else {
+      setOppTab("all");
+    }
+
+    setBidStatusFilter(
+      bidStatus && ["submitted", "shortlisted", "won", "lost", "removed"].includes(bidStatus)
+        ? bidStatus
+        : "all",
+    );
+  }, [searchParams]);
 
   const handleBidSubmit = async () => {
     if (!selectedOpp || !bidForm.bid_amount) {
@@ -192,9 +216,13 @@ export default function BiddingV() {
   });
 
   const filteredBids = (() => {
-    if (showEntries === "show" || showEntries === "all") return bids;
+    let out = bids;
+    if (bidStatusFilter !== "all") {
+      out = out.filter((b) => (b.status || "").toLowerCase() === bidStatusFilter);
+    }
+    if (showEntries === "show" || showEntries === "all") return out;
     const [start, end] = showEntries.split("-").map(Number);
-    return bids.slice(start - 1, end);
+    return out.slice(start - 1, end);
   })();
 
   // Stats

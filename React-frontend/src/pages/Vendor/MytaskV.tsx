@@ -73,6 +73,7 @@ export interface Task {
   created_at?: string;
   Approval?: string;
   Actual_start_time?: string;
+  outputfilepath?: string;
 }
 
 const getApiBaseUrl = () => {
@@ -220,6 +221,17 @@ function normalizeStatus(
     return "in_progress";
   if (lower.includes("complete") || lower === "done") return "completed";
   return "todo";
+}
+
+function toApiTaskStatusParam(
+  statusFilter: string | null | undefined,
+): string | undefined {
+  if (!statusFilter) return undefined;
+  const s = statusFilter.toLowerCase().trim();
+  if (s === "in_progress" || s === "inprogress") return "InProgress";
+  if (s === "completed" || s === "complete" || s === "done") return "Completed";
+  if (s === "todo" || s === "to_do" || s === "to-do") return "Todo";
+  return statusFilter;
 }
 
 export interface FormDropdownProps {
@@ -462,10 +474,6 @@ function TaskCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [menuOpen]);
   const handleDragStart = (e: React.DragEvent) => {
-    if (status === "completed") {
-      e.preventDefault();
-      return;
-    }
     e.dataTransfer.setData("taskId", String(task.id));
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -473,7 +481,7 @@ function TaskCard({
   const isCompleted = status === "completed";
   return (
     <div
-      draggable={!isCompleted}
+      draggable
       onDragStart={handleDragStart}
       className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
     >
@@ -661,7 +669,8 @@ function TaskCard({
           </div>
         </div>
         <Link
-          to={`/tasks/${task.id}`}
+          to={`/v/mytasks/view/${task.id}`}
+          state={{ task, from: "mytask" }}
           draggable={false}
           className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari"
         >
@@ -712,6 +721,9 @@ export default function MytaskV() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [addError, setAddError] = useState("");
   const [addSubmitting, setAddSubmitting] = useState(false);
+  const [existingAttachmentNames, setExistingAttachmentNames] = useState<string[]>(
+    [],
+  );
   const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
   const [tasklistOpen, setTasklistOpen] = useState(false);
   const [recentTasks, setRecentTasks] = useState<Task[]>([]);
@@ -801,6 +813,12 @@ export default function MytaskV() {
   const openEditTask = (task: Task) => {
     setAddTaskForm(buildFormFromTask(task, employees));
     setAttachmentFiles([]);
+    setExistingAttachmentNames(
+      String(task.outputfilepath || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    );
     setEditingTaskId(task.id);
     setAddTaskModalOpen(true);
   };
@@ -834,6 +852,7 @@ export default function MytaskV() {
     setAddError("");
     setAddSubmitting(false);
     setAttachmentFiles([]);
+    setExistingAttachmentNames([]);
     setAddTaskForm({
       projectName: "",
       module: "",
@@ -963,7 +982,8 @@ export default function MytaskV() {
 
   useEffect(() => {
     const params: Record<string, string> = {};
-    if (statusFilter) params.status = statusFilter;
+    const apiStatus = toApiTaskStatusParam(statusFilter);
+    if (apiStatus) params.status = apiStatus;
     if (isTeam) {
       params.condition = "1";
       params.employeeid = "all";
@@ -1179,6 +1199,7 @@ export default function MytaskV() {
                   checklist: "",
                 });
                 setAddTaskModalOpen(true);
+                setExistingAttachmentNames([]);
               }}
               className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium font-Gantari text-white shadow-sm cursor-pointer"
             >
@@ -1500,6 +1521,20 @@ export default function MytaskV() {
                   modules: addTaskForm.module,
                 };
 
+                const uploadTaskAttachments = async (
+                  taskId: number,
+                  files: File[],
+                ) => {
+                  if (!files.length) return;
+                  const formData = new FormData();
+                  for (const file of files) formData.append("image", file);
+                  await api.post(
+                    `/api/vendors/vendor-tasks/${taskId}/output-files`,
+                    formData,
+                    { headers: { "Content-Type": "multipart/form-data" } },
+                  );
+                };
+
                 if (isEditing && existing) {
                   api
                     .patch(`/api/vendors/vendor-tasks/${existing.id}`, {
@@ -1515,7 +1550,8 @@ export default function MytaskV() {
                       description: addTaskForm.description,
                       checklist: addTaskForm.checklist,
                     })
-                    .then(() => {
+                    .then(async () => {
+                      await uploadTaskAttachments(existing.id, attachmentFiles);
                       api
                         .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
                         .then((res) => {
@@ -1531,8 +1567,12 @@ export default function MytaskV() {
                 } else {
                   api
                     .post("/api/vendors/vendor-tasks", payload)
-                    .then((res) => {
+                    .then(async (res) => {
                       if (res.data.success && res.data.task_id) {
+                        await uploadTaskAttachments(
+                          Number(res.data.task_id),
+                          attachmentFiles,
+                        );
                         api
                           .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks")
                           .then((r) => {
@@ -1945,6 +1985,24 @@ export default function MytaskV() {
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {editingTaskId !== null && existingAttachmentNames.length > 0 && (
+                    <div className="mt-3">
+                      <p className="mb-1 text-xs text-[#616161]">
+                        Existing attachments
+                      </p>
+                      <ul className="space-y-1">
+                        {existingAttachmentNames.map((name, idx) => (
+                          <li
+                            key={`${name}-${idx}`}
+                            className="rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] truncate"
+                            title={name}
+                          >
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>
