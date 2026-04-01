@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../../lib/api';
+import backIcon from '../../assets/TechnicalDirector/back icon.svg';
 
 interface EmployeeDetailType {
     id: number;
@@ -36,8 +37,10 @@ export default function ConsultantdetailsBC() {
 
     return (
         <div className="space-y-4">
-            <Link to="/bc/consultants" className="text-[#3d3399] hover:underline text-sm font-medium cursor-pointer">&larr; Back to Consultants</Link>
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <Link to="/bc/consultants" className="w-fit p-2 bg-[#F2F2F2] rounded-md text-[#3d3399] hover:underline text-[14px] flex items-center gap-2 font-medium cursor-pointer">
+                <img src={backIcon} alt="Back" className="w-5 h-5 translate-y-[1px]" />
+            </Link>
+            <div className="bg-white rounded-xl border border-slate-200 p-8 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
                         <div className="w-14 h-14 rounded-full bg-[#3d3399]/20 flex items-center justify-center text-xl font-semibold text-[#3d3399] overflow-hidden">
@@ -61,7 +64,7 @@ export default function ConsultantdetailsBC() {
                             <span className={`inline-flex mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${emp.active === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>{emp.active || 'inactive'}</span>
                         </div>
                     </div>
-                    <Link to={`/bc/consultants?edit=${emp.id}`} className="px-4 py-2 rounded-lg border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10 cursor-pointer">Edit</Link>
+                    <Link to={`/bc/consultants/edit/${emp.id}`} className="px-4 py-2 rounded-md border border-[#3d3399] text-[#3d3399] font-medium hover:bg-[#3d3399]/10 cursor-pointer">Edit</Link>
                 </div>
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div><dt className="text-slate-500">Employee ID</dt><dd className="font-medium text-slate-800">{emp.empid ?? '-'}</dd></div>
