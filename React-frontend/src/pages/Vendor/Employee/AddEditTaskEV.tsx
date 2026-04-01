@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
 import {
   useSearchParams,
   useLocation,

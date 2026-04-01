@@ -543,7 +543,7 @@ export default function ResourcesV() {
                   setItemsPerPage(parseInt(val, 10));
                   setCurrentPage(1);
                 }}
-                placeholder="Show"
+                placeholder="Show Entries"
                 className="flex-1 sm:min-w-[120px] rounded-md"
                 styleType="header"
               />

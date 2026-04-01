@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
+import { FiCheck, FiChevronDown } from "react-icons/fi";
 import { toast } from "react-hot-toast";
-import api from "../../lib/api";
-import Upload from "../../assets/ProjectManager/MyTask/Upload.svg";
-import ImageIcon from "../../assets/ProjectManager/MyTask/image.svg";
+import api from "../../../lib/api";
+import Upload from "../../../assets/ProjectManager/MyTask/Upload.svg";
+import ImageIcon from "../../../assets/ProjectManager/MyTask/image.svg";
+import backIcon from "../../../assets/TechnicalDirector/back icon.svg";
 
 interface Task {
   id: number;
@@ -38,6 +39,14 @@ interface Task {
 interface Employee {
   id: number;
   full_name?: string;
+  name?: string;
+}
+
+function parseTaskPayload(data: unknown): Task | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as { task?: Task } & Task;
+  const raw = d.task ?? (typeof d.id === "number" ? d : null);
+  return raw && typeof raw.id === "number" ? raw : null;
 }
 
 function formatDateDDMMYYYY(d?: string): string {
@@ -132,15 +141,22 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
-export default function MytaskViewV() {
+/** Backend status strings used by MytaskEV board + vendor-tasks PATCH */
+function statusKeyToBackend(s: StatusKey): string {
+  if (s === "completed") return "Completed";
+  if (s === "in_progress") return "InProgress";
+  return "Todo";
+}
+
+export default function MyTaskViewEV() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const state = location.state as { task?: Task; from?: string } | null;
-  const initialTask = state?.task;
-  const fromTeamTask = state?.from === "teamtask";
   const navigate = useNavigate();
+  const state = location.state as { task?: Task } | null;
+  const initialTask = state?.task;
 
   const [task, setTask] = useState<Task | undefined>(initialTask);
+  const [loading, setLoading] = useState(() => !initialTask && Boolean(id));
 
   const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
     initialTask ? normalizeStatus(initialTask.status, initialTask.Approval) : "todo",
@@ -151,7 +167,6 @@ export default function MytaskViewV() {
   const [selectedImagePreview, setSelectedImagePreview] = useState<
     string | null
   >(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -159,12 +174,30 @@ export default function MytaskViewV() {
     Employee[]
   >([]);
 
+  const listPath = `/ve/mytasks${location.search || ""}`;
+
+  const goBackToList = () => {
+    navigate(listPath);
+  };
+
   const submittedOutputFiles = useMemo(() => {
     return (task?.outputfilepath || "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
   }, [task?.outputfilepath]);
+
+  const refreshTaskFromApi = (taskId: number) => {
+    api
+      .get(`/api/tasks/${taskId}`)
+      .then((res) => {
+        const parsed = parseTaskPayload(res.data);
+        if (parsed) setTask(parsed);
+      })
+      .catch(() => {
+        toast.error("Failed to load task details");
+      });
+  };
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -175,43 +208,17 @@ export default function MytaskViewV() {
     e.target.value = "";
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      setSelectedImage(file);
-      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(URL.createObjectURL(file));
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } else if (file) {
-      toast.error("Please drop an image file");
-    }
-  };
-
   const handleStatusUpdate = async (newStatus: StatusKey) => {
     if (!task || updatingStatus) return;
+    if (newStatus !== "in_progress" && newStatus !== "completed") return;
     setUpdatingStatus(true);
-    const backendStatus = newStatus === "completed" ? "Completed" : "InProgress";
+    const backendStatus = statusKeyToBackend(newStatus);
 
     try {
       await api.patch(`/api/vendors/vendor-tasks/${task.id}/status`, {
         status: backendStatus,
       });
+      setTask((prev) => (prev ? { ...prev, status: backendStatus } : prev));
       setStatusDisplay(newStatus);
       toast.success(
         `Task marked as ${newStatus === "in_progress" ? "In Progress" : "Completed"}`,
@@ -227,7 +234,7 @@ export default function MytaskViewV() {
 
   useEffect(() => {
     api
-      .get<{ success: boolean; resources?: Employee[] }>(
+      .get<{ success?: boolean; resources?: Employee[] }>(
         "/api/vendors/vendor-resource-profiles",
       )
       .then(({ data }) => {
@@ -237,56 +244,6 @@ export default function MytaskViewV() {
         setVendorResourceProfiles([]);
       });
   }, []);
-
-  const refreshTaskFromApi = (taskId?: number) => {
-    const tid = taskId || task?.id || Number(id);
-    if (!tid) return;
-    
-    if (fromTeamTask) {
-       api
-        .get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: { condition: "1" } })
-        .then((res) => {
-          const found = (res.data.tasks ?? []).find((t) => t.id === tid);
-          if (found) setTask(found);
-        })
-        .catch(() => { });
-    } else {
-      api
-        .get<Task>(`/api/vendors/vendor-tasks/${tid}`)
-        .then((res) => {
-          setTask(res.data);
-        })
-        .catch((err) => {
-          console.error("Error fetching task:", err);
-          toast.error("Failed to load task details");
-        });
-    }
-  };
-
-  const handleImageSubmit = async () => {
-    if (!task || !selectedImage || submittingWork) return;
-    setSubmittingWork(true);
-    const formData = new FormData();
-    formData.append("image", selectedImage);
-    formData.append("image[]", selectedImage);
-
-    try {
-      await api.post(
-        `/api/vendors/vendor-tasks/${task.id}/output-files`,
-        formData,
-      );
-      toast.success("Work submitted successfully");
-      setSelectedImage(null);
-      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
-      setSelectedImagePreview(null);
-      refreshTaskFromApi();
-    } catch (error) {
-      console.error("Error submitting work:", error);
-      toast.error("Failed to submit work");
-    } finally {
-      setSubmittingWork(false);
-    }
-  };
 
   useEffect(() => {
     return () => {
@@ -301,11 +258,22 @@ export default function MytaskViewV() {
   }, [task]);
 
   useEffect(() => {
-    if (initialTask) {
-      refreshTaskFromApi(initialTask.id);
-    } else if (id) {
-      refreshTaskFromApi(Number(id));
+    const tid = initialTask?.id ?? Number(id);
+    if (!tid || Number.isNaN(tid)) {
+      setLoading(false);
+      return;
     }
+    setLoading(true);
+    api
+      .get(`/api/tasks/${tid}`)
+      .then((res) => {
+        const parsed = parseTaskPayload(res.data);
+        if (parsed) setTask(parsed);
+      })
+      .catch(() => {
+        toast.error("Failed to load task");
+      })
+      .finally(() => setLoading(false));
   }, [id, initialTask?.id]);
 
   useEffect(() => {
@@ -322,15 +290,47 @@ export default function MytaskViewV() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [statusDropdownOpen]);
 
+  const handleImageSubmit = async () => {
+    if (!task || !selectedImage || submittingWork) return;
+    setSubmittingWork(true);
+    const formData = new FormData();
+    formData.append("image", selectedImage);
+
+    try {
+      await api.post(`/api/tasks/${task.id}/output-files`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success("Work submitted successfully");
+      setSelectedImage(null);
+      if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
+      setSelectedImagePreview(null);
+      refreshTaskFromApi(task.id);
+    } catch (error) {
+      console.error("Error submitting work:", error);
+      toast.error("Failed to submit work");
+    } finally {
+      setSubmittingWork(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-1 min-h-0 items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
+      </div>
+    );
+  }
+
   if (!task) {
     return (
-      <div className="bg-white min-h-screen p-6">
-        <p className="text-slate-600 mb-4">No task selected.</p>
+      <div className="flex flex-1 min-h-0 overflow-y-auto bg-white p-6 custom-scrollbar">
+        <p className="text-slate-600 mb-4">Task not found.</p>
         <button
-          onClick={() => navigate(-1)}
+          type="button"
+          onClick={goBackToList}
           className="text-[#3d3399] hover:underline font-medium cursor-pointer"
         >
-          ← Back to Tasks
+          ← Back to My Tasks
         </button>
       </div>
     );
@@ -351,7 +351,8 @@ export default function MytaskViewV() {
     const idNum = typeof rawId === "number" ? rawId : Number(rawId);
     if (!Number.isNaN(idNum) && vendorResourceProfiles.length > 0) {
       const emp = vendorResourceProfiles.find((e) => e.id === idNum);
-      if (emp?.full_name) return emp.full_name;
+      const n = emp?.full_name || emp?.name;
+      if (n) return n;
     }
     return typeof rawId === "string" && rawId.trim() !== ""
       ? String(rawId)
@@ -359,17 +360,18 @@ export default function MytaskViewV() {
   };
 
   return (
-    <div className="bg-white min-h-screen overflow-y-auto pb-10">
-      <div className="flex items-center justify-between px-6 py-4">
+    <div className="flex flex-1 min-h-0 flex-col overflow-y-auto bg-white pb-10 custom-scrollbar">
+      <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-100">
         <button
-          onClick={() => navigate(-1)}
-          className="p-1 rounded-lg text-black hover:bg-slate-100 cursor-pointer"
-          aria-label="Close"
+          type="button"
+          onClick={goBackToList}
+          className="p-2 rounded-[5px] bg-[#F2F2F2] transition-colors cursor-pointer"
+          aria-label="Back"
         >
-          <FiX className="w-5 h-5 text-black rounded-sm bg-[#E8E8E8]" />
+          <img src={backIcon} alt="Back" className="w-5 h-5" />
         </button>
-        <h1 className="flex-1 text-center text-2xl font-semibold text-black">
-          {task.project_name || task.task_name || "Task Name"}
+        <h1 className="flex-1 text-center text-[20px] sm:text-2xl font-semibold text-[#353535] font-Gantari px-2">
+          {task.project_name || task.task_name || "Task"}
         </h1>
         <div className="w-9" />
       </div>
@@ -404,9 +406,7 @@ export default function MytaskViewV() {
                 className="absolute right-0 top-full mt-1 z-50 min-w-[140px] rounded-lg bg-white py-1 shadow-lg border border-slate-200"
                 role="listbox"
               >
-                {STATUS_OPTIONS.filter((opt) =>
-                    statusDisplay === "completed" ? opt.value === "completed" : true
-                  ).map((opt) => (
+                {STATUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -414,8 +414,8 @@ export default function MytaskViewV() {
                     aria-selected={statusDisplay === opt.value}
                     onClick={() => handleStatusUpdate(opt.value)}
                     className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 ${statusDisplay === opt.value
-                        ? "bg-slate-50 font-medium"
-                        : ""
+                      ? "bg-slate-50 font-medium"
+                      : ""
                       }`}
                   >
                     <span
@@ -432,13 +432,18 @@ export default function MytaskViewV() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border border-slate-200 rounded-xl p-6 bg-white shadow-sm">
           <div className="space-y-3 text-sm">
             <div className="flex gap-2">
+              <span className="text-black shrink-0 w-28">Task Name</span>
+              <span className="text-black shrink-0">:</span>
+              <span className="text-[#616161]">{task.task_name || "—"}</span>
+            </div>
+            <div className="flex gap-2">
               <span className="text-black shrink-0 w-28">Project Name</span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">{task.project_name || "—"}</span>
             </div>
             <div className="flex gap-2">
               <span className="text-black shrink-0 lg:whitespace-nowrap w-28">
-                Module Name
+                Modules Name
               </span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
@@ -495,7 +500,7 @@ export default function MytaskViewV() {
               </span>
             </div>
             <div className="flex gap-2">
-              <span className="text-black shrink-0 w-28">Actual End Date</span>
+              <span className="text-black shrink-0 w-28">Actual Due Date</span>
               <span className="text-black shrink-0">:</span>
               <span className="text-[#616161]">
                 {task.due_date
@@ -526,40 +531,21 @@ export default function MytaskViewV() {
               aria-label="Select image"
               onChange={handleSelectImage}
             />
-            <div
-              className={`rounded-sm flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200 border-2 border-dashed ${
-                isDragging ? "bg-sky-50 border-sky-400" : "bg-[#FFFFFF] border-slate-200"
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
+            <div className="rounded-sm bg-[#FFFFFF] flex flex-col items-center justify-center py-8 px-4 text-slate-500 min-h-[120px] relative transition-all duration-200">
               {selectedImagePreview ? (
-                <>
-                  <button
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedImagePreview(null);
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-white/80 rounded-full shadow-sm hover:bg-white transition-colors z-10"
-                  >
-                    <FiX className="w-4 h-4 text-slate-600" />
-                  </button>
-                  <img
-                    src={selectedImagePreview}
-                    alt="Selected"
-                    className="max-h-48 max-w-full object-contain rounded"
-                  />
-                </>
+                <img
+                  src={selectedImagePreview}
+                  alt="Selected"
+                  className="max-h-48 max-w-full object-contain rounded"
+                />
               ) : (
                 <>
                   <img src={ImageIcon} alt="Image" className="w-7 h-7" />
-                  <span className="text-xs mt-2 text-[#616161]">No Image Selected</span>
-                  <span className="text-[10px] mt-1 text-[#8B8B8B]">Drag and drop file here</span>
+                  <span className="text-xs mt-2">No Image Selected</span>
                 </>
               )}
             </div>
-            <div className="flex gap-4 mt-6 justify-center">
+            <div className="flex gap-4 mt-6 justify-center flex-wrap">
               <button
                 type="button"
                 disabled={submittingWork}
@@ -610,12 +596,15 @@ export default function MytaskViewV() {
           </div>
         </div>
 
-        {/* Task Description & Checklist */}
         <div className="mt-8 space-y-6 mb-10">
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Task Description</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Task Description
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
-              {task.description && task.description.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.description &&
+                task.description.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, "").trim()
+                  .length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.description }}
@@ -627,9 +616,13 @@ export default function MytaskViewV() {
           </div>
 
           <div className="border border-slate-200 rounded-xl p-6 bg-white shadow-sm flex flex-col min-h-[150px]">
-            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">Checklist / Reference</h4>
+            <h4 className="text-[#353535] text-[18px] font-semibold mb-3 font-Gantari">
+              Checklist / Reference
+            </h4>
             <div className="flex-1 rounded-lg bg-[#F2F3F4] px-4 py-3 text-sm text-slate-800 overflow-y-auto font-Gantari min-h-[80px]">
-              {task.checklist && task.checklist.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, '').trim().length > 0 ? (
+              {task.checklist &&
+                task.checklist.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, "").trim()
+                  .length > 0 ? (
                 <div
                   className="prose prose-sm max-w-none prose-p:my-0"
                   dangerouslySetInnerHTML={{ __html: task.checklist }}

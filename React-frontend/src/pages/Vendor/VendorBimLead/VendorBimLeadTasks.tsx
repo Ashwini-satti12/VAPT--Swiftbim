@@ -86,7 +86,7 @@ export default function VendorBimLeadTasks() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedShow, setSelectedShow] = useState("Show");
+    const [selectedShow, setSelectedShow] = useState("Show Entries");
     const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -332,7 +332,7 @@ export default function VendorBimLeadTasks() {
     };
 
     const statusOptions = ["Todo", "InProgress", "Completed"];
-    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+    const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
     const priorityColors: Record<string, string> = {
         High: "text-red-600 bg-red-50 border-red-100",
         Medium: "text-orange-600 bg-orange-50 border-orange-100",
@@ -355,7 +355,7 @@ export default function VendorBimLeadTasks() {
         completed: tasks.filter((t) => normalizeStatus(t.status) === "completed"),
     };
     const showLimit =
-        selectedShow === "All" || selectedShow === "Show"
+        selectedShow === "All" || selectedShow === "Show Entries"
             ? Number.POSITIVE_INFINITY
             : Math.max(1, Number(selectedShow) || 10);
     const displayedTasksByStatus = {
@@ -457,133 +457,133 @@ export default function VendorBimLeadTasks() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {(["todo", "in_progress", "completed"] as const).map((bucket) => (
                         <div key={bucket} className="space-y-3 min-h-[120px] rounded-lg p-1">
-                                    {displayedTasksByStatus[bucket].map((task) => {
-                                        const progress = normalizeStatus(task.status) === "todo" ? 0 : normalizeStatus(task.status) === "in_progress" ? 50 : 100;
-                                        return (
-                                            <div
-                                                key={task.id}
-                                                className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari"
-                                            >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="font-semibold text-slate-900 text-xl truncate font-Gantari">
-                                                        {task.task_name || "Task Name"}
-                                                    </h4>
-                                                    <div className="relative" ref={openMenuTaskId === task.id ? cardMenuRef : null}>
+                            {displayedTasksByStatus[bucket].map((task) => {
+                                const progress = normalizeStatus(task.status) === "todo" ? 0 : normalizeStatus(task.status) === "in_progress" ? 50 : 100;
+                                return (
+                                    <div
+                                        key={task.id}
+                                        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative font-gantari"
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-semibold text-slate-900 text-xl truncate font-Gantari">
+                                                {task.task_name || "Task Name"}
+                                            </h4>
+                                            <div className="relative" ref={openMenuTaskId === task.id ? cardMenuRef : null}>
+                                                <button
+                                                    onClick={() =>
+                                                        setOpenMenuTaskId(
+                                                            openMenuTaskId === task.id ? null : task.id,
+                                                        )
+                                                    }
+                                                    className="p-0.5 rounded cursor-pointer"
+                                                >
+                                                    <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                                                </button>
+                                                {openMenuTaskId === task.id && (
+                                                    <div className="absolute top-full mt-1 right-0 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out font-Gantari">
                                                         <button
-                                                            onClick={() =>
-                                                                setOpenMenuTaskId(
-                                                                    openMenuTaskId === task.id ? null : task.id,
-                                                                )
-                                                            }
-                                                            className="p-0.5 rounded cursor-pointer"
+                                                            onClick={() => handleViewAction(task)}
+                                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
                                                         >
-                                                            <img src={Dot} alt="Dot" className="w-4 h-4 text-slate-600" />
+                                                            <img src={viewIcon} alt="view" className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                            <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                View
+                                                            </span>
                                                         </button>
-                                                        {openMenuTaskId === task.id && (
-                                                            <div className="absolute top-full mt-1 right-0 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] shadow-xl transition-all duration-200 ease-out font-Gantari">
-                                                                <button
-                                                                    onClick={() => handleViewAction(task)}
-                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img src={viewIcon} alt="view" className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        View
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSelectedTask(task);
-                                                                        setEditForm({
-                                                                            task_name: task.task_name,
-                                                                            description: task.description || "",
-                                                                            status: task.status,
-                                                                            priority: (task as any).priority || task.priority || "",
-                                                                            due_date: task.due_date || "",
-                                                                            project_id: task.project_id?.toString() || "",
-                                                                            assigned_to: task.assigned_to?.toString() || "",
-                                                                            category: task.category || "",
-                                                                            actual_start_date: (task as any).start_date || "",
-                                                                            actual_end_date: task.due_date || "",
-                                                                            checklist: (task as any).checklist || "",
-                                                                            start_time: (task as any).start_time || "",
-                                                                            end_time: (task as any).end_time || "",
-                                                                        });
-                                                                        setEditAttachmentFiles([]);
-                                                                        setShowEditModal(true);
-                                                                        setOpenMenuTaskId(null);
-                                                                    }}
-                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        Edit
-                                                                    </span>
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setOpenMenuTaskId(null);
-                                                                        handleDelete(task.id);
-                                                                    }}
-                                                                    className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                                                >
-                                                                    <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
-                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                                                        Delete
-                                                                    </span>
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedTask(task);
+                                                                setEditForm({
+                                                                    task_name: task.task_name,
+                                                                    description: task.description || "",
+                                                                    status: task.status,
+                                                                    priority: (task as any).priority || task.priority || "",
+                                                                    due_date: task.due_date || "",
+                                                                    project_id: task.project_id?.toString() || "",
+                                                                    assigned_to: task.assigned_to?.toString() || "",
+                                                                    category: task.category || "",
+                                                                    actual_start_date: (task as any).start_date || "",
+                                                                    actual_end_date: task.due_date || "",
+                                                                    checklist: (task as any).checklist || "",
+                                                                    start_time: (task as any).start_time || "",
+                                                                    end_time: (task as any).end_time || "",
+                                                                });
+                                                                setEditAttachmentFiles([]);
+                                                                setShowEditModal(true);
+                                                                setOpenMenuTaskId(null);
+                                                            }}
+                                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                        >
+                                                            <img src={editIcon} alt="edit" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                            <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                Edit
+                                                            </span>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setOpenMenuTaskId(null);
+                                                                handleDelete(task.id);
+                                                            }}
+                                                            className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                        >
+                                                            <img src={deleteIcon} alt="delete" className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]" />
+                                                            <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                Delete
+                                                            </span>
+                                                        </button>
                                                     </div>
-                                                </div>
+                                                )}
+                                            </div>
+                                        </div>
 
-                                                <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65] font-Gantari">
-                                                    <span>
-                                                        {(task as any).start_date 
-                                                            ? formatDateDDMMYYYY((task as any).start_date)
-                                                            : "—"}
-                                                    </span>
-                                                    <span>
-                                                        {task.due_date
-                                                            ? formatDateDDMMYYYY(task.due_date)
-                                                            : ""}
-                                                    </span>
-                                                </div>
+                                        <div className="flex items-center justify-between gap-2 mb-3 text-[13px] font-medium text-[#0A2E65] font-Gantari">
+                                            <span>
+                                                {(task as any).start_date
+                                                    ? formatDateDDMMYYYY((task as any).start_date)
+                                                    : "—"}
+                                            </span>
+                                            <span>
+                                                {task.due_date
+                                                    ? formatDateDDMMYYYY(task.due_date)
+                                                    : ""}
+                                            </span>
+                                        </div>
 
-                                                <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <span className="text-xs text-slate-600 font-Gantari">Progress</span>
-                                                    <span className="text-xs font-medium text-slate-700 font-Gantari">{progress}%</span>
-                                                </div>
-                                                <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
-                                                    <div
-                                                        className="h-full rounded-full bg-slate-500"
-                                                        style={{ width: `${progress}%` }}
-                                                    />
-                                                </div>
+                                        <div className="flex items-center justify-between gap-2 mb-1">
+                                            <span className="text-xs text-slate-600 font-Gantari">Progress</span>
+                                            <span className="text-xs font-medium text-slate-700 font-Gantari">{progress}%</span>
+                                        </div>
+                                        <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+                                            <div
+                                                className="h-full rounded-full bg-slate-500"
+                                                style={{ width: `${progress}%` }}
+                                            />
+                                        </div>
 
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-1">
-                                                        <div className="flex -space-x-2">
-                                                            {task.assigned_to_name && (
-                                                                <div
-                                                                    className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
-                                                                    title={`Assigned To: ${task.assigned_to_name}`}
-                                                                >
-                                                                    <span>{task.assigned_to_name.slice(0, 2).toUpperCase()}</span>
-                                                                </div>
-                                                            )}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-1">
+                                                <div className="flex -space-x-2">
+                                                    {task.assigned_to_name && (
+                                                        <div
+                                                            className="w-6 h-6 rounded-full bg-slate-300 border-2 border-white shrink-0 flex items-center justify-center text-[10px] font-semibold text-slate-700 overflow-hidden"
+                                                            title={`Assigned To: ${task.assigned_to_name}`}
+                                                        >
+                                                            <span>{task.assigned_to_name.slice(0, 2).toUpperCase()}</span>
                                                         </div>
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleViewAction(task)}
-                                                        className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari cursor-pointer"
-                                                    >
-                                                        Details
-                                                        <img src={Arrow} alt="Arrow" className="w-2 h-2" />
-                                                    </button>
+                                                    )}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+                                            <button
+                                                onClick={() => handleViewAction(task)}
+                                                className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2 font-Gantari cursor-pointer"
+                                            >
+                                                Details
+                                                <img src={Arrow} alt="Arrow" className="w-2 h-2" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                             {displayedTasksByStatus[bucket].length === 0 && (
                                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">
                                     No tasks
@@ -609,41 +609,41 @@ export default function VendorBimLeadTasks() {
                             <form onSubmit={handleCreate} className="space-y-4">
                                 <div className="relative" ref={projectDropdownRef}>
                                     <label className="block text-sm font-semibold text-black mb-1">Project Name</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setOpenFormDropdown(openFormDropdown === "project" ? null : "project")}
-                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
-                                        >
-                                            <span className={createForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === createForm.project_id)?.project_name || "Select Project name"}</span>
-                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`} />
-                                        </button>
-                                        {openFormDropdown === "project" && (
-                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenFormDropdown(openFormDropdown === "project" ? null : "project")}
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                    >
+                                        <span className={createForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === createForm.project_id)?.project_name || "Select Project name"}</span>
+                                        <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "project" ? "rotate-180" : ""}`} />
+                                    </button>
+                                    {openFormDropdown === "project" && (
+                                        <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setCreateForm({ ...createForm, project_id: "" });
+                                                    setOpenFormDropdown(null);
+                                                }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                            >
+                                                Select Project name
+                                            </button>
+                                            {projects.map((p) => (
                                                 <button
+                                                    key={p.id}
                                                     type="button"
                                                     onClick={() => {
-                                                        setCreateForm({ ...createForm, project_id: "" });
+                                                        setCreateForm({ ...createForm, project_id: p.id.toString() });
                                                         setOpenFormDropdown(null);
                                                     }}
                                                     className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
                                                 >
-                                                    Select Project name
+                                                    {p.project_name}
                                                 </button>
-                                                {projects.map((p) => (
-                                                    <button
-                                                        key={p.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setCreateForm({ ...createForm, project_id: p.id.toString() });
-                                                            setOpenFormDropdown(null);
-                                                        }}
-                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
-                                                    >
-                                                        {p.project_name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -897,31 +897,31 @@ export default function VendorBimLeadTasks() {
                             <form onSubmit={handleUpdate} className="space-y-4">
                                 <div className="relative" ref={projectDropdownRef}>
                                     <label className="block text-sm font-semibold text-black mb-1">Project Name</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => setOpenFormDropdown(openFormDropdown === "editProject" ? null : "editProject")}
-                                            className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
-                                        >
-                                            <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === editForm.project_id)?.project_name || "Select Project name"}</span>
-                                            <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editProject" ? "rotate-180" : ""}`} />
-                                        </button>
-                                        {openFormDropdown === "editProject" && (
-                                            <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                {projects.map((p) => (
-                                                    <button
-                                                        key={p.id}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setEditForm({ ...editForm, project_id: p.id.toString() });
-                                                            setOpenFormDropdown(null);
-                                                        }}
-                                                        className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
-                                                    >
-                                                        {p.project_name}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenFormDropdown(openFormDropdown === "editProject" ? null : "editProject")}
+                                        className="w-full px-3 py-2 bg-[#F2F3F4] rounded-sm text-sm flex items-center justify-between outline-none cursor-pointer"
+                                    >
+                                        <span className={editForm.project_id ? "text-[#353535]" : "text-[#8B8B8B]"}>{projects.find(p => p.id.toString() === editForm.project_id)?.project_name || "Select Project name"}</span>
+                                        <img src={ArrowDown} alt="arrow" className={`h-4 w-4 transition-transform ${openFormDropdown === "editProject" ? "rotate-180" : ""}`} />
+                                    </button>
+                                    {openFormDropdown === "editProject" && (
+                                        <div className="absolute top-full left-0 right-0 z-[200] mt-1 bg-white border border-slate-200 rounded shadow-lg py-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                            {projects.map((p) => (
+                                                <button
+                                                    key={p.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setEditForm({ ...editForm, project_id: p.id.toString() });
+                                                        setOpenFormDropdown(null);
+                                                    }}
+                                                    className="block w-full text-left px-4 py-2 text-sm text-[#353535] hover:bg-[#F2F2F2] cursor-pointer"
+                                                >
+                                                    {p.project_name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

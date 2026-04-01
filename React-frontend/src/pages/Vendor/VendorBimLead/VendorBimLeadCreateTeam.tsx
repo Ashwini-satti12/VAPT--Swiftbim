@@ -47,7 +47,7 @@ interface Employee {
 }
 
 export default function VendorBimLeadCreateTeam() {
-    const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
+    const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150","151-200","201-250","251-300", "All"];
     const [teams, setTeams] = useState<Team[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -70,7 +70,7 @@ export default function VendorBimLeadCreateTeam() {
     const createProjectDropdownRef = useRef<HTMLDivElement>(null);
 
     const [openMenuTeamId, setOpenMenuTeamId] = useState<number | null>(null);
-    const [selectedShow, setSelectedShow] = useState<string>("Show");
+    const [selectedShow, setSelectedShow] = useState<string>("Show Entries");
     const [showDropdownOpen, setShowDropdownOpen] = useState(false);
 
     // Edit and Details Modal State
@@ -228,7 +228,7 @@ export default function VendorBimLeadCreateTeam() {
         return employees.find(e => e.id === Number(id))?.full_name || "";
     };
     const showLimit =
-        selectedShow === "All" || selectedShow === "Show"
+        selectedShow === "All" || selectedShow === "Show Entries"
             ? Number.POSITIVE_INFINITY
             : Math.max(1, Number(selectedShow) || 10);
     const displayedTeams = teams.slice(0, showLimit);
