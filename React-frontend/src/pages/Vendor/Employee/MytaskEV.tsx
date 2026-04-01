@@ -70,7 +70,7 @@ function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-sm text-black"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] text-[#666666]"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -96,7 +96,7 @@ function FormDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white py-1 shadow-lg max-h-60 overflow-y-auto custom-scrollbar"
+                    className="absolute top-full left-0 z-20 mt-1 w-full rounded-md border border-slate-200 bg-white py-1 max-h-60 overflow-y-auto custom-scrollbar"
                 >
                     {options.map((opt) => (
                         <button
@@ -107,7 +107,7 @@ function FormDropdown({
                                 onChange(opt.value);
                                 onClose();
                             }}
-                            className="block w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg"
+                            className="block w-full px-3 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] first:rounded-t-lg last:rounded-b-lg"
                         >
                             {opt.label}
                         </button>
@@ -175,7 +175,7 @@ function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-lg bg-[#E8E8E8] px-4 py-3 text-sm text-black shadow-sm ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#F2F3F4] px-4 py-2 text-[14px] text-[#353535]  ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
@@ -199,10 +199,10 @@ function TaskDropdown({
                 <div
                     ref={dropdownRef}
                     role="listbox"
-                    className={`absolute top-full left-0 z-50 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
+                    className={`absolute top-full left-0 z-50 mt-1 w-full rounded-md border border-slate-200 bg-white ${narrow ? "min-w-[110px]" : "min-w-[160px]"}`}
                 >
                     {searchable && (
-                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-lg">
+                        <div className="sticky top-0 border-b border-slate-200 bg-white p-2 rounded-t-md">
                             <input
                                 type="text"
                                 value={searchQuery}
@@ -211,7 +211,7 @@ function TaskDropdown({
                                 onClick={(e) => e.stopPropagation()}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 placeholder={searchPlaceholder}
-                                className="w-full rounded border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder-slate-400"
+                                className="w-full rounded border border-slate-200 px-3 py-2 text-[14px] text-[#353535] placeholder-slate-400"
                                 aria-label={searchPlaceholder}
                             />
                         </div>
@@ -230,7 +230,7 @@ function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm text-slate-800 hover:bg-slate-100 last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] text-[#666666] hover:bg-[#F2F3F4] hover:text-[#000000] last:rounded-b-lg ${!searchable ? "first:rounded-t-lg" : ""}`}
                             >
                                 {opt}
                             </button>
@@ -524,7 +524,7 @@ function TaskCard({
         <div
             draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className={`rounded-xl border border-slate-200 bg-white p-3 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
+            className={`rounded-md border border-[#AEACAC52] bg-white p-4 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
             <div className="flex items-start justify-between gap-2 mb-2">
                 <span
@@ -599,19 +599,19 @@ function TaskCard({
                     )}
                 </div>
             </div>
-            <h4 className="font-semibold text-slate-900 text-sm mb-1">
+            <h4 className="font-medium text-[#000000] text-[14px] mb-1 font-gantari">
                 {task.task_name || "Task Name"}
             </h4>
-            <p className="text-xs text-slate-500 mb-2">{dateRange}</p>
+            <p className="text-[12px] text-[#666666] mb-2 font-gantari">{dateRange}</p>
             <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">
+                <span className="text-[12px] text-[#666666] font-gantari">Progress</span>
+                <span className="text-[12px] font-medium text-[#353535] font-gantari">
                     {progress}%
                 </span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#DD4342]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -686,7 +686,7 @@ function TaskCard({
                 <Link
                     to={`/tasks/${task.id}`}
                     draggable={false}
-                    className="inline-flex items-center text-xs font-medium text-slate-700 hover:text-slate-900 gap-2"
+                    className="inline-flex items-center text-[12px] font-medium text-[#353535] hover:text-[#000000] gap-2 font-gantari transition-colors"
                 >
                     Details
                     <img src={Arrow} alt="Arrow" className="w-2 h-2" />
@@ -1071,7 +1071,7 @@ export default function MytaskEV() {
         <div className="space-y-6 overflow-auto min-h-screen">
             {/* Top row: title + dropdowns + Add task */}
             <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold text-slate-800">
+                <h2 className="text-[24px] font-medium text-[#000000]">
                     {isTeam ? "Team Task" : "My Task"}
                 </h2>
                 <div
@@ -1158,7 +1158,7 @@ export default function MytaskEV() {
                             });
                             setAddTaskModalOpen(true);
                         }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-3 text-sm font-medium text-white shadow-sm"
+                        className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-white"
                     >
                         <svg
                             className="h-5 w-5"
@@ -1182,7 +1182,7 @@ export default function MytaskEV() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Link
                     to={statusFilter === "todo" ? pathname : `${pathname}?status=todo`}
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-slate-200 bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group1} alt="Group1" className="w-12 h-12 mt-1" />
@@ -1199,13 +1199,13 @@ export default function MytaskEV() {
                             ? pathname
                             : `${pathname}?status=in_progress`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group2} alt="Group2" className="w-12 h-12 mt-1" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">In Progress Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
+                    <p className="text-[12px] font-medium text-[#666666]">In Progress Task</p>
+                    <p className="mt-1 text-[20px] font-bold text-[#000000]">
                         {counts.in_progress} Tasks
                     </p>
                 </Link>
@@ -1216,13 +1216,13 @@ export default function MytaskEV() {
                             ? pathname
                             : `${pathname}?status=completed`
                     }
-                    className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow relative"
+                    className="rounded-xl border border-[#AEACAC52] bg-white p-5 hover:shadow-md transition-shadow relative"
                 >
                     <div className="absolute top-4 right-4 flex items-center justify-center">
                         <img src={Group3} alt="Group3" className="w-12 h-12 mt-1" />
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Completed Task</p>
-                    <p className="mt-1 text-xl font-bold text-slate-900">
+                    <p className="text-[12px] font-medium text-[#666666]">Completed Task</p>
+                    <p className="mt-1 text-[20px] font-bold text-[#000000]">
                         {counts.completed} Tasks
                     </p>
                 </Link>
@@ -1340,14 +1340,14 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0]"
+                                className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[16px] font-medium text-[#353535] "
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3]"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[16px] font-medium text-[#353535]"
                             >
                                 Yes, Delete
                             </button>
@@ -1364,7 +1364,7 @@ export default function MytaskEV() {
                             <button
                                 type="button"
                                 onClick={resetTaskFormAndClose}
-                                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                className="p-2 rounded-md text-[#000000] bg-[#F2F3F4] "
                                 aria-label="Close"
                             >
                                 <svg
@@ -1381,7 +1381,7 @@ export default function MytaskEV() {
                                     />
                                 </svg>
                             </button>
-                            <h3 className="text-lg font-semibold text-black">
+                            <h3 className="text-[24px] font-medium text-[#353535]">
                                 {editingTaskId !== null ? "Edit Task" : "Add New Task"}
                             </h3>
                             <div className="w-9" />
@@ -1515,7 +1515,7 @@ export default function MytaskEV() {
                         >
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Project Name
                                     </label>
                                     <FormDropdown
@@ -1545,7 +1545,7 @@ export default function MytaskEV() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Select Module
                                     </label>
                                     <FormDropdown
@@ -1574,7 +1574,7 @@ export default function MytaskEV() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Task Name
                                     </label>
                                     <div className="flex">
@@ -1588,13 +1588,13 @@ export default function MytaskEV() {
                                                 }))
                                             }
                                             placeholder="Enter Task / Select Task"
-                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                                            className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
                                                 }`}
                                         />
                                         {editingTaskId === null && (
                                             <button
                                                 type="button"
-                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                                className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B]"
                                             >
                                                 Tasklist
                                             </button>
@@ -1604,7 +1604,7 @@ export default function MytaskEV() {
 
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Type
                                         </label>
                                         <FormDropdown
@@ -1631,7 +1631,7 @@ export default function MytaskEV() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Actual Start Date
                                         </label>
                                         <input
@@ -1653,11 +1653,11 @@ export default function MytaskEV() {
                                                 });
                                             }}
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Actual End Date
                                         </label>
                                         <input
@@ -1673,13 +1673,13 @@ export default function MytaskEV() {
                                                 }))
                                             }
                                             placeholder="dd/mm/yyyy"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                 </div>
                                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Select Start Time
                                         </label>
                                         <input
@@ -1700,11 +1700,11 @@ export default function MytaskEV() {
                                                 });
                                             }}
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Select End Time
                                         </label>
                                         <input
@@ -1722,11 +1722,11 @@ export default function MytaskEV() {
                                                 }))
                                             }
                                             placeholder="hh:mm"
-                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                            className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-black mb-1">
+                                        <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                             Assign To
                                         </label>
                                         <FormDropdown
@@ -1762,7 +1762,7 @@ export default function MytaskEV() {
                                     </div>
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Description
                                     </label>
                                     <textarea
@@ -1775,11 +1775,11 @@ export default function MytaskEV() {
                                         }
                                         placeholder="Enter Description..."
                                         rows={3}
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Checklist
                                     </label>
                                     <input
@@ -1792,11 +1792,11 @@ export default function MytaskEV() {
                                             }))
                                         }
                                         placeholder="Enter Reference Link"
-                                        className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                                        className="w-full rounded-md bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] focus:outline-none"
                                     />
                                 </div>
                                 <div className="sm:col-span-2">
-                                    <label className="block text-sm font-medium text-black mb-1">
+                                    <label className="block text-[16px] font-medium text-[#353535] mb-1">
                                         Attachments
                                     </label>
                                     <input
@@ -1821,7 +1821,7 @@ export default function MytaskEV() {
                                                             : ""
                                                 }
                                                 placeholder="Upload Files"
-                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                                                className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none truncate"
                                                 title={
                                                     attachmentFiles.length > 0
                                                         ? attachmentFiles.map((f) => f.name).join(", ")
@@ -1832,7 +1832,7 @@ export default function MytaskEV() {
                                             />
                                             <label
                                                 htmlFor="add-task-file-input"
-                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
+                                                className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-medium text-[#8B8B8B] cursor-pointer inline-flex items-center"
                                             >
                                                 Browse File
                                             </label>
@@ -1844,7 +1844,7 @@ export default function MytaskEV() {
                                                 (filename, index) => (
                                                     <li
                                                         key={`${filename}-${index}`}
-                                                        className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                        className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535]"
                                                     >
                                                         <span
                                                             className="truncate min-w-0"
@@ -1852,7 +1852,7 @@ export default function MytaskEV() {
                                                         >
                                                             {filename}
                                                         </span>
-                                                        <span className="text-[11px] text-[#8B8B8B]">
+                                                        <span className="text-[14px] text-[#8B8B8B]">
                                                             existing
                                                         </span>
                                                     </li>
@@ -1865,7 +1865,7 @@ export default function MytaskEV() {
                                             {attachmentFiles.map((file, index) => (
                                                 <li
                                                     key={`${file.name}-${index}`}
-                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                                                    className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535]"
                                                 >
                                                     <span className="truncate min-w-0" title={file.name}>
                                                         {file.name}
@@ -1873,7 +1873,7 @@ export default function MytaskEV() {
                                                     <button
                                                         type="button"
                                                         onClick={() => removeAttachment(index)}
-                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-slate-200 hover:text-slate-700"
+                                                        className="ml-2 shrink-0 p-0.5 rounded text-black hover:bg-[#F2F3F4] hover:text-slate-700"
                                                         aria-label={`Remove ${file.name}`}
                                                     >
                                                         <svg
@@ -1900,13 +1900,13 @@ export default function MytaskEV() {
                                 <button
                                     type="button"
                                     onClick={resetTaskFormAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                                    className="rounded-md bg-[#F2F2F2] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF]"
+                                    className="rounded-md bg-[#DBE9FE] px-5 py-2 text-[14px] font-medium text-[#353535] font-gantari"
                                 >
                                     Submit
                                 </button>
