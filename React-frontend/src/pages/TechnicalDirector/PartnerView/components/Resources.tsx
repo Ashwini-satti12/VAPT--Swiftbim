@@ -1,5 +1,11 @@
+import { useState } from 'react';
 import type { Vendor } from '../types';
 import { FaDownload } from 'react-icons/fa6';
+import { VendorUploadPreviewModal } from '../../../../components/VendorUploadPreviewModal';
+import {
+    sanitizeVendorVendorsFilename,
+    vendorVendorsFileUrl,
+} from '../../../../lib/vendorUploads';
 
 interface Props {
     vendor: Vendor;
@@ -10,15 +16,8 @@ interface Props {
 }
 
 const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
+    const [previewFileName, setPreviewFileName] = useState<string | null>(null);
     const profiles = vendor.resource_profiles || [];
-
-    if (profiles.length === 0) {
-        return (
-            <div className="animate-fade-in text-gray-500">
-                No resource profiles available.
-            </div>
-        );
-    }
 
     const truncateFileName = (name: string, maxLen = 20) => {
         const lastDot = name.lastIndexOf('.');
@@ -27,27 +26,58 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
         return base.length > maxLen ? `${base.slice(0, maxLen)}...${ext}` : name;
     };
 
-    const FileLink = ({ fileName, label }: { fileName: string | null, label: string }) => {
+    const FileLink = ({ fileName, label }: { fileName: string | null; label: string }) => {
         if (!fileName) return null;
-        const fileUrl = `http://localhost:5000/static/uploads/vendors/${fileName}`;
+        const first = fileName.split(',')[0].trim();
+        const safe = sanitizeVendorVendorsFilename(first);
+        const fileUrl = safe ? vendorVendorsFileUrl(safe) : '';
         return (
-            <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+            <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg gap-3">
                 <span className="text-sm font-medium text-gray-700">{label}</span>
-                <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={fileName}
-                    className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm"
-                >
-                    {truncateFileName(fileName)}
-                    <FaDownload className="flex-shrink-0" />
-                </a>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        type="button"
+                        onClick={() => setPreviewFileName(first)}
+                        title={first}
+                        className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm font-medium underline underline-offset-2"
+                    >
+                        {truncateFileName(sanitizeVendorVendorsFilename(first) || first)}
+                    </button>
+                    {fileUrl ? (
+                        <a
+                            href={fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Download"
+                            className="p-1.5 text-blue-600 hover:text-blue-800"
+                            aria-label="Download file"
+                        >
+                            <FaDownload className="flex-shrink-0" />
+                        </a>
+                    ) : null}
+                </div>
             </div>
         );
     };
 
+    if (profiles.length === 0) {
+        return (
+            <>
+                <div className="animate-fade-in text-gray-500">
+                    No resource profiles available.
+                </div>
+                {previewFileName && (
+                    <VendorUploadPreviewModal
+                        fileName={previewFileName}
+                        onClose={() => setPreviewFileName(null)}
+                    />
+                )}
+            </>
+        );
+    }
+
     return (
+        <>
         <div className="animate-fade-in space-y-6">
             {editable && (
                 <div className="flex justify-end">
@@ -151,6 +181,13 @@ const Resources = ({ vendor, editable, onAdd, onEdit, onDelete }: Props) => {
                 </div>
             ))}
         </div>
+        {previewFileName && (
+            <VendorUploadPreviewModal
+                fileName={previewFileName}
+                onClose={() => setPreviewFileName(null)}
+            />
+        )}
+        </>
     );
 };
 

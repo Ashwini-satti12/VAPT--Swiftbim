@@ -57,13 +57,9 @@ export default function PortfolioModal({ project, onClose, onSuccess }: Props) {
             }
 
             if (project?.id) {
-                await api.put(`/api/vendors/profile/portfolio-projects/${project.id}`, data, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.put(`/api/vendors/profile/portfolio-projects/${project.id}`, data);
             } else {
-                await api.post('/api/vendors/profile/portfolio-projects', data, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.post('/api/vendors/profile/portfolio-projects', data);
             }
             onSuccess();
         } catch (err: any) {

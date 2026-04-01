@@ -2457,6 +2457,8 @@ def update_vendor_profile():
 def add_vendor_resource_profile():
     """POST /api/vendors/profile/resource-profiles — add a resource profile for current vendor."""
     import os, uuid
+    from werkzeug.utils import secure_filename
+
     _ensure_vendor_profile_tables()
     _ensure_vendor_profile_child_tables()
     vendor_id = _current_vendor_onboarding_id()
@@ -2466,7 +2468,6 @@ def add_vendor_resource_profile():
     # Support both JSON and multipart (for files)
     if request.is_json:
         data = request.get_json()
-        from werkzeug.utils import secure_filename
     else:
         data = request.form
 
