@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { FiCheck, FiChevronDown, FiX } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 import api from "../../lib/api";
@@ -14,6 +14,7 @@ interface Task {
   due_date?: string;
   project_name?: string;
   projectid?: number;
+  project_id?: number;
   start_date?: string;
   progress?: number;
   module?: string;
@@ -110,14 +111,15 @@ const STATUS_OPTIONS: { value: StatusKey; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
-export default function MytaskViewBC() {
+export default function MytaskViewBM() {
+  const { id: idParam } = useParams();
   const location = useLocation();
-  const task = (location.state as { task?: Task } | null)?.task;
-  const backToUrl = "/bc/mytasks";
+  const backToUrl = "/bm/mytasks";
+  const idNum =
+    idParam && /^\d+$/.test(idParam) ? Number(idParam) : Number.NaN;
 
-  const [statusDisplay, setStatusDisplay] = useState<StatusKey>(() =>
-    task ? normalizeStatus(task.status, task.Approval) : "todo",
-  );
+  const [task, setTask] = useState<Task | null>(null);
+  const [statusDisplay, setStatusDisplay] = useState<StatusKey>("todo");
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -126,7 +128,7 @@ export default function MytaskViewBC() {
   >(null);
   const [submittingWork, setSubmittingWork] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [loading, setLoading] = useState(!task);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSelectImage = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,7 +149,7 @@ export default function MytaskViewBC() {
     try {
       await api.patch(`/api/tasks/${task.id}/status`, {
         status: backendStatus,
-        projectId: task.projectid,
+        projectId: task.projectid ?? task.project_id,
       });
       setStatusDisplay(newStatus);
       toast.success(`Task ${backendStatus.toLowerCase()} successfully`);
@@ -176,15 +178,15 @@ export default function MytaskViewBC() {
       );
       toast.success("Work submitted successfully");
 
-      // Refetch or update local task state with new file paths
       const newFiles = res.data.files || [];
-      if (task) {
-        const existing = task.outputfilepath
-          ? task.outputfilepath.split(",").filter(Boolean)
+      setTask((prev) => {
+        if (!prev) return prev;
+        const existing = prev.outputfilepath
+          ? prev.outputfilepath.split(",").filter(Boolean)
           : [];
         const updated = [...existing, ...newFiles].join(",");
-        task.outputfilepath = updated;
-      }
+        return { ...prev, outputfilepath: updated };
+      });
 
       setSelectedImage(null);
       if (selectedImagePreview) URL.revokeObjectURL(selectedImagePreview);
@@ -204,37 +206,50 @@ export default function MytaskViewBC() {
   }, [selectedImagePreview]);
 
   useEffect(() => {
-    if (!task) {
-      const taskId = location.pathname.split("/").pop();
-      if (taskId && !isNaN(Number(taskId))) {
-        setLoading(true);
-        api
-          .get(`/api/tasks/${taskId}`)
-          .then((res) => {
-            if (res.data.task) {
-              // The API usually returns the task directly or inside a wrapper
-              // If res.data.task is available, used that, otherwise check res.data
-              const fetched = res.data.task || res.data;
-              // Update status display once data is in
-              setStatusDisplay(
-                normalizeStatus(fetched.status, fetched.Approval),
-              );
-            }
-          })
-          .catch((err) => {
-            console.error("Error fetching task:", err);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      setTask(null);
+      setLoading(false);
+      return;
     }
-  }, [task, location.pathname]);
+    const fromState = (location.state as { task?: Task } | null)?.task;
+    if (fromState?.id === idNum) {
+      setTask(fromState);
+      setStatusDisplay(normalizeStatus(fromState.status, fromState.Approval));
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    api
+      .get(`/api/tasks/${idNum}`)
+      .then((res) => {
+        if (cancelled) return;
+        const fetched =
+          (res.data as { task?: Task }).task ?? (res.data as Task);
+        if (fetched && typeof (fetched as Task).id === "number") {
+          setTask(fetched as Task);
+          setStatusDisplay(
+            normalizeStatus(fetched.status, fetched.Approval),
+          );
+        } else {
+          setTask(null);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching task:", err);
+        if (!cancelled) setTask(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [idNum, location.key]);
 
   useEffect(() => {
     if (!task) return;
-    const next = normalizeStatus(task.status, task.Approval);
-    setStatusDisplay(next);
+    setStatusDisplay(normalizeStatus(task.status, task.Approval));
   }, [task]);
 
   useEffect(() => {
@@ -266,7 +281,7 @@ export default function MytaskViewBC() {
           No task selected or task not found.
         </p>
         <Link
-          to="/bc/mytasks"
+          to="/bm/mytasks"
           className="text-[#3d3399] hover:underline font-medium cursor-pointer"
         >
           ← Back to Tasks

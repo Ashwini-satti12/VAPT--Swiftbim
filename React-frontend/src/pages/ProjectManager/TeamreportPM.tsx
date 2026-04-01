@@ -609,7 +609,7 @@ export default function TimesheetPM() {
         </div>
       </div>
       {/* Table Section */}
-      <div className="bg-white rounded-2xl border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+      <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
         {loading ? (
           <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
@@ -621,24 +621,24 @@ export default function TimesheetPM() {
           >
             <table className="min-w-full border-collapse table-fixed">
       
-              <thead className="sticky top-0 z-10 bg-white">
-                <tr className="border-b border-gray-200 bg-white">
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+              <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
+                <tr className="bg-white">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Sl.No
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Project Name
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white font-gantari">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white font-gantari">
                     Task
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Start Date
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     End Date
                   </th>
-                  <th className="px-4 py-4 text-center text-md font-bold text-[#353535] bg-white whitespace-nowrap">
+                  <th className="px-4 py-4 text-center text-md font-medium text-[#353535] bg-white whitespace-nowrap">
                     Task Duration
                   </th>
                 </tr>

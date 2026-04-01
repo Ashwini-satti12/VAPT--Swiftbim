@@ -82,13 +82,13 @@ function TeamCard({
   }, []);
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
+    <div className="bg-white rounded-md p-3.5 border border-[#E5E7EB] w-full flex flex-col transition-all hover:shadow-md group relative font-Gantari">
       {/* Team Name */}
-      <div className="flex flex-col mb-4 pt-1">
-        <span className="text-[15px] font-medium text-[#999999] mb-1.5">
+      <div className="flex flex-col mb-3 pt-1">
+        <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
           Team Name
         </span>
-        <span className="text-[18px] font-bold text-[#353535] pr-8 truncate">
+        <span className="text-[18px] font-semibold text-[#353535] pr-8 truncate">
           {team.team_name || team.teamname || "Untitled Team"}
         </span>
       </div>
@@ -96,17 +96,17 @@ function TeamCard({
       <div className="absolute top-6 right-6" ref={menuRef}>
         <button
           onClick={() => setShowMenu(!showMenu)}
-          className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity"
+          className="w-6 h-6 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
         >
           <img
             src={threeDotsIcon}
             alt="Options"
-            className="w-[18px] h-auto object-contain"
+            className="w-5 h-5 object-contain"
           />
         </button>
 
         {showMenu && (
-          <div className="absolute right-[-70px] mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
+          <div className="absolute right-0 mt-3 w-[158px] bg-white/20 backdrop-blur-md rounded-xl border border-[#59595980] py-2.5 z-[110] animate-in fade-in zoom-in duration-200 origin-top-right shadow-xl">
             {/* <button
                             onClick={() => {
                                 onViewDetails(team);
@@ -122,14 +122,14 @@ function TeamCard({
                 onEdit(team);
                 setShowMenu(false);
               }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
             >
               <img
                 src={editIcon}
                 alt="Edit"
                 className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
               />
-              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
+              <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
                 Edit
               </span>
             </button>
@@ -138,14 +138,14 @@ function TeamCard({
                 onDelete(team.team_id);
                 setShowMenu(false);
               }}
-              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item"
+              className="w-full px-6 py-3 flex items-center gap-4 transition-colors text-left group/item cursor-pointer"
             >
               <img
                 src={deleteIcon}
                 alt="Delete"
                 className="w-5 h-5 [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover/item:[filter:brightness(0)_saturate(100%)_invert(24%)_sepia(94%)_saturate(1500%)_hue-rotate(338deg)_brightness(100%)]"
               />
-              <span className="text-[16px] font-semibold text-[#616161] group-hover/item:text-[#DD4342]">
+              <span className="text-[14px] font-medium text-[#8B8B8B] group-hover/item:text-[#DD4342]">
                 Delete
               </span>
             </button>
@@ -154,21 +154,21 @@ function TeamCard({
       </div>
 
       {/* Team Leader */}
-      <div className="flex flex-col mb-5">
-        <span className="text-[15px] font-medium text-[#999999] mb-1.5">
+      <div className="flex flex-col mb-4">
+        <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
           Team Leader
         </span>
-        <span className="text-[18px] font-bold text-[#353535] truncate">
+        <span className="text-[18px] font-semibold text-[#353535] truncate">
           {team.leader_name || getEmpName(team.leader)}
         </span>
       </div>
 
-      <div className="h-[1px] w-full bg-[#E5E7EB] mb-5"></div>
+      <div className="h-[1px] w-full bg-[#E5E7EB] mb-4"></div>
 
       {/* Members & Details */}
       <div className="mt-auto flex items-center justify-between">
         <div className="flex flex-col">
-          <span className="text-[15px] font-medium text-[#999999] mb-1.5">
+          <span className="text-[14px] font-medium text-[#8B8B8B] mb-1.5">
             Members ({memberIds.length})
           </span>
           <div className="flex -space-x-3">
@@ -242,7 +242,7 @@ function TeamCard({
                     </div>
                   )}
                   {memberIds.length === 0 && (
-                    <span className="text-[15px] font-medium text-[#999999]">
+                    <span className="text-[14px] font-medium text-[#8B8B8B]">
                       No members
                     </span>
                   )}
@@ -253,10 +253,10 @@ function TeamCard({
         </div>
         <button
           onClick={() => onViewDetails(team)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-[#8B8B8B] transition-colors pr-2 mt-5"
+          className="flex items-center gap-2 text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] transition-colors pr-2 mt-5 cursor-pointer group/details"
         >
           Details
-          <img src={upArrow} alt="Up" className="w-5 h-5 object-contain" />
+          <img src={upArrow} alt="Up" className="w-5 h-5 object-contain transition-all duration-200 group-hover/details:brightness-0 group-hover/details:invert-[20%]" />
         </button>
       </div>
     </div>
@@ -280,6 +280,8 @@ export default function CreateTeamPM() {
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [teamToDelete, setTeamToDelete] = useState<number | null>(null);
   const [showAllMembersModal, setShowAllMembersModal] = useState(false);
   const [allMembersList, setAllMembersList] = useState<Employee[]>([]);
   const [showMemberProfileModal, setShowMemberProfileModal] = useState(false);
@@ -430,15 +432,24 @@ export default function CreateTeamPM() {
   };
 
   const handleDelete = (teamId: number) => {
-    if (!window.confirm("Are you sure you want to delete this team?")) return;
+    setTeamToDelete(teamId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (teamToDelete === null) return;
+    setSubmitting(true);
     api
-      .delete(`/api/teams/${teamId}`)
+      .delete(`/api/teams/${teamToDelete}`)
       .then(({ data }) => {
         if (data.success) {
-          setTeams(teams.filter((t) => t.team_id !== teamId));
+          setTeams(teams.filter((t) => t.team_id !== teamToDelete));
+          setShowDeleteModal(false);
+          setTeamToDelete(null);
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setSubmitting(false));
   };
 
   const handleUpdate = (e: React.FormEvent) => {
@@ -493,7 +504,7 @@ export default function CreateTeamPM() {
             setShowMemberDropdown(false);
             setShowAddModal(true);
           }}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95"
+          className="flex items-center gap-2 px-6 py-2 bg-[#DD4342] text-white rounded-md transition-all font-semibold shadow-red-200 active:scale-95"
         >
           <PlusIcon className="w-5 h-5 stroke-[3]" />
           New Team
@@ -548,18 +559,18 @@ export default function CreateTeamPM() {
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-y-auto no-scrollbar my-auto shrink-0 max-h-[95vh]">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors"
+              className="absolute top-6 left-6 p-2 bg-[#F2F2F2] rounded-lg text-[#1E293B] transition-colors"
             >
-              <XMarkIcon className="w-6 h-6 stroke-[2.5]" />
+              <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
             </button>
 
-            <div className="text-center mb-10">
-              <h3 className="text-[26px] font-medium text-[#000000]">
+            <div className="text-center mb-8">
+              <h3 className="text-[24px] font-medium text-[#000000]">
                 Create New Team
               </h3>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-3">
                   Team Name
@@ -567,7 +578,7 @@ export default function CreateTeamPM() {
                 <input
                   type="text"
                   placeholder="Enter Team Name"
-                  className="w-full bg-[#F2F3F4] border border-transparent px-5 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                  className="w-full bg-[#F2F2F2] border border-transparent px-5 py-2 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:border-[#AEACAC52] outline-none transition-all"
                   value={form.team_name}
                   onChange={(e) =>
                     setForm({ ...form, team_name: e.target.value })
@@ -617,7 +628,7 @@ export default function CreateTeamPM() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2.5 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] outline-none transition-all focus:border-[#AEACAC52]"
+                      className="w-full bg-[#F2F2F2] border border-transparent pl-5 pr-10 py-2.5 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] outline-none transition-all focus:border-[#AEACAC52] cursor-pointer"
                       required
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -720,7 +731,7 @@ export default function CreateTeamPM() {
                             : "",
                         );
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-[10px] text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F2F2] border border-transparent pl-5 pr-10 py-2 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:border-[#AEACAC52] outline-none transition-all cursor-pointer"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
@@ -818,7 +829,7 @@ export default function CreateTeamPM() {
                         setShowMemberDropdown(true);
                         setMemberSearchQuery("");
                       }}
-                      className="w-full bg-[#F2F3F4] border border-transparent pl-5 pr-10 py-2 rounded-lg text-[14px] text-[#1E293B] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:ring-1 focus:ring-[#AEACAC52] focus:border-[#AEACAC52] outline-none transition-all"
+                      className="w-full bg-[#F2F2F2] border border-transparent pl-5 pr-10 py-2 rounded-md text-[14px] text-[#353535] placeholder:text-[14px] placeholder:text-[#8B8B8B] focus:border-[#AEACAC52] outline-none transition-all cursor-pointer"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                       <svg
@@ -892,14 +903,14 @@ export default function CreateTeamPM() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-5 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98]"
+                  className="px-5 py-2 rounded-lg bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
+                  className="px-5 py-2 rounded-lg bg-[#DBE9FE] text-[#000000] text-[14px] font-medium transition-all disabled:opacity-50 active:scale-[0.98]"
                 >
                   {submitting ? "Submitting..." : "Submit"}
                 </button>
@@ -913,18 +924,18 @@ export default function CreateTeamPM() {
           <div className="bg-white rounded-lg shadow-2xl max-w-[564px] w-full p-6 animate-in zoom-in-95 duration-200 relative overflow-y-auto no-scrollbar my-auto shrink-0 max-h-[95vh]">
             <button
               onClick={() => setShowEditModal(false)}
-              className="absolute top-8 left-8 p-2 bg-[#F2F2F2] rounded-md text-[#000000] transition-colors cursor-pointer"
+              className="absolute top-6 left-8 p-2 bg-[#F2F2F2] rounded-md text-[#000000] transition-colors cursor-pointer"
             >
-              <XMarkIcon className="w-6 h-6 stroke-[2]" />
+              <XMarkIcon className="w-5 h-5 stroke-[2]" />
             </button>
 
-            <div className="text-center mb-10">
+            <div className="text-center mb-8">
               <h3 className="text-[24px] font-medium text-[#000000] font-Gantari">
                 Edit Team Details
               </h3>
             </div>
 
-            <form onSubmit={handleUpdate} className="space-y-6">
+            <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <label className="block text-[16px] font-medium text-[#000000] mb-2">
                   Team Name
@@ -1265,14 +1276,14 @@ export default function CreateTeamPM() {
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
-                  className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[16px] font-medium transition-all active:scale-[0.98] cursor-pointer"
+                  className="px-5 py-2 rounded-md bg-[#F2F2F2] text-[#616161] text-[14px] font-medium transition-all active:scale-[0.98] cursor-pointer"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-md bg-[#DBE9FE] text-[#000000] text-[16px] font-medium transition-all disabled:opacity-50 active:scale-[0.98] cursor-pointer"
+                  className="px-5 py-2 rounded-md bg-[#DBE9FE] text-[#000000] text-[14px] font-medium transition-all disabled:opacity-50 active:scale-[0.98] cursor-pointer"
                 >
                   {submitting ? "Updating..." : "Update"}
                 </button>
@@ -1692,6 +1703,53 @@ export default function CreateTeamPM() {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-md shadow-2xl max-w-[500px] w-full p-8 flex flex-col items-center animate-in zoom-in-95 duration-200 relative overflow-hidden">
+            <div className="relative flex items-center justify-center w-full mb-4">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setTeamToDelete(null);
+                }}
+                className="absolute left-0 p-1.5 bg-[#F2F2F2] rounded-md transition-all cursor-pointer"
+              >
+                <XMarkIcon className="w-5 h-5 stroke-[2.5] text-[#020202]" />
+              </button>
+              <h3 className="text-[18px] font-semibold text-[#020202] font-Gantari">
+                Delete Team
+              </h3>
+            </div>
+
+            <div className="text-center w-full">
+              <p className="text-[14px] text-[#020202] mb-10">
+                Are you sure you want to delete this team?
+              </p>
+
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setTeamToDelete(null);
+                  }}
+                  className="px-8 py-2 bg-[#F2F2F2] text-[#353535] rounded-md text-[14px] font-medium transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={submitting}
+                  className="px-8 py-2 bg-[#FFE4E3] text-[#E00100] rounded-md text-[14px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {submitting ? "Deleting..." : "Delete"}
+                </button>
               </div>
             </div>
           </div>

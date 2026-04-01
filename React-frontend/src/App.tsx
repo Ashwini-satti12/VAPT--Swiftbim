@@ -68,6 +68,7 @@ import EditConsultantBL from './pages/BimLead/EditConsultantBL';
 import ConsultantdetailsBL from './pages/BimLead/ConsultantdetailsBL';
 import ProjectsBL from './pages/BimLead/ProjectsBL';
 import MytaskBL from './pages/BimLead/MytaskBL';
+import AddTaskBL from './pages/BimLead/AddTaskBL';
 import TeamtaskBL from './pages/BimLead/TeamtaskBL';
 import CreateteamBL from './pages/BimLead/CreateteamBL';
 import TrackerBL from './pages/BimLead/TrackerBL';
@@ -98,6 +99,7 @@ import AddTaskBC from './pages/BimCoordinator/AddTaskBC';
 /* Bim Modeler */
 import DashboardBM from './pages/BimModeler/DashboardBM';
 import MytaskBM from './pages/BimModeler/MytaskBM';
+import MytaskViewBM from './pages/BimModeler/MytaskViewBM';
 import TeamReportBM from './pages/BimModeler/TeamReportBM';
 import ManageLeave from './pages/BimModeler/ManageLeave';
 
@@ -226,6 +228,8 @@ function App() {
             <Route path="bl/clients" element={<ClientBL />} />
             <Route path="bl/projects" element={<ProjectsBL />} />
             <Route path="bl/mytasks" element={<MytaskBL />} />
+            <Route path="bl/mytasks/add" element={<AddTaskBL />} />
+            <Route path="bl/teamtasks/add" element={<AddTaskBL />} />
             <Route path="bl/teamtasks" element={<TeamtaskBL />} />
             <Route path="bl/createteam" element={<CreateteamBL />} />
             <Route path="bl/tracker" element={<TrackerBL />} />
@@ -258,6 +262,7 @@ function App() {
             {/* Bim Modeler Routes */}
             <Route path="bm/dashboard" element={<DashboardBM />} />
             <Route path="bm/mytasks" element={<MytaskBM />} />
+            <Route path="bm/mytasks/view/:id" element={<MytaskViewBM />} />
             <Route path="bm/teamreport" element={<TeamReportBM />} />
             <Route path="bm/manage-leave" element={<ManageLeave />} />
 
@@ -297,7 +302,7 @@ function App() {
             <Route path="vpm/communication" element={<ChatPMV />} />
 
             {/* Vendor Employee Routes */}
-            <Route path="ve/dashboard" element={<DashboardPM />} />
+            <Route path="ve/dashboard" element={<DashboardEV />} />
             <Route path="ve/mytasks" element={<MytaskEV />} />
             <Route path="ve/teamtasks" element={<TeamtaskEV />} />
             <Route path="ve/communication" element={<ChatEV />} />

@@ -94,18 +94,18 @@ export function FormDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
+                className="flex w-full items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-left text-[14px] cursor-pointer"
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={value ? "text-[#353535]" : "text-[#616161]"}>
+                <span className={value ? "text-[#353535]" : "text-[#8B8B8B]"}>
                     {displayLabel}
                 </span>
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 h-4 w-4 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2  w-3 shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
@@ -137,7 +137,7 @@ export function FormDropdown({
                                     onChange(opt.value);
                                     onClose();
                                 }}
-                                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                                className="block w-full px-3 py-2 text-left text-[14px] text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2] first:rounded-t-lg last:rounded-b-lg cursor-pointer"
                             >
                                 {opt.label}
                             </button>
@@ -206,15 +206,15 @@ export function TaskDropdown({
                     e.stopPropagation();
                     onToggle();
                 }}
-                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-sm cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
+                className={`inline-flex items-center justify-between rounded-md bg-[#E8E8E8] px-4 py-2 text-[14px] cursor-pointer ${narrow ? "min-w-[90px]" : "min-w-[140px]"}`}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={label}
             >
-                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#616161]"}`}>
+                <span className={`truncate font-gantari ${selected && selected !== label ? "text-[#353535]" : "text-[#8B8B8B]"}`}>
                     {label.toLowerCase() === 'show' && selected && selected !== label ? (
                         <>
-                            <span className="text-sm text-[#353535]">Show:</span>{" "}
+                            <span className="text-[14px] text-[#353535]">Show:</span>{" "}
                             <span>{selected}</span>
                         </>
                     ) : (
@@ -224,7 +224,7 @@ export function TaskDropdown({
                 <img
                     src={ArrowDown}
                     alt="arrow"
-                    className={`ml-2 w-2.5 h-2.5 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                    className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 />
             </button>
             {isOpen && (
@@ -262,7 +262,7 @@ export function TaskDropdown({
                                     onSelect(opt);
                                     onClose();
                                 }}
-                                className={`block w-full px-4 py-2 text-left text-sm font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-gray-100 text-[#353535]" : "text-[#616161] hover:text-[#353535] hover:bg-gray-200"}`}
+                                className={`block w-full px-4 py-2 text-left text-[14px] font-gantari transition-colors cursor-pointer ${selected === opt ? "bg-[#F2F2F2] text-[#353535]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
                             >
                                 {opt}
                             </button>
@@ -517,7 +517,6 @@ export function TaskCard({
     onEditTask?: (task: Task) => void;
     onDeleteTask?: (task: Task) => void;
 }) {
-    const style = STATUS_STYLE[status];
     const progress =
         task.progress !== undefined
             ? task.progress
@@ -534,6 +533,7 @@ export function TaskCard({
         : "";
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const isCompleted = status === "completed";
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -547,6 +547,10 @@ export function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
+        if (status === "completed") {
+            e.preventDefault();
+            return;
+        }
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", task.task_name || "Task");
@@ -554,18 +558,15 @@ export function TaskCard({
 
     return (
         <div
-            draggable
+            draggable={!isCompleted}
             onDragStart={handleDragStart}
-            className="rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative cursor-grab active:cursor-grabbing"
+            className={`rounded-md border border-slate-200 bg-white p-2.5 shadow-sm relative ${isCompleted ? "cursor-default" : "cursor-grab active:cursor-grabbing"}`}
         >
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <span
-                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${style.bg}`}
-                >
-                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${style.dot}`} />
-                    {style.label}
-                </span>
-                <div className="relative shrink-0" ref={menuRef}>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <h4 className="font-semibold text-[#353535] text-[20px] truncate">
+                    {task.task_name || "Task Name"}
+                </h4>
+                <div className="relative" ref={menuRef}>
                     <button
                         type="button"
                         draggable={false}
@@ -573,7 +574,7 @@ export function TaskCard({
                             e.stopPropagation();
                             setMenuOpen((prev) => !prev);
                         }}
-                        className="p-1 rounded cursor-pointer leading-none"
+                        className="p-0.5 rounded cursor-pointer"
                         aria-label="More options"
                         aria-expanded={menuOpen}
                     >
@@ -581,7 +582,7 @@ export function TaskCard({
                     </button>
                     {menuOpen && (
                         <div
-                            className="absolute right-0 top-full mt-2 z-[100] min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all origin-top-right overflow-hidden"
+                            className="absolute top-full right-0 mt-1 z-50 min-w-[160px] bg-white/20 backdrop-blur-md rounded-md border border-[#59595980] shadow-xl transition-all duration-200 ease-out origin-top-right"
                             role="menu"
                         >
                             <button
@@ -602,49 +603,50 @@ export function TaskCard({
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {!isCompleted && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
-            <h4 className="font-semibold text-[#353535] text-[20px] truncate mb-2">
-                {task.task_name || "Task Name"}
-            </h4>
             <div className="flex items-start justify-between gap-2 mb-2">
                 <div className="flex flex-col">
                     <span className="text-[14px] font-medium text-[#000000]">Start Date</span>
@@ -655,13 +657,13 @@ export function TaskCard({
                     <span className="text-[14px] font-medium text-[#8B8B8B]">{endStr}</span>
                 </div>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-xs text-slate-600">Progress</span>
-                <span className="text-xs font-medium text-slate-700">{progress}%</span>
+            <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-[#8B8B8B]">Progress</span>
+                <span className="text-xs font-medium text-[#8B8B8B]">{progress}%</span>
             </div>
-            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-3">
+            <div className="h-1.5 rounded-full bg-slate-200 overflow-hidden mb-4">
                 <div
-                    className="h-full rounded-full bg-slate-500"
+                    className="h-full rounded-full bg-[#8B8B8B]"
                     style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                 />
             </div>
@@ -733,9 +735,10 @@ export function TaskCard({
                         </div>
                     </div>
                 </div>
-                <Link
-                    to={`/tasks/${task.id}`}
+                <button
+                    type="button"
                     draggable={false}
+                    onClick={() => onViewTask?.(task)}
                     className="group inline-flex items-center text-[14px] font-medium text-[#8B8B8B] hover:text-[#353535] gap-2 cursor-pointer"
                 >
                     Details
@@ -744,7 +747,7 @@ export function TaskCard({
                         alt="Arrow"
                         className="w-2.5 h-2.5 transition-all duration-200 group-hover:brightness-0 group-hover:invert-[20%]"
                     />
-                </Link>
+                </button>
             </div>
         </div>
     );
@@ -1056,7 +1059,7 @@ export default function MytaskBC() {
                         <button
                             type="button"
                             onClick={() => navigate("/bc/mytasks/add")}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#DD4342] px-4 py-2 text-sm font-medium text-white shadow-sm"
+                            className="inline-flex items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm"
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1101,9 +1104,9 @@ export default function MytaskBC() {
 
             {/* Task columns scrollable area */}
             <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pb-4">
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1126,7 +1129,7 @@ export default function MytaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
@@ -1149,7 +1152,7 @@ export default function MytaskBC() {
                         ))}
                     </div>
                     <div
-                        className="space-y-3 min-h-[120px] rounded-lg border-2 border-dashed border-transparent transition-colors p-1"
+                        className="space-y-2 min-h-[120px] rounded-md border-2 border-dashed border-transparent transition-colors p-1"
                         onDragOver={(e) => {
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";

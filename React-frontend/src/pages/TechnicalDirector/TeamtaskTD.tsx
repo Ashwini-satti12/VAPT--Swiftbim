@@ -849,9 +849,9 @@ export default function TeamtaskTD() {
   };
 
   const counts = {
-    todo: displayedTasksByStatus.todo.length,
-    in_progress: displayedTasksByStatus.in_progress.length,
-    completed: displayedTasksByStatus.completed.length,
+    todo: tasksByStatus.todo.length,
+    in_progress: tasksByStatus.in_progress.length,
+    completed: tasksByStatus.completed.length,
   };
 
   if (loading) {

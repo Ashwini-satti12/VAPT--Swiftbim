@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
-import viewIcon from "../../assets/BIMModeler/ManageLeave/view icon.svg";
+import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 interface LeaveEntry {
   id: number;
@@ -603,17 +606,10 @@ export default function ManageLeavePM() {
   return (
     <div className=" flex flex-col h-full font-gantari overflow-hidden">
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        <div
-          className="flex flex-col flex-1 min-h-0"
-          style={{
-            transform: "scale(0.8)",
-            transformOrigin: "top left",
-            width: "125%",
-          }}
-        >
+        <div className="flex flex-col flex-1 min-h-0">
           {/* Page header: heading left; Employee + Show entries right */}
           <div className="flex-shrink-0 mb-6 flex flex-row items-center justify-between gap-4 flex-wrap">
-            <h1 className="text-[30px] font-gantari font-semibold">
+            <h1 className="text-[24px] font-gantari font-semibold">
               Manage Leave
             </h1>
             <div className="flex items-center gap-3 flex-wrap">
@@ -626,7 +622,7 @@ export default function ManageLeavePM() {
                   }
                   setApplyModalOpen(true);
                 }}
-                className="px-4 py-2 bg-[#DD4346] text-white rounded-lg text-[16px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
+                className="px-4 py-2 bg-[#DD4346] text-white rounded-lg text-[14px] font-gantari font-medium hover:bg-[#c43a39] transition-colors cursor-pointer"
               >
                 Apply Leave
               </button>
@@ -639,7 +635,7 @@ export default function ManageLeavePM() {
                   }}
                   className={`flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between cursor-pointer ${employeeDropdownOpen ? "text-[#353535]" : "text-[#616161]"}`}
                 >
-                  <span className="text-[16px]">Employee:</span>
+                  <span className="text-[14px]">Employee:</span>
                   <span className="truncate max-w-[100px]">
                     {selectedEmployee}
                   </span>
@@ -691,8 +687,8 @@ export default function ManageLeavePM() {
                   }}
                   className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-lg border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? "text-[#353535]" : "text-[#616161]"}`}
                 >
-                  <span className="text-[16px]">Show:</span>
-                  <span className="text-[16px]">{selectedRange.label}</span>
+                  <span className="text-[14px]">Show:</span>
+                  <span className="text-[14px]">{selectedRange.label}</span>
                   <svg
                     width="14"
                     height="14"
@@ -735,31 +731,31 @@ export default function ManageLeavePM() {
             </div>
           </div>
 
-          {/* Table Section - same design as TrackerTD; no min-height so card fits content and no extra padding below */}
-          <div className="bg-white rounded-2xl border border-[#AEACAC52] overflow-hidden flex flex-col relative">
-            <div className="overflow-auto custom-scrollbar smooth-scroll pb-0">
+          {/* Table Section - same table box + scroll as TrackerPM */}
+          <div className="bg-white rounded-md border border-[#AEACAC52] shadow-sm overflow-hidden flex flex-col flex-1 min-h-0 relative">
+            <div className="overflow-auto custom-scrollbar smooth-scroll flex-1 min-h-[280px] max-h-[calc(100vh-280px)] pr-1 pb-0">
               <table className="min-w-full border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#FFFFFF] after:content-[''] after:absolute after:left-2 after:right-2 after:bottom-0 after:h-[1px] after:bg-[rgb(89,89,89)]/20">
-                  <tr className="border-b border-gray-100 bg-[#FFFFFF]">
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                  <tr className="bg-white">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Sl.No
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Employee Name
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Role
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Leave Type
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       From Date
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-semibold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       To Date
                     </th>
-                    <th className="px-3 py-6 text-center text-[20px] font-bold text-[#353535] bg-[#FFFFFF] font-gantari whitespace-nowrap">
+                    <th className="px-3 py-4 text-center text-[16px] font-medium text-[#353535] bg-white font-gantari whitespace-nowrap">
                       Action
                     </th>
                   </tr>
@@ -769,7 +765,7 @@ export default function ManageLeavePM() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-3 py-12 text-center text-[18px] text-gray-400 font-medium font-gantari bg-white"
+                        className="px-3 py-12 text-center text-gray-400 font-medium font-gantari bg-white"
                       >
                         No leave records found
                       </td>
@@ -784,30 +780,30 @@ export default function ManageLeavePM() {
                           key={row.id}
                           className={`${index % 2 === 1 ? "bg-[#F2F2F2] hover:bg-gray-100" : "bg-white"} transition-colors`}
                         >
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-medium font-gantari whitespace-nowrap align-middle">
                             {String(slNo).padStart(2, "0")}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.employeeName}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.role ?? "–"}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.leaveType}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.fromDate ?? "–"}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] text-[#353535] font-gantari whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] text-[#353535] font-gantari whitespace-nowrap align-middle">
                             {row.toDate ?? "–"}
                           </td>
-                          <td className="px-3 py-8 text-center text-[17px] whitespace-nowrap align-middle">
+                          <td className="px-3 py-6 text-center text-[14px] whitespace-nowrap align-middle">
                             <div className="flex items-center justify-center gap-2 flex-nowrap">
                               <button
                                 type="button"
                                 onClick={() => handleView(row)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#DD4346] text-white rounded-lg font-medium text-xs hover:bg-[#c43a39] active:scale-[0.98] transition-all shrink-0 cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#DD4242] text-white rounded-lg font-medium text-[14px] active:scale-[0.98] transition-all shrink-0 cursor-pointer"
                               >
                                 <img
                                   src={viewIcon}
@@ -821,42 +817,18 @@ export default function ManageLeavePM() {
                                   <button
                                     type="button"
                                     onClick={() => handleEdit(row)}
-                                    className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#353535] hover:bg-[#F0F2F7] transition-colors shrink-0 cursor-pointer"
+                                    className="inline-flex items-center justify-center p-2 bg-[#DD4242] rounded-lg text-white transition-colors shrink-0 cursor-pointer"
                                     title="Edit"
                                   >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                                      />
-                                    </svg>
+                                    <img src={editIcon} alt="" className="w-4 h-4 [filter:brightness(0)_invert(1)]" />
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => handleDelete(row)}
-                                    className="inline-flex items-center justify-center p-1.5 border border-[#E5E5E5] rounded-lg text-[#C62828] hover:bg-[#FFE5E5] transition-colors shrink-0 cursor-pointer"
+                                    className="inline-flex items-center justify-center p-2 bg-[#DD4242] rounded-lg text-white transition-colors shrink-0 cursor-pointer"
                                     title="Delete"
                                   >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                      />
-                                    </svg>
+                                    <img src={deleteIcon} alt="" className="w-4 h-4 [filter:brightness(0)_invert(1)]" />
                                   </button>
                                 </>
                               )}
@@ -1010,9 +982,14 @@ export default function ManageLeavePM() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative flex items-center justify-center px-6 py-5 border-b border-[#EEEEEE] bg-[#FAFAFA]">
-                {/* <button type="button" onClick={handleCloseModal} className="hover:cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]" aria-label="Close">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                            </button> */}
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="hover:cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors"
+                  aria-label="Close"
+                >
+                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
+                </button>
                 <h3 className="text-[24px] font-semibold text-[#353535]">
                   Apply Leave
                 </h3>
@@ -1287,21 +1264,10 @@ export default function ManageLeavePM() {
                 <button
                   type="button"
                   onClick={handleCloseEditModal}
-                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-[#EEEEEE] transition-colors text-[#353535]"
+                  className="cursor-pointer absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[#EEEEEE] hover:bg-[#E0E0E0] transition-colors"
                   aria-label="Close"
                 >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M18 6L6 18M6 6l12 12" />
-                  </svg>
+                  <img src={closeIcon} alt="" className="w-5 h-5 object-contain" />
                 </button>
                 <h3 className="text-xl font-bold text-[#353535]">Edit Leave</h3>
               </div>
