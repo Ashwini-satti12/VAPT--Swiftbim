@@ -11,7 +11,10 @@ type DashboardStats = {
   active_opportunities: number;
   bids_submitted: number;
   proposals_awaiting: number;
-  active_projects: number;
+  total_projects: number;
+  completed_projects: number;
+  in_progress_tasks: number;
+  completed_tasks: number;
 };
 
 type InvolvedPerson = {
@@ -46,7 +49,10 @@ const defaultStats: DashboardStats = {
   active_opportunities: 0,
   bids_submitted: 0,
   proposals_awaiting: 0,
-  active_projects: 0,
+  total_projects: 0,
+  completed_projects: 0,
+  in_progress_tasks: 0,
+  completed_tasks: 0,
 };
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
@@ -121,6 +127,7 @@ export default function DashboardEV() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
+  const [projects, setProjects] = useState<any[]>([]); // To handle Math.max fallback
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
@@ -129,30 +136,40 @@ export default function DashboardEV() {
     return () => clearInterval(id);
   }, []);
 
-  // GET /api/vendors/dashboard/stats → KPI cards
+  // GET stats → KPI cards
   useEffect(() => {
-    api
-      .get<DashboardStats>("/api/vendors/dashboard/stats")
-      .then(({ data }) =>
-        setStats({
-          active_opportunities: Number(data?.active_opportunities) || 0,
-          bids_submitted: Number(data?.bids_submitted) || 0,
-          proposals_awaiting: Number(data?.proposals_awaiting) || 0,
-          active_projects: Number(data?.active_projects) || 0,
-        }),
-      )
-      .catch(() => setStats(defaultStats))
-      .finally(() => setLoading(false));
+    // Vendor-specific stats (Bidding)
+    api.get<any>('/api/vendors/dashboard/stats')
+        .then(({ data }) => setStats(prev => ({
+            ...prev,
+            active_opportunities: Number(data?.active_opportunities) || 0,
+            bids_submitted: Number(data?.bids_submitted) || 0,
+            proposals_awaiting: Number(data?.proposals_awaiting) || 0,
+        })))
+        .catch(() => {})
+        .finally(() => setLoading(false));
+
+    // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
+    api.get<any>('/api/vendors/dashboard/project-stats')
+        .then(({ data }) => setStats(prev => ({
+            ...prev,
+            total_projects: Number(data?.totalProjects) || 0,
+            completed_projects: Number(data?.completedProjects) || 0,
+            in_progress_tasks: Number(data?.inProgressTasks) || 0,
+            completed_tasks: Number(data?.completedTasks) || 0,
+        })))
+        .catch(() => {});
   }, []);
 
   // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
   useEffect(() => {
-    api
-      .get<{ tasks: PriorityTask[] }>("/api/vendors/dashboard/priority-tasks")
-      .then(({ data }) =>
-        setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []),
-      )
-      .catch(() => setPriorityTasks([]));
+    api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
+        .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
+        .catch(() => setPriorityTasks([]));
+
+    api.get<{ projects?: any[] }>('/api/vendors/vendor-projects')
+        .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
+        .catch(() => setProjects([]));
   }, []);
 
   // Celebrations
@@ -280,40 +297,12 @@ export default function DashboardEV() {
     setDisplayYear(d.getFullYear());
   };
 
-  // KPI card definitions — vendor-specific metrics
+  // KPI card definitions + deep links
   const kpiCards = [
-    {
-      title: "Total\nProjects",
-      value: stats.active_opportunities,
-      barColor: "#DE3D3A",
-      label: "Total projects",
-      percent: 75,
-      // link: "/ve/projects",
-    },
-    {
-      title: "Completed\nProjects",
-      value: stats.bids_submitted,
-      barColor: "#3B82F6",
-      label: "Completed projects",
-      percent: 50,
-      // link: "/ve/projects?status=Completed",
-    },
-    {
-      title: "Inprogress\nTasks",
-      value: stats.proposals_awaiting,
-      barColor: "#E47E00",
-      label: "Inprogress tasks",
-      percent: 30,
-      link: "/ve/mytasks?status=In Progress",
-    },
-    {
-      title: "Completed\nTasks",
-      value: stats.active_projects,
-      barColor: "#00882E",
-      label: "Completed tasks",
-      percent: 20,
-      link: "/ve/mytasks?status=Completed",
-    },
+    { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), link: '/ve/projects' },
+    { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/ve/projects?status=completed' },
+    { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/ve/mytasks?status=in_progress' },
+    { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/ve/mytasks?status=completed' },
   ];
 
   if (loading) {

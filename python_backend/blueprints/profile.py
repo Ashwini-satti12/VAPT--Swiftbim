@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, g, current_app
 from db import get_db
 from auth_middleware import project_app_required
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import hashlib
 import os
 
@@ -16,7 +17,7 @@ def get_profile():
     user_type = getattr(g, "user_type", "employee")
     if user_type == "vendor":
         cur.execute(
-            "SELECT id, full_name, email, phone_number, role AS user_role, profile_picture, status, vendor_id AS Company_id, empid FROM vendor_employee WHERE id = %s",
+            "SELECT id, full_name, email, phone_number, role AS user_role, profile_picture, status, vendor_id AS Company_id, empid, address FROM vendor_employee WHERE id = %s",
             (g.user_id,)
         )
     else:
@@ -72,10 +73,12 @@ def get_profile():
                 if s:
                     locations.append(s)
 
-            if len(locations) == 1:
-                d["address"] = locations[0]
-            elif len(locations) > 1:
-                d["address"] = "\n".join([f"{i + 1}. {loc}" for i, loc in enumerate(locations)])
+            # Only fall back to company address if employee-specific address is missing
+            if not d.get("address"):
+                if len(locations) == 1:
+                    d["address"] = locations[0]
+                elif len(locations) > 1:
+                    d["address"] = "\n".join([f"{i + 1}. {loc}" for i, loc in enumerate(locations)])
         except Exception:
             # Keep response compatible even if onboarding DB isn't reachable
             pass
@@ -115,7 +118,7 @@ def update_profile():
     user_type = getattr(g, "user_type", "employee")
     
     if user_type == "vendor":
-        allowed = ("full_name", "phone_number", "email")
+        allowed = ("full_name", "phone_number", "email", "address", "role")
     else:
         allowed = ("full_name", "phone_number", "email", "dob", "doj", "address", "department")
         
@@ -168,8 +171,19 @@ def change_password():
     row = cur.fetchone()
     if not row:
         return jsonify({"success": False, "message": "User not found"}), 404
-    if hashlib.md5(current.encode()).hexdigest() != (row.get("password") or ""):
+    
+    stored = row.get("password") or ""
+    # Verify current password
+    is_valid = False
+    if stored.startswith("scrypt:") or stored.startswith("pbkdf2:"):
+        is_valid = check_password_hash(stored, current)
+    else:
+        is_valid = hashlib.md5(current.encode()).hexdigest() == stored
+        
+    if not is_valid:
         return jsonify({"success": False, "message": "Current password is incorrect"}), 401
-    hashed = hashlib.md5(new_password.encode()).hexdigest()
+    
+    # Generate new password hash (using scrypt by default now for better security)
+    hashed = generate_password_hash(new_password)
     cur.execute(f"UPDATE {table} SET password = %s WHERE id = %s", (hashed, g.user_id))
     return jsonify({"success": True, "message": "Password updated"})
