@@ -489,7 +489,7 @@ export default function ProjectsPMV() {
                 </div>
                 <div className="space-y-2">
                     <label className="block text-[16px] font-medium text-[#000000]">Project Start Date <span className="text-[#DD4342]">*</span></label>
-                    <input type="date" value={createStartDate} 
+                    <input type="date" value={createStartDate}
                         onChange={e => {
                             const val = e.target.value;
                             setCreateStartDate(val);
@@ -716,9 +716,9 @@ export default function ProjectsPMV() {
                                     { label: "Paused", value: taskStats.paused, status: "paused" },
                                     { label: "Completed", value: taskStats.completed, status: "completed" },
                                 ].map((stat, i) => (
-                                    <button 
-                                        key={i} 
-                                        type="button" 
+                                    <button
+                                        key={i}
+                                        type="button"
                                         onClick={() => navigate('/vpm/teamtasks?status=' + stat.status + (selectedProject?.project_name ? `&project=${encodeURIComponent(selectedProject.project_name)}` : ''))}
                                         className="text-left bg-[#F4F5F7] p-6 rounded-[1rem] md:rounded-[1.25rem] shadow-sm flex flex-col h-[100px] md:h-[140px] hover:bg-[#DD4342] focus:outline-none cursor-pointer transition-colors group"
                                     >
