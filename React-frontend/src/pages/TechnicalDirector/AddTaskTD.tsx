@@ -5,6 +5,7 @@ import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
+import closeButtonIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
@@ -98,13 +99,13 @@ export default function AddTaskTD() {
     const [serverAttachmentDeleting, setServerAttachmentDeleting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
+    const formProjectTriggerRef = useRef<HTMLElement | null>(null);
     const formProjectMenuRef = useRef<HTMLDivElement>(null);
-    const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
+    const formModuleTriggerRef = useRef<HTMLElement | null>(null);
     const formModuleMenuRef = useRef<HTMLDivElement>(null);
-    const formTypeTriggerRef = useRef<HTMLButtonElement>(null);
+    const formTypeTriggerRef = useRef<HTMLElement | null>(null);
     const formTypeMenuRef = useRef<HTMLDivElement>(null);
-    const formAssignTriggerRef = useRef<HTMLButtonElement>(null);
+    const formAssignTriggerRef = useRef<HTMLElement | null>(null);
     const formAssignMenuRef = useRef<HTMLDivElement>(null);
     const formStartTimeTriggerRef = useRef<HTMLButtonElement>(null);
     const formStartTimeMenuRef = useRef<HTMLDivElement>(null);
@@ -372,7 +373,7 @@ export default function AddTaskTD() {
     };
 
     return (
-        <div className="flex-1 min-h-0 p-2 bg-white overflow-hidden">
+        <div className="flex-1 min-h-0 p-4 bg-white overflow-hidden">
             <div className="max-w-[1174px] mx-auto h-full min-h-0 flex flex-col">
                 <div className="flex items-center justify-between mb-8 sm:mb-10 relative flex-shrink-0">
                     <button
@@ -389,7 +390,7 @@ export default function AddTaskTD() {
                     <div className="w-10" />
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-1 -mr-1">
+                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar pr-6">
                     {/* File input outside <form> avoids picker/change quirks in some browsers; still same state + submit integration. */}
                     <input
                         ref={fileInputRef}
@@ -457,13 +458,13 @@ export default function AddTaskTD() {
                         </div>
                         <div>
                             <label className="block text-[16px] font-semibold text-[#000000] mb-2 font-Gantari">Task Name <span className="text-[#DD4342]">*</span></label>
-                            <div className="flex relative">
+                            <div className="relative flex min-h-[42px] items-stretch overflow-hidden rounded-[5px] border border-transparent bg-[#F2F3F4] transition-colors focus-within:border-[#AEACAC52]">
                                 <input
                                     type="text"
                                     value={addTaskForm.taskName}
                                     onChange={(e) => setAddTaskForm((f) => ({ ...f, taskName: e.target.value }))}
                                     placeholder="Enter Task / Select Task"
-                                    className="flex-1 w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] rounded-r-none font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
+                                    className="min-w-0 flex-1 border-0 bg-transparent px-4 py-2 text-[14px] font-Gantari text-[#353535] outline-none placeholder-[#8B8B8B]"
                                 />
                                 <TaskDropdown
                                     label="Tasklist"
@@ -481,6 +482,9 @@ export default function AddTaskTD() {
                                     onClose={() => setTasklistOpen(false)}
                                     triggerRef={tasklistTriggerRef}
                                     dropdownRef={tasklistMenuRef}
+                                    menuAlign="right"
+                                    menuUseFixedLayer
+                                    triggerVariant="compositeEnd"
                                     searchable
                                     searchPlaceholder="Search task..."
                                     maxVisibleItems={6}
@@ -551,7 +555,7 @@ export default function AddTaskTD() {
                                     <img
                                         src={ArrowDown}
                                         alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
+                                        className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_start_time" ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openFormDropdown === "type_start_time" && (
@@ -586,7 +590,7 @@ export default function AddTaskTD() {
                                     <img
                                         src={ArrowDown}
                                         alt=""
-                                        className={`ml-2 h-4 w-4 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
+                                        className={`ml-2 h-3 w-3 shrink-0 transition-transform ${openFormDropdown === "type_end_time" ? "rotate-180" : ""}`}
                                     />
                                 </button>
                                 {openFormDropdown === "type_end_time" && (
@@ -771,30 +775,24 @@ export default function AddTaskTD() {
                         aria-modal="true"
                         aria-labelledby="attachment-delete-title"
                     >
-                        <div className="flex items-start gap-3">
+                        <div className="relative">
                             <button
                                 type="button"
                                 disabled={serverAttachmentDeleting}
                                 onClick={() => setPendingAttachmentDelete(null)}
-                                className="mt-0.5 shrink-0 rounded-lg p-1 text-[#6B7280] hover:bg-[#F2F2F2] hover:text-[#1A1A1A] cursor-pointer border-0 bg-transparent disabled:opacity-50"
+                                className="absolute left-0 top-0 shrink-0 rounded-lg p-1 bg-[#F2F2F2] cursor-pointer border-0 bg-transparent disabled:opacity-50"
                                 aria-label="Close"
                             >
-                                <svg
+                                <img
+                                    src={closeButtonIcon}
+                                    alt=""
                                     className="h-5 w-5"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={2}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
                                     aria-hidden
-                                >
-                                    <path d="M6 18L18 6M6 6l12 12" />
-                                </svg>
+                                />
                             </button>
                             <p
                                 id="attachment-delete-title"
-                                className="min-w-0 flex-1 text-left text-[16px] leading-relaxed text-[#353535]"
+                                className="mx-auto max-w-full px-10 text-center text-[16px] leading-relaxed text-[#353535]"
                             >
                                 Are you sure you want to delete{" "}
                                 <strong className="font-semibold text-[#353535]">{pendingDeleteFileName}</strong>?

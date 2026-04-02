@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import api from "../../lib/api";
+import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
+
+const SHOW_ENTRIES_PLACEHOLDER = "Show entries";
 
 interface TimesheetEntry {
   id: number;
@@ -43,17 +46,21 @@ export default function TimesheetPM() {
     start: number;
     end: number | null;
   }[] = [
-    { value: "0-100", label: "0-100", start: 0, end: 100 },
+    { value: "1-50", label: "1-50", start: 0, end: 50 },
+    { value: "51-100", label: "51-100", start: 50, end: 100 },
+    { value: "101-150", label: "101-150", start: 100, end: 150 },
+    { value: "151-200", label: "151-200", start: 150, end: 200 },
+    { value: "201-250", label: "201-250", start: 200, end: 250 },
+    { value: "251-300", label: "251-300", start: 250, end: 300 },
     { value: "101-200", label: "101-200", start: 100, end: 200 },
     { value: "201-300", label: "201-300", start: 200, end: 300 },
     { value: "301-400", label: "301-400", start: 300, end: 400 },
     { value: "all", label: "All", start: 0, end: null },
   ];
-  const [selectedShowEntries, setSelectedShowEntries] = useState(
-    showEntriesOptions[0].value,
-  );
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const PER_PAGE = 10;
   const PAGINATION_VISIBLE = 4;
   const [currentPage, setCurrentPage] = useState(1);
@@ -206,20 +213,25 @@ export default function TimesheetPM() {
       .finally(() => setLoading(false));
   }, [startDate, endDate, employee, team, employees, teams]);
 
-  // Handle click outside for dropdowns
+  // Single outside-click handler (avoids mousedown vs click race with menu items)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const t = event.target as Node;
       if (
         employeeDropdownRef.current &&
-        !employeeDropdownRef.current.contains(event.target as Node)
+        !employeeDropdownRef.current.contains(t)
       ) {
         setEmployeeOpen(false);
       }
-      if (
-        teamDropdownRef.current &&
-        !teamDropdownRef.current.contains(event.target as Node)
-      ) {
+      if (teamDropdownRef.current && !teamDropdownRef.current.contains(t)) {
         setTeamOpen(false);
+      }
+      if (
+        showEntriesOpen &&
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(t)
+      ) {
+        setShowEntriesOpen(false);
       }
     };
 
@@ -227,20 +239,12 @@ export default function TimesheetPM() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [showEntriesOpen]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        showEntriesDropdownRef.current &&
-        !showEntriesDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowEntriesOpen(false);
-      }
-    };
-    if (showEntriesOpen)
-      document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
   }, [showEntriesOpen]);
 
   useEffect(() => {
@@ -250,8 +254,10 @@ export default function TimesheetPM() {
 
   const filteredList = list; // API already filters, so we use list directly
 
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =
-    showEntriesOptions.find((o) => o.value === selectedShowEntries) ??
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
     showEntriesOptions[0];
   const rangeStart = selectedRange.start;
   const rangeEnd =
@@ -549,60 +555,83 @@ export default function TimesheetPM() {
             )}
           </div>
 
-          {/* Show entries - same design as TeamReportTD */}
-          <div className="relative" ref={showEntriesDropdownRef}>
+          {/* Show entries — same design as EmployeesPM CustomDropdown (header) */}
+          <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowEntriesOpen((o) => !o);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
             >
-              <span className="text-[14px] font-gantari text-[#616161]">
-                Show:
-              </span>
-              <span className="text-[14px] font-gantari text-[#353535]">
-                {selectedRange.label}
-              </span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#353535"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: showEntriesOpen
-                    ? "rotate(180deg)"
-                    : "rotate(0deg)",
-                  transition: "transform 0.2s",
-                }}
+              <span
+                className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                  selectedShowEntries === ""
+                    ? "text-[#8B8B8B]"
+                    : "text-[#353535]"
+                }`}
               >
-                <path d="M6 9l6 6 6-6" />
-              </svg>
+                {selectedShowEntries === "" ? (
+                  SHOW_ENTRIES_PLACEHOLDER
+                ) : (
+                  <>
+                    <span className="text-[14px]">{SHOW_ENTRIES_PLACEHOLDER}:</span>{" "}
+                    <span className="font-semibold">{selectedRange.label}</span>
+                  </>
+                )}
+              </span>
+              <img
+                src={ArrowDown}
+                alt=""
+                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                  showEntriesOpen ? "rotate-180" : ""
+                } ${
+                  selectedShowEntries === ""
+                    ? "opacity-60 grayscale"
+                    : "opacity-90"
+                }`}
+                aria-hidden
+              />
             </button>
             {showEntriesOpen && (
-              <div
-                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg min-w-[120px] py-1"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {showEntriesOptions.map((opt) => (
+              <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                <div
+                  ref={showEntriesDropdownContentRef}
+                  className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                >
                   <button
-                    key={opt.value}
                     type="button"
-                    onClick={(e) => {
+                    onMouseDown={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      setSelectedShowEntries(opt.value);
+                      setSelectedShowEntries("");
                       setShowEntriesOpen(false);
                     }}
-                    className={`w-full text-left px-4 py-2 text-[14px] font-gantari transition-colors cursor-pointer ${selectedShowEntries === opt.value ? "text-[#353535] bg-[#F2F2F2]" : "text-[#8B8B8B] hover:text-[#353535] hover:bg-[#F2F2F2]"}`}
+                    className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
                   >
-                    {opt.label}
+                    {SHOW_ENTRIES_PLACEHOLDER}
                   </button>
-                ))}
+                  {showEntriesOptions.map((opt) => (
+                    <button
+                      key={`${opt.value}-${opt.start}-${opt.end}`}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedShowEntries(opt.value);
+                        setShowEntriesOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                        selectedShowEntries === opt.value
+                          ? "text-[#353535] bg-[#F2F2F2]"
+                          : "text-[#8B8B8B] bg-transparent"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
