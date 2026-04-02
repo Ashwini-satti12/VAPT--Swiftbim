@@ -1560,14 +1560,14 @@ export default function VendorBimLeadTeamTasks() {
                                 <button
                                     type="button"
                                     onClick={resetAndClose}
-                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer"
+                                    className="rounded-lg bg-[#F2F2F2] px-5 py-2 text-sm font-medium text-[#8B8B8B] cursor-pointer"
                                 >
                                     Discard
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={createSubmitting}
-                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] hover:bg-[#D5E6FF] disabled:opacity-50 cursor-pointer"
+                                    className="rounded-lg bg-[#DBE9FE] px-5 py-2 text-sm font-medium text-[#101827] disabled:opacity-50 cursor-pointer"
                                 >
                                     Submit
                                 </button>

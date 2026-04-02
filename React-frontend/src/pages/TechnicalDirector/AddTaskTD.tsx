@@ -118,11 +118,28 @@ export default function AddTaskTD() {
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects"),
-        ]).then(([tasksRes, empRes, projRes]) => {
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
+        ]).then(([tasksRes, empRes, projRes1, projRes2]) => {
             setList(tasksRes.data.tasks ?? []);
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-            setProjects(projRes.data.projects ?? []);
+            
+            const p1 = (projRes1.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: String(r.source || "In House")
+            }));
+            const p2 = (projRes2.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: "Outsource"
+            }));
+            
+            setProjects([...p1, ...p2] as any);
         });
     }, []);
 
@@ -297,9 +314,13 @@ export default function AddTaskTD() {
             }
         };
 
+        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsource = selectedProj?.source === "Outsource";
+        const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+
         if (editingTaskId != null) {
             api
-                .patch(`/api/tasks/${editingTaskId}`, {
+                .patch(`${baseEndpoint}/${editingTaskId}`, {
                     task_name: payload.taskName,
                     assigned_to: payload.assignedTo,
                     due_date: payload.dueDate,
@@ -320,7 +341,7 @@ export default function AddTaskTD() {
                 })
                 .finally(() => setAddSubmitting(false));
         } else {
-            api.post("/api/tasks", payload).then((res) => {
+            api.post(baseEndpoint, payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
