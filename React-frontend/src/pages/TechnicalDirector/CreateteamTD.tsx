@@ -700,7 +700,7 @@ export default function CreateteamTD() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Team Name
+                  Team Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <input
                   type="text"
@@ -780,7 +780,7 @@ export default function CreateteamTD() {
 
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Team Leader
+                  Select Team Leader <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={leaderDropdownRef}>
                   <div className="relative">
@@ -896,7 +896,7 @@ export default function CreateteamTD() {
 
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Member
+                  Select Member <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={memberDropdownRef}>
                   <div className="relative">
@@ -1036,7 +1036,7 @@ export default function CreateteamTD() {
             <form onSubmit={handleUpdate} className="space-y-6">
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Team Name
+                  Team Name <span className="text-[#DD4342]">*</span>
                 </label>
                 <input
                   type="text"
@@ -1115,7 +1115,7 @@ export default function CreateteamTD() {
 
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Team Leader
+                  Select Team Leader <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={leaderDropdownRef}>
                   <div className="relative">
@@ -1215,7 +1215,7 @@ export default function CreateteamTD() {
 
               <div>
                 <label className="block text-[14px] font-medium text-[#353535] mb-3">
-                  Select Member
+                  Select Member <span className="text-[#DD4342]">*</span>
                 </label>
                 <div className="relative" ref={memberDropdownRef}>
                   <div className="relative">

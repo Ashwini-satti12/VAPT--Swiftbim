@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../../lib/api";
 import { useNavigate } from "react-router-dom";
-import { VscEye } from "react-icons/vsc";
-import { BiEdit } from "react-icons/bi";
-import { RiDeleteBin5Fill } from "react-icons/ri";
 import Dot from "../../../assets/ProjectManager/MyTask/Dot.svg";
-import { FaCircleDollarToSlot } from "react-icons/fa6";
 import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import viewIcon from "../../../assets/ProjectManager/project/viewIcon.svg";
+import editIcon from "../../../assets/ProjectManager/project/editIcon.svg";
+import deleteIcon from "../../../assets/ProjectManager/project/deleteIcon.svg";
+import paymentMilestoneIcon from "../../../assets/ProjectManager/project/paymentMilestone.svg";
+import threedot from "../../../assets/ProjectManager/project/threedot.svg";
 
 interface Project {
     id: number;
@@ -119,6 +120,17 @@ export default function ProjectsPMV() {
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     };
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest(".project-menu-container")) {
+                setOpenMenuProjectId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         fetchProjects(statusFilter);
@@ -915,104 +927,161 @@ export default function ProjectsPMV() {
                                         No projects found. Create your first project or accept a proposal.
                                     </div>
                                 ) : (
-                                    list.map(p => {
-                                        const progress = Math.round(Number(p.progress) || 0);
+                                    list.map(p => {                                        const progress = Math.round(Number(p.progress) || 0);
                                         const memberIds = p.members ? p.members.split(",").filter(Boolean).map(Number) : [];
-                                        const rad = 28;
-                                        const circ = 2 * Math.PI * rad;
+                                        const radius = 28;
+                                        const circumference = 2 * Math.PI * radius;
+                                        const strokeOffset = circumference - (progress / 100) * circumference;
+                                        const isHighPri = (p.priority || "").toLowerCase() === "high" || (p.priority || "").toLowerCase() === "urgent";
+
                                         return (
-                                            <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-6 flex flex-col justify-between">
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-6">
-                                                        <h3 className="text-[20px] font-semibold text-[#353535] leading-tight">{p.project_name ?? "Untitled"}</h3>
-                                                        <div className="relative">
-                                                            <button type="button" onClick={() => setOpenMenuProjectId(prev => prev === p.id ? null : p.id)} className="rounded-full cursor-pointer">
-                                                                <img src={Dot} alt="" className="w-6 h-6" />
-                                                            </button>
-                                                            {openMenuProjectId === p.id && (
-                                                                <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
-                                                                    <button onClick={() => { setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><VscEye /> View Details</button>
-                                                                    <button onClick={() => { setOpenMenuProjectId(null); openEdit(p); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><BiEdit /> Edit</button>
-                                                                    <button onClick={() => { setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-[#DD4342] font-semibold text-sm transition-colors cursor-pointer"><FaCircleDollarToSlot /> Milestones</button>
-                                                                    <button onClick={() => { setOpenMenuProjectId(null); setDeleteId(p.id); }}
-                                                                        className="w-full flex items-center gap-3 px-4 py-2 hover:bg-slate-50 text-[#6B6B6B] hover:text-red-500 font-semibold text-sm transition-colors cursor-pointer"><RiDeleteBin5Fill /> Delete</button>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                                            <div
+                                                key={p.id}
+                                                onClick={() => {
+                                                    setSelectedProject(p);
+                                                    setShowProjectView(true);
+                                                }}
+                                                className="bg-white rounded-2xl border border-slate-200 p-4 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                                            >
+                                                <div className="flex items-start justify-between mb-2">
+                                                    <div className="relative flex items-center justify-center shrink-0 mt-3 ml-2">
+                                                        <svg className="w-20 h-20 transform -rotate-90">
+                                                            <circle cx="40" cy="40" r={radius} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
+                                                            <circle
+                                                                cx="40"
+                                                                cy="40"
+                                                                r={radius}
+                                                                stroke="#0a9344"
+                                                                strokeWidth="6"
+                                                                fill="transparent"
+                                                                strokeDasharray={circumference}
+                                                                strokeDashoffset={strokeOffset}
+                                                                strokeLinecap="round"
+                                                                style={{ transition: "stroke-dashoffset 0.8s ease-in-out" }}
+                                                            />
+                                                        </svg>
+                                                        <span className="absolute text-[16px] font-Gantari font-bold text-[#353535]">
+                                                            {progress}%
+                                                        </span>
                                                     </div>
-                                                    <div className="flex items-center gap-6 mt-4 mb-8">
-                                                        <div className="relative flex items-center justify-center w-20 h-20">
-                                                            <svg className="w-full h-full transform -rotate-90">
-                                                                <circle cx="40" cy="40" r={rad} stroke="#f1f5f9" strokeWidth="6" fill="transparent" />
-                                                                <circle cx="40" cy="40" r={rad} stroke="#0a9344" strokeWidth="6" fill="transparent"
-                                                                    strokeDasharray={circ} strokeDashoffset={circ - (progress / 100) * circ} strokeLinecap="round" />
-                                                            </svg>
-                                                            <span className="absolute font-bold">{progress}%</span>
-                                                        </div>
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between mb-2">
-                                                                <span className="text-[15px] font-bold text-[#8B8B8B]">Progress</span>
-                                                                <span className="text-[15px] font-bold">{progress}%</span>
+
+                                                    <div className="relative shrink-0 project-menu-container">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setOpenMenuProjectId(prev => prev === p.id ? null : p.id);
+                                                            }}
+                                                            className="p-2 rounded-full text-[#8B8B8B] transition-colors cursor-pointer"
+                                                        >
+                                                            <img
+                                                                src={threedot}
+                                                                alt="options"
+                                                                className="w-5 h-5 text-[#8B8B8B]"
+                                                            />
+                                                        </button>
+
+                                                        {openMenuProjectId === p.id && (
+                                                            <div className="absolute right-0 mt-3 w-60 bg-white rounded-xl border border-slate-100 shadow-2xl z-[150] py-3 animate-in fade-in zoom-in duration-200 origin-top-right">
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); setSelectedProject(p); setShowProjectView(true); }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img
+                                                                        src={viewIcon}
+                                                                        alt="view"
+                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                                                        View Details
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); openEdit(p); }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img
+                                                                        src={editIcon}
+                                                                        alt="edit"
+                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                        Edit
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); setMilestonesProject(p); setShowMilestones(true); }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    <img
+                                                                        src={paymentMilestoneIcon}
+                                                                        alt="milestones"
+                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-[#DD4342] font-Gantari">
+                                                                        Payment Milestones
+                                                                    </span>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); setOpenMenuProjectId(null); setDeleteId(p.id); }}
+                                                                    className="w-full flex items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                                                >
+                                                                    {/* <img
+                                                                        src={deleteIcon}
+                                                                        alt="delete"
+                                                                        className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                                                    />
+                                                                    <span className="text-[16px] font-semibold text-[#616161] group-hover:text-red-500 font-Gantari">
+                                                                        Delete
+                                                                    </span> */}
+                                                                </button>
                                                             </div>
-                                                            <div className="h-2 w-full bg-[#F1F4F9] rounded-full overflow-hidden">
-                                                                <div className="h-full bg-[#0a9344]" style={{ width: `${progress}%` }}></div>
-                                                            </div>
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 </div>
-                                                <div className="border-t border-[#F1F1F1] pt-5 mt-auto flex items-center justify-between">
+
+                                                <div className="mb-4 ml-6 -mt-2">
+                                                    <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
+                                                        {p.project_name ?? "Untitled Project"}
+                                                    </h3>
+                                                </div>
+
+                                                <div className="border-t border-[#F1F1F1] pt-4 mt-auto flex items-center justify-between">
                                                     <div className="flex items-center min-w-0">
                                                         {memberIds.length === 0 ? (
-                                                            <span className="text-[13px] text-sky-600/80 font-Gantari pl-1">No team members</span>
+                                                            <div className="flex items-center -space-x-3">
+                                                                <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center shrink-0 shadow-sm relative z-0" title="Not assigned">
+                                                                    <span className="text-slate-600 text-[10px] font-bold">TM</span>
+                                                                </div>
+                                                            </div>
                                                         ) : memberIds.length === 1 ? (
                                                             <div className="flex items-center gap-3">
-                                                                {(() => {
-                                                                    const id = memberIds[0];
-                                                                    return (
-                                                                        <>
-                                                                            <div className="w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
-                                                                                {(getEmployeeName(id) || "?")[0]}
-                                                                            </div>
-                                                                            <span className="text-sm font-Gantari font-medium text-[#616161] truncate">
-                                                                                {getEmployeeName(id) || "Unknown"}
-                                                                            </span>
-                                                                        </>
-                                                                    );
-                                                                })()}
+                                                                <div className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center font-bold text-gray-500 border overflow-hidden shadow-sm shrink-0">
+                                                                    {(getEmployeeName(memberIds[0]) || "?")[0]}
+                                                                </div>
+                                                                <span className="text-[14px] font-Gantari font-medium text-[#616161] truncate">
+                                                                    {getEmployeeName(memberIds[0]) || "Unknown"}
+                                                                </span>
                                                             </div>
                                                         ) : (
-                                                            <div className="flex items-center -space-x-4">
-                                                                {memberIds.slice(0, 3).map(id => (
-                                                                    <div key={id} className="relative group shrink-0">
-                                                                        <div className="relative z-0 w-10 h-10 rounded-full border-2 border-white bg-[#DD4342] text-white flex items-center justify-center text-sm font-bold shrink-0">
-                                                                            {(getEmployeeName(id) || "?")[0]}
-                                                                        </div>
-                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                            {getEmployeeName(id) || "Unknown"}
-                                                                        </div>
+                                                            <div className="flex items-center -space-x-3 pr-2">
+                                                                {memberIds.slice(0, 3).map((id, idx) => (
+                                                                    <div key={id} className="w-9 h-9 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm shrink-0 font-bold text-gray-500 overflow-hidden relative border" style={{ zIndex: 10 - idx }}>
+                                                                        {(getEmployeeName(id) || "?")[0]}
                                                                     </div>
                                                                 ))}
                                                                 {memberIds.length > 3 && (
-                                                                    <div className="relative group shrink-0">
-                                                                        <div className="relative z-10 w-10 h-10 rounded-full border-2 border-dashed bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400 shrink-0">
-                                                                            +{memberIds.length - 3}
-                                                                        </div>
-                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none">
-                                                                            {memberIds.length - 3} more
-                                                                        </div>
+                                                                    <div className="w-9 h-9 rounded-full border-2 border-white bg-[#AEACAC] text-white text-[10px] font-bold flex items-center justify-center shadow-sm shrink-0 relative z-0">
+                                                                        +{memberIds.length - 3}
                                                                     </div>
                                                                 )}
                                                             </div>
                                                         )}
                                                     </div>
-                                                    {p.priority && (
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.priority === "High" || p.priority === "Urgent" ? "bg-[#FFF1F2] text-[#BE123C]" : p.priority === "Medium" ? "bg-[#FFF8E7] text-[#92400E]" : "bg-[#E6F4EA] text-[#1E7E34]"}`}>
-                                                            {p.priority}
-                                                        </span>
-                                                    )}
+
+                                                    <div className={`px-4 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider ${isHighPri ? "bg-[#FFEDED] text-[#DD4342]" : "bg-[#E6F3FB] text-[#0077B6]"}`}>
+                                                        {p.priority || "Normal"}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

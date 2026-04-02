@@ -269,12 +269,12 @@ export function FormDropdown({
           e.stopPropagation();
           onToggle();
         }}
-        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-sm cursor-pointer"
+        className="flex w-full items-center justify-between rounded-sm bg-[#E8E8E8] px-3 py-2 text-left text-[14px] font-gantari font-medium cursor-pointer text-[#353535]"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
       >
-        <span className={value ? "text-[#353535]" : "text-[#616161]"}>
+        <span className={`${value ? "text-[#353535]" : "text-[#8B8B8B]"} font-gantari font-medium`}>
           {displayLabel}
         </span>
         <img
@@ -299,7 +299,7 @@ export function FormDropdown({
                   onChange(opt.value);
                   onClose();
                 }}
-                className="block w-full px-3 py-2 text-left text-sm text-[#616161] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
+                className="block w-full px-3 py-2 text-left text-[14px] font-gantari font-medium text-[#353535] hover:text-[#353535] hover:bg-slate-100 first:rounded-t-lg last:rounded-b-lg cursor-pointer"
               >
                 {opt.label}
               </button>
@@ -1415,7 +1415,7 @@ export default function MytaskV() {
               <button
                 type="button"
                 onClick={resetTaskFormAndClose}
-                className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                className="p-1 rounded-lg text-slate-500 cursor-pointer"
                 aria-label="Close"
               >
                 <svg
@@ -1432,7 +1432,7 @@ export default function MytaskV() {
                   />
                 </svg>
               </button>
-              <h3 className="text-lg font-semibold text-black">
+              <h3 className="text-[24px] font-gantari font-medium text-[#020202]">
                 {editingTaskId !== null ? "Edit Task" : "Add New Task"}
               </h3>
               <div className="w-9" />
@@ -1604,7 +1604,7 @@ export default function MytaskV() {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Project Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormDropdown
@@ -1637,7 +1637,7 @@ export default function MytaskV() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Select Module <span className="text-[#DD4342]">*</span>
                   </label>
                   <FormDropdown
@@ -1666,7 +1666,7 @@ export default function MytaskV() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Task Name <span className="text-[#DD4342]">*</span>
                   </label>
                   <div className="flex">
@@ -1680,7 +1680,7 @@ export default function MytaskV() {
                         }))
                       }
                       placeholder="Enter Task / Select Task"
-                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
+                      className={`flex-1 bg-[#F2F3F4] px-3 py-2 text-[14px] font-gantari font-medium text-[#353535] placeholder:text-[#8B8B8B] focus:outline-none ${editingTaskId !== null ? "rounded-sm" : "rounded-l-sm"
                         }`}
                     />
                     {editingTaskId === null && (
@@ -1691,7 +1691,7 @@ export default function MytaskV() {
                             e.stopPropagation();
                             fetchRecentTasks();
                           }}
-                          className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50"
+                          className="rounded-l-none rounded-r-sm bg-[#E2E2E2] px-4 py-2 font-gantari font-medium text-[#353535] "
                         >
                           {loadingRecentTasks ? "Loading..." : "Tasklist"}
                         </button>
@@ -1731,11 +1731,12 @@ export default function MytaskV() {
 
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Type <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormDropdown
                       label="Select Type"
+                      
                       options={[
                         { value: "", label: "Select Type" },
                         { value: "task", label: "Task" },
@@ -1758,7 +1759,7 @@ export default function MytaskV() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Actual Start Date <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
@@ -1780,11 +1781,11 @@ export default function MytaskV() {
                         });
                       }}
                       placeholder="dd/mm/yyyy"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Actual End Date <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
@@ -1798,13 +1799,13 @@ export default function MytaskV() {
                         }))
                       }
                       placeholder="dd/mm/yyyy"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium focus:outline-none"
                     />
                   </div>
                 </div>
                 <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Select Start Time <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
@@ -1825,11 +1826,11 @@ export default function MytaskV() {
                         });
                       }}
                       placeholder="hh:mm"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Select End Time <span className="text-[#DD4342]">*</span>
                     </label>
                     <input
@@ -1847,11 +1848,11 @@ export default function MytaskV() {
                         }))
                       }
                       placeholder="hh:mm"
-                      className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                       className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-black mb-1">
+                    <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                       Assign To <span className="text-[#DD4342]">*</span>
                     </label>
                     <FormDropdown
@@ -1880,7 +1881,7 @@ export default function MytaskV() {
                   </div>
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Description <span className="text-[#DD4342]">*</span>
                   </label>
                   <textarea
@@ -1893,11 +1894,11 @@ export default function MytaskV() {
                     }
                     placeholder="Enter Description..."
                     rows={3}
-                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Checklist
                   </label>
                   <input
@@ -1910,11 +1911,11 @@ export default function MytaskV() {
                       }))
                     }
                     placeholder="Enter Reference Link"
-                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-black focus:outline-none"
+                    className="w-full rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-black mb-1">
+                  <label className="block text-[16px] font-gantari font-medium text-[#020202] mb-1">
                     Attachments
                   </label>
                   <input
@@ -1937,7 +1938,7 @@ export default function MytaskV() {
                             : ""
                         }
                         placeholder="Upload Files"
-                        className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827] placeholder:text-[#8B8B8B] focus:outline-none truncate"
+                        className="flex-1 rounded-l-sm rounded-r-none bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#353535] font-gantari font-medium placeholder:text-[#8B8B8B] focus:outline-none truncate"
                         title={
                           attachmentFiles.length > 0
                             ? attachmentFiles.map((f) => f.name).join(", ")
@@ -1946,7 +1947,7 @@ export default function MytaskV() {
                       />
                       <label
                         htmlFor="add-task-file-input"
-                        className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-sm font-medium text-[#8B8B8B] hover:bg-slate-50 cursor-pointer inline-flex items-center"
+                        className="rounded-r-sm rounded-l-none bg-[#E2E2E2] px-4 py-2 text-[14px] font-gantari font-medium text-[#353535] cursor-pointer inline-flex items-center"
                       >
                         Browse File
                       </label>
@@ -1957,7 +1958,7 @@ export default function MytaskV() {
                       {attachmentFiles.map((file, index) => (
                         <li
                           key={`${file.name}-${index}`}
-                          className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                          className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
                         >
                           <span className="truncate min-w-0" title={file.name}>
                             {file.name}
@@ -2002,7 +2003,7 @@ export default function MytaskV() {
                         {existingAttachmentNames.map((name, idx) => (
                           <li
                             key={`${name}-${idx}`}
-                            className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-sm text-[#101827]"
+                            className="flex items-center justify-between rounded-sm bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
                           >
                             <span className="truncate min-w-0" title={name}>
                               {name}

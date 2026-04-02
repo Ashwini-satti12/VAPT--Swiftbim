@@ -186,6 +186,14 @@ function CustomDropdown({
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
+      <input 
+        type="text" 
+        value={value && value !== placeholder ? value : ""} 
+        required 
+        className="absolute opacity-0 pointer-events-none" 
+        tabIndex={-1} 
+        readOnly 
+      />
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -1107,6 +1115,7 @@ export default function ConsultantTD() {
                       placeholder="Enter Phone Number"
                       value={editForm.phone_number}
                       onChange={(e) => setEditForm((f) => ({ ...f, phone_number: e.target.value }))}
+                      required
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
@@ -1146,6 +1155,7 @@ export default function ConsultantTD() {
                       placeholder="Enter Account Number"
                       value={editForm.accountnumber}
                       onChange={(e) => setEditForm((f) => ({ ...f, accountnumber: e.target.value }))}
+                      required
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
                   </div>
@@ -1158,6 +1168,7 @@ export default function ConsultantTD() {
                     <input
                       type="date"
                       value={editForm.dob}
+                      required
                       onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
@@ -1187,6 +1198,7 @@ export default function ConsultantTD() {
                     <input
                       type="date"
                       value={editForm.doj}
+                      required
                       onChange={(e) => setEditForm((f) => ({ ...f, doj: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
@@ -1197,6 +1209,7 @@ export default function ConsultantTD() {
                       type="text"
                       placeholder="0000$"
                       value={editForm.salary}
+                      required
                       onChange={(e) => setEditForm((f) => ({ ...f, salary: e.target.value }))}
                       className="w-full px-4 py-2 text-[14px] text-[#353535] placeholder-[#8B8B8B] bg-[#F2F3F4] border border-transparent rounded-[5px] font-Gantari transition-all outline-none focus:border-[#AEACAC52]"
                     />
