@@ -109,7 +109,7 @@ function TaskDropdown({
         >
           {label.toLowerCase() === 'show' && selected && selected !== label ? (
             <>
-              <span className="text-[14px] text-[#353535]">Show:</span>{" "}
+              <span className="text-[14px] text-[#353535]">Show Entries:</span>{" "}
               <span>{selected}</span>
             </>
           ) : (
@@ -526,7 +526,7 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -581,7 +581,7 @@ export default function TeamtaskTD() {
     const proj = searchParams.get("project");
     if (proj) setSelectedProject(proj);
   }, [searchParams]);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show");
+  const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -854,7 +854,7 @@ export default function TeamtaskTD() {
   if (selectedShow === "All") {
     limitStart = 0;
     limitEnd = Infinity;
-  } else if (selectedShow && selectedShow !== "Show") {
+  } else if (selectedShow && selectedShow !== "Show Entries") {
     const parts = selectedShow.split("-");
     if (parts.length === 2) {
       limitStart = parseInt(parts[0], 10) - 1;
@@ -925,7 +925,7 @@ export default function TeamtaskTD() {
               searchPlaceholder="Search project..."
             />
             <TaskDropdown
-              label="Show"
+              label="Show Entries"
               options={SHOW_OPTIONS}
               selected={selectedShow}
               onSelect={setSelectedShow}

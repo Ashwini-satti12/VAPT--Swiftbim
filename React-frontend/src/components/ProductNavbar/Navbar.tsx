@@ -12,6 +12,7 @@ import CloseIcon from "../../assets/ProductNavbarIcons/close button.svg";
 
 
 interface UserProfile {
+  id?: number | string;
   name: string;
   designation: string;
   email: string;
@@ -51,6 +52,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profileData, setProfileData] = useState<UserProfile>({
+    id: user?.id,
     name: user?.full_name || "User",
     designation: user?.user_role || "Member",
     email: user?.email || "",
@@ -72,6 +74,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
   const [newPassword, setNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isEditingActual, setIsEditingActual] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Fetch profile on mount
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
         const { data } = await api.get("/api/profile");
         if (data) {
           const updated: UserProfile = {
+            id: data.id || profileData.id,
             name: data.full_name || profileData.name,
             designation: data.user_role || "Member",
             email: data.email || profileData.email,
@@ -89,7 +93,7 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
           setProfileData(updated);
           setEditData(updated);
           if (data.profile_picture) {
-            const url = getGlobalProfileUrl(data.id, data.profile_picture);
+            const url = getGlobalProfileUrl(data.id || user?.id, data.profile_picture);
             setProfilePicture(url);
             localStorage.setItem("userProfilePicture", url);
           } else {
@@ -331,6 +335,9 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       alert("Image must be under 5MB.");
       return;
     }
+    
+    setSelectedFile(file); // Store the file for upload
+
     const reader = new FileReader();
     reader.onload = (ev) => {
       const result = ev.target?.result as string;
@@ -362,12 +369,17 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
     setPasswordError("");
     setIsLoading(true);
     try {
+      // Use FormData for multipart/form-data (required for file upload)
+      const formData = new FormData();
+      formData.append("full_name", editData.name);
+      formData.append("phone_number", editData.phone);
+      formData.append("address", editData.address);
+      if (selectedFile) {
+        formData.append("profile_picture", selectedFile);
+      }
+
       // Update basic profile fields
-      await api.patch("/api/profile", {
-        full_name: editData.name,
-        phone_number: editData.phone,
-        address: editData.address,
-      });
+      const { data } = await api.put("/api/profile", formData);
 
       // Update password if provided
       if (currentPassword && newPassword) {
@@ -380,8 +392,19 @@ export default function ProductNavbar({ onMenuClick }: NavbarProps) {
       }
 
       setProfileData({ ...editData });
+      
+      // If a new profile picture was uploaded, the backend returns the filename
+      const empId = editData.id || user?.id;
+      if (data && data.profile_picture && empId) {
+        const url = getGlobalProfileUrl(empId, data.profile_picture);
+        setProfilePicture(url);
+        localStorage.setItem("userProfilePicture", url);
+      }
+      
+      setSelectedFile(null);
       setIsEditingActual(false);
-    } catch {
+    } catch (err) {
+      console.error("Profile update error:", err);
       alert("Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);
