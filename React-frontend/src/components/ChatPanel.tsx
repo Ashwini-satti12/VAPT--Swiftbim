@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import sendIcon from "../assets/Chat/sendicon.svg";
 import videoIcon from "../assets/Chat/video.svg";
@@ -189,6 +190,7 @@ function AttachmentPreview({ file }: { file: File }) {
 
 export default function ChatPanel({ userType }: ChatPanelProps) {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
     const [search, setSearch] = useState("");
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [contactsLoading, setContactsLoading] = useState(true);
@@ -554,9 +556,13 @@ export default function ChatPanel({ userType }: ChatPanelProps) {
     };
 
     // ── Derived ─────────────────────────────────────────────────────────────────
-    const filteredContacts = contacts.filter((c) =>
-        c.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredContacts = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
+        return contacts.filter((c) =>
+            c.name.toLowerCase().includes(search.toLowerCase()) &&
+            (!q || c.name.toLowerCase().includes(q) || (c.user_role || "").toLowerCase().includes(q))
+        );
+    }, [contacts, search, searchParams]);
 
     // Messages filtered by in-chat search
     const displayMsgs = inChatSearch

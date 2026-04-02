@@ -122,9 +122,17 @@ def list_projects():
         # Handling for other potential statuses if needed, though Completed is most common
         pass
 
-    # Always exclude 'Outsource' projects (department = 'Submission Deadline') from this endpoint.
-    # Those projects are managed via vendor_projects and served by /api/vendors/vendor-projects.
-    where_clauses.append("(department IS NULL OR department != 'Submission Deadline')")
+    # Exclude 'Outsource' projects (department = 'Submission Deadline') ONLY if they are already in the vendor_projects table.
+    # This prevents double-listing once they are accepted by a vendor and appear in /api/vendors/vendor-projects.
+    # Pending/Bidding projects remain visible here until accepted.
+    where_clauses.append("""(
+        department IS NULL 
+        OR department != 'Submission Deadline'
+        OR NOT EXISTS (
+            SELECT 1 FROM vendor_projects vp 
+            WHERE vp.project_name COLLATE utf8mb4_general_ci = projects.project_name COLLATE utf8mb4_general_ci
+        )
+    )""")
 
     # Final execution
     where_sql = " AND ".join(where_clauses)

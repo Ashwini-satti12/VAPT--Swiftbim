@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import threeDotsIcon from "../../assets/ProjectManager/CreateTeam/three dots.svg";
@@ -264,6 +265,7 @@ function TeamCard({
 }
 
 export default function CreateTeamPM() {
+  const [searchParams] = useSearchParams();
   const [teams, setTeams] = useState<Team[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -351,6 +353,16 @@ export default function CreateTeamPM() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredTeams = teams.filter((t) => {
+    if (!searchQuery) return true;
+    return (
+      (t.team_name || t.teamname || "").toLowerCase().includes(searchQuery) ||
+      (t.leader_name || getEmpName(t.leader) || "").toLowerCase().includes(searchQuery) ||
+      (t.project_name || "").toLowerCase().includes(searchQuery)
+    );
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -513,7 +525,7 @@ export default function CreateTeamPM() {
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {teams.length === 0 ? (
+          {filteredTeams.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-[#AEACAC52] flex flex-col items-center justify-center gap-4">
               <div className="w-16 h-16 bg-[#F8FAFC] rounded-full flex items-center justify-center">
                 <PlusIcon className="w-8 h-8 text-[#94A3B8]" />
@@ -523,12 +535,12 @@ export default function CreateTeamPM() {
                   No teams found
                 </h3>
                 <p className="text-[#64748B]">
-                  Click "New Team" to get started.
+                  {searchQuery ? "No teams match your search." : "Click \"New Team\" to get started."}
                 </p>
               </div>
             </div>
           ) : (
-            teams.map((team) => (
+            filteredTeams.map((team) => (
               <TeamCard
                 key={team.team_id}
                 team={team}

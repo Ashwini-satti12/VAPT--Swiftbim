@@ -396,51 +396,7 @@ interface Project {
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
-function taskToFormValues(task: Task | Record<string, unknown>): {
-    projectName: string;
-    module: string;
-    taskName: string;
-    type: string;
-    actualStartDate: string;
-    actualEndDate: string;
-    startTime: string;
-    dueTime: string;
-    assignTo: string;
-    description: string;
-    checklist: string;
-} {
-    const t = task as Record<string, unknown>;
-    const str = (v: unknown) => (v != null ? String(v) : "");
-    const dateOnly = (v: unknown) => {
-        if (v == null) return "";
-        const s = str(v);
-        if (s.length >= 10) return s.slice(0, 10);
-        return s;
-    };
-    const timeOnly = (v: unknown) => {
-        if (v == null) return "";
-        const s = str(v);
-        const match = s.match(/(\d{1,2}):(\d{2})/);
-        return match ? `${match[1].padStart(2, "0")}:${match[2]}` : s.slice(0, 5);
-    };
-    return {
-        projectName: str(t.project_name ?? t.projectName ?? ""),
-        module: str(t.module ?? t.modules_name ?? ""),
-        taskName: str(t.task_name ?? t.taskName ?? ""),
-        type: str(t.type ?? t.category ?? ""),
-        actualStartDate: dateOnly(
-            t.start_date ?? t.startDate ?? t.Actual_start_time ?? "",
-        ),
-        actualEndDate: dateOnly(t.due_date ?? t.dueDate ?? ""),
-        startTime: timeOnly(
-            t.start_time ?? t.startTime ?? t.Actual_start_time ?? "",
-        ),
-        dueTime: timeOnly(t.due_time ?? t.dueTime ?? t.end_time ?? ""),
-        assignTo: str(t.assign_to ?? t.assignTo ?? t.assigned_to ?? ""),
-        description: str(t.description ?? ""),
-        checklist: str(t.checklist ?? ""),
-    };
-}
+
 function normalizeStatus(
     s: string | undefined,
     approval?: string
@@ -812,40 +768,86 @@ export default function TeamtaskBL() {
         return ["Select Employee", "Show All", ...filtered.map(e => e.full_name)];
     }, [employees, projects, selectedProject]);
 
-    const merged = [
-        ...localTasks,
-        ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
-    ];
-    const allTasksBase = merged.filter((t) => !deletedIds.includes(t.id));
-    const allTasks = allTasksBase.filter((t: any) => {
-        // Employee filter
-        if (selectedEmployee && !["Select Employee", "Show All", "Employee"].includes(selectedEmployee)) {
-            if (t.assigned_full_name !== selectedEmployee) return false;
-        }
-        // Project filter
-        if (selectedProject && !["Select Projects", "Show All", "Projects"].includes(selectedProject)) {
-            if (t.project_name !== selectedProject) return false;
-        }
-        // Period filter 
-        if (selectedPeriod && !["Period", "Show All"].includes(selectedPeriod)) {
-            const taskDate = new Date(t.created_at || t.start_date || "");
-            const now = new Date();
-            if (selectedPeriod === "This Week") {
-                const weekAgo = new Date();
-                weekAgo.setDate(now.getDate() - 7);
-                if (taskDate < weekAgo) return false;
-            } else if (selectedPeriod === "This Month") {
-                const monthAgo = new Date();
-                monthAgo.setMonth(now.getMonth() - 1);
-                if (taskDate < monthAgo) return false;
-            } else if (selectedPeriod === "This Quarter") {
-                const quarterAgo = new Date();
-                quarterAgo.setMonth(now.getMonth() - 3);
-                if (taskDate < quarterAgo) return false;
+    const merged = useMemo(() => {
+        return [
+            ...localTasks,
+            ...list.filter((t) => !localTasks.some((l) => l.id === t.id)),
+        ];
+    }, [localTasks, list]);
+
+    const allTasksBase = useMemo(() => {
+        return merged.filter((t) => !deletedIds.includes(t.id));
+    }, [merged, deletedIds]);
+
+    const filteredTasks = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
+
+        return allTasksBase.filter((t: any) => {
+            // Employee filter
+            if (
+                selectedEmployee &&
+                !["Select Employee", "Show All", "Employee"].includes(
+                    selectedEmployee
+                )
+            ) {
+                if (t.assigned_full_name !== selectedEmployee) return false;
             }
-        }
-        return true;
-    });
+            // Project filter
+            if (
+                selectedProject &&
+                !["Select Projects", "Show All", "Projects"].includes(
+                    selectedProject
+                )
+            ) {
+                if (t.project_name !== selectedProject) return false;
+            }
+            // Period filter
+            if (
+                selectedPeriod &&
+                !["Period", "Show All"].includes(selectedPeriod)
+            ) {
+                const taskDate = new Date(t.created_at || t.start_date || "");
+                const now = new Date();
+                if (selectedPeriod === "This Week") {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(now.getDate() - 7);
+                    if (taskDate < weekAgo) return false;
+                } else if (selectedPeriod === "This Month") {
+                    const monthAgo = new Date();
+                    monthAgo.setMonth(now.getMonth() - 1);
+                    if (taskDate < monthAgo) return false;
+                } else if (selectedPeriod === "This Quarter") {
+                    const quarterAgo = new Date();
+                    quarterAgo.setMonth(now.getMonth() - 3);
+                    if (taskDate < quarterAgo) return false;
+                }
+            }
+
+            // Search filter
+            if (q) {
+                const matches = [
+                    t.task_name,
+                    t.project_name,
+                    t.module,
+                    t.type,
+                    t.description,
+                    t.assigned_full_name,
+                    t.uploader_full_name,
+                ].some((f) => (f || "").toLowerCase().includes(q));
+                if (!matches) return false;
+            }
+
+            return true;
+        });
+    }, [
+        allTasksBase,
+        searchParams,
+        selectedEmployee,
+        selectedProject,
+        selectedPeriod,
+    ]);
+
+    const allTasks = filteredTasks;
 
     const counts = {
         todo: allTasks.filter((t) => normalizeStatus(t.status, t.Approval) === "todo").length,

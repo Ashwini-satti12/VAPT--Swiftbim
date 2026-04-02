@@ -33,7 +33,7 @@ export default function TrackerTD() {
     const timeInputRef = useRef<HTMLInputElement>(null);
 
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: 'show', label: 'Show', start: 0, end: 50 },
+        { value: 'show', label: 'Show Entries', start: 0, end: 50 },
         { value: '1-50', label: '1-50', start: 0, end: 50 },
         { value: '51-100', label: '51-100', start: 50, end: 100 },
         { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -499,10 +499,10 @@ export default function TrackerTD() {
                             className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
                         >
                             {selectedShowEntries === 'show' ? (
-                                <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show</span>
+                                <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show Entries</span>
                             ) : (
                                 <>
-                                    <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show:</span>
+                                    <span className="text-sm font-medium text-[#8B8B8B] font-gantari">Show Entries:</span>
                                     <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
                                 </>
                             )}

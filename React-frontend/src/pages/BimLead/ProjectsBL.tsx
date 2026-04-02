@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -221,6 +221,13 @@ export default function ProjectsBL() {
   const [milestoneNotes, setMilestoneNotes] = useState("");
   const [milestones, setMilestones] = useState<Milestone[]>([]);
   const [milestonesLoading, setMilestonesLoading] = useState(false);
+  const [blTaskStats, setBlTaskStats] = useState({
+    todo: 0,
+    inProgress: 0,
+    paused: 0,
+    completed: 0,
+  });
+  const [blTaskStatsLoading, setBlTaskStatsLoading] = useState(false);
 
   // Edit Project Modal State
   const [showEditModal, setShowEditModal] = useState(false);
@@ -388,6 +395,10 @@ export default function ProjectsBL() {
     document_attachment:
       r.document_attachment != null ? String(r.document_attachment) : undefined,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    source:
+      r.source != null && String(r.source) !== "undefined"
+        ? (String(r.source) as "In House" | "Outsource")
+        : undefined,
   });
 
   const fetchMilestones = (projectId: number) => {
@@ -406,6 +417,68 @@ export default function ProjectsBL() {
       fetchMilestones(currentProject.id);
     }
   }, [showMilestones, currentProject?.id]);
+
+  useEffect(() => {
+    const projectId = showProjectView ? selectedProjectForView?.id : undefined;
+    if (!projectId) {
+      setBlTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
+      setBlTaskStatsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setBlTaskStatsLoading(true);
+
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
+
+    api
+      .get<{
+        status_counts?: {
+          todo?: number;
+          inprogress?: number;
+          paused?: number;
+          completed?: number;
+        };
+      }>(statsApi)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const c = data?.status_counts ?? {};
+        setBlTaskStats({
+          todo: Number(c.todo ?? 0),
+          inProgress: Number(c.inprogress ?? 0),
+          paused: Number(c.paused ?? 0),
+          completed: Number(c.completed ?? 0),
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        const completed = selectedProjectForView?.completed_tasks ?? 0;
+        const total = selectedProjectForView?.total_tasks ?? 0;
+        setBlTaskStats({
+          todo: Math.max(0, total - completed),
+          inProgress: 0,
+          paused: 0,
+          completed,
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setBlTaskStatsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    selectedProjectForView?.completed_tasks,
+    selectedProjectForView?.total_tasks,
+    searchParams,
+  ]);
 
   const fetchProjects = () => {
     const status = searchParams.get('status');
@@ -428,7 +501,7 @@ export default function ProjectsBL() {
           return String(p.lead_id).split(',').map((s: string) => s.trim()).includes(String(userId));
         })
         : allProjects;
-      setList(filtered.map(mapApiProjectToProject));
+      setList(filtered.map((p) => mapApiProjectToProject(p as Record<string, unknown>)));
     })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -456,7 +529,18 @@ export default function ProjectsBL() {
       return;
     }
 
+    const urlSource = searchParams.get("source");
     const existingProject = list.find((p) => p.id === id);
+    if (loading && !existingProject && !urlSource) {
+      return;
+    }
+
+    const useVendor =
+      existingProject?.source === "Outsource" || urlSource === "Outsource";
+    const baseApi = useVendor
+      ? "/api/vendors/vendor-projects"
+      : "/api/projects";
+
     if (existingProject) {
       setSelectedProjectForView(existingProject);
       setShowProjectView(true);
@@ -465,17 +549,35 @@ export default function ProjectsBL() {
     }
 
     api
-      .get<Record<string, unknown>>(`/api/projects/${id}`)
-      .then(({ data }) =>
-        setSelectedProjectForView(mapApiProjectToProject(data)),
-      )
+      .get<Record<string, unknown>>(`${baseApi}/${id}`)
+      .then(({ data }) => {
+        const mapped = mapApiProjectToProject(data);
+        if (!mapped.source) {
+          mapped.source = useVendor ? "Outsource" : "In House";
+        }
+        setSelectedProjectForView(mapped);
+      })
       .catch(() => {
+        if (!useVendor && !existingProject && !urlSource) {
+          api
+            .get<Record<string, unknown>>(`/api/vendors/vendor-projects/${id}`)
+            .then(({ data }) => {
+              const mapped = mapApiProjectToProject(data);
+              mapped.source = "Outsource";
+              setSelectedProjectForView(mapped);
+            })
+            .catch(() => {
+              setSearchParams({}, { replace: true });
+              setShowProjectView(false);
+            });
+          return;
+        }
         if (!existingProject) {
           setSearchParams({}, { replace: true });
           setShowProjectView(false);
         }
       });
-  }, [searchParams, list, setSearchParams]);
+  }, [searchParams, list, loading, setSearchParams]);
 
   if (loading) {
     return (
@@ -531,7 +633,7 @@ export default function ProjectsBL() {
                   </p>
                 </div>
                 <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {Math.max(0, (selectedProjectForView.total_tasks ?? 0) - (selectedProjectForView.completed_tasks ?? 0))}
+                  {blTaskStatsLoading ? "..." : blTaskStats.todo}
                 </p>
               </button>
 
@@ -547,7 +649,7 @@ export default function ProjectsBL() {
                   </p>
                 </div>
                 <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {selectedProjectForView.progress ?? 0}
+                  {blTaskStatsLoading ? "..." : blTaskStats.inProgress}
                 </p>
               </button>
 
@@ -563,7 +665,7 @@ export default function ProjectsBL() {
                   </p>
                 </div>
                 <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {selectedProjectForView.total_tasks ?? 0}
+                  {blTaskStatsLoading ? "..." : blTaskStats.paused}
                 </p>
               </button>
 
@@ -579,7 +681,7 @@ export default function ProjectsBL() {
                   </p>
                 </div>
                 <p className="text-[#353535] group-hover:text-white text-[20px] font-Gantari font-bold leading-none mt-auto self-center lg:self-center">
-                  {selectedProjectForView.completed_tasks ?? 0}
+                  {blTaskStatsLoading ? "..." : blTaskStats.completed}
                 </p>
               </button>
             </div>
@@ -2986,12 +3088,24 @@ export default function ProjectsBL() {
           {/* Dashboard Content with Scrollbar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {list.length === 0 ? (
-                <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                  No projects found.
-                </div>
-              ) : (
-                list.map((p) => {
+              {(() => {
+                const q = searchParams.get("q")?.toLowerCase() || "";
+                const filtered = q
+                  ? list.filter((p) =>
+                    [p.project_name, p.client_name, p.project_manager, p.bim_lead, p.location]
+                      .some(f => (f || "").toLowerCase().includes(q))
+                  )
+                  : list;
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                      No projects found.
+                    </div>
+                  );
+                }
+
+                return filtered.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
                   const memberIds = p.member
                     ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
@@ -3059,7 +3173,13 @@ export default function ProjectsBL() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenMenuId(null);
-                                  setSearchParams({ projectId: String(p.id) });
+                                  setSearchParams({
+                                    projectId: String(p.id),
+                                    source:
+                                      p.source === "Outsource"
+                                        ? "Outsource"
+                                        : "In House",
+                                  });
                                 }}
                                 className="w-full flex items-center gap-4 px-6 py-2.5 transition-colors text-left group cursor-pointer"
                               >
@@ -3273,8 +3393,8 @@ export default function ProjectsBL() {
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 interface TimesheetEntry {
@@ -28,6 +29,7 @@ interface Team {
 }
 
 export default function TeamReportBL() {
+    const [searchParams] = useSearchParams();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [employee, setEmployee] = useState('All');
@@ -205,20 +207,44 @@ export default function TeamReportBL() {
 
     // Exact filter on YYYY-MM-DD (client-side) to make "today" always match.
     const filteredList = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
         const effectiveStart = startDate || endDate;
         const effectiveEnd = endDate || startDate;
-        if (!effectiveStart || !effectiveEnd) return list;
 
-        let s = effectiveStart;
-        let e = effectiveEnd;
-        if (s > e) [s, e] = [e, s];
+        let result = list;
 
-        return list.filter((row) => {
-            const ymd = getTaskDateYmd(row);
-            if (!ymd) return false;
-            return ymd >= s && ymd <= e;
-        });
-    }, [list, startDate, endDate]);
+        // Date filter
+        if (effectiveStart && effectiveEnd) {
+            let s = effectiveStart;
+            let e = effectiveEnd;
+            if (s > e) [s, e] = [e, s];
+            result = result.filter((row) => {
+                const ymd = getTaskDateYmd(row);
+                if (!ymd) return false;
+                return ymd >= s && ymd <= e;
+            });
+        }
+
+        // Search filter
+        if (q) {
+            result = result.filter((row) => {
+                const start = formatDate(row.start_time || row.Actual_start_time);
+                const end = formatDate(row.end_time || row.due_date);
+                const duration = calculateDuration(row);
+                return [
+                    row.project_name,
+                    row.task_name,
+                    row.assigned_name,
+                    row.teamname,
+                    start,
+                    end,
+                    duration,
+                ].some((f) => (f || "").toLowerCase().includes(q));
+            });
+        }
+
+        return result;
+    }, [list, startDate, endDate, searchParams]);
 
     // Pagination logic removed
 

@@ -244,7 +244,7 @@ function CustomDropdown({
                   type="button"
                   onClick={() => {
                     if (
-                      (placeholder === "Show" || placeholder === "Show entries") &&
+                      (placeholder === "Show" || placeholder === "Show Entries") &&
                       styleType === "header"
                     ) {
                       onChange("");
@@ -260,7 +260,7 @@ function CustomDropdown({
                     }
                   }}
                   className={`w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                    isPlaceholder && placeholder !== "Show" && placeholder !== "Show entries"
+                    isPlaceholder && placeholder !== "Show" && placeholder !== "Show Entries"
                       ? "text-[#353535] bg-[#F2F2F2]"
                       : "text-[#8B8B8B] bg-[#FFFFFF]"
                   }`}
@@ -725,7 +725,7 @@ export default function ConsultantTD() {
               <h1 className="text-[24px] font-medium text-[#000000] font-Gantari shrink-0 pr-1">
                 Consultants
               </h1>
-              {/* Tight gap between action buttons and Show entries / Status (inner), title spacing unchanged */}
+              {/* Tight gap between action buttons and Show Entries / Status (inner), title spacing unchanged */}
               <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-visible">
               {/* Scroll only the action buttons — avoids clipping dropdown panels */}
               <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-2 overflow-x-auto overflow-y-visible py-1 pr-0.5 custom-scrollbar">
@@ -779,7 +779,7 @@ export default function ConsultantTD() {
                     options={SHOW_OPTIONS}
                     value={selectedShow}
                     onChange={(val) => setSelectedShow(val)}
-                    placeholder="Show entries"
+                    placeholder="Show Entries"
                     className="w-[140px]"
                     styleType="header"
                     alignMenu="right"

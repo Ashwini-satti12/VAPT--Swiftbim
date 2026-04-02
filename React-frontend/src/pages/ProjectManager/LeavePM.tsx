@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 
 interface LeaveType {
@@ -16,6 +17,7 @@ interface LeaveApp {
 }
 
 export default function LeavePM() {
+  const [searchParams] = useSearchParams();
   const [types, setTypes] = useState<LeaveType[]>([]);
   const [applications, setApplications] = useState<LeaveApp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,14 +71,25 @@ export default function LeavePM() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {applications.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
-                    No leave applications.
-                  </td>
-                </tr>
-              ) : (
-                applications.map((a) => (
+              {(() => {
+                const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+                const filtered = applications.filter(a => {
+                  if (!searchQuery) return true;
+                  return [
+                    a.leave_type,
+                    a.status
+                  ].some(f => (f || "").toLowerCase().includes(searchQuery));
+                });
+                if (filtered.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                        {searchQuery ? "No applications match your search." : "No leave applications."}
+                      </td>
+                    </tr>
+                  );
+                }
+                return filtered.map((a) => (
                   <tr key={a.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 text-sm text-slate-800">{a.leave_type ?? '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{a.start_date ?? '-'}</td>
@@ -87,8 +100,8 @@ export default function LeavePM() {
                       </span>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
           </table>
         </div>

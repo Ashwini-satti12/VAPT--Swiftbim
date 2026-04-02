@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { FiGrid, FiMenu, FiX } from "react-icons/fi";
@@ -390,25 +390,41 @@ export default function ConsultantBL() {
     }
   }, [editParam, list, navigate, setSearchParams]);
 
-  const filteredList = list.filter((emp) => {
-    if (statusFilter === "Active") {
-      const isActive = (emp.active || "").toLowerCase() === "active";
-      if (!isActive) return false;
-    } else if (statusFilter === "Deactivate") {
-      const isActive = (emp.active || "").toLowerCase() === "active";
-      if (isActive) return false;
-    }
+  const filteredList = useMemo(() => {
+    const q = searchParams.get("q")?.toLowerCase() || "";
+    return list.filter((emp) => {
+      if (q) {
+        const matches = [
+          emp.full_name,
+          emp.email,
+          emp.user_role,
+          emp.empid,
+          emp.phone_number,
+          emp.department,
+          emp.address,
+        ].some((f) => (f || "").toLowerCase().includes(q));
+        if (!matches) return false;
+      }
 
-    if (typeFilter === "Employee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "employee") return false;
-    } else if (typeFilter === "Trainee") {
-      const currentType = (emp.user_type || "").toLowerCase();
-      if (currentType !== "trainee") return false;
-    }
+      if (statusFilter === "Active") {
+        const isActive = (emp.active || "").toLowerCase() === "active";
+        if (!isActive) return false;
+      } else if (statusFilter === "Deactivate") {
+        const isActive = (emp.active || "").toLowerCase() === "active";
+        if (isActive) return false;
+      }
 
-    return true;
-  });
+      if (typeFilter === "Employee") {
+        const currentType = (emp.user_type || "").toLowerCase();
+        if (currentType !== "employee") return false;
+      } else if (typeFilter === "Trainee") {
+        const currentType = (emp.user_type || "").toLowerCase();
+        if (currentType !== "trainee") return false;
+      }
+
+      return true;
+    });
+  }, [list, searchParams, statusFilter, typeFilter]);
 
   let limitStart = 0;
   let limitEnd = Infinity;
