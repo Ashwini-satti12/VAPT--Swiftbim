@@ -287,7 +287,9 @@ export default function ManageLeave() {
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const filteredList = leaves.filter((l) => {
     const matchesEmployee =
-      selectedEmployee === "All" || l.employeeName === selectedEmployee;
+      selectedEmployee === "All" ||
+      selectedEmployee === "employee" ||
+      l.employeeName === selectedEmployee;
     const matchesSearch =
       !searchQuery ||
       (l.employeeName || "").toLowerCase().includes(searchQuery) ||
