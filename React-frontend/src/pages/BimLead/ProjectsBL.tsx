@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
@@ -3088,12 +3088,24 @@ export default function ProjectsBL() {
           {/* Dashboard Content with Scrollbar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden pt-4 pb-4 pl-4 pr-1 custom-scrollbar">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {list.length === 0 ? (
-                <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
-                  No projects found.
-                </div>
-              ) : (
-                list.map((p) => {
+              {(() => {
+                const q = searchParams.get("q")?.toLowerCase() || "";
+                const filtered = q
+                  ? list.filter((p) =>
+                    [p.project_name, p.client_name, p.project_manager, p.bim_lead, p.location]
+                      .some(f => (f || "").toLowerCase().includes(q))
+                  )
+                  : list;
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="col-span-full bg-slate-50 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+                      No projects found.
+                    </div>
+                  );
+                }
+
+                return filtered.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
                   const memberIds = p.member
                     ? p.member.split(',').map(m => m.trim()).filter(Boolean).map(Number)
@@ -3381,8 +3393,8 @@ export default function ProjectsBL() {
                       </div>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </div>
         </div>
