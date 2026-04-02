@@ -3822,6 +3822,48 @@ def upload_vendor_task_output_files(task_id):
     return jsonify({"success": True, "files": names})
 
 
+def _hydrate_vendor_employee_names(cur, rows):
+    """Resolves vendor employee IDs into names (PM, Lead, Coordinator, Members)."""
+    # Collect all unique IDs
+    emp_ids = set()
+    for r in rows:
+        for f in ["project_manager_id", "lead_id", "bim_coordinator_id"]:
+            val = r.get(f)
+            if val:
+                emp_ids.add(str(val))
+        members = r.get("members")
+        if members:
+            for m_id in str(members).split(","):
+                if m_id.strip():
+                    emp_ids.add(m_id.strip())
+    
+    if not emp_ids:
+        return
+    
+    # Fetch names
+    placeholders = ",".join(["%s"] * len(emp_ids))
+    cur.execute(
+        f"SELECT id, full_name FROM snh6_swiftproject.vendor_employee WHERE id IN ({placeholders})",
+        list(emp_ids)
+    )
+    name_map = {str(r["id"]): r["full_name"] for r in cur.fetchall()}
+    
+    # Hydrate
+    for r in rows:
+        r["project_manager_name"] = name_map.get(str(r.get("project_manager_id")), "")
+        r["lead_name"] = name_map.get(str(r.get("lead_id")), "")
+        r["bim_coordinator_name"] = name_map.get(str(r.get("bim_coordinator_id")), "")
+        
+        m_names = []
+        members = r.get("members")
+        if members:
+            for m_id in str(members).split(","):
+                m_id = m_id.strip()
+                if m_id in name_map:
+                    m_names.append(name_map[m_id])
+        r["members_names"] = ", ".join(m_names)
+
+
 @bp.route("/vendor-projects", methods=["GET"])
 @login_required
 def list_vendor_projects():
@@ -3963,18 +4005,14 @@ def list_vendor_projects():
     )
     rows = cur.fetchall()
     
-    # Hydrate results with phase-1 metrics (resources, location, calculated end_date)
+    # Hydrate results with phase-1 and employee names
     vcur = vendor_cursor()
     projects = [dict(r) for r in rows]
     _hydrate_vendor_projects_phase1(vcur, projects)
+    _hydrate_vendor_employee_names(vcur, projects)
     
-    # Serialize all values for JSON response
-    final_projects = []
-    for p in projects:
-        final_projects.append({k: _serialize(v) for k, v in p.items()})
-
     # Aggregate vendor_task counts per project for task statistics
-    project_ids = [p["id"] for p in final_projects if p.get("id") is not None]
+    project_ids = [p["id"] for p in projects if p.get("id") is not None]
     task_counts = {}
     if project_ids:
         placeholders = ",".join(["%s"] * len(project_ids))
@@ -3996,16 +4034,16 @@ def list_vendor_projects():
                 "completed_tasks": int(r.get("completed_tasks") or 0),
             }
 
-    projects = []
-    for r in rows:
-        d = {k: _serialize(v) for k, v in r.items()}
+    final_projects = []
+    for p in projects:
+        d = {k: _serialize(v) for k, v in p.items()}
         pid = int(d.get("id") or 0)
         counts = task_counts.get(pid, {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
         # Tag every vendor_project row as Outsource so frontend can route correctly
         d["source"] = "Outsource"
-        projects.append(d)
+        final_projects.append(d)
 
     # Enrich from new_swiftbim phase-1 (enquiry/proposal/contract) when fields are missing
     try:
@@ -4304,19 +4342,26 @@ def get_vendor_project_detail(project_id):
         """
         SELECT
             vp.*,
+            -- Prefer client name from new_swiftbim.users; fall back to raw ids
             COALESCE(u.full_name, u.email, p.client_id, vp.client_id) AS client_name,
+            -- Prefer main projects.budget_ceiling / budget over vendor_projects values
             COALESCE(p.budget_ceiling, p.budget, vp.budget)       AS budget,
             COALESCE(p.budget_ceiling, vp.budget_ceiling)         AS budget_ceiling,
+            -- Sync additional project metrics from main projects table using TD-compatible aliases
             COALESCE(p.no_resource, vp.no_resource)             AS resources,
             COALESCE(p.no_resources_requried, vp.no_resources_required) AS required_resources,
-            COALESCE(p.totalhours, vp.totalhours)               AS totalhours,
-            COALESCE(p.perday, vp.perday)                       AS per_day,
+            -- Prefer vendor_projects row: edits from vendor UI update vp.* and must win over linked main projects.*
+            COALESCE(vp.totalhours, p.totalhours)               AS totalhours,
+            COALESCE(vp.perday, p.perday)                       AS per_day,
+            -- Maintain old aliases for backward compatibility with existing frontend code (edit modals, etc.)
             COALESCE(p.no_resource, vp.no_resource)             AS no_resource,
             COALESCE(p.no_resources_requried, vp.no_resources_required) AS no_resources_required,
-            COALESCE(p.perday, vp.perday)                       AS perday,
+            COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
-            COALESCE(p.start_date, vp.start_date)               AS start_date,
-            COALESCE(p.due_date, vp.due_date)                   AS due_date
+            COALESCE(vp.start_date, p.start_date)               AS start_date,
+            COALESCE(vp.due_date, p.due_date)                   AS due_date,
+            COALESCE(vp.bidding_end_date, p.bidding_end_date)   AS bidding_end_date,
+            p.department                                        AS department_name
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
             ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
@@ -4333,6 +4378,7 @@ def get_vendor_project_detail(project_id):
     project = dict(row)
     vcur = vendor_cursor()
     _hydrate_vendor_projects_phase1(vcur, [project])
+    _hydrate_vendor_employee_names(vcur, [project])
 
     # Aggregate vendor_task counts for this project
     cur.execute(
