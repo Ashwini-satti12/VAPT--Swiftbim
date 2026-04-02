@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -192,6 +192,15 @@ export default function ClientBL() {
         }).then(() => { setList((prev) => prev.map((c) => (c.id === editId ? { ...c, ...editForm } : c))); setEditId(null); setSearchParams({}); }).catch(() => { }).finally(() => setEditSubmitting(false));
     }
 
+    const filteredClients = useMemo(() => {
+        const q = searchParams.get('q')?.toLowerCase() || '';
+        if (!q) return list;
+        return list.filter((c) =>
+            [c.fullName, c.client_name, c.email, c.company_name, c.projectName, c.phoneNumber, c.address]
+                .some(f => (f || '').toLowerCase().includes(q))
+        );
+    }, [list, searchParams]);
+
     if (loading) {
         return (
             <div className="flex justify-center py-24">
@@ -218,12 +227,12 @@ export default function ClientBL() {
 
             <div className="flex-1 mt-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {list.length === 0 ? (
+                    {filteredClients.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No clients found.
                         </div>
                     ) : (
-                        list.map((c,) => (
+                        filteredClients.map((c,) => (
                             <div key={c.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col group">
                                 {/* Header Background */}
                                 <div className="relative h-44 w-full">

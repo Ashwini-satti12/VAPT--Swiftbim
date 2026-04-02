@@ -1161,7 +1161,7 @@ export default function ProjectsV() {
                                 <p className="text-[14px] font-Gantari font-semibold text-[#999999]">Overall Progress Tracker</p>
                             </div>
                         </div>
-                        <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
+                        <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden px-6 md:px-10 pb-10 pt-6 md:pt-8 custom-scrollbar space-y-8">
                             {/* Task Status Cards */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-8">
                                 {[
@@ -1240,12 +1240,21 @@ export default function ProjectsV() {
                             </div>
 
 
-                            {/* Description */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
+                            {/* Description (stored as HTML from rich editor) */}
+                            <div className="min-w-0 max-w-full overflow-hidden border border-slate-200 rounded-xl md:rounded-xl p-6 md:p-8">
                                 <h4 className="text-xl font-Gantari font-semibold text-[#000000]">Project Description</h4>
-                                <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
-                                    {selectedProject.description ?? "No description available"}
-                                </p>
+                                {selectedProject.description?.trim() ? (
+                                    <div
+                                        className="project-description-html w-full min-w-0 max-w-full text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] [&_*]:max-w-full [&_*]:whitespace-normal [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_a]:text-[#DD4342] [&_a]:underline"
+                                        dangerouslySetInnerHTML={{
+                                            __html: selectedProject.description,
+                                        }}
+                                    />
+                                ) : (
+                                    <p className="text-md font-Gantari font-medium text-[#666666] mt-4 leading-relaxed">
+                                        No description available
+                                    </p>
+                                )}
                             </div>
 
 

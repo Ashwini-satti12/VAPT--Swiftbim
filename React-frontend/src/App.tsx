@@ -315,7 +315,7 @@ function App() {
             <Route path="ve/communication" element={<ChatEV />} />
 
             {/* Vendor BIM Lead Routes */}
-            <Route path="vendor-bim-lead/dashboard" element={<DashboardPM />} />
+            <Route path="vendor-bim-lead/dashboard" element={<VendorBimLeadDashboard />} />
             <Route path="vendor-bim-lead/projects" element={<VendorBimLeadProjects />} />
             <Route path="vendor-bim-lead/tasks" element={<VendorBimLeadTasks />} />
             <Route path="vendor-bim-lead/opportunities" element={<BiddingV />} />

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import type { Vendor } from '../TechnicalDirector/PartnerView/types';
 import upArrow from '../../assets/TechnicalDirector/upArrow.svg';
@@ -9,16 +9,32 @@ export default function PartnerBL() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        api.get<{ vendors?: Vendor[] } | Vendor[]>('/api/vendors?status=approved')
+        api.get<{ vendors?: Vendor[] } | Vendor[]>("/api/vendors?status=approved")
             .then(({ data }) => {
-                const vendors = Array.isArray(data) ? data : (data as { vendors?: Vendor[] }).vendors ?? [];
+                const vendors = Array.isArray(data)
+                    ? data
+                    : (data as { vendors?: Vendor[] }).vendors ?? [];
                 setList(vendors);
             })
             .catch(() => setList([]))
             .finally(() => setLoading(false));
     }, []);
 
-    const displayName = (v: Vendor) => v.company_name || v.partner_name || '-';
+    const [searchParams] = useSearchParams();
+    const filteredList = useMemo(() => {
+        const q = searchParams.get("q")?.toLowerCase() || "";
+        if (!q) return list;
+        return list.filter((v) => {
+            return [
+                v.company_name,
+                v.partner_name,
+                v.contact_name,
+                v.contact_email,
+            ].some((f) => (f || "").toLowerCase().includes(q));
+        });
+    }, [list, searchParams]);
+
+    const displayName = (v: Vendor) => v.company_name || v.partner_name || "-";
 
     if (loading) {
         return (
@@ -40,12 +56,12 @@ export default function PartnerBL() {
             {/* Grid — fills remaining height; no extra bottom padding */}
             <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pb-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-0">
-                    {list.length === 0 ? (
+                    {filteredList.length === 0 ? (
                         <div className="col-span-full bg-white/50 backdrop-blur-sm rounded-[20px] p-12 text-center text-slate-500 border border-white/40">
                             No partners found.
                         </div>
                     ) : (
-                        list.map((partner) => (
+                        filteredList.map((partner) => (
                             <div
                                 key={partner.id}
                                 className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-[#E8E8E8] overflow-hidden flex flex-col hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow duration-300"
