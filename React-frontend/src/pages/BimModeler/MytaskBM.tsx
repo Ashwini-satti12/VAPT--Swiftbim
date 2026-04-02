@@ -1149,7 +1149,7 @@ export default function MytaskBM() {
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
+                                className="rounded-md bg-[#FFD9D9] px-5 py-2 text-[14px] font-medium text-[#E00100] cursor-pointer"
                             >
                                 Yes, Delete
                             </button>

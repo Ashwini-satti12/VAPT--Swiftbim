@@ -39,7 +39,7 @@ const getProfileUrl = (path: string | undefined): string => {
   return `${apiBaseUrl}${urlPath}`;
 };
 
-type DropdownId = "employee" | "projects" | "show" | "period" | null;
+type DropdownId = "employee" | "projects" | "period" | null;
 
 interface TaskDropdownProps {
   label: string;
@@ -526,7 +526,22 @@ function TaskCard({
   );
 }
 
-const SHOW_OPTIONS = ["Show Entries", "1-50", "51-100", "101-150", "151-200", "201-250", "251-300", "All"];
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+  { value: "1-50", label: "1-50", start: 0, end: 50 },
+  { value: "51-100", label: "51-100", start: 50, end: 100 },
+  { value: "101-150", label: "101-150", start: 100, end: 150 },
+  { value: "151-200", label: "151-200", start: 150, end: 200 },
+  { value: "201-250", label: "201-250", start: 200, end: 250 },
+  { value: "251-300", label: "251-300", start: 250, end: 300 },
+  { value: "all", label: "All", start: 0, end: null },
+];
 const PERIOD_OPTIONS = [
   "Period",
   "This Week",
@@ -581,7 +596,8 @@ export default function TeamtaskTD() {
     const proj = searchParams.get("project");
     if (proj) setSelectedProject(proj);
   }, [searchParams]);
-  const [selectedShow, setSelectedShow] = useState<string | null>("Show Entries");
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const [deleteTask, setDeleteTask] = useState<Task | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -801,8 +817,8 @@ export default function TeamtaskTD() {
   const employeeMenuRef = useRef<HTMLDivElement>(null);
   const projectsTriggerRef = useRef<HTMLButtonElement>(null);
   const projectsMenuRef = useRef<HTMLDivElement>(null);
-  const showTriggerRef = useRef<HTMLButtonElement>(null);
-  const showMenuRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const periodTriggerRef = useRef<HTMLButtonElement>(null);
   const periodMenuRef = useRef<HTMLDivElement>(null);
 
@@ -815,6 +831,33 @@ export default function TeamtaskTD() {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [openDropdown]);
+
+  useEffect(() => {
+    if (openDropdown !== null) setShowEntriesOpen(false);
+  }, [openDropdown]);
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (
+        showEntriesOpen &&
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(t)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener("mousedown", handleMouseDown);
+      return () => document.removeEventListener("mousedown", handleMouseDown);
+    }
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
 
 
 
@@ -863,23 +906,23 @@ export default function TeamtaskTD() {
     ),
   };
 
-  let limitStart = 0;
-  let limitEnd = 50;
-  if (selectedShow === "All") {
-    limitStart = 0;
-    limitEnd = Infinity;
-  } else if (selectedShow && selectedShow !== "Show Entries") {
-    const parts = selectedShow.split("-");
-    if (parts.length === 2) {
-      limitStart = parseInt(parts[0], 10) - 1;
-      limitEnd = parseInt(parts[1], 10);
-    }
-  }
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedShowRange =
+    showEntriesOptions.find((opt) => opt.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const sliceForShowEntries = <T,>(arr: T[]): T[] => {
+    const rangeEnd =
+      selectedShowRange.end === null
+        ? arr.length
+        : Math.min(selectedShowRange.end, arr.length);
+    return arr.slice(selectedShowRange.start, rangeEnd);
+  };
 
   const displayedTasksByStatus = {
-    todo: tasksByStatus.todo.slice(limitStart, limitEnd),
-    in_progress: tasksByStatus.in_progress.slice(limitStart, limitEnd),
-    completed: tasksByStatus.completed.slice(limitStart, limitEnd),
+    todo: sliceForShowEntries(tasksByStatus.todo),
+    in_progress: sliceForShowEntries(tasksByStatus.in_progress),
+    completed: sliceForShowEntries(tasksByStatus.completed),
   };
 
   const counts = {
@@ -938,20 +981,112 @@ export default function TeamtaskTD() {
               searchable
               searchPlaceholder="Search project..."
             />
-            <TaskDropdown
-              label="Show Entries"
-              options={SHOW_OPTIONS}
-              selected={selectedShow}
-              onSelect={setSelectedShow}
-              isOpen={openDropdown === "show"}
-              onToggle={() =>
-                setOpenDropdown((d) => (d === "show" ? null : "show"))
-              }
-              onClose={() => setOpenDropdown(null)}
-              triggerRef={showTriggerRef}
-              dropdownRef={showMenuRef}
-              narrow
-            />
+            <div
+              className="relative min-w-[140px] max-w-[200px] w-[150px]"
+              ref={showEntriesDropdownRef}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenDropdown(null);
+                  setShowEntriesOpen((o) => !o);
+                }}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+              >
+                <span
+                  className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                    selectedShowEntries === ""
+                      ? "text-[#8B8B8B]"
+                      : "text-[#353535]"
+                  }`}
+                >
+                  {selectedShowEntries === "" ? (
+                    SHOW_ENTRIES_PLACEHOLDER
+                  ) : (
+                    <>
+                      <span className="text-[14px]">
+                        {SHOW_ENTRIES_SELECTED_PREFIX}
+                      </span>{" "}
+                      <span className="font-semibold">
+                        {selectedShowRange.label}
+                      </span>
+                    </>
+                  )}
+                </span>
+                <img
+                  src={ArrowDown}
+                  alt=""
+                  className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                    showEntriesOpen ? "rotate-180" : ""
+                  } ${
+                    selectedShowEntries === ""
+                      ? "opacity-60 grayscale"
+                      : "opacity-90"
+                  }`}
+                  aria-hidden
+                />
+              </button>
+              {showEntriesOpen && (
+                <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                  <div
+                    ref={showEntriesDropdownContentRef}
+                    className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                  >
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedShowEntries("");
+                        setShowEntriesOpen(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                    >
+                      {SHOW_ENTRIES_PLACEHOLDER}
+                    </button>
+                    {showEntriesOptions.map((opt) => {
+                      const isChosen = selectedShowEntries === opt.value;
+                      return (
+                        <button
+                          key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSelectedShowEntries(opt.value);
+                            setShowEntriesOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                            isChosen
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                          }`}
+                        >
+                          <span className="truncate min-w-0">{opt.label}</span>
+                          {isChosen && (
+                            <svg
+                              className="w-4 h-4 shrink-0 text-[#353535]"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2.5}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             <TaskDropdown
               label="Period"
               options={PERIOD_OPTIONS}

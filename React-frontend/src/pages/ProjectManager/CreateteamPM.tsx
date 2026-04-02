@@ -393,7 +393,7 @@ export default function CreateTeamPM() {
           });
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setSubmitting(false));
   };
 
@@ -425,9 +425,9 @@ export default function CreateTeamPM() {
         ? String(team.project_id)
         : team.project_name
           ? String(
-              projects.find((p) => p.project_name === team.project_name)?.id ??
-                "",
-            )
+            projects.find((p) => p.project_name === team.project_name)?.id ??
+            "",
+          )
           : "";
     setSelectedTeam(team);
     setEditForm({
@@ -487,7 +487,7 @@ export default function CreateTeamPM() {
             .then((res) => setTeams(res.data.teams ?? []));
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setSubmitting(false));
   };
 
@@ -613,8 +613,8 @@ export default function CreateTeamPM() {
                           ? projectSearchQuery
                           : form.project_id
                             ? (projects.find(
-                                (p) => String(p.id) === form.project_id,
-                              )?.project_name ?? `Project ${form.project_id}`)
+                              (p) => String(p.id) === form.project_id,
+                            )?.project_name ?? `Project ${form.project_id}`)
                             : ""
                       }
                       onChange={(e) => {
@@ -635,8 +635,8 @@ export default function CreateTeamPM() {
                         setProjectSearchQuery(
                           form.project_id
                             ? (projects.find(
-                                (p) => String(p.id) === form.project_id,
-                              )?.project_name ?? "")
+                              (p) => String(p.id) === form.project_id,
+                            )?.project_name ?? "")
                             : "",
                         );
                       }}
@@ -716,8 +716,8 @@ export default function CreateTeamPM() {
                           ? leaderSearchQuery
                           : form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -738,8 +738,8 @@ export default function CreateTeamPM() {
                         setLeaderSearchQuery(
                           form.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === form.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === form.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}
@@ -977,8 +977,8 @@ export default function CreateTeamPM() {
                           ? projectSearchQuery
                           : editForm.project_id
                             ? (projects.find(
-                                (p) => String(p.id) === editForm.project_id,
-                              )?.project_name ??
+                              (p) => String(p.id) === editForm.project_id,
+                            )?.project_name ??
                               `Project ${editForm.project_id}`)
                             : ""
                       }
@@ -1000,8 +1000,8 @@ export default function CreateTeamPM() {
                         setProjectSearchQuery(
                           editForm.project_id
                             ? (projects.find(
-                                (p) => String(p.id) === editForm.project_id,
-                              )?.project_name ?? "")
+                              (p) => String(p.id) === editForm.project_id,
+                            )?.project_name ?? "")
                             : "",
                         );
                       }}
@@ -1084,8 +1084,8 @@ export default function CreateTeamPM() {
                           ? leaderSearchQuery
                           : editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : ""
                       }
                       onChange={(e) => {
@@ -1106,8 +1106,8 @@ export default function CreateTeamPM() {
                         setLeaderSearchQuery(
                           editForm.leader
                             ? (employees.find(
-                                (emp) => String(emp.id) === editForm.leader,
-                              )?.full_name ?? "")
+                              (emp) => String(emp.id) === editForm.leader,
+                            )?.full_name ?? "")
                             : "",
                         );
                       }}

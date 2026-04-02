@@ -8,6 +8,15 @@ type DashboardStats = {
     bids_submitted: number;
     proposals_awaiting: number;
     active_projects: number;
+    total_projects: number;
+    completed_projects: number;
+    in_progress_tasks: number;
+    completed_tasks: number;
+};
+
+type Project = {
+    id: number;
+    project_name?: string;
 };
 
 type InvolvedPerson = {
@@ -43,6 +52,10 @@ const defaultStats: DashboardStats = {
     bids_submitted: 0,
     proposals_awaiting: 0,
     active_projects: 0,
+    total_projects: 0,
+    completed_projects: 0,
+    in_progress_tasks: 0,
+    completed_tasks: 0,
 };
 
 function formatDateOnly(isoOrDate: string | null | undefined): string {
@@ -111,22 +124,41 @@ export default function VendorBimLeadDashboard() {
         return () => clearInterval(id);
     }, []);
 
+    const [projects, setProjects] = useState<Project[]>([]);
+
     useEffect(() => {
-        api.get<DashboardStats>('/api/vendors/dashboard/stats')
-            .then(({ data }) => setStats({
+        // Vendor-specific stats (Bidding)
+        api.get<any>('/api/vendors/dashboard/stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
                 active_opportunities: Number(data?.active_opportunities) || 0,
                 bids_submitted: Number(data?.bids_submitted) || 0,
                 proposals_awaiting: Number(data?.proposals_awaiting) || 0,
-                active_projects: Number(data?.active_projects) || 0,
-            }))
-            .catch(() => setStats(defaultStats))
+            })))
+            .catch(() => { })
             .finally(() => setLoading(false));
+
+        // Vendor project/task stats (vendor_projects + vendor_task for this vendor company)
+        api.get<any>('/api/vendors/dashboard/project-stats')
+            .then(({ data }) => setStats(prev => ({
+                ...prev,
+                total_projects: Number(data?.totalProjects) || 0,
+                completed_projects: Number(data?.completedProjects) || 0,
+                in_progress_tasks: Number(data?.inProgressTasks) || 0,
+                completed_tasks: Number(data?.completedTasks) || 0,
+            })))
+            .catch(() => { });
     }, []);
 
+    // GET /api/vendors/dashboard/priority-tasks → Today's Priority tasks
     useEffect(() => {
         api.get<{ tasks: PriorityTask[] }>('/api/vendors/dashboard/priority-tasks')
             .then(({ data }) => setPriorityTasks(Array.isArray(data.tasks) ? data.tasks : []))
             .catch(() => setPriorityTasks([]));
+
+        api.get<{ projects?: Project[] }>('/api/vendors/vendor-projects')
+            .then(({ data }) => setProjects(Array.isArray(data.projects) ? data.projects : []))
+            .catch(() => setProjects([]));
     }, []);
 
     const [celebrations, setCelebrations] = useState<CelebrationEvent[]>([]);
@@ -222,11 +254,13 @@ export default function VendorBimLeadDashboard() {
         setDisplayYear(d.getFullYear());
     };
 
+    // KPI card definitions + deep links to relevant filtered pages.
+    // KPI card definitions + deep links to relevant filtered pages.
     const kpiCards = [
-        { label: 'Active Opportunities', value: stats.active_opportunities, link: '/vendor-bim-lead/opportunities' },
-        { label: 'Total Bids Submitted', value: stats.bids_submitted, link: '/vendor-bim-lead/mybids' },
-        { label: 'Proposals Awaiting', value: stats.proposals_awaiting, link: '/vendor-bim-lead/opportunities' },
-        { label: 'Active Projects', value: stats.active_projects, link: '/vendor-bim-lead/projects?status=Active' },
+        { label: 'Total Projects', value: Math.max(stats.total_projects, projects.length), link: '/vendor-bim-lead/projects' },
+        { label: 'Completed Projects', value: stats.completed_projects || 0, link: '/vendor-bim-lead/projects?status=completed' },
+        { label: 'Inprogress Tasks', value: stats.in_progress_tasks || 0, link: '/vendor-bim-lead/teamtasks?status=in_progress' },
+        { label: 'Completed Tasks', value: stats.completed_tasks || 0, link: '/vendor-bim-lead/teamtasks?status=completed' },
     ];
 
     if (loading) {

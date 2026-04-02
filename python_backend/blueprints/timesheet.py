@@ -78,7 +78,8 @@ def completed_tasks():
     cur.execute(
         f"""SELECT tasks.id, tasks.start_time, tasks.end_time, tasks.Pause, tasks.restart, tasks.due_date,
                   tasks.task_name, tasks.perferstart_time, tasks.perferend_time, tasks.Actual_start_time,
-                  employee.full_name AS assigned_name,
+                  e_assignee.full_name AS assigned_name,
+                  e_uploader.full_name AS assigned_by_name,
                   CASE 
                       WHEN tasks.projectid IS NULL OR tasks.projectid = 0 THEN 'Others'
                       WHEN projects.project_name IS NULL THEN 'Others'
@@ -86,9 +87,10 @@ def completed_tasks():
                   END AS project_name,
                   t.teamname AS teamname
            FROM tasks
-           JOIN employee ON tasks.assigned_to = employee.id
+           JOIN employee e_assignee ON tasks.assigned_to = e_assignee.id
+           LEFT JOIN employee e_uploader ON tasks.uploaderid = e_uploader.id
            LEFT JOIN projects ON tasks.projectid = projects.id AND projects.Company_id = %s
-           LEFT JOIN team t ON FIND_IN_SET(employee.id, REPLACE(CONCAT(',', t.employee, ','), ' ', '')) > 0 
+           LEFT JOIN team t ON FIND_IN_SET(e_assignee.id, REPLACE(CONCAT(',', t.employee, ','), ' ', '')) > 0 
                AND t.Company_id = %s
            WHERE {where_clause}
            ORDER BY tasks.id DESC""",
