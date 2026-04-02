@@ -6,6 +6,7 @@ import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
 import { FiUploadCloud, FiPaperclip, FiArrowRight } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
+import swifterzLogo from "../../assets/ProductNavbarIcons/swifterzlogo.png";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 // import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
@@ -1138,70 +1139,107 @@ export default function ProjectsV() {
 
 
                             {/* Team Roles Section */}
-                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-6 lg:p-8 space-y-6">
-                                <h4 className="text-xl font-Gantari font-semibold text-[#000000]">
+                            <div className="border border-slate-200 rounded-xl md:rounded-xl p-8 space-y-10">
+                                <h4 className="text-[20px] font-Gantari font-semibold text-[#000000]">
                                     Team Overview
                                 </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                    {[
-                                        { label: "Project Manager", id: selectedProject.project_manager_id },
-                                        { label: "BIM Lead", id: selectedProject.lead_id },
-                                        { label: "BIM Coordinator", id: selectedProject.bim_coordinator_id },
-                                    ].map((role) => (
-                                        <div key={role.label} className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                                                <span className="text-slate-400 font-bold text-sm">
-                                                    {getEmployeeName(role.id) ? getEmployeeName(role.id).charAt(0).toUpperCase() : "??"}
-                                                </span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-bold text-[#999999] uppercase tracking-wider">
-                                                    {role.label}
-                                                </p>
-                                                <p className="text-[15px] font-bold text-[#353535] truncate">
-                                                    {getEmployeeName(role.id) || "Not assigned"}
-                                                </p>
-                                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                                    {/* Project Manager */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Project Manager</p>
+                                        <div className="flex items-center gap-4">
+                                            {(() => {
+                                                const id = selectedProject.project_manager_id;
+                                                const name = getEmployeeName(id);
+                                                const emp = allEmployees.find(e => e.id === Number(id));
+                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                return (
+                                                    <>
+                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                            {profileUrl ? (
+                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                            ) : (
+                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                            {name || "Not assigned"}
+                                                        </p>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
 
-                                <div className="pt-6 border-t border-slate-100">
-                                    <p className="text-xs font-bold text-[#999999] uppercase tracking-wider mb-4">
-                                        Team Members
-                                    </p>
-                                    <div className="flex flex-wrap gap-3">
+                                    {/* BIM Lead */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">BIM Lead</p>
+                                        <div className="flex items-center gap-4">
+                                            {(() => {
+                                                const id = selectedProject.lead_id;
+                                                const name = getEmployeeName(id);
+                                                const emp = bimLeads.find(e => e.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
+                                                const profileUrl = emp?.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
+                                                return (
+                                                    <>
+                                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                            {profileUrl ? (
+                                                                <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                            ) : (
+                                                                <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                            {name || "Not assigned"}
+                                                        </p>
+                                                    </>
+                                                );
+                                            })()}
+                                        </div>
+                                    </div>
+
+                                    {/* Department Involved */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Department Involved</p>
+                                        <div className="h-10 flex items-center">
+                                            <p className="text-[14px] font-bold text-[#666666] transition-all">
+                                                {selectedProject.department || "N/A"}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Members Involved */}
+                                    <div className="space-y-4">
+                                        <p className="text-[16px] font-bold text-[#000000]">Members Involved</p>
                                         {(() => {
                                             const memberIds = (selectedProject.members || "").split(",").filter(Boolean);
                                             const projectMembers = memberIds.map(id => {
                                                 return vendorResourceProfiles.find(r => r.id === Number(id)) || allEmployees.find(e => e.id === Number(id));
                                             }).filter(Boolean);
 
+                                            if (projectMembers.length === 0) {
+                                                return (
+                                                    <div className="h-10 flex items-center text-[14px] font-bold text-[#666666]">
+                                                        N/A
+                                                    </div>
+                                                );
+                                            }
+
+                                            const firstMember = projectMembers[0] as any;
+                                            const profileUrl = firstMember.profile_picture ? getGlobalProfileUrl(firstMember.id, firstMember.profile_picture) : null;
                                             return (
-                                                <>
-                                                    {projectMembers.map((emp: any) => {
-                                                        const profileUrl = emp.profile_picture ? getGlobalProfileUrl(emp.id, emp.profile_picture) : null;
-                                                        return (
-                                                            <div key={emp.id} className="relative group shrink-0">
-                                                                <div className="w-9 h-9 md:w-10 md:h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden shadow-sm relative z-0">
-                                                                    {profileUrl ? (
-                                                                        <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = ProfileIcon; }} />
-                                                                    ) : (
-                                                                        <div className="w-full h-full flex items-center justify-center bg-slate-300 text-slate-600 text-xs font-bold">
-                                                                            {(emp.full_name || "M").charAt(0).toUpperCase()}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 bg-gray-900 text-white text-xs font-medium rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-[60] pointer-events-none text-center">
-                                                                    {emp.full_name}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {projectMembers.length === 0 && (
-                                                        <p className="text-sm font-medium text-slate-400 italic">No team members assigned</p>
-                                                    )}
-                                                </>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden shadow-sm">
+                                                        {profileUrl ? (
+                                                            <img src={profileUrl} className="w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).src = swifterzLogo; }} />
+                                                        ) : (
+                                                            <img src={swifterzLogo} className="w-7 h-7 object-contain" alt="" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[14px] font-bold text-[#666666] uppercase truncate transition-all">
+                                                        {firstMember.full_name} {projectMembers.length > 1 ? `+${projectMembers.length - 1}` : ""}
+                                                    </p>
+                                                </div>
                                             );
                                         })()}
                                     </div>
