@@ -423,17 +423,17 @@ export default function ManageLeave() {
                   e.stopPropagation();
                   setShowEntriesOpen((o) => !o);
                 }}
-                className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0 w-[120px]"
+                className="flex items-center justify-between gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   {selectedShowEntries === "show" ? (
                     <span className="text-[14px] font-medium text-[#616161] font-gantari">
-                      Show
+                      Show Entries
                     </span>
                   ) : (
                     <>
                       <span className="text-[14px] font-medium text-[#353535] font-gantari whitespace-nowrap">
-                        Show:
+                        Show Entries:
                       </span>
                       <span className="text-[14px] font-medium text-[#353535] font-gantari">
                         {selectedRange.label}
