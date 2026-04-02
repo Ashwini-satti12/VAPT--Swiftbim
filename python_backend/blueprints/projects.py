@@ -122,6 +122,10 @@ def list_projects():
         # Handling for other potential statuses if needed, though Completed is most common
         pass
 
+    # Always exclude 'Outsource' projects (department = 'Submission Deadline') from this endpoint.
+    # Those projects are managed via vendor_projects and served by /api/vendors/vendor-projects.
+    where_clauses.append("(department IS NULL OR department != 'Submission Deadline')")
+
     # Final execution
     where_sql = " AND ".join(where_clauses)
     sql = f"SELECT * FROM projects WHERE {where_sql} ORDER BY project_name"
@@ -163,6 +167,12 @@ def list_projects():
         counts = task_counts.get(d["id"], {"total_tasks": 0, "completed_tasks": 0})
         d["total_tasks"] = counts["total_tasks"]
         d["completed_tasks"] = counts["completed_tasks"]
+        # Tag each project with its source so the frontend can route CRUD to the correct table
+        dept = (d.get("department") or "").strip()
+        if dept == "Submission Deadline":
+            d["source"] = "Outsource"
+        else:
+            d["source"] = "In House"
         projects.append(d)
     _hydrate_project_display_fields(cur, company_id, projects)
     _hydrate_project_phase1_fields(projects)

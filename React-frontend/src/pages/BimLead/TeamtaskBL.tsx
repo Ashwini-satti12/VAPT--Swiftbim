@@ -372,6 +372,7 @@ interface Task {
     created_at?: string;
     Actual_start_time?: string;
     projectid?: number;
+    source?: "In House" | "Outsource";
 }
 
 interface Employee {
@@ -391,6 +392,7 @@ interface Project {
     lead_name?: string | null;
     bim_coordinator_name?: string | null;
     uploader_name?: string | null;
+    source?: "In House" | "Outsource";
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -482,7 +484,7 @@ function TaskCard({
     }, [menuOpen]);
 
     const handleDragStart = (e: React.DragEvent) => {
-        if (status === "completed") {
+        if (status === "completed" || task.source === "Outsource") {
             e.preventDefault();
             return;
         }
@@ -541,42 +543,46 @@ function TaskCard({
                                     View
                                 </span>
                             </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onEditTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={editIcon}
-                                    alt="edit"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Edit
-                                </span>
-                            </button>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
-                                onClick={() => {
-                                    setMenuOpen(false);
-                                    onDeleteTask?.(task);
-                                }}
-                            >
-                                <img
-                                    src={deleteIcon}
-                                    alt="delete"
-                                    className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
-                                />
-                                <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
-                                    Delete
-                                </span>
-                            </button>
+                            {task.source !== "Outsource" && (
+                                <>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onEditTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={editIcon}
+                                            alt="edit"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(95%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Edit
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        role="menuitem"
+                                        className="flex w-full items-center gap-4 px-6 py-3 transition-colors text-left group cursor-pointer"
+                                        onClick={() => {
+                                            setMenuOpen(false);
+                                            onDeleteTask?.(task);
+                                        }}
+                                    >
+                                        <img
+                                            src={deleteIcon}
+                                            alt="delete"
+                                            className="w-5 h-5 transition-[filter] [filter:invert(40%)_sepia(0%)_saturate(0%)_hue-rotate(180deg)_brightness(180%)_contrast(88%)] group-hover:[filter:invert(27%)_sepia(93%)_saturate(1500%)_hue-rotate(340deg)_brightness(95%)_contrast(90%)]"
+                                        />
+                                        <span className="text-[14px] font-medium text-[#616161] font-Gantari group-hover:text-[#DD4342]">
+                                            Delete
+                                        </span>
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -746,10 +752,15 @@ export default function TeamtaskBL() {
     const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
     const [addTaskModalOpen, setAddTaskModalOpen] = useState(false);
     const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [projects, setProjects] = useState<Project[]>([]);
     const [modules, setModules] = useState<string[]>([]);
+
+    const isOutsourceProjectSelected = useMemo(() => {
+        if (!selectedProject || selectedProject === "Select Projects" || selectedProject === "Show All" || selectedProject === "Projects") return false;
+        return projects.find(p => p.project_name === selectedProject)?.source === "Outsource";
+    }, [selectedProject, projects]);
     const [addTaskForm, setAddTaskForm] = useState({
         projectName: "",
         module: "",
@@ -882,6 +893,10 @@ export default function TeamtaskBL() {
 
         // Find task to get projectId if possible
         const task = merged.find(t => t.id === taskId);
+        if (task?.source === "Outsource") {
+            console.warn("Bim Lead cannot update status of an Outsource task.");
+            return;
+        }
         const projectId = task?.projectid || projects.find(p => p.project_name === task?.project_name)?.id;
 
         // Visual update immediately
@@ -899,7 +914,12 @@ export default function TeamtaskBL() {
         });
 
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, {
+        const isOutsource = task?.source === ("Outsource" as any);
+        const endpoint = isOutsource 
+            ? `/api/vendors/vendor-tasks/${taskId}/status` 
+            : `/api/tasks/${taskId}/status`;
+
+        api.patch(endpoint, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
             projectId
         }).catch(err => {
@@ -932,7 +952,7 @@ export default function TeamtaskBL() {
     };
 
     const openDeleteTask = (task: Task) => {
-        setDeleteTaskId(task.id);
+        setDeleteTask(task);
     };
 
     const openViewTask = (task: Task) => {
@@ -940,16 +960,33 @@ export default function TeamtaskBL() {
     };
 
     const confirmDeleteTask = () => {
-        if (deleteTaskId !== null) {
-            api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-                api.get<{ tasks?: Task[] }>("/api/tasks", { params: { condition: isTeam ? "1" : "0" } })
-                    .then(res => setList(res.data.tasks ?? []));
-                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
+        if (deleteTask !== null) {
+            const isOutsource = deleteTask.source === "Outsource";
+            const endpoint = isOutsource 
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}` 
+                : `/api/tasks/${deleteTask.id}`;
+
+            api.delete(endpoint).then(() => {
+                const params: Record<string, string> = {
+                    condition: isTeam ? "1" : "0",
+                    employeeid: "all"
+                };
+                
+                Promise.all([
+                    api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+                    api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params })
+                ]).then(([res1, res2]) => {
+                    const internal = (res1.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                    const vendor = (res2.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                    setList([...internal, ...vendor] as Task[]);
+                });
+
+                setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
                 setDeletedIds((prev) =>
-                    prev.includes(deleteTaskId) ? prev : [...prev, deleteTaskId],
+                    prev.includes(deleteTask.id) ? prev : [...prev, deleteTask.id],
                 );
             }).finally(() => {
-                setDeleteTaskId(null);
+                setDeleteTask(null);
             });
         }
     };
@@ -1055,13 +1092,21 @@ export default function TeamtaskBL() {
 
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params }),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ projects?: Project[] }>("/api/projects"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects")
         ])
-            .then(([tasksRes, empRes, projRes]) => {
-                setList(tasksRes.data.tasks ?? []);
-                setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-                setProjects(projRes.data.projects ?? []);
+            .then(([resTasks, resVendorTasks, resEmployees, resProjects, resVendorProjects]) => {
+                const internalTasks = (resTasks.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                const vendorTasks = (resVendorTasks.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                setList([...internalTasks, ...vendorTasks] as Task[]);
+
+                setEmployees((resEmployees.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
+                
+                const internalProjs = (resProjects.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
+                const vendorProjs = (resVendorProjects.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+                setProjects([...internalProjs, ...vendorProjs] as Project[]);
             })
             .catch(() => {
                 setList([]);
@@ -1176,12 +1221,14 @@ export default function TeamtaskBL() {
                         />
                         <button
                             type="button"
+                            disabled={isOutsourceProjectSelected}
                             onClick={() =>
                                 navigate("/bl/teamtasks/add", {
                                     state: { from: "teamtasks" },
                                 })
                             }
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[#DD4342] px-4 py-2 text-[14px] font-medium text-[#F2F2F2] shadow-sm ml-auto"
+                            className={`inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-[14px] font-medium shadow-sm ml-auto ${isOutsourceProjectSelected ? "bg-gray-400 text-white cursor-not-allowed opacity-70" : "bg-[#DD4342] text-[#F2F2F2]"}`}
+                            title={isOutsourceProjectSelected ? "Cannot add tasks to Outsource projects" : "Add task"}
                         >
                             <img src={AddBtn} alt="Add" className="h-5 w-5" />
                             Add task
@@ -1312,53 +1359,38 @@ export default function TeamtaskBL() {
                 </div>
             </div>
 
-            {/* Delete Task confirmation modal */}
-            {deleteTaskId !== null && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-6 py-4">
+            {deleteTask !== null && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+                        {/* Close */}
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTask(null)}
+                            className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+                            title="Close"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                        <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+                            Delete Task
+                        </h3>
+                        <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+                            Are you sure, you want to Delete this?
+                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                                aria-label="Close"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                            <h3 className="flex-1 text-center text-lg font-semibold text-[#353535]">
-                                Delete Task
-                            </h3>
-                            <div className="w-9" />
-                        </div>
-                        <div className="px-6 py-5">
-                            <p className="text-black text-center">
-                                Are you sure, you want to Delete this Task?
-                            </p>
-                        </div>
-                        <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
-                            <button
-                                type="button"
-                                onClick={() => setDeleteTaskId(null)}
-                                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
+                                onClick={() => setDeleteTask(null)}
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Discard
                             </button>
                             <button
                                 type="button"
                                 onClick={confirmDeleteTask}
-                                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] hover:bg-[#FFB3B3] cursor-pointer"
+                                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
                             >
                                 Yes, Delete
                             </button>

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
-import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, PencilSquareIcon, TrashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import threeDotsIcon from '../../assets/ProjectManager/CreateTeam/three dots.svg';
 import eyeIcon from '../../assets/ProjectManager/consultant/eyeIcon.svg';
 
@@ -42,7 +42,7 @@ function TeamCard({
     team: Team;
     getEmp: (id: number | string) => Employee | undefined;
     onEdit: (team: Team) => void;
-    onDelete: (id: number) => void;
+    onDelete: (team: Team) => void;
     onViewDetails: (team: Team) => void;
     projects: Project[];
 }) {
@@ -103,7 +103,7 @@ function TeamCard({
                             </button>
                             <button
                                 onClick={() => {
-                                    onDelete(team.team_id);
+                                    onDelete(team);
                                     setShowMenu(false);
                                 }}
                                 className="w-full px-5 py-2 flex items-center gap-3 transition-colors text-left group/item"
@@ -188,6 +188,8 @@ export default function CreateteamV() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [teamPendingDelete, setTeamPendingDelete] = useState<Team | null>(null);
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
     const memberDropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -338,12 +340,28 @@ export default function CreateteamV() {
         return employees.find(e => e.id === Number(id));
     };
 
-    const handleDelete = (id: number) => {
-        if (!window.confirm('Are you sure you want to delete this team?')) return;
+    const getTeamDisplayName = (team: Team) =>
+        team.team_name ||
+        team.teamname ||
+        team.leader_name ||
+        getEmp(team.leader)?.full_name ||
+        'Unnamed Team';
+
+    const handleDeleteRequest = (team: Team) => {
+        setTeamPendingDelete(team);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!teamPendingDelete) return;
+        const id = teamPendingDelete.team_id;
+        setDeleteSubmitting(true);
         api.delete(`/api/vendors/vendor-teams/${id}`)
             .then(() => {
-                setTeams(teams.filter(t => t.team_id !== id));
-            });
+                setTeams((prev) => prev.filter((t) => t.team_id !== id));
+                setTeamPendingDelete(null);
+            })
+            .catch(() => {})
+            .finally(() => setDeleteSubmitting(false));
     };
 
     if (loading) {
@@ -388,7 +406,7 @@ export default function CreateteamV() {
                             projects={projects}
                             getEmp={getEmp}
                             onEdit={handleEditClick}
-                            onDelete={handleDelete}
+                            onDelete={handleDeleteRequest}
                             onViewDetails={(t) => {
                                 setSelectedTeam(t);
                                 setShowDetailsModal(true);
@@ -397,6 +415,49 @@ export default function CreateteamV() {
                     ))
                 )}
             </div>
+
+            {/* Delete team confirmation */}
+            {teamPendingDelete && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[160] flex items-center justify-center p-4">
+                    <div
+                        className="bg-white rounded-2xl w-full max-w-[600px] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 relative pt-14 pb-8 px-8"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-team-title"
+                    >
+                        <button
+                            type="button"
+                            onClick={() => !deleteSubmitting && setTeamPendingDelete(null)}
+                            className="absolute top-4 left-4 p-2 bg-[#F2F2F2] hover:bg-[#E8EAED] rounded-lg transition-colors text-[#1E293B]"
+                            aria-label="Close"
+                        >
+                            <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
+                        </button>
+                        <p id="delete-team-title" className="text-center text-[16px] font-medium text-[#1E293B] leading-relaxed px-2">
+                            Are you sure you want to delete{' '}
+                            <span className="font-bold">{getTeamDisplayName(teamPendingDelete)}</span>?
+                        </p>
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                type="button"
+                                disabled={deleteSubmitting}
+                                onClick={() => setTeamPendingDelete(null)}
+                                className="flex-1 px-4 py-3 bg-[#F2F2F2] text-[#334155] rounded-lg font-bold hover:bg-[#E8EAED] transition-colors disabled:opacity-50"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                disabled={deleteSubmitting}
+                                onClick={handleConfirmDelete}
+                                className="flex-1 px-4 py-3 bg-[#FEE2E2] text-[#DD4342] rounded-lg font-bold hover:bg-[#FECACA] transition-colors disabled:opacity-50"
+                            >
+                                {deleteSubmitting ? 'Deleting…' : 'Yes, Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Add Modal */}
             {showAddModal && (
@@ -425,57 +486,69 @@ export default function CreateteamV() {
 
                                 <div className="space-y-2">
                                     <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                    <select
-                                        value={form.project_id}
-                                        onChange={(e) => setForm({ ...form, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                        required
-                                    >
-                                        <option value="">Select Project</option>
-                                        {projects.map((p) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.project_name ?? `Project ${p.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={form.project_id}
+                                            onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                            required
+                                        >
+                                            <option value="">Select Project</option>
+                                            {projects.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.project_name ?? `Project ${p.id}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
-                                    <select
-                                        value={form.leader}
-                                        onChange={(e) => setForm({ ...form, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                        required
-                                    >
-                                        <option value="">Select Leader</option>
-                                        {employees.map(emp => (
-                                            <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={form.leader}
+                                            onChange={(e) => setForm({ ...form, leader: e.target.value })}
+                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                            required
+                                        >
+                                            <option value="">Select Leader</option>
+                                            {employees.map(emp => (
+                                                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 relative" ref={memberDropdownRef}>
                                     <label className="text-[14px] font-bold text-[#475569] block">Add Members</label>
                                     <div
                                         onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex gap-2 items-center"
                                     >
-                                        {form.employee.length === 0 ? (
-                                            <span className="text-gray-400 font-medium">Select teammates</span>
-                                        ) : (
-                                            form.employee.map(eid => {
-                                                const emp = getEmp(eid);
-                                                return (
-                                                <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                    {emp?.full_name || 'N/A'}
-                                                    <XMarkIcon
-                                                        onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid); }}
-                                                        className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
-                                                    />
-                                                </span>
-                                            )})
-                                        )}
+                                        <div className="flex flex-wrap gap-2 items-center flex-1 min-w-0">
+                                            {form.employee.length === 0 ? (
+                                                <span className="text-gray-400 font-medium">Select teammates</span>
+                                            ) : (
+                                                form.employee.map(eid => {
+                                                    const emp = getEmp(eid);
+                                                    return (
+                                                    <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
+                                                        {emp?.full_name || 'N/A'}
+                                                        <XMarkIcon
+                                                            onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid); }}
+                                                            className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
+                                                        />
+                                                    </span>
+                                                )})
+                                            )}
+                                        </div>
+                                        <ChevronDownIcon
+                                            className={`w-5 h-5 text-[#64748B] shrink-0 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`}
+                                            aria-hidden
+                                        />
                                     </div>
 
                                     {showMemberDropdown && (
@@ -544,52 +617,64 @@ export default function CreateteamV() {
 
                                 <div className="space-y-2">
                                     <label className="text-[14px] font-bold text-[#475569] block">Project</label>
-                                    <select
-                                        value={editForm.project_id}
-                                        onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                        required
-                                    >
-                                        <option value="">Select Project</option>
-                                        {projects.map((p) => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.project_name ?? `Project ${p.id}`}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={editForm.project_id}
+                                            onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
+                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                            required
+                                        >
+                                            <option value="">Select Project</option>
+                                            {projects.map((p) => (
+                                                <option key={p.id} value={p.id}>
+                                                    {p.project_name ?? `Project ${p.id}`}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-[14px] font-bold text-[#475569] block">Team Leader</label>
-                                    <select
-                                        value={editForm.leader}
-                                        onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
-                                        required
-                                    >
-                                        {employees.map(emp => (
-                                            <option key={emp.id} value={emp.id}>{emp.full_name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={editForm.leader}
+                                            onChange={(e) => setEditForm({ ...editForm, leader: e.target.value })}
+                                            className="w-full pl-4 pr-10 py-3 bg-[#F2F2F2] border-none rounded-lg focus:ring-1 focus:ring-[#DD4342] transition-all text-[#1E293B] font-medium appearance-none"
+                                            required
+                                        >
+                                            {employees.map(emp => (
+                                                <option key={emp.id} value={emp.id}>{emp.full_name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#64748B]" aria-hidden />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2 relative" ref={memberDropdownRef}>
                                     <label className="text-[14px] font-bold text-[#475569] block">Members</label>
                                     <div
                                         onClick={() => setShowMemberDropdown(!showMemberDropdown)}
-                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex flex-wrap gap-2 items-center"
+                                        className="w-full px-4 py-3 bg-[#F2F2F2] rounded-lg min-h-[48px] cursor-pointer flex gap-2 items-center"
                                     >
-                                        {editForm.employee.map(eid => {
-                                            const emp = getEmp(eid);
-                                            return (
-                                            <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
-                                                {emp?.full_name || 'N/A'}
-                                                <XMarkIcon
-                                                    onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid, true); }}
-                                                    className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
-                                                />
-                                            </span>
-                                        )})}
+                                        <div className="flex flex-wrap gap-2 items-center flex-1 min-w-0">
+                                            {editForm.employee.map(eid => {
+                                                const emp = getEmp(eid);
+                                                return (
+                                                <span key={eid} className="bg-white px-2.5 py-1 rounded-md text-[13px] font-bold text-[#1E293B] shadow-sm flex items-center gap-1.5 border border-[#E2E8F0]">
+                                                    {emp?.full_name || 'N/A'}
+                                                    <XMarkIcon
+                                                        onClick={(e) => { e.stopPropagation(); handleMemberToggle(eid, true); }}
+                                                        className="w-3.5 h-3.5 cursor-pointer hover:text-red-500"
+                                                    />
+                                                </span>
+                                            )})}
+                                        </div>
+                                        <ChevronDownIcon
+                                            className={`w-5 h-5 text-[#64748B] shrink-0 transition-transform ${showMemberDropdown ? 'rotate-180' : ''}`}
+                                            aria-hidden
+                                        />
                                     </div>
 
                                     {showMemberDropdown && (

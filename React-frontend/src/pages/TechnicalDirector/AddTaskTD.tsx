@@ -4,10 +4,8 @@ import api from "../../lib/api";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
-import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
 import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import { TimePickerWheel } from "../../components/TimePickerWheel";
-import { AttachmentPreviewModal } from "../../components/AttachmentPreviewModal";
 import { isEmployeeActiveForProjectAssignment } from "../../utils/employeeActive";
 import {
     formatTimeForDisplay,
@@ -35,6 +33,50 @@ const initialForm = {
     checklist: "",
 };
 
+/** Opens a local `File` in a new browser tab (e.g. PDF viewer) instead of an in-app modal. */
+function openAttachmentInNewTab(file: File) {
+    const url = URL.createObjectURL(file);
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) {
+        const a = document.createElement("a");
+        a.href = url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+    // Revoke after delay so the new tab can load the blob (revoking too early breaks the viewer).
+    window.setTimeout(() => URL.revokeObjectURL(url), 300_000);
+}
+
+function parseOutputFilepaths(raw: unknown): string[] {
+    if (typeof raw !== "string" || !raw.trim()) return [];
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
+function getTaskOutputFileUrl(storedFilename: string): string {
+    if (!storedFilename) return "";
+    const base = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+    return `${base}/uploads/task/${encodeURIComponent(storedFilename)}`;
+}
+
+/** Stored names are `{uuid}_{sanitizedOriginal}` from the backend. */
+function displayNameFromStoredFilename(stored: string): string {
+    const m = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_(.+)$/i.exec(stored);
+    return m ? m[1] : stored;
+}
+
+function openServerOutputInNewTab(storedFilename: string) {
+    const url = getTaskOutputFileUrl(storedFilename);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+}
+
+type PendingAttachmentDelete =
+    | { type: "local"; index: number }
+    | { type: "server"; stored: string };
+
 export default function AddTaskTD() {
     const navigate = useNavigate();
     const location = useLocation();
@@ -48,12 +90,14 @@ export default function AddTaskTD() {
     const [projects, setProjects] = useState<Project[]>([]);
     const [addTaskForm, setAddTaskForm] = useState(initialForm);
     const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+    /** Filenames already saved on the task (`tasks.outputfilepath`), shown when editing. */
+    const [existingOutputFilenames, setExistingOutputFilenames] = useState<string[]>([]);
     const [openFormDropdown, setOpenFormDropdown] = useState<FormDropdownId>(null);
     const [tasklistOpen, setTasklistOpen] = useState(false);
-    const [attachmentPreviewFile, setAttachmentPreviewFile] = useState<File | null>(null);
+    const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<PendingAttachmentDelete | null>(null);
+    const [serverAttachmentDeleting, setServerAttachmentDeleting] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const replaceFileIndexRef = useRef<number | null>(null);
     const formProjectTriggerRef = useRef<HTMLButtonElement>(null);
     const formProjectMenuRef = useRef<HTMLDivElement>(null);
     const formModuleTriggerRef = useRef<HTMLButtonElement>(null);
@@ -73,20 +117,53 @@ export default function AddTaskTD() {
         Promise.all([
             api.get<{ tasks?: Task[] }>("/api/tasks"),
             api.get<{ employees?: Employee[] }>("/api/employees"),
-            api.get<{ projects?: Project[] }>("/api/projects"),
-        ]).then(([tasksRes, empRes, projRes]) => {
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+            api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
+        ]).then(([tasksRes, empRes, projRes1, projRes2]) => {
             setList(tasksRes.data.tasks ?? []);
             setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-            setProjects(projRes.data.projects ?? []);
+            
+            const p1 = (projRes1.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: String(r.source || "In House")
+            }));
+            const p2 = (projRes2.data.projects ?? []).map(r => ({
+                id: Number(r.id),
+                project_name: String(r.project_name || ""),
+                tasks: String(r.tasks || ""),
+                modules: String(r.modules || ""),
+                source: "Outsource"
+            }));
+            
+            setProjects([...p1, ...p2] as any);
         });
     }, []);
 
     useEffect(() => {
-        if (editingTask) {
-            setEditingTaskId(editingTask.id);
-            setAddTaskForm(taskToFormValues(editingTask));
-            setEditingTaskId(editingTask.id);
+        if (!editingTask) {
+            setEditingTaskId(null);
+            setExistingOutputFilenames([]);
+            return;
         }
+        setEditingTaskId(editingTask.id);
+        setAddTaskForm(taskToFormValues(editingTask));
+        setAttachmentFiles([]);
+        setExistingOutputFilenames(parseOutputFilepaths(editingTask.outputfilepath));
+
+        let cancelled = false;
+        api.get<Record<string, unknown>>(`/api/tasks/${editingTask.id}`)
+            .then((res) => {
+                if (cancelled) return;
+                setExistingOutputFilenames(parseOutputFilepaths(res.data?.outputfilepath));
+            })
+            .catch(() => {});
+
+        return () => {
+            cancelled = true;
+        };
     }, [editingTask]);
 
     useEffect(() => {
@@ -122,38 +199,60 @@ export default function AddTaskTD() {
         const files = input.files;
         if (!files?.length) return;
         const picked = Array.from(files);
-        const replaceIdx = replaceFileIndexRef.current;
-        if (replaceIdx !== null) {
-            const next = picked[0];
-            setAttachmentFiles((prev) =>
-                prev.map((f, i) => (i === replaceIdx ? next : f)),
-            );
-            replaceFileIndexRef.current = null;
-        } else {
-            setAttachmentFiles((prev) => [...prev, ...picked]);
-        }
+        setAttachmentFiles((prev) => [...prev, ...picked]);
         // Defer reset so the browser always finishes delivering the selection (some Edge/Chrome + form combos drop updates if cleared synchronously).
         requestAnimationFrame(() => {
             input.value = "";
         });
     };
 
-    const triggerFilePicker = (replaceIndex: number | null) => {
-        replaceFileIndexRef.current = replaceIndex;
+    const openFilePicker = () => {
         requestAnimationFrame(() => {
             fileInputRef.current?.click();
         });
-    };
-
-    const openReplaceFileAt = (index: number) => {
-        triggerFilePicker(index);
     };
 
     const removeAttachment = (index: number) => {
         setAttachmentFiles((prev) => prev.filter((_, i) => i !== index));
     };
 
+    const confirmRemoveAttachment = () => {
+        if (!pendingAttachmentDelete) return;
+        if (pendingAttachmentDelete.type === "local") {
+            removeAttachment(pendingAttachmentDelete.index);
+            setPendingAttachmentDelete(null);
+            return;
+        }
+        const stored = pendingAttachmentDelete.stored;
+        const taskId = editingTaskId;
+        if (taskId == null) {
+            setPendingAttachmentDelete(null);
+            return;
+        }
+        setServerAttachmentDeleting(true);
+        const next = existingOutputFilenames.filter((f) => f !== stored);
+        const newPath = next.length > 0 ? next.join(",") : "";
+        api.patch(`/api/tasks/${taskId}`, { outputfilepath: newPath })
+            .then(() => {
+                setExistingOutputFilenames(next);
+                setPendingAttachmentDelete(null);
+            })
+            .catch(() => {
+                setAddError("Failed to remove attachment. Please try again.");
+            })
+            .finally(() => setServerAttachmentDeleting(false));
+    };
+
+    const pendingDeleteFileName = (() => {
+        if (!pendingAttachmentDelete) return "";
+        if (pendingAttachmentDelete.type === "local") {
+            return attachmentFiles[pendingAttachmentDelete.index]?.name ?? "";
+        }
+        return displayNameFromStoredFilename(pendingAttachmentDelete.stored);
+    })();
+
     const merged = list.filter(Boolean);
+    const totalAttachmentCount = existingOutputFilenames.length + attachmentFiles.length;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -214,9 +313,13 @@ export default function AddTaskTD() {
             }
         };
 
+        const selectedProj = projects.find((p) => p.project_name === addTaskForm.projectName);
+        const isOutsource = selectedProj?.source === "Outsource";
+        const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+
         if (editingTaskId != null) {
             api
-                .patch(`/api/tasks/${editingTaskId}`, {
+                .patch(`${baseEndpoint}/${editingTaskId}`, {
                     task_name: payload.taskName,
                     assigned_to: payload.assignedTo,
                     due_date: payload.dueDate,
@@ -237,7 +340,7 @@ export default function AddTaskTD() {
                 })
                 .finally(() => setAddSubmitting(false));
         } else {
-            api.post("/api/tasks", payload).then((res) => {
+            api.post(baseEndpoint, payload).then((res) => {
                 if (res.data.success && res.data.task_id) {
                     handleFiles(res.data.task_id);
                     navigate(location.state?.from === "teamtasks" ? "/td/teamtasks" : "/td/mytasks");
@@ -560,23 +663,61 @@ export default function AddTaskTD() {
                             <span className="block text-[16px] font-semibold text-[#000000] font-Gantari">Attachments</span>
                             <div className="flex items-center bg-[#F2F3F4] rounded-[5px] overflow-hidden">
                                 <div className="flex-1 px-4 text-[14px] text-[#979797] truncate min-w-0 py-2">
-                                    {attachmentFiles.length > 0
-                                        ? `${attachmentFiles.length} file(s) selected`
+                                    {totalAttachmentCount > 0
+                                        ? `${totalAttachmentCount} file(s) attached`
                                         : "Choose file"}
                                 </div>
                                 <button
                                     type="button"
                                     onClick={(ev) => {
                                         ev.stopPropagation();
-                                        triggerFilePicker(null);
+                                        openFilePicker();
                                     }}
                                     className="px-5 py-2 bg-[#E2E2E2] text-[#8B8B8B] text-[14px] cursor-pointer transition-colors shrink-0 font-Gantari border-0"
                                 >
                                     Browse File
                                 </button>
                             </div>
-                            {attachmentFiles.length > 0 && (
+                            {totalAttachmentCount > 0 && (
                                 <div className="flex flex-col gap-2">
+                                    {existingOutputFilenames.map((stored) => (
+                                        <div
+                                            key={`server-${stored}`}
+                                            className="flex items-center gap-2 rounded-[5px] bg-[#F2F3F4] px-3 py-2 text-[14px] text-[#101827]"
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <span
+                                                    className="block truncate font-Gantari"
+                                                    title={displayNameFromStoredFilename(stored)}
+                                                >
+                                                    {displayNameFromStoredFilename(stored)}
+                                                </span>
+                                                <span className="text-xs text-[#8B8B8B]">Saved on task</span>
+                                            </div>
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openServerOutputInNewTab(stored)}
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="View in new tab"
+                                                    aria-label={`View ${displayNameFromStoredFilename(stored)} in new tab`}
+                                                >
+                                                    <img src={viewIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setPendingAttachmentDelete({ type: "server", stored })
+                                                    }
+                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
+                                                    title="Remove"
+                                                    aria-label={`Remove ${displayNameFromStoredFilename(stored)}`}
+                                                >
+                                                    <img src={deleteIcon} alt="" className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
                                     {attachmentFiles.map((file, index) => (
                                         <div
                                             key={`${file.name}-${index}-${file.size}`}
@@ -593,25 +734,19 @@ export default function AddTaskTD() {
                                             <div className="flex shrink-0 items-center gap-1">
                                                 <button
                                                     type="button"
-                                                    onClick={() => setAttachmentPreviewFile(file)}
+                                                    onClick={() => openAttachmentInNewTab(file)}
                                                     className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="View"
-                                                    aria-label={`View ${file.name}`}
+                                                    title="View in new tab"
+                                                    aria-label={`View ${file.name} in new tab`}
                                                 >
                                                     <img src={viewIcon} alt="" className="h-5 w-5" />
                                                 </button>
+                                               
                                                 <button
                                                     type="button"
-                                                    onClick={() => openReplaceFileAt(index)}
-                                                    className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
-                                                    title="Edit / replace file"
-                                                    aria-label={`Replace ${file.name}`}
-                                                >
-                                                    <img src={editIcon} alt="" className="h-5 w-5" />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeAttachment(index)}
+                                                    onClick={() =>
+                                                        setPendingAttachmentDelete({ type: "local", index })
+                                                    }
                                                     className="p-1.5 rounded hover:bg-[#E2E2E2] cursor-pointer"
                                                     title="Remove"
                                                     aria-label={`Remove ${file.name}`}
@@ -644,10 +779,69 @@ export default function AddTaskTD() {
                     </form>
                 </div>
             </div>
-            <AttachmentPreviewModal
-                file={attachmentPreviewFile}
-                onClose={() => setAttachmentPreviewFile(null)}
-            />
+            {pendingAttachmentDelete !== null && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
+                    onClick={() => !serverAttachmentDeleting && setPendingAttachmentDelete(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="w-full max-w-[520px] rounded-md bg-white p-8 shadow-xl font-Gantari"
+                        onClick={(e) => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="attachment-delete-title"
+                    >
+                        <div className="flex items-start gap-3">
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={() => setPendingAttachmentDelete(null)}
+                                className="mt-0.5 shrink-0 rounded-lg p-1 text-[#6B7280] hover:bg-[#F2F2F2] hover:text-[#1A1A1A] cursor-pointer border-0 bg-transparent disabled:opacity-50"
+                                aria-label="Close"
+                            >
+                                <svg
+                                    className="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    aria-hidden
+                                >
+                                    <path d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <p
+                                id="attachment-delete-title"
+                                className="min-w-0 flex-1 text-left text-[16px] leading-relaxed text-[#353535]"
+                            >
+                                Are you sure you want to delete{" "}
+                                <strong className="font-semibold text-[#353535]">{pendingDeleteFileName}</strong>?
+                            </p>
+                        </div>
+                        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={() => setPendingAttachmentDelete(null)}
+                                className="min-w-[140px] rounded-md bg-[#F2F2F2] px-8 py-2 text-[14px] font-semibold text-[#353535] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
+                            >
+                                Discard
+                            </button>
+                            <button
+                                type="button"
+                                disabled={serverAttachmentDeleting}
+                                onClick={confirmRemoveAttachment}
+                                className="min-w-[140px] rounded-md bg-[#FED9D9] px-8 py-2 text-[14px] font-semibold text-[#E00100] cursor-pointer transition-opacity hover:opacity-90 border-0 disabled:opacity-50"
+                            >
+                                {serverAttachmentDeleting ? "Removing…" : "Yes, Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -252,6 +252,7 @@ interface Project {
   id: number;
   project_name: string;
   tasks?: string;
+  source?: string;
 }
 
 function taskToFormValues(task: Task | Record<string, unknown>): {
@@ -351,10 +352,25 @@ export default function AddTaskPM() {
   useEffect(() => {
     Promise.all([
       api.get<{ employees?: Employee[] }>("/api/employees"),
-      api.get<{ projects?: Project[] }>("/api/projects"),
-    ]).then(([empRes, projRes]) => {
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects"),
+    ]).then(([empRes, projRes1, projRes2]) => {
       setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-      setProjects(projRes.data.projects ?? []);
+      
+      const p1 = (projRes1.data.projects ?? []).map(r => ({
+        id: Number(r.id),
+        project_name: String(r.project_name || ""),
+        tasks: String(r.tasks || ""),
+        source: String(r.source || "In House")
+      }));
+      const p2 = (projRes2.data.projects ?? []).map(r => ({
+        id: Number(r.id),
+        project_name: String(r.project_name || ""),
+        tasks: String(r.tasks || ""),
+        source: "Outsource"
+      }));
+      
+      setProjects([...p1, ...p2]);
     });
   }, []);
 
@@ -496,10 +512,16 @@ export default function AddTaskPM() {
       };
 
       let taskId = editingTaskId;
+      const selectedProj = projects.find(
+        (p) => p.project_name === addTaskForm.projectName,
+      );
+      const isOutsource = selectedProj?.source === "Outsource";
+      const baseEndpoint = isOutsource ? "/api/vendors/vendor-tasks" : "/api/tasks";
+
       if (isEditing) {
-        await api.patch(`/api/tasks/${editingTaskId}`, payload);
+        await api.patch(`${baseEndpoint}/${editingTaskId}`, payload);
       } else {
-        const res = await api.post<{ task_id: number }>("/api/tasks", payload);
+        const res = await api.post<{ task_id: number }>(baseEndpoint, payload);
         taskId = res.data.task_id;
       }
 

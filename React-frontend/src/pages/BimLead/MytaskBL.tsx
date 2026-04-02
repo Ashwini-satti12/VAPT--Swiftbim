@@ -210,6 +210,7 @@ interface Task {
     created_at?: string;
     Actual_start_time?: string;
     projectid?: number;
+    source?: "In House" | "Outsource";
 }
 
 function normalizeStatus(
@@ -522,16 +523,21 @@ export default function MytaskBL() {
         // Visual update immediately
         setList((prev) => prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)));
 
+        const isOutsource = task?.source === "Outsource";
+        const endpoint = isOutsource
+            ? `/api/vendors/vendor-tasks/${taskId}/status`
+            : `/api/tasks/${taskId}/status`;
+
         // Backend update
-        api.patch(`/api/tasks/${taskId}/status`, { 
+        api.patch(endpoint, {
             status: newStatus.replace("_", ""), // maps "in_progress" to "inprogress", "todo" to "todo"
-            projectId 
+            projectId
         }).catch(err => {
             console.error("Failed to update task status:", err);
         });
     };
 
-    const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+    const [deleteTask, setDeleteTask] = useState<Task | null>(null);
     const navigate = useNavigate();
 
     const openEditTask = (task: Task) => {
@@ -539,7 +545,7 @@ export default function MytaskBL() {
     };
 
     const openDeleteTask = (task: Task) => {
-        setDeleteTaskId(task.id);
+        setDeleteTask(task);
     };
 
     const openViewTask = (task: Task) => {
@@ -547,15 +553,16 @@ export default function MytaskBL() {
     };
 
     const confirmDeleteTask = () => {
-        if (deleteTaskId !== null) {
-            api.delete(`/api/tasks/${deleteTaskId}`).then(() => {
-                const params: Record<string, string> = {};
-                if (statusFilter) params.status = statusFilter;
-                if (isTeam) params.condition = "1";
-                api.get<{ tasks?: Task[] }>("/api/tasks", { params })
-                    .then(res => setList(res.data.tasks ?? []));
+        if (deleteTask !== null) {
+            const isOutsource = deleteTask.source === "Outsource";
+            const endpoint = isOutsource
+                ? `/api/vendors/vendor-tasks/${deleteTask.id}`
+                : `/api/tasks/${deleteTask.id}`;
+
+            api.delete(endpoint).then(() => {
+                setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
             }).finally(() => {
-                setDeleteTaskId(null);
+                setDeleteTask(null);
             });
         }
     };
@@ -588,15 +595,25 @@ export default function MytaskBL() {
             params.employeeid = "all";
         }
 
+        const taskParams: Record<string, string> = { ...params };
+
         Promise.all([
-            api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+            api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
+            api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
             api.get<{ employees?: Employee[] }>("/api/employees"),
             api.get<{ projects?: Project[] }>("/api/projects"),
+            api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
         ])
-            .then(([tasksRes, empRes, projRes]) => {
-                setList(tasksRes.data.tasks ?? []);
+            .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
+                const t1 = (tasksRes.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+                const t2 = (vTasksRes.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+                setList([...t1, ...t2] as Task[]);
+
                 setEmployees((empRes.data.employees ?? []).filter(isEmployeeActiveForProjectAssignment));
-                setProjects(projRes.data.projects ?? []);
+
+                const p1 = (projRes.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
+                const p2 = (vProjRes.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+                setProjects([...p1, ...p2] as Project[]);
             })
             .catch(() => {
                 setList([]);
@@ -882,13 +899,13 @@ export default function MytaskBL() {
             </div>
 
             {/* Delete Task confirmation modal */}
-            {deleteTaskId !== null && (
+            {deleteTask !== null && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
                         <div className="flex items-center justify-between px-6 py-4">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
+                                onClick={() => setDeleteTask(null)}
                                 className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
                                 aria-label="Close"
                             >
@@ -919,7 +936,7 @@ export default function MytaskBL() {
                         <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
                             <button
                                 type="button"
-                                onClick={() => setDeleteTaskId(null)}
+                                onClick={() => setDeleteTask(null)}
                                 className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black hover:bg-[#E0E0E0] cursor-pointer"
                             >
                                 Discard
