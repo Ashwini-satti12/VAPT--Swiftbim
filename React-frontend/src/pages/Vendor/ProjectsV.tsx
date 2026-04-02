@@ -1516,7 +1516,7 @@ export default function ProjectsV() {
                                                     <h3 className="text-[18px] md:text-[20px] font-Gantari font-semibold text-[#1A1A1A] leading-tight">
                                                         {p.project_name ?? "Untitled Project"}
                                                     </h3>
-                                                    {(userRole === "Vendor") && (
+                                                    {/* {(userRole === "Vendor") && (
                                                         <div className="mt-1 space-y-0.5">
                                                             {p.budget_ceiling && (
                                                                 <p className="text-[13px] font-Gantari font-medium text-[#666666]">
@@ -1524,7 +1524,7 @@ export default function ProjectsV() {
                                                                 </p>
                                                             )}
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                 </div>
 
 

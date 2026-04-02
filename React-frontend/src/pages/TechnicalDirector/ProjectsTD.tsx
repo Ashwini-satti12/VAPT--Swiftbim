@@ -470,29 +470,57 @@ export default function ProjectsTD() {
       return;
     }
 
+    const urlSource = searchParams.get("source");
     // Try to find project in the already loaded list for an immediate UI update
     const existingProject = list.find((p) => p.id === id);
+    // Wait for merged list when we cannot tell outsource vs in-house (avoids wrong /api/projects/:id fetch)
+    if (loading && !existingProject && !urlSource) {
+      return;
+    }
+
+    const useVendor =
+      existingProject?.source === "Outsource" || urlSource === "Outsource";
+    const baseApi = useVendor
+      ? "/api/vendors/vendor-projects"
+      : "/api/projects";
+
     if (existingProject) {
       setSelectedProjectForView(existingProject);
       setShowProjectView(true);
     } else if (!showProjectView) {
-      // If not in list and not yet showing view, set showProjectView to true to show loading
       setShowProjectView(true);
     }
 
-    // Always fetch fresh details to ensure data is up to date, but don't clear existing while loading
     api
-      .get<Record<string, unknown>>(`/api/projects/${id}`)
-      .then(({ data }) =>
-        setSelectedProjectForView(mapApiProjectToProject(data)),
-      )
+      .get<Record<string, unknown>>(`${baseApi}/${id}`)
+      .then(({ data }) => {
+        const mapped = mapApiProjectToProject(data);
+        if (!mapped.source || mapped.source === "undefined") {
+          mapped.source = useVendor ? "Outsource" : "In House";
+        }
+        setSelectedProjectForView(mapped);
+      })
       .catch(() => {
+        if (!useVendor && !existingProject && !urlSource) {
+          api
+            .get<Record<string, unknown>>(`/api/vendors/vendor-projects/${id}`)
+            .then(({ data }) => {
+              const mapped = mapApiProjectToProject(data);
+              mapped.source = "Outsource";
+              setSelectedProjectForView(mapped);
+            })
+            .catch(() => {
+              setSearchParams({}, { replace: true });
+              setShowProjectView(false);
+            });
+          return;
+        }
         if (!existingProject) {
           setSearchParams({}, { replace: true });
           setShowProjectView(false);
         }
       });
-  }, [searchParams, list, setSearchParams]);
+  }, [searchParams, list, loading, setSearchParams]);
 
   // Set default module name tags when create modal opens
   useEffect(() => {
@@ -538,8 +566,12 @@ export default function ProjectsTD() {
     let cancelled = false;
     const projectId = showProjectView ? selectedProjectForView?.id : undefined;
 
-    const source = searchParams.get("source") || "In House";
-    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
 
     if (!projectId) {
       setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
@@ -619,7 +651,12 @@ export default function ProjectsTD() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id, searchParams]);
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    searchParams,
+  ]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -1842,6 +1879,10 @@ export default function ProjectsTD() {
                                     setOpenMenuProjectId(null);
                                     setSearchParams({
                                       projectId: String(p.id),
+                                      source:
+                                        p.source === "Outsource"
+                                          ? "Outsource"
+                                          : "In House",
                                     });
                                   }}
                                   className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"

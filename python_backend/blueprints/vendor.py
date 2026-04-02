@@ -3947,7 +3947,9 @@ def list_vendor_projects():
             COALESCE(vp.perday, p.perday)                       AS perday,
             COALESCE(p.location, vp.location)                   AS location,
             COALESCE(vp.start_date, p.start_date)               AS start_date,
-            COALESCE(vp.due_date, p.due_date)                   AS due_date
+            COALESCE(vp.due_date, p.due_date)                   AS due_date,
+            COALESCE(vp.bidding_end_date, p.bidding_end_date)   AS bidding_end_date,
+            p.department                                        AS department_name
         FROM snh6_swiftproject.vendor_projects vp
         LEFT JOIN snh6_swiftproject.projects p
             ON p.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
@@ -4351,6 +4353,14 @@ def get_vendor_project_detail(project_id):
     return jsonify({k: _serialize(v) for k, v in project.items()})
 
 
+def _vendor_task_module_label(row: dict) -> str:
+    """vendor_task uses `modules` in schema; some DBs may have `modules_name` from older migrations."""
+    v = row.get("modules_name")
+    if v is None or (isinstance(v, str) and not v.strip()):
+        v = row.get("modules")
+    return str(v or "").strip()
+
+
 @bp.route("/vendor-projects/<int:project_id>/module-progress", methods=["GET"])
 @login_required
 def vendor_project_module_progress(project_id):
@@ -4359,6 +4369,7 @@ def vendor_project_module_progress(project_id):
     Returns module-wise completion percentage and status counts for an outsourced project.
     Ported logic from projects.py project_module_progress to ensure frontend compatibility.
     """
+    _ensure_vendor_task_table()
     conn = get_db()
     cur = conn.cursor(dictionary=True)
 
@@ -4371,9 +4382,9 @@ def vendor_project_module_progress(project_id):
     if not proj:
         return jsonify({"success": False, "message": "Project not found"}), 404
 
-    # 2. Fetch all vendor tasks for this project
+    # 2. Fetch all vendor tasks (column is `modules`, not modules_name — wrong column caused HTTP 500)
     cur.execute(
-        "SELECT status, modules_name FROM snh6_swiftproject.vendor_task WHERE project_id = %s",
+        "SELECT status, modules FROM snh6_swiftproject.vendor_task WHERE project_id = %s",
         (project_id,),
     )
     tasks = cur.fetchall()
@@ -4396,18 +4407,26 @@ def vendor_project_module_progress(project_id):
     raw_modules = (proj.get("modules") or "").strip()
     module_names = []
     if raw_modules:
-        # Compatibility: split by semicolon or comma
-        sep = ";" if ";" in raw_modules else ","
-        module_names = [m.strip() for m in raw_modules.split(sep) if m.strip()]
+        if raw_modules.startswith("["):
+            try:
+                parsed = json.loads(raw_modules)
+                if isinstance(parsed, list):
+                    module_names = [str(m).strip() for m in parsed if str(m).strip()]
+            except Exception:
+                module_names = []
+        if not module_names:
+            # Compatibility: split by semicolon or comma
+            sep = ";" if ";" in raw_modules else ","
+            module_names = [m.strip() for m in raw_modules.split(sep) if m.strip()]
     else:
         # Fallback to tasks
-        derived = {str(t.get("modules_name") or "").strip() for t in tasks}
+        derived = {_vendor_task_module_label(t) for t in tasks}
         module_names = sorted([m for m in derived if m])
 
     # 4. Aggregate by module
     module_stats = []
     for mname in module_names:
-        m_tasks = [t for t in tasks if str(t.get("modules_name") or "").strip() == mname]
+        m_tasks = [t for t in tasks if _vendor_task_module_label(t) == mname]
         m_total = len(m_tasks)
         m_completed = sum(1 for t in m_tasks if str(t.get("status") or "").lower() in {"completed", "complete", "done"})
         m_pct = round((m_completed / m_total * 100), 2) if m_total > 0 else 0.0
