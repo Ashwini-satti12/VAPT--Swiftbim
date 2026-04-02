@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
@@ -31,6 +32,7 @@ interface Team {
 }
 
 export default function TimesheetPM() {
+  const [searchParams] = useSearchParams();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [employee, setEmployee] = useState("All");
@@ -252,7 +254,16 @@ export default function TimesheetPM() {
     setPaginationWindowStart(1);
   }, [selectedShowEntries]);
 
-  const filteredList = list; // API already filters, so we use list directly
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredList = useMemo(() => {
+    if (!searchQuery) return list;
+    return list.filter(row => 
+      (row.project_name || "").toLowerCase().includes(searchQuery) ||
+      (row.task_name || "").toLowerCase().includes(searchQuery) ||
+      (row.assigned_name || "").toLowerCase().includes(searchQuery) ||
+      (row.teamname || "").toLowerCase().includes(searchQuery)
+    );
+  }, [list, searchQuery]);
 
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
@@ -84,6 +84,7 @@ export default function DashboardPM() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>(defaultStats);
   const [priorityTasks, setPriorityTasks] = useState<PriorityTask[]>([]);
@@ -287,8 +288,23 @@ export default function DashboardPM() {
                   <Link to="/projects" className="text-sm font-medium text-[#DE3D3A] hover:underline font-gantari">View all</Link>
                 </div>
                 {(() => {
+                  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+                  const filteredPriorityTasks = priorityTasks.filter(task => {
+                    if (!searchQuery) return true;
+                    return [
+                      task.task_name,
+                      task.project_name,
+                      task.category
+                    ].some(f => (f || "").toLowerCase().includes(searchQuery));
+                  });
+
+                  if (filteredPriorityTasks.length === 0 && searchQuery) {
+                    return <p className="text-[#717171] text-sm font-gantari py-4 text-center">No tasks match your search.</p>;
+                  }
+
                   const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                  for (const task of priorityTasks) {
+
+                  for (const task of filteredPriorityTasks) {
                     const pid = task.projectid ?? 0;
                     const name = task.project_name || `Project #${pid}`;
                     if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });
