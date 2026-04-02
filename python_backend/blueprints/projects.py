@@ -122,9 +122,17 @@ def list_projects():
         # Handling for other potential statuses if needed, though Completed is most common
         pass
 
-    # Always exclude 'Outsource' projects (department = 'Submission Deadline') from this endpoint.
-    # Those projects are managed via vendor_projects and served by /api/vendors/vendor-projects.
-    where_clauses.append("(department IS NULL OR department != 'Submission Deadline')")
+    # Exclude 'Outsource' projects (department = 'Submission Deadline') ONLY if they are already in the vendor_projects table.
+    # This prevents double-listing once they are accepted by a vendor and appear in /api/vendors/vendor-projects.
+    # Pending/Bidding projects remain visible here until accepted.
+    where_clauses.append("""(
+        department IS NULL 
+        OR department != 'Submission Deadline'
+        OR NOT EXISTS (
+            SELECT 1 FROM vendor_projects vp 
+            WHERE vp.project_name COLLATE utf8mb4_general_ci = projects.project_name COLLATE utf8mb4_general_ci
+        )
+    )""")
 
     # Final execution
     where_sql = " AND ".join(where_clauses)
@@ -561,12 +569,21 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
                             (email,),
                         )
                         prop = vendor_cur.fetchone() or {}
+                        
+                        # Direct fetch enquiry by email if proposal linkage is missing
+                        vendor_cur.execute(
+                            "SELECT * FROM bim_enquiry WHERE email_address = %s ORDER BY id DESC LIMIT 1",
+                            (email,),
+                        )
+                        enq_by_email = vendor_cur.fetchone() or {}
+                        if enq_by_email and not enq:
+                            enq = enq_by_email
                 except Exception:
                     prop = {}
 
             # 3) enquiry from proposal.service_id (or legacy by name)
             sid = _as_int_id(prop.get("service_id")) if prop else None
-            if sid is not None:
+            if sid is not None and not enq:
                 try:
                     vendor_cur.execute(
                         "SELECT * FROM bim_enquiry WHERE id = %s LIMIT 1",
@@ -574,7 +591,7 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
                     )
                     enq = vendor_cur.fetchone() or {}
                 except Exception:
-                    enq = {}
+                    pass
             else:
                 # very last resort
                 project_name = (p.get("project_name") or "").strip()
@@ -591,10 +608,10 @@ def _hydrate_project_phase1_fields(project_dicts: list[dict]):
 
             # Resources + Required Resources: from proposals.resources when available
             prop_resources = _first_nonempty(prop_row, [c for c in proposal_res_cols if c in prop_row])
-            if prop_resources:
+            if prop_resources and not p.get("resources") and not p.get("no_resource"):
                 p["resources"] = prop_resources
                 p["required_resources"] = prop_resources
-            else:
+            elif not p.get("resources") and not p.get("no_resource"):
                 # Fallback: if proposals.resources is empty in DB, derive total resources from proposals.commercial_offer
                 # (sum of each milestone's `resources`), else fall back to enquiry list counts.
                 derived = 0

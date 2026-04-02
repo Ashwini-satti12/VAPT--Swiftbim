@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -8,7 +9,10 @@ import deleteIcon from "../../assets/ProjectManager/project/deleteIcon.svg";
 import closeIcon from "../../assets/ProductNavbarIcons/close button.svg";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
-const SHOW_ENTRIES_PLACEHOLDER = "Show entries";
+const SHOW_ENTRIES_PLACEHOLDER = "Show Entries";
+/** Closed trigger label when a range is chosen (e.g. “Show: 1-50”). */
+const SHOW_ENTRIES_SELECTED_PREFIX = "Show:";
+const EMPLOYEE_FILTER_PLACEHOLDER = "Employee";
 
 interface LeaveEntry {
   id: number;
@@ -98,6 +102,7 @@ const getTodayInputDate = (): string => {
 };
 
 export default function ManageLeavePM() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -119,9 +124,10 @@ export default function ManageLeavePM() {
   const leaveTypeDropdownRef = useRef<HTMLDivElement>(null);
   const leaveTypeDropdownEditRef = useRef<HTMLDivElement>(null);
 
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("All");
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("");
   const [employeeDropdownOpen, setEmployeeDropdownOpen] = useState(false);
   const employeeDropdownRef = useRef<HTMLDivElement>(null);
+  const employeeDropdownContentRef = useRef<HTMLDivElement>(null);
   const [selectedShowEntries, setSelectedShowEntries] = useState("");
   const [showEntriesOpen, setShowEntriesOpen] = useState(false);
   const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
@@ -231,6 +237,7 @@ export default function ManageLeavePM() {
     const handleClickOutside = (event: MouseEvent) => {
       const t = event.target as Node;
       if (
+        employeeDropdownOpen &&
         employeeDropdownRef.current &&
         !employeeDropdownRef.current.contains(t)
       ) {
@@ -255,6 +262,12 @@ export default function ManageLeavePM() {
       showEntriesDropdownContentRef.current.scrollTop = 0;
     }
   }, [showEntriesOpen]);
+
+  useEffect(() => {
+    if (employeeDropdownOpen && employeeDropdownContentRef.current) {
+      employeeDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [employeeDropdownOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -548,10 +561,23 @@ export default function ManageLeavePM() {
   // For Project Manager view we no longer approve/reject here, so no status mutations from this screen.
 
   // filtered list is always current user's leaves; dropdown still allows filter by name if desired
-  const filteredList =
-    selectedEmployee === "All"
+  const employeeFilterShowsAll =
+    selectedEmployee === "" || selectedEmployee === "All";
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredList = useMemo(() => {
+    let res = employeeFilterShowsAll
       ? leaves
       : leaves.filter((l) => l.employeeName === selectedEmployee);
+
+    if (searchQuery) {
+      res = res.filter(l => 
+        (l.employeeName || "").toLowerCase().includes(searchQuery) ||
+        (l.leaveType || "").toLowerCase().includes(searchQuery) ||
+        (l.description || "").toLowerCase().includes(searchQuery)
+      );
+    }
+    return res;
+  }, [leaves, selectedEmployee, employeeFilterShowsAll, searchQuery]);
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =
@@ -631,59 +657,98 @@ export default function ManageLeavePM() {
               >
                 Apply Leave
               </button>
-              <div className="relative" ref={employeeDropdownRef}>
+              <div
+                className="relative min-w-[180px] max-w-[240px] w-[180px]"
+                ref={employeeDropdownRef}
+              >
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEmployeeDropdownOpen((o) => !o);
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm min-w-[140px] justify-between cursor-pointer ${employeeDropdownOpen ? "text-[#353535]" : "text-[#353535]"}`}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                 >
-                  <span className="text-[14px]">Employee:</span>
-                  <span className="truncate max-w-[100px]">
-                    {selectedEmployee}
-                  </span>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className={`shrink-0 transition-transform duration-200 ${employeeDropdownOpen ? "rotate-180" : ""}`}
+                  <span
+                    className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                      selectedEmployee === ""
+                        ? "text-[#8B8B8B]"
+                        : "text-[#353535]"
+                    }`}
                   >
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                    {selectedEmployee === "" ? (
+                      EMPLOYEE_FILTER_PLACEHOLDER
+                    ) : selectedEmployee === "All" ? (
+                      <>
+                        <span className="text-[14px]">
+                          {EMPLOYEE_FILTER_PLACEHOLDER}:
+                        </span>{" "}
+                        <span className="font-semibold">All</span>
+                      </>
+                    ) : (
+                      <span className="font-semibold truncate">
+                        {selectedEmployee}
+                      </span>
+                    )}
+                  </span>
+                  <img
+                    src={ArrowDown}
+                    alt=""
+                    className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                      employeeDropdownOpen ? "rotate-180" : ""
+                    } ${
+                      selectedEmployee === ""
+                        ? "opacity-60 grayscale"
+                        : "opacity-90"
+                    }`}
+                    aria-hidden
+                  />
                 </button>
                 {employeeDropdownOpen && (
-                  <div
-                    className="absolute top-full left-0 mt-2 z-50 bg-white rounded-lg border border-[#E5E5E5] shadow-lg min-w-[160px] max-h-[240px] overflow-y-auto py-1.5 custom-scrollbar"
-                    onMouseDown={(e) => e.preventDefault()}
-                  >
-                    {employeeOptions.map((name) => {
-                      const isSelected = selectedEmployee === name;
-                      return (
+                  <div className="absolute top-full left-0 right-0 mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                    <div
+                      ref={employeeDropdownContentRef}
+                      className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedEmployee("");
+                          setEmployeeDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                      >
+                        {EMPLOYEE_FILTER_PLACEHOLDER}
+                      </button>
+                      {employeeOptions.map((name) => (
                         <button
                           key={name}
                           type="button"
-                          onClick={(e) => {
+                          onMouseDown={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             setSelectedEmployee(name);
                             setEmployeeDropdownOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors truncate cursor-pointer ${isSelected ? "text-[#353535] bg-[#F0F2F7]" : "text-[#616161] hover:text-[#353535] hover:bg-[#F8F9FA]"}`}
+                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer truncate hover:text-[#353535] hover:bg-[#F2F2F2] ${
+                            selectedEmployee === name
+                              ? "text-[#353535] bg-[#F2F2F2]"
+                              : "text-[#8B8B8B] bg-transparent"
+                          }`}
                         >
                           {name}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="relative w-[140px]" ref={showEntriesDropdownRef}>
+              <div
+                className="relative min-w-[140px] max-w-[200px] w-[160px]"
+                ref={showEntriesDropdownRef}
+              >
                 <button
                   type="button"
                   onClick={(e) => {
@@ -704,7 +769,7 @@ export default function ManageLeavePM() {
                     ) : (
                       <>
                         <span className="text-[14px]">
-                          {SHOW_ENTRIES_PLACEHOLDER}:
+                          {SHOW_ENTRIES_SELECTED_PREFIX}
                         </span>{" "}
                         <span className="font-semibold">
                           {selectedRange.label}
@@ -743,25 +808,46 @@ export default function ManageLeavePM() {
                       >
                         {SHOW_ENTRIES_PLACEHOLDER}
                       </button>
-                      {showEntriesOptions.map((opt) => (
-                        <button
-                          key={`${opt.value}-${opt.start}-${opt.end}`}
-                          type="button"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedShowEntries(opt.value);
-                            setShowEntriesOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-[14px] font-gantari font-normal transition-colors cursor-pointer hover:text-[#353535] hover:bg-[#F2F2F2] ${
-                            selectedShowEntries === opt.value
-                              ? "text-[#353535] bg-[#F2F2F2]"
-                              : "text-[#8B8B8B] bg-transparent"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                      {showEntriesOptions.map((opt) => {
+                        const isChosen = selectedShowEntries === opt.value;
+                        return (
+                          <button
+                            key={`${opt.value}-${opt.start}-${opt.end}`}
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedShowEntries(opt.value);
+                              setShowEntriesOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                              isChosen
+                                ? "text-[#353535] bg-[#F2F2F2]"
+                                : "text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            }`}
+                          >
+                            <span className="truncate min-w-0">
+                              {opt.label}
+                            </span>
+                            {isChosen && (
+                              <svg
+                                className="w-4 h-4 shrink-0 text-[#353535]"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                aria-hidden
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

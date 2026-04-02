@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import { getGlobalProfileUrl } from '../../lib/profileHelpers';
 
@@ -92,6 +92,16 @@ export default function DashboardBL() {
     const [selectedDate, setSelectedDate] = useState<Date>(() => new Date(today.getTime()));
     const [monthDropdownOpen, setMonthDropdownOpen] = useState(false);
     const monthDropdownRef = useRef<HTMLDivElement>(null);
+    const [searchParams] = useSearchParams();
+
+    const filteredPriorityTasks = useMemo(() => {
+        const q = searchParams.get('q')?.toLowerCase() || '';
+        if (!q) return priorityTasks;
+        return priorityTasks.filter((t) =>
+            [t.task_name, t.project_name, t.category]
+                .some(f => (f || '').toLowerCase().includes(q))
+        );
+    }, [priorityTasks, searchParams]);
 
     // KPI cards: fetch from dashboard API (same as TD, BC, PM)
     useEffect(() => {
@@ -230,7 +240,7 @@ export default function DashboardBL() {
                         <h2 className="text-xl font-semibold text-[#353535] font-gantari">Today's Priority</h2>
                     </div>
                     <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar min-h-0">
-                        {priorityTasks.length === 0 ? (
+                        {filteredPriorityTasks.length === 0 ? (
                             <p className="text-[#717171] text-sm font-gantari py-4">No priority tasks for today.</p>
                         ) : (
                             <>
@@ -240,7 +250,7 @@ export default function DashboardBL() {
                                 </div>
                                 {(() => {
                                     const byProject = new Map<number, { projectName: string; tasks: PriorityTask[] }>();
-                                    for (const task of priorityTasks) {
+                                    for (const task of filteredPriorityTasks) {
                                         const pid = task.projectid ?? 0;
                                         const name = task.project_name || `Project #${pid}`;
                                         if (!byProject.has(pid)) byProject.set(pid, { projectName: name, tasks: [] });

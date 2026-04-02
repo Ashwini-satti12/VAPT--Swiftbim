@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiGrid, FiMenu, FiChevronDown, FiX } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../lib/api';
@@ -281,6 +281,7 @@ function CustomDropdown({
 
 export default function EmployeesPM() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   useEffect(() => {
     const styleTag = document.createElement('style');
     styleTag.textContent = SCROLLBAR_STYLE;
@@ -430,7 +431,16 @@ export default function EmployeesPM() {
       if (currentType !== 'trainee') return false;
     }
 
-    return true;
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+    const matchesSearch = !searchQuery || [
+      emp.full_name,
+      emp.email,
+      emp.user_role,
+      emp.department,
+      emp.phone_number
+    ].some(field => (field || "").toLowerCase().includes(searchQuery));
+
+    return matchesSearch;
   });
 
   let limitStart = 0;

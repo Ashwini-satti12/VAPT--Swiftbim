@@ -366,8 +366,12 @@ export default function ProjectsPM() {
     let cancelled = false;
     setPmTaskStatsLoading(true);
 
-    const source = searchParams.get("source") || "In House";
-    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
 
     api
       .get<{
@@ -396,7 +400,12 @@ export default function ProjectsPM() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id, searchParams]);
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    searchParams,
+  ]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -469,6 +478,21 @@ export default function ProjectsPM() {
     fetchProjects();
   }, [user?.id, user?.full_name, searchParams]);
 
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredList = list.filter((p) => {
+    if (!searchQuery) return true;
+    return (
+      (p.project_name || "").toLowerCase().includes(searchQuery) ||
+      (p.client_name || "").toLowerCase().includes(searchQuery) ||
+      (p.start_date || "").toLowerCase().includes(searchQuery) ||
+      (p.end_date || "").toLowerCase().includes(searchQuery) ||
+      (p.module_name || "").toLowerCase().includes(searchQuery) ||
+      (p.description || "").toLowerCase().includes(searchQuery) ||
+      (p.location || "").toLowerCase().includes(searchQuery) ||
+      (p.priority || "").toLowerCase().includes(searchQuery)
+    );
+  });
+
   // Map API project to Project interface
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
     id: Number(r.id) ?? 0,
@@ -507,6 +531,10 @@ export default function ProjectsPM() {
     tasks: r.tasks != null ? String(r.tasks) : undefined,
     document_attachment: r.document_attachment != null ? String(r.document_attachment) : undefined,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    source:
+      r.source != null && String(r.source) !== "undefined"
+        ? (String(r.source) as "In House" | "Outsource")
+        : undefined,
   });
 
   // Deep-link support: keep project view on refresh using ?projectId=
@@ -535,19 +563,47 @@ export default function ProjectsPM() {
       setShowProjectView(true);
     }
 
-    const source = searchParams.get("source") || "In House";
-    const baseApi = source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
+    const urlSource = searchParams.get("source");
+    if (loading && !existingProject && !urlSource) {
+      return;
+    }
+
+    const useVendor =
+      existingProject?.source === "Outsource" || urlSource === "Outsource";
+    const baseApi = useVendor
+      ? "/api/vendors/vendor-projects"
+      : "/api/projects";
 
     api
       .get<Record<string, unknown>>(`${baseApi}/${id}`)
-      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+      .then(({ data }) => {
+        const mapped = mapApiProjectToProject(data);
+        if (!mapped.source) {
+          mapped.source = useVendor ? "Outsource" : "In House";
+        }
+        setSelectedProjectForView(mapped);
+      })
       .catch(() => {
+        if (!useVendor && !existingProject && !urlSource) {
+          api
+            .get<Record<string, unknown>>(`/api/vendors/vendor-projects/${id}`)
+            .then(({ data }) => {
+              const mapped = mapApiProjectToProject(data);
+              mapped.source = "Outsource";
+              setSelectedProjectForView(mapped);
+            })
+            .catch(() => {
+              setSearchParams({}, { replace: true });
+              setShowProjectView(false);
+            });
+          return;
+        }
         if (!existingProject) {
           setSearchParams({}, { replace: true });
           setShowProjectView(false);
         }
       });
-  }, [searchParams, list, setSearchParams]);
+  }, [searchParams, list, loading, setSearchParams]);
 
   if (loading) {
     return (
@@ -2494,12 +2550,12 @@ export default function ProjectsPM() {
           {/* Dashboard Content with Scrollbar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4 pb-2">
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
                   No projects found.
                 </div>
               ) : (
-                list.map((p) => {
+                filteredList.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
                   return (
                     <div key={p.id} className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">

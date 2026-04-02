@@ -155,6 +155,16 @@ def list_tasks():
         where.append("t.projectid = %s")
         params.append(project_id)
 
+    # Outsource delivery is tracked in vendor_task; do not surface parallel rows from `tasks`
+    # for main projects that are linked to vendor_projects (same project_name as list_vendor_projects).
+    where.append(
+        """NOT EXISTS (
+            SELECT 1 FROM snh6_swiftproject.vendor_projects vp
+            INNER JOIN projects mp ON mp.project_name COLLATE utf8mb4_general_ci = vp.project_name COLLATE utf8mb4_general_ci
+            WHERE mp.id = t.projectid AND mp.Company_id = t.Company_id
+        )"""
+    )
+
     sql = f"""SELECT t.*, e_assigned.full_name AS assigned_full_name, e_uploader.full_name AS uploader_full_name,
               e_assigned.profile_picture AS assigned_profile_picture, e_uploader.profile_picture AS uploader_profile_picture,
               p.project_name
