@@ -2099,6 +2099,7 @@ def _ensure_vendor_profile_child_tables():
         ("email", "VARCHAR(255)"),
         ("login_role", "VARCHAR(100)"),
         ("vendor_employee_id", "INT"),
+        ("active", "VARCHAR(32) DEFAULT 'active'"),
     ]:
         if col.lower() not in existing_cols:
             try:
@@ -2107,6 +2108,13 @@ def _ensure_vendor_profile_child_tables():
                 # If this fails we simply continue; worst case the assign-login
                 # endpoint will surface an error which can be debugged separately.
                 pass
+    try:
+        cur.execute(
+            "UPDATE vendor_resource_profiles SET active = 'active' WHERE active IS NULL OR TRIM(IFNULL(active,'')) = ''"
+        )
+        get_vendor_db().commit()
+    except Exception:
+        pass
 
 
 def _send_login_email(to_email: str, role: str, temp_password: str):
@@ -2591,6 +2599,83 @@ def list_vendor_resource_profiles():
     cur.execute("SELECT * FROM vendor_resource_profiles WHERE vendor_id = %s ORDER BY id", (vendor_id,))
     rows = cur.fetchall()
     return jsonify({"resources": [{k: _serialize(v) for k, v in r.items()} for r in rows]})
+
+
+@bp.route("/profile/resource-profiles/bulk-status", methods=["POST"])
+@login_required
+def bulk_status_vendor_resource_profiles():
+    """
+    POST /api/vendors/profile/resource-profiles/bulk-status
+    Body: { "ids": [1,2,3], "action": "active" | "inactive" }
+    Persists active/inactive on vendor_resource_profiles (new_swiftbim) and syncs linked vendor_employee rows.
+    """
+    _ensure_vendor_profile_tables()
+    _ensure_vendor_profile_child_tables()
+    vendor_id = _current_vendor_onboarding_id()
+    if not vendor_id:
+        return jsonify({"success": False, "message": "Vendor profile not found"}), 404
+
+    data = request.get_json(silent=True) or {}
+    raw_ids = data.get("ids") or data.get("id") or []
+    if isinstance(raw_ids, (int, str)):
+        raw_ids = [raw_ids]
+    ids = []
+    for x in raw_ids:
+        try:
+            ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return jsonify({"success": False, "message": "ids required"}), 400
+
+    action = (data.get("action") or "inactive").strip().lower()
+    if action not in ("active", "inactive"):
+        return jsonify({"success": False, "message": "action must be active or inactive"}), 400
+
+    vcur = vendor_cursor()
+    placeholders = ",".join(["%s"] * len(ids))
+    vcur.execute(
+        f"SELECT id, vendor_employee_id FROM vendor_resource_profiles WHERE vendor_id = %s AND id IN ({placeholders})",
+        [vendor_id] + ids,
+    )
+    rows = vcur.fetchall() or []
+    if not rows:
+        return jsonify({"success": False, "message": "No matching resources"}), 404
+
+    vcur.execute(
+        f"UPDATE vendor_resource_profiles SET active = %s WHERE vendor_id = %s AND id IN ({placeholders})",
+        [action, vendor_id] + ids,
+    )
+    profile_updated = vcur.rowcount
+    get_vendor_db().commit()
+
+    ve_ids = [
+        int(r["vendor_employee_id"])
+        for r in rows
+        if r.get("vendor_employee_id") is not None
+    ]
+    ve_updated = 0
+    if ve_ids:
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            ph2 = ",".join(["%s"] * len(ve_ids))
+            cur.execute(
+                f"UPDATE vendor_employee SET status = %s WHERE vendor_id = %s AND id IN ({ph2})",
+                [action, vendor_id] + ve_ids,
+            )
+            ve_updated = cur.rowcount
+            conn.commit()
+        except Exception:
+            pass
+
+    return jsonify(
+        {
+            "success": True,
+            "updated_profiles": profile_updated,
+            "updated_logins": ve_updated,
+        }
+    )
 
 
 @bp.route("/profile/resource-profiles/<int:resource_id>/assign-login", methods=["POST"])
