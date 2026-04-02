@@ -3,6 +3,21 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../../lib/api';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
+/** Open native date picker — same pattern as TeamreportPM. */
+function openNativeDatePicker(input: HTMLInputElement | null) {
+    if (!input) return;
+    try {
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+            return;
+        }
+    } catch {
+        // showPicker can throw if not allowed; fall through
+    }
+    input.focus();
+    input.click();
+}
+
 interface TimesheetEntry {
     id: number;
     project_name?: string;
@@ -40,8 +55,9 @@ export default function TeamReportTD() {
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
 
+    const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
+    const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
     const showEntriesOptions: { value: string; label: string; start: number; end: number | null }[] = [
-        { value: 'show', label: 'Show Entries', start: 0, end: 50 },
         { value: '1-50', label: '1-50', start: 0, end: 50 },
         { value: '51-100', label: '51-100', start: 50, end: 100 },
         { value: '101-150', label: '101-150', start: 100, end: 150 },
@@ -50,15 +66,15 @@ export default function TeamReportTD() {
         { value: '251-300', label: '251-300', start: 250, end: 300 },
         { value: 'all', label: 'All', start: 0, end: null },
     ];
-    const [selectedShowEntries, setSelectedShowEntries] = useState(showEntriesOptions[0].value);
+    const [selectedShowEntries, setSelectedShowEntries] = useState('');
     const [showEntriesOpen, setShowEntriesOpen] = useState(false);
     const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
-    const dropdownContentRef = useRef<HTMLDivElement>(null);
+    const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
     const [searchParams] = useSearchParams();
 
     useEffect(() => {
-        if (showEntriesOpen && dropdownContentRef.current) {
-            dropdownContentRef.current.scrollTop = 0;
+        if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+            showEntriesDropdownContentRef.current.scrollTop = 0;
         }
     }, [showEntriesOpen]);
 
@@ -392,7 +408,8 @@ export default function TeamReportTD() {
         });
     }, [list, startDate, endDate, employee, team, searchQuery]);
 
-    const selectedRange = showEntriesOptions.find((o) => o.value === selectedShowEntries) ?? showEntriesOptions[0];
+    const effectiveShowEntryValue = selectedShowEntries || showEntriesOptions[0].value;
+    const selectedRange = showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ?? showEntriesOptions[0];
     const rangeStart = selectedRange.start;
     const rangeEnd = selectedRange.end === null ? filteredList.length : Math.min(selectedRange.end, filteredList.length);
     const listInRange = filteredList.slice(rangeStart, rangeEnd);
@@ -458,52 +475,62 @@ export default function TeamReportTD() {
 
                 {/* Line 2: Filters */}
                 <div className="flex flex-wrap items-right justify-end gap-3">
-                    {/* Start Date */}
-                    <div
-                        className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer group min-w-[130px]"
-                        onClick={() => { startDateRef.current?.showPicker?.(); startDateRef.current?.focus(); }}
-                    >
-                        <span className={`text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                    {/* Start Date — calendar icon only opens native picker (TeamreportPM pattern) */}
+                    <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#EAEAEA] px-4 py-2 transition-all">
+                        <span className={`select-none text-sm font-medium ${startDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {startDate ? startDate.split('-').reverse().join('/') : 'Start Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-                        </svg>
+                        <button
+                            type="button"
+                            aria-label="Open start date calendar"
+                            onClick={() => openNativeDatePicker(startDateRef.current)}
+                            className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+                            </svg>
+                        </button>
                         <input
                             ref={startDateRef}
                             type="date"
                             value={startDate}
                             onChange={(e) => setStartDate(e.target.value)}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            tabIndex={-1}
+                            className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
                             style={{ colorScheme: 'light' }}
                         />
                     </div>
 
-                    {/* End Date */}
-                    <div
-                        className="relative flex items-center justify-between gap-3 px-4 py-2 bg-[#EAEAEA] rounded-md transition-all cursor-pointer group min-w-[130px]"
-                        onClick={() => { endDateRef.current?.showPicker?.(); endDateRef.current?.focus(); }}
-                    >
-                        <span className={`text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
+                    {/* End Date — calendar icon only opens native picker */}
+                    <div className="relative flex min-w-[130px] items-center justify-between gap-3 rounded-md bg-[#EAEAEA] px-4 py-2 transition-all">
+                        <span className={`select-none text-sm font-medium ${endDate ? 'text-[#353535]' : 'text-[#616161]'}`}>
                             {endDate ? endDate.split('-').reverse().join('/') : 'End Date'}
                         </span>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
-                        </svg>
+                        <button
+                            type="button"
+                            aria-label="Open end date calendar"
+                            onClick={() => openNativeDatePicker(endDateRef.current)}
+                            className="shrink-0 cursor-pointer rounded p-0.5 outline-none transition-colors hover:bg-[#DCDCDC] focus-visible:ring-2 focus-visible:ring-[#DD4342]/40"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#616161" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                <path d="M7 14h.01M12 14h.01M17 14h.01M7 18h.01M12 18h.01M17 18h.01" />
+                            </svg>
+                        </button>
                         <input
                             ref={endDateRef}
                             type="date"
                             value={endDate}
                             onChange={(e) => setEndDate(e.target.value)}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            tabIndex={-1}
+                            className="pointer-events-none absolute inset-0 h-full min-h-[2.5rem] w-full opacity-0"
                             style={{ colorScheme: 'light' }}
                         />
                     </div>
@@ -594,43 +621,58 @@ export default function TeamReportTD() {
                         )}
                     </div>
 
-                    {/* Show entries dropdown - same design as TrackerTD */}
-                    <div className="relative" ref={showEntriesDropdownRef}>
+                    <div className="relative min-w-[140px] max-w-[200px] w-[150px]" ref={showEntriesDropdownRef}>
                         <button
                             type="button"
-                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); }}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#E8E8E8] rounded-md transition-all cursor-pointer border-0"
+                            onClick={(e) => { e.stopPropagation(); setShowEntriesOpen(o => !o); setEmployeeOpen(false); setTeamOpen(false); }}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
                         >
-                            {selectedShowEntries === 'show' ? (
-                                <span className="text-sm font-medium text-[#616161] font-gantari">Show Entries</span>
-                            ) : (
-                                <>
-                                    <span className="text-sm font-medium text-[#353535] font-gantari">Show Entries:</span>
-                                    <span className="text-sm font-medium text-[#353535] font-gantari">{selectedRange.label}</span>
-                                </>
-                            )}
+                            <span className={`min-w-0 flex-1 truncate overflow-hidden text-left text-sm ${selectedShowEntries === '' ? 'text-[#8B8B8B]' : 'text-[#353535]'}`}>
+                                {selectedShowEntries === '' ? (
+                                    SHOW_ENTRIES_PLACEHOLDER
+                                ) : (
+                                    <>
+                                        <span className="text-[14px]">{SHOW_ENTRIES_SELECTED_PREFIX}</span>{' '}
+                                        <span className="font-semibold">{selectedRange.label}</span>
+                                    </>
+                                )}
+                            </span>
                             <img
                                 src={ArrowDown}
-                                alt="arrow"
-                                className={`ml-2 w-3 h-3 shrink-0 transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}
+                                alt=""
+                                className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showEntriesOpen ? 'rotate-180' : ''} ${selectedShowEntries === '' ? 'opacity-60 grayscale' : 'opacity-90'}`}
+                                aria-hidden
                             />
                         </button>
                         {showEntriesOpen && (
-                            <div
-                                ref={dropdownContentRef}
-                                className="absolute top-full right-0 mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[120px] py-1 max-h-[160px] overflow-y-auto custom-scrollbar"
-                                onMouseDown={(e) => e.preventDefault()}
-                            >
-                                {showEntriesOptions.map(opt => (
+                            <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                                <div ref={showEntriesDropdownContentRef} className="max-h-[168px] overflow-y-auto custom-scrollbar">
                                     <button
-                                        key={opt.value}
                                         type="button"
-                                        onClick={(e) => { e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
-                                        className={`w-full text-left px-4 py-2 text-[14px] font-medium cursor-pointer font-gantari transition-colors ${selectedShowEntries === opt.value ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#616161] hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
+                                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(''); setShowEntriesOpen(false); }}
+                                        className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
                                     >
-                                        {opt.label}
+                                        {SHOW_ENTRIES_PLACEHOLDER}
                                     </button>
-                                ))}
+                                    {showEntriesOptions.map((opt) => {
+                                        const isChosen = selectedShowEntries === opt.value;
+                                        return (
+                                            <button
+                                                key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                                type="button"
+                                                onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedShowEntries(opt.value); setShowEntriesOpen(false); }}
+                                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${isChosen ? 'text-[#353535] bg-[#F2F2F2]' : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'}`}
+                                            >
+                                                <span className="truncate min-w-0">{opt.label}</span>
+                                                {isChosen && (
+                                                    <svg className="w-4 h-4 shrink-0 text-[#353535]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </div>

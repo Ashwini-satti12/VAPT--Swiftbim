@@ -22,7 +22,23 @@ import projectViewIcon from '../../assets/ProjectManager/project/viewIcon.svg';
 import projectEditIcon from '../../assets/ProjectManager/project/editIcon.svg';
 import ArrowDown from '../../assets/TechnicalDirector/ep_arrow-down-bold.svg';
 
-const SHOW_OPTIONS = ['1-50', '51-100', '101-150', '151-200', '201-250', '251-300', 'All'];
+const SHOW_ENTRIES_PLACEHOLDER = 'Show Entries';
+const SHOW_ENTRIES_SELECTED_PREFIX = 'Show:';
+const showEntriesOptions: {
+  value: string;
+  label: string;
+  start: number;
+  end: number | null;
+}[] = [
+  { value: '1-50', label: '1-50', start: 0, end: 50 },
+  { value: '51-100', label: '51-100', start: 50, end: 100 },
+  { value: '101-150', label: '101-150', start: 100, end: 150 },
+  { value: '151-200', label: '151-200', start: 150, end: 200 },
+  { value: '201-250', label: '201-250', start: 200, end: 250 },
+  { value: '251-300', label: '251-300', start: 250, end: 300 },
+  { value: 'all', label: 'All', start: 0, end: null },
+];
+const PER_PAGE = 10;
 interface Employee {
   id: number;
   full_name: string;
@@ -295,7 +311,6 @@ export default function EmployeesPM() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
   const [currentPage, setCurrentPage] = useState(1);
-  const effectivePerPage = 10;
 
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState('');
@@ -375,7 +390,10 @@ export default function EmployeesPM() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [selectedShow, setSelectedShow] = useState<string>('');
+  const [selectedShowEntries, setSelectedShowEntries] = useState('');
+  const [showEntriesOpen, setShowEntriesOpen] = useState(false);
+  const showEntriesDropdownRef = useRef<HTMLDivElement>(null);
+  const showEntriesDropdownContentRef = useRef<HTMLDivElement>(null);
   const [departmentOptions, setDepartmentOptions] = useState<string[]>(Departments_options);
 
   const canAdd = user?.panel_type === 1;
@@ -414,6 +432,35 @@ export default function EmployeesPM() {
       });
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const t = event.target as Node;
+      if (
+        showEntriesOpen &&
+        showEntriesDropdownRef.current &&
+        !showEntriesDropdownRef.current.contains(t)
+      ) {
+        setShowEntriesOpen(false);
+      }
+    };
+    if (showEntriesOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showEntriesOpen]);
+
+  useEffect(() => {
+    if (showEntriesOpen && showEntriesDropdownContentRef.current) {
+      showEntriesDropdownContentRef.current.scrollTop = 0;
+    }
+  }, [showEntriesOpen]);
+
+  const searchQueryKey = searchParams.get('q') ?? '';
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedShowEntries, typeFilter, statusFilter, searchQueryKey]);
+
   const filteredList = list.filter((emp: Employee) => {
     if (statusFilter === 'Active') {
       const currentStatus = (emp.active || '').toLowerCase();
@@ -431,7 +478,7 @@ export default function EmployeesPM() {
       if (currentType !== 'trainee') return false;
     }
 
-    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+    const searchQuery = searchQueryKey.toLowerCase();
     const matchesSearch = !searchQuery || [
       emp.full_name,
       emp.email,
@@ -443,21 +490,25 @@ export default function EmployeesPM() {
     return matchesSearch;
   });
 
-  let limitStart = 0;
-  let limitEnd = Infinity;
-  if (selectedShow && selectedShow.includes("-")) {
-      const parts = selectedShow.split("-");
-      if (parts.length === 2) {
-          limitStart = parseInt(parts[0], 10) - 1;
-          limitEnd = parseInt(parts[1], 10);
-      }
-  } else if (selectedShow === "All") {
-      limitStart = 0;
-      limitEnd = Infinity;
-  }
-
-  const displayedList = filteredList.slice(limitStart, limitEnd);
-  const totalPages = Math.ceil(filteredList.length / effectivePerPage);
+  const effectiveShowEntryValue =
+    selectedShowEntries || showEntriesOptions[0].value;
+  const selectedRange =
+    showEntriesOptions.find((o) => o.value === effectiveShowEntryValue) ??
+    showEntriesOptions[0];
+  const rangeStart = selectedRange.start;
+  const rangeEnd =
+    selectedRange.end === null
+      ? filteredList.length
+      : Math.min(selectedRange.end, filteredList.length);
+  const listInRange = filteredList.slice(rangeStart, rangeEnd);
+  const totalInRange = listInRange.length;
+  const totalPages = Math.max(1, Math.ceil(totalInRange / PER_PAGE));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const displayedListTable = listInRange.slice(
+    (safePage - 1) * PER_PAGE,
+    safePage * PER_PAGE,
+  );
+  const displayedListCard = listInRange;
 
 
   function handleInvite(e: React.FormEvent) {
@@ -753,18 +804,111 @@ export default function EmployeesPM() {
                   )}
                 </div>
                 <div className="flex shrink-0 flex-nowrap items-center gap-1.5 sm:gap-2 overflow-visible">
-                  {viewMode === 'table' && (
-                    <CustomDropdown
-                      options={SHOW_OPTIONS}
-                      value={selectedShow}
-                      onChange={(val) => setSelectedShow(val)}
-                      placeholder="Show entries"
-                      className="w-[140px]"
-                      styleType="header"
-                      alignMenu="right"
-                      menuMaxHeightClass="max-h-[168px]"
-                    />
-                  )}
+                  <div
+                      className="relative min-w-[140px] max-w-[200px] w-[150px]"
+                      ref={showEntriesDropdownRef}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowEntriesOpen((o) => !o);
+                        }}
+                        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-[#E8E8E8] rounded-md text-[14px] font-semibold outline-none font-gantari transition-all cursor-pointer border-0 min-w-0"
+                      >
+                        <span
+                          className={`min-w-0 flex-1 truncate overflow-hidden text-left ${
+                            selectedShowEntries === ''
+                              ? 'text-[#8B8B8B]'
+                              : 'text-[#353535]'
+                          }`}
+                        >
+                          {selectedShowEntries === '' ? (
+                            SHOW_ENTRIES_PLACEHOLDER
+                          ) : (
+                            <>
+                              <span className="text-[14px]">
+                                {SHOW_ENTRIES_SELECTED_PREFIX}
+                              </span>{' '}
+                              <span className="font-semibold">
+                                {selectedRange.label}
+                              </span>
+                            </>
+                          )}
+                        </span>
+                        <img
+                          src={ArrowDown}
+                          alt=""
+                          className={`w-4 h-4 shrink-0 transition-transform duration-200 ${
+                            showEntriesOpen ? 'rotate-180' : ''
+                          } ${
+                            selectedShowEntries === ''
+                              ? 'opacity-60 grayscale'
+                              : 'opacity-90'
+                          }`}
+                          aria-hidden
+                        />
+                      </button>
+                      {showEntriesOpen && (
+                        <div className="absolute top-full right-0 left-auto mt-1 w-full bg-[#FFFFFF] border border-[#E0E0E0] rounded-md shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] z-[200] overflow-hidden">
+                          <div
+                            ref={showEntriesDropdownContentRef}
+                            className="max-h-[168px] overflow-y-auto custom-scrollbar"
+                          >
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedShowEntries('');
+                                setShowEntriesOpen(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-[14px] transition-colors font-gantari cursor-pointer text-[#8B8B8B] bg-[#FFFFFF] hover:text-[#353535] hover:bg-[#F2F2F2]"
+                            >
+                              {SHOW_ENTRIES_PLACEHOLDER}
+                            </button>
+                            {showEntriesOptions.map((opt) => {
+                              const isChosen = selectedShowEntries === opt.value;
+                              return (
+                                <button
+                                  key={`${opt.value}-${opt.start}-${String(opt.end)}`}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedShowEntries(opt.value);
+                                    setShowEntriesOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-left text-[14px] font-gantari font-normal transition-colors cursor-pointer ${
+                                    isChosen
+                                      ? 'text-[#353535] bg-[#F2F2F2]'
+                                      : 'text-[#8B8B8B] bg-transparent hover:text-[#353535] hover:bg-[#F2F2F2]'
+                                  }`}
+                                >
+                                  <span className="truncate min-w-0">{opt.label}</span>
+                                  {isChosen && (
+                                    <svg
+                                      className="w-4 h-4 shrink-0 text-[#353535]"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                      aria-hidden
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2.5}
+                                        d="M5 13l4 4L19 7"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   <CustomDropdown
                     options={['All', 'Employee', 'Trainee']}
                     value={typeFilter}
@@ -783,12 +927,12 @@ export default function EmployeesPM() {
           <div className="flex-1 overflow-y-auto custom-scrollbar">
         {viewMode === 'card' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 p-3 sm:p-2">
-            {displayedList.length === 0 ? (
+            {displayedListCard.length === 0 ? (
               <div className="col-span-full bg-white rounded-[10px] border border-slate-200 p-8 sm:p-12 text-center text-slate-500 shadow-sm">
                 No consultants found.
               </div>
             ) : (
-              displayedList.map((emp: Employee) => (
+              displayedListCard.map((emp: Employee) => (
                 <div key={emp.id} className="bg-white rounded-[10px] overflow-hidden border-1 border-slate-200 transition-all">
                   {/* Image Section */}
                   <div className="relative h-[128px] overflow-hidden group">
@@ -916,15 +1060,17 @@ export default function EmployeesPM() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {displayedList.length === 0 ? (
+                  {displayedListTable.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-12 text-center text-slate-500 font-Gantari">
                         No consultants found.
                       </td>
                     </tr>
                   ) : (
-                    displayedList.map((emp, idx) => {
-                      const slNo = (currentPage - 1) * effectivePerPage + idx + 1;
+                    displayedListTable.map((emp, idx) => {
+                      const baseIndex =
+                        rangeStart + (safePage - 1) * PER_PAGE + idx;
+                      const slNo = baseIndex + 1;
                       const slNoDisplay = String(slNo).padStart(2, '0');
                       return (
                       <tr key={emp.id} className={`${idx % 2 === 1 ? 'bg-[#F2F2F2]' : 'bg-white'}`}>
@@ -1042,12 +1188,17 @@ export default function EmployeesPM() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-auto pt-4 bg-white sticky bottom-0 border-t border-slate-100">
                 <div className="text-[14px] font-semibold text-[#353535] font-Gantari">
-                  Showing {(currentPage - 1) * effectivePerPage + 1} to {Math.min(currentPage * effectivePerPage, filteredList.length)} of {filteredList.length} entries
+                  Showing{' '}
+                  {totalInRange === 0
+                    ? 0
+                    : (safePage - 1) * PER_PAGE + 1}{' '}
+                  to {Math.min(safePage * PER_PAGE, totalInRange)} of{' '}
+                  {totalInRange} entries
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
+                    disabled={safePage === 1}
                     className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <FiChevronDown className="w-5 h-5 rotate-90" />
@@ -1056,14 +1207,14 @@ export default function EmployeesPM() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${currentPage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
+                      className={`w-10 h-10 rounded-[5px] border font-semibold font-Gantari transition-all cursor-pointer ${safePage === page ? 'bg-[#DD4342] border-[#DD4342] text-white' : 'border-[#E0E0E0] text-[#353535] hover:bg-slate-50'}`}
                     >
                       {String(page).padStart(2, '0')}
                     </button>
                   ))}
                   <button
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    disabled={safePage === totalPages}
                     className="p-2.5 rounded-[5px] border border-[#E0E0E0] disabled:opacity-50 hover:bg-slate-50 transition-colors cursor-pointer"
                   >
                     <FiChevronDown className="w-5 h-5 -rotate-90" />
