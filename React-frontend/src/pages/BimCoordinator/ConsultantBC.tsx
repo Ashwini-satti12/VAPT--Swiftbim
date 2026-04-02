@@ -649,7 +649,7 @@ export default function ConsultantBC() {
                   options={SHOW_OPTIONS}
                   value={selectedShow}
                   onChange={(val) => setSelectedShow(val)}
-                  placeholder="Show entries"
+                  placeholder="Show Entries"
                   className="w-[140px]"
                   styleType="header"
                   alignMenu="right"

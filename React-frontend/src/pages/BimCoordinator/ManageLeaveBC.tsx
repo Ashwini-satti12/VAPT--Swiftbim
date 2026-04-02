@@ -335,7 +335,7 @@ export default function ManageLeaveBC() {
                   onClick={() => setShowEntriesOpen((o) => !o)}
                   className={`flex items-center gap-2 px-4 py-2.5 bg-[#E8E8E8] rounded-md border border-[#E5E5E5] transition-all cursor-pointer font-medium text-sm ${showEntriesOpen ? "text-[#353535]" : "text-[#616161]"}`}
                 >
-                  <span className="text-[17px]">Show:</span>
+                  <span className="text-[17px]">Show Entries:</span>
                   <span className="text-[17px]">{selectedRange.label}</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${showEntriesOpen ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6" /></svg>
                 </button>
