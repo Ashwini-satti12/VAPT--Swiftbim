@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
 import ProfileIcon from "../../assets/ProductNavbarIcons/Profile.svg";
 import { getGlobalProfileUrl } from "../../lib/profileHelpers";
-import { FiUploadCloud, FiPaperclip } from "react-icons/fi";
+import { FiUploadCloud, FiPaperclip, FiArrowRight } from "react-icons/fi";
 import backIcon from "../../assets/TechnicalDirector/back icon.svg";
 import viewIcon from "../../assets/ProjectManager/project/viewIcon.svg";
 import editIcon from "../../assets/ProjectManager/project/editIcon.svg";
@@ -58,6 +58,29 @@ interface Employee {
     email?: string;
 }
 
+/** Normalize API / input value to YYYY-MM-DD for date inputs and day math. */
+function toCalendarYmd(raw: string): string | null {
+    if (!raw?.trim()) return null;
+    const s = raw.trim().split("T")[0];
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    return s;
+}
+
+/** Inclusive calendar days from start through end (both dates count as working days). */
+function countInclusiveProjectDays(startYmd: string, endYmd: string): number | null {
+    const a = toCalendarYmd(startYmd);
+    const b = toCalendarYmd(endYmd);
+    if (!a || !b) return null;
+    const [ys, ms, ds] = a.split("-").map(Number);
+    const [ye, me, de] = b.split("-").map(Number);
+    const start = new Date(ys, ms - 1, ds);
+    const end = new Date(ye, me - 1, de);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null;
+    const diffDays = Math.round((end.getTime() - start.getTime()) / 86400000);
+    if (diffDays < 0) return null;
+    return diffDays + 1;
+}
+
 export default function ProjectsV() {
     const { user: authUser } = useAuth();
     const userRole = authUser?.user_role || "";
@@ -103,7 +126,6 @@ export default function ProjectsV() {
     const [createProjectManager, setCreateProjectManager] = useState("");
     const [createStartDate, setCreateStartDate] = useState("");
     const [createEndDate, setCreateEndDate] = useState("");
-    const [createTotalHours, setCreateTotalHours] = useState("");
     const [createPerDay, setCreatePerDay] = useState("");
     const [createBIMLead, setCreateBIMLead] = useState("");
     const [createBIMCoOrdinator, setCreateBIMCoOrdinator] = useState("");
@@ -130,6 +152,20 @@ export default function ProjectsV() {
     const [milestonesProject, setMilestonesProject] = useState<Project | null>(null);
 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+    const computedTotalHours = useMemo(() => {
+        const days = countInclusiveProjectDays(createStartDate, createEndDate);
+        const per = parseFloat(String(createPerDay).trim().replace(/,/g, ""));
+        if (
+            days === null ||
+            days < 1 ||
+            !Number.isFinite(per) ||
+            per <= 0
+        ) {
+            return "";
+        }
+        return (days * per).toFixed(2);
+    }, [createStartDate, createEndDate, createPerDay]);
 
     const [searchParams] = useSearchParams();
     const statusFilter = searchParams.get("status");
@@ -297,7 +333,7 @@ export default function ProjectsV() {
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
-            !createTotalHours ||
+            !computedTotalHours ||
             !createPriority ||
             !createLocation
         ) {
@@ -316,7 +352,7 @@ export default function ProjectsV() {
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
             start_date: createStartDate,
             due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
             // Backend column names are no_resource / no_resources_required
@@ -333,7 +369,7 @@ export default function ProjectsV() {
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -367,8 +403,9 @@ export default function ProjectsV() {
             ""
         );
         setCreateStartDate(p.start_date ? p.start_date.split("T")[0] : "");
-        setCreateEndDate(p.end_date || p.due_date || "");
-        setCreateTotalHours(p.totalhours || "");
+        setCreateEndDate(
+            (p.end_date || p.due_date || "").split("T")[0] || "",
+        );
         setCreatePerDay(p.per_day || p.perday || "");
         // Resolve BIM Lead from bimLeads array (vendor BIM Leads from vendor-by-role API)
         // Fall back to allEmployees if not found in bimLeads
@@ -399,7 +436,7 @@ export default function ProjectsV() {
             !createStartDate ||
             !createEndDate ||
             !createPerDay ||
-            !createTotalHours ||
+            !computedTotalHours ||
             !createPriority ||
             !createLocation
         ) {
@@ -418,7 +455,7 @@ export default function ProjectsV() {
             bim_coordinator_id: nameToId(createBIMCoOrdinator, bimCoordinators),
             start_date: createStartDate,
             due_date: createEndDate,
-            totalhours: createTotalHours,
+            totalhours: computedTotalHours,
             perday: createPerDay,
             members: selectedMemberIds.join(","),
             // Backend column names are no_resource / no_resources_required
@@ -435,7 +472,7 @@ export default function ProjectsV() {
                     // Reset fields
                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                    setCreatePerDay(""); setCreateBIMLead("");
                     setCreateBIMCoOrdinator(""); setSelectedMemberIds([]); setCreateResources("");
                     setCreateRequiredResources(""); setCreatePriority(""); setCreateLocation("");
                     setCreateDescription(""); setCreateDeliverables(""); setCreateFile(null);
@@ -466,7 +503,6 @@ export default function ProjectsV() {
             }
         }
     }, [showEditModal, editId, clientsList, list, createClientName]);
-
 
     const toggleMember = (id: number) => {
         setSelectedMemberIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -831,9 +867,20 @@ export default function ProjectsV() {
                         className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Hours Per Day" />
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-[16px] font-medium text-[#000000]">Total Hours <span className="text-[#DD4342]">*</span></label>
-                    <input type="text" value={createTotalHours} onChange={e => setCreateTotalHours(e.target.value)}
-                        className="w-full px-5 py-3.5 bg-[#F2F3F4] border-none rounded-[5px] focus:ring-2 focus:ring-[#DD4342]/10 transition-all font-medium text-gray-700" placeholder="Total Estimated Hours" />
+                    <label className="block text-[16px] font-medium text-[#000000]">
+                        Total Hours <span className="text-[#DD4342]">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        readOnly
+                        value={computedTotalHours}
+                        className="w-full px-5 py-3.5 bg-[#E8EAED] border-none rounded-[5px] font-medium text-gray-700 cursor-not-allowed"
+                        placeholder="Set start date, end date, and per day"
+                        title="Calculated: (days from start to end, inclusive) × hours per day"
+                    />
+                    <p className="text-[12px] font-Gantari text-[#888888]">
+                        Auto-calculated from project dates and per day.
+                    </p>
                 </div>
 
                 {/* Row 7: Resources, Required Resources */}
@@ -998,7 +1045,7 @@ export default function ProjectsV() {
                                     // Reset all form fields
                                     setCreateName(""); setCreateBudget(""); setCreateModuleName(""); setCreateClientName("");
                                     setCreateProjectManager(""); setCreateStartDate(""); setCreateEndDate("");
-                                    setCreateTotalHours(""); setCreatePerDay(""); setCreateBIMLead("");
+                                    setCreatePerDay(""); setCreateBIMLead("");
                                     setCreateBIMCoOrdinator(""); setCreateResources(""); setCreateRequiredResources("");
                                     setCreatePriority(""); setCreateLocation(""); setCreateDescription("");
                                     setCreateDeliverables(""); setSelectedMemberIds([]); setCreateFile(null);
@@ -1517,8 +1564,9 @@ export default function ProjectsV() {
                                                             {p.priority}
                                                         </div>
                                                     ) : (
-                                                        <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-sky-700 text-lg font-bold font-Gantari shrink-0">
-                                                            —
+                                                        <div className="min-w-[2.75rem] h-9 flex items-center justify-center rounded-lg bg-sky-100 border border-sky-200/90 text-black text-[13px] px-4 py-2 font-Gantari shrink-0">
+                                                                Low
+                                                        {/* <FiArrowRight className="w-4 h-4 gap-2" /> */}
                                                         </div>
                                                     )}
                                                 </div>

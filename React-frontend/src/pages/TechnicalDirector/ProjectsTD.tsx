@@ -186,6 +186,7 @@ interface Project {
   description?: string;
   budget_ceiling?: string;
   bidding_end_date?: string;
+  source?: string;
 }
 
 interface Milestone {
@@ -258,7 +259,7 @@ export default function ProjectsTD() {
 
   const [createError, setCreateError] = useState("");
   const [createSubmitting, setCreateSubmitting] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteProject, setDeleteProject] = useState<Project | null>(null);
   const [showMilestones, setShowMilestones] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [showProjectView, setShowProjectView] = useState(
@@ -382,6 +383,7 @@ export default function ProjectsTD() {
       priority: str(r.priority),
       location: str(r.location),
       description: str(r.description),
+      source: str(r.source),
     };
   };
 
@@ -410,15 +412,26 @@ export default function ProjectsTD() {
         setBimCoordinators([]);
       });
 
-    // Fetch projects - use data directly from projects table
+    // Fetch projects - Combine internal and vendor projects
     const status = searchParams.get("status");
-    api
-      .get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+    Promise.all([
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/projects", {
+        params: { status: status || undefined }
+      }),
+      api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects", {
         params: { status: status || undefined }
       })
-      .then(({ data }) => {
-        const projects = (data.projects ?? []).map(mapApiProjectToProject);
-        setList(projects);
+    ])
+      .then(([res1, res2]) => {
+        const p1 = (res1.data.projects ?? []).map((p) => ({
+          ...mapApiProjectToProject(p),
+          source: "In House",
+        }));
+        const p2 = (res2.data.projects ?? []).map((p) => ({
+          ...mapApiProjectToProject(p),
+          source: "Outsource",
+        }));
+        setList([...p1, ...p2]);
       })
       .catch(() => setList([]))
       .finally(() => setLoading(false));
@@ -524,6 +537,10 @@ export default function ProjectsTD() {
   useEffect(() => {
     let cancelled = false;
     const projectId = showProjectView ? selectedProjectForView?.id : undefined;
+
+    const source = searchParams.get("source") || "In House";
+    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+
     if (!projectId) {
       setTaskStats({ todo: 0, inProgress: 0, paused: 0, completed: 0 });
       setTowerData([]);
@@ -552,7 +569,7 @@ export default function ProjectsTD() {
           completed_tasks?: number;
           completion_percentage?: number;
         }>;
-      }>(`/api/projects/${projectId}/module-progress`)
+      }>(statsApi)
       .then(({ data }) => {
         if (cancelled || !data) return;
 
@@ -602,7 +619,7 @@ export default function ProjectsTD() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id]);
+  }, [showProjectView, selectedProjectForView?.id, searchParams]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -1972,11 +1989,7 @@ export default function ProjectsTD() {
                                 )}
                                 {canDelete && (
                                   <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setOpenMenuProjectId(null);
-                                      setDeleteId(p.id);
-                                    }}
+                                    onClick={() => setDeleteProject(p)}
                                     className="w-full flex items-center gap-4 px-6 py-2 transition-colors text-left group cursor-pointer"
                                   >
                                     <img
@@ -2129,9 +2142,10 @@ export default function ProjectsTD() {
                   e.preventDefault();
                   setCreateError("");
                   setCreateSubmitting(true);
+                  const endpoint = createDepartment === "Submission Deadline" ? "/api/vendors/vendor-projects" : "/api/projects";
                   api
                     .post<{ success?: boolean; project_id?: number }>(
-                      "/api/projects",
+                      endpoint,
                       {
                         project_name: createName.trim(),
                         budget: createBudget || undefined,
@@ -2230,17 +2244,15 @@ export default function ProjectsTD() {
                         setCreatePriority("");
                         setCreateLocation("");
                         setCreateDescription("");
-                        api
-                          .get<{ projects?: Record<string, unknown>[] }>(
-                            "/api/projects",
-                          )
-                          .then((res) =>
-                            setList(
-                              (res.data.projects ?? []).map(
-                                mapApiProjectToProject,
-                              ),
-                            ),
-                          )
+                        Promise.all([
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                        ])
+                          .then(([res1, res2]) => {
+                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
+                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            setList([...p1, ...p2]);
+                          })
                           .catch(() => {});
                       }
                     })
@@ -2578,7 +2590,7 @@ export default function ProjectsTD() {
       )}
 
       {/* Delete confirmation */}
-      {deleteId !== null && (
+      {deleteProject !== null && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
             {/* Close Button */}
@@ -2589,7 +2601,7 @@ export default function ProjectsTD() {
 
             <button
               type="button"
-              onClick={() => setDeleteId(null)}
+              onClick={() => setDeleteProject(null)}
               className="absolute left-4 top-4 p-2 rounded-md bg-[#F2F2F2] text-gray-800 transition-colors"
               title="Close"
             >
@@ -2606,7 +2618,7 @@ export default function ProjectsTD() {
             <div className="flex items-center gap-6 mb-6">
               <button
                 type="button"
-                onClick={() => setDeleteId(null)}
+                onClick={() => setDeleteProject(null)}
                 className="px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Discard
@@ -2614,15 +2626,23 @@ export default function ProjectsTD() {
               <button
                 type="button"
                 onClick={() => {
-                  if (deleteId === null) return;
+                  if (!deleteProject) return;
+                  const endpoint = deleteProject.source === "Outsource" ? `/api/vendors/vendor-projects/${deleteProject.id}` : `/api/projects/${deleteProject.id}`;
                   api
-                    .delete(`/api/projects/${deleteId}`)
+                    .delete(endpoint)
                     .then(({ data }) => {
                       if ((data as { success?: boolean }).success) {
-                        setList((prev) =>
-                          prev.filter((p) => p.id !== deleteId),
-                        );
-                        setDeleteId(null);
+                        Promise.all([
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                        ])
+                          .then(([res1, res2]) => {
+                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
+                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            setList([...p1, ...p2]);
+                          })
+                          .catch(() => {});
+                        setDeleteProject(null);
                       }
                     })
                     .catch(() => {});
@@ -2834,8 +2854,9 @@ export default function ProjectsTD() {
                   }
                   const id = selectedProjectForEdit.id;
                   setIsEditSubmitting(true);
+                  const endpoint = selectedProjectForEdit.source === "Outsource" ? `/api/vendors/vendor-projects/${id}` : `/api/projects/${id}`;
                   api
-                    .patch(`/api/projects/${id}`, {
+                    .patch(endpoint, {
                       project_name: createName.trim(),
                       budget: createBudget || undefined,
                       modules: createModuleName || undefined,
@@ -2905,17 +2926,15 @@ export default function ProjectsTD() {
                         setCreateBudgetCeiling("");
                         setCreateBiddingEndDate("");
                         // Refresh the project list to get updated data
-                        api
-                          .get<{ projects?: Record<string, unknown>[] }>(
-                            "/api/projects",
-                          )
-                          .then((res) =>
-                            setList(
-                              (res.data.projects ?? []).map(
-                                mapApiProjectToProject,
-                              ),
-                            ),
-                          )
+                        Promise.all([
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/projects"),
+                          api.get<{ projects?: Record<string, unknown>[] }>("/api/vendors/vendor-projects")
+                        ])
+                          .then(([res1, res2]) => {
+                            const p1 = (res1.data.projects ?? []).map(mapApiProjectToProject);
+                            const p2 = (res2.data.projects ?? []).map(mapApiProjectToProject);
+                            setList([...p1, ...p2]);
+                          })
                           .catch(() => {});
                       }
                     })

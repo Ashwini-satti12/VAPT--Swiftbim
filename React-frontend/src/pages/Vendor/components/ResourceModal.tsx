@@ -56,14 +56,11 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                 data.append('certifications_file', certFile);
             }
 
+            // Let axios set multipart boundary (do not set Content-Type — default json header breaks uploads)
             if (resource?.id) {
-                await api.put(`/api/vendors/profile/resource-profiles/${resource.id}`, data, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.put(`/api/vendors/profile/resource-profiles/${resource.id}`, data);
             } else {
-                await api.post('/api/vendors/profile/resource-profiles', data, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await api.post('/api/vendors/profile/resource-profiles', data);
             }
             onSuccess();
         } catch (err: any) {
@@ -95,6 +92,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Name"
                             />
                         </div>
                         <div className="space-y-1">
@@ -105,6 +103,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 onChange={handleChange}
                                 required
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Designation"
                             />
                         </div>
                         <div className="space-y-1">
@@ -114,6 +113,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 value={formData.discipline}
                                 onChange={handleChange}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Discipline"
                             />
                         </div>
                         <div className="space-y-1">
@@ -123,6 +123,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 value={formData.years_of_experience}
                                 onChange={handleChange}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Years of Experience"
                             />
                         </div>
                         <div className="space-y-1">
@@ -132,6 +133,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 value={formData.role}
                                 onChange={handleChange}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Role"
                             />
                         </div>
                         <div className="space-y-1">
@@ -141,6 +143,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                                 value={formData.expertise}
                                 onChange={handleChange}
                                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                                placeholder="Enter Expertise"
                             />
                         </div>
                     </div>
@@ -152,6 +155,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                             value={formData.software}
                             onChange={handleChange}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                            placeholder="Enter Software"
                         />
                     </div>
 
@@ -163,6 +167,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                             onChange={handleChange}
                             rows={3}
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                            placeholder="Enter Projects Worked On"
                         />
                     </div>
 
@@ -173,6 +178,7 @@ export default function ResourceModal({ resource, onClose, onSuccess }: Props) {
                             onChange={handleFileChange}
                             accept=".pdf,.doc,.docx,.jpg,.png"
                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#DE3D3A] outline-none"
+                            placeholder="Upload Certifications File"
                         />
                         {formData.certifications && !certFile && (
                             <div className="text-xs text-blue-600 mt-1">

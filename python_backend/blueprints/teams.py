@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, g
 from db import get_db
 from auth_middleware import project_app_required
+from utils import mailer
 
 bp = Blueprint("teams", __name__, url_prefix="/api/teams")
 
@@ -54,7 +55,20 @@ def create_team():
         "INSERT INTO team (teamname, leader, employee, project_lead, project_name, Company_id) VALUES (%s, %s, %s, %s, %s, %s)",
         (teamname, leader, employee_str, project_lead or 0, project_name, g.company_id),
     )
-    return jsonify({"success": True, "id": cur.lastrowid})
+    team_id = cur.lastrowid
+    
+    # Team Creation Notification Email
+    if employee_ids:
+        for emp_id in employee_ids:
+            try:
+                cur.execute("SELECT full_name, email FROM employee WHERE id = %s", (emp_id,))
+                member = cur.fetchone() or {}
+                if member.get("email"):
+                    mailer.send_team_creation_email(member["full_name"], member["email"])
+            except Exception:
+                pass
+    
+    return jsonify({"success": True, "id": team_id})
 
 
 @bp.route("/<int:team_id>", methods=["GET"])

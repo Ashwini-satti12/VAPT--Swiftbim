@@ -88,6 +88,7 @@ export interface Project {
   bim_coordinator_name?: string;
   uploader_name?: string;
   members?: string;
+  source?: string;
 }
 
 export interface FormDropdownProps {
@@ -439,6 +440,9 @@ export interface Task {
   Actual_start_time?: string;
   perferstart_time?: string;
   perferend_time?: string;
+  source?: "In House" | "Outsource";
+  /** Comma-separated stored filenames under /uploads/task/ (from POST .../output-files). */
+  outputfilepath?: string;
 }
 
 /** Map task (local or API shape) to form values so every detail shows in edit. */
@@ -845,7 +849,7 @@ export default function MytaskTD() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<string | null>("Show");
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
-  const [deleteTaskId, setDeleteTaskId] = useState<number | null>(null);
+  const [deleteTask, setDeleteTask] = useState<Task | null>(null);
 
   const safeLocal = Array.isArray(localTasks) ? localTasks.filter(Boolean) : [];
   const safeList = Array.isArray(list) ? list.filter(Boolean) : [];
@@ -943,16 +947,21 @@ export default function MytaskTD() {
       prev.map((t) => (t.id === taskId ? { ...t, status: label } : t)),
     );
 
+    const isOutsource = task?.source === "Outsource";
+    const endpoint = isOutsource
+      ? `/api/vendors/vendor-tasks/${taskId}/status`
+      : `/api/tasks/${taskId}/status`;
+
+    const projectId = (task as any)?.projectid ?? (task as any)?.project_id;
+
     api
-      .patch(`/api/tasks/${taskId}/status`, {
-        status: statusMap[newStatus],
-        projectId:
-          (task as Task & { projectid?: number; project_id?: number })
-            ?.projectid ??
-          (task as Task & { projectid?: number; project_id?: number })
-            ?.project_id,
+      .patch(endpoint, {
+        status: newStatus.replace("_", ""),
+        projectId,
       })
-      .catch(() => { });
+      .catch((err) => {
+        console.error("Failed to update task status:", err);
+      });
   };
 
   useEffect(() => {
@@ -981,7 +990,7 @@ export default function MytaskTD() {
   };
 
   const openDeleteTask = (task: Task) => {
-    setDeleteTaskId(task.id);
+    setDeleteTask(task);
   };
 
   const openViewTask = (task: Task) => {
@@ -989,20 +998,24 @@ export default function MytaskTD() {
   };
 
   const confirmDeleteTask = () => {
-    if (deleteTaskId === null) return;
+    if (deleteTask !== null) {
+      const isOutsource = deleteTask.source === "Outsource";
+      const endpoint = isOutsource
+        ? `/api/vendors/vendor-tasks/${deleteTask.id}`
+        : `/api/tasks/${deleteTask.id}`;
 
-    api
-      .delete(`/api/tasks/${deleteTaskId}`)
-      .then(() => {
-        setList((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTaskId));
-        setDeletedIds((prev) => [...prev, deleteTaskId]);
-        setDeleteTaskId(null);
-      })
-      .catch(() => {
-        // handle error implicitly
-        setDeleteTaskId(null);
-      });
+      api
+        .delete(endpoint)
+        .then(() => {
+          setList((prev) => prev.filter((t) => t.id !== deleteTask.id));
+          setLocalTasks((prev) => prev.filter((t) => t.id !== deleteTask.id));
+          setDeletedIds((prev) => [...prev, deleteTask.id]);
+          setDeleteTask(null);
+        })
+        .catch(() => {
+          setDeleteTask(null);
+        });
+    }
   };
 
   const dropdownsContainerRef = useRef<HTMLDivElement>(null);
@@ -1032,19 +1045,29 @@ export default function MytaskTD() {
       params.employeeid = "all";
     }
 
+    const taskParams: Record<string, string> = { ...params };
+
     Promise.all([
-      api.get<{ tasks?: Task[] }>("/api/tasks", { params }),
+      api.get<{ tasks?: Task[] }>("/api/tasks", { params: taskParams }),
+      api.get<{ tasks?: Task[] }>("/api/vendors/vendor-tasks", { params: taskParams }),
       api.get<{ employees?: Employee[] }>("/api/employees"),
       api.get<{ projects?: Project[] }>("/api/projects"),
+      api.get<{ projects?: Project[] }>("/api/vendors/vendor-projects"),
     ])
-      .then(([tasksRes, empRes, projRes]) => {
-        setList(tasksRes.data.tasks ?? []);
+      .then(([tasksRes, vTasksRes, empRes, projRes, vProjRes]) => {
+        const internalTasks = (tasksRes.data.tasks ?? []).map(t => ({ ...t, source: "In House" }));
+        const vendorTasks = (vTasksRes.data.tasks ?? []).map(t => ({ ...t, source: "Outsource" }));
+        setList([...internalTasks, ...vendorTasks] as Task[]);
+
         setEmployees(
           (empRes.data.employees ?? []).filter(
             isEmployeeActiveForProjectAssignment,
           ),
         );
-        setProjects(projRes.data.projects ?? []);
+
+        const internalProjs = (projRes.data.projects ?? []).map(p => ({ ...p, source: "In House" }));
+        const vendorProjs = (vProjRes.data.projects ?? []).map(p => ({ ...p, source: "Outsource" }));
+        setProjects([...internalProjs, ...vendorProjs] as Project[]);
       })
       .catch(() => {
         setList([]);
@@ -1350,52 +1373,48 @@ export default function MytaskTD() {
       </div>
 
       {/* Delete Task confirmation modal */}
-      {deleteTaskId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setDeleteTaskId(null)}
-                className="p-1 rounded-sm text-black hover:bg-[#E0E0E0] bg-[#F0F0F0] transition-colors cursor-pointer"
-                aria-label="Close"
+      {deleteTask !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-md shadow-2xl max-w-xl w-full p-2 relative flex flex-col items-center">
+            {/* Close */}
+            <button
+              type="button"
+              onClick={() => setDeleteTask(null)}
+              className="absolute left-4 top-4 p-2 rounded-[5px] bg-[#F2F2F2] text-gray-800 transition-colors cursor-pointer"
+              title="Close"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-              <h3 className="flex-1 text-center text-[18px] font-semibold text-[#353535]">
-                Delete Task
-              </h3>
-              <div className="w-9" />
-            </div>
-            <div className="px-6 py-5">
-              <p className="text-black text-center">
-                Are you sure, you want to Delete this Task?
-              </p>
-            </div>
-            <div className="flex justify-center gap-3 px-6 py-4 bg-slate-50/50">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <h3 className="text-[18px] font-gantari font-semibold text-[#020202] mt-[12px] mb-3">
+              Delete Task
+            </h3>
+            <p className="text-[14px] font-gantari font-semibold text-[#020202] mb-8 md:mb-10 text-center">
+              Are you sure, you want to Delete this?
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6 w-full sm:w-auto mb-6">
               <button
                 type="button"
-                onClick={() => setDeleteTaskId(null)}
-                className="rounded-md bg-[#F0F0F0] px-5 py-2 text-sm font-medium text-black cursor-pointer"
+                onClick={() => setDeleteTask(null)}
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#E8E8E8] text-[#353535] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Discard
               </button>
               <button
                 type="button"
                 onClick={confirmDeleteTask}
-                className="rounded-lg bg-[#FFD9D9] px-5 py-2 text-sm font-medium text-[#E00100] cursor-pointer"
+                className="w-full sm:w-auto px-10 md:px-12 py-2 rounded-md bg-[#FFD9D9] text-[#E00100] font-gantari font-semibold text-[14px] transition-all cursor-pointer"
               >
                 Yes, Delete
               </button>
