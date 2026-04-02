@@ -478,6 +478,21 @@ export default function ProjectsPM() {
     fetchProjects();
   }, [user?.id, user?.full_name, searchParams]);
 
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredList = list.filter((p) => {
+    if (!searchQuery) return true;
+    return (
+      (p.project_name || "").toLowerCase().includes(searchQuery) ||
+      (p.client_name || "").toLowerCase().includes(searchQuery) ||
+      (p.start_date || "").toLowerCase().includes(searchQuery) ||
+      (p.end_date || "").toLowerCase().includes(searchQuery) ||
+      (p.module_name || "").toLowerCase().includes(searchQuery) ||
+      (p.description || "").toLowerCase().includes(searchQuery) ||
+      (p.location || "").toLowerCase().includes(searchQuery) ||
+      (p.priority || "").toLowerCase().includes(searchQuery)
+    );
+  });
+
   // Map API project to Project interface
   const mapApiProjectToProject = (r: Record<string, unknown>): Project => ({
     id: Number(r.id) ?? 0,
@@ -2529,12 +2544,12 @@ export default function ProjectsPM() {
           {/* Dashboard Content with Scrollbar */}
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 sm:p-2 pr-1 custom-scrollbar">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-4 pb-2">
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <div className="col-span-full bg-slate-50 rounded-md border border-dashed border-slate-300 p-8 text-center text-slate-500">
                   No projects found.
                 </div>
               ) : (
-                list.map((p) => {
+                filteredList.map((p) => {
                   const progress = Math.round(p.progress ?? 0);
                   return (
                     <div key={p.id} className="bg-white rounded-md border border-slate-200 p-2 pt-1 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">

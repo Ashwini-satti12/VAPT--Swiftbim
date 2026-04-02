@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import api from "../../lib/api";
@@ -101,6 +102,7 @@ const getTodayInputDate = (): string => {
 };
 
 export default function ManageLeavePM() {
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState<LeaveEntry | null>(null);
@@ -561,9 +563,21 @@ export default function ManageLeavePM() {
   // filtered list is always current user's leaves; dropdown still allows filter by name if desired
   const employeeFilterShowsAll =
     selectedEmployee === "" || selectedEmployee === "All";
-  const filteredList = employeeFilterShowsAll
-    ? leaves
-    : leaves.filter((l) => l.employeeName === selectedEmployee);
+  const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const filteredList = useMemo(() => {
+    let res = employeeFilterShowsAll
+      ? leaves
+      : leaves.filter((l) => l.employeeName === selectedEmployee);
+
+    if (searchQuery) {
+      res = res.filter(l => 
+        (l.employeeName || "").toLowerCase().includes(searchQuery) ||
+        (l.leaveType || "").toLowerCase().includes(searchQuery) ||
+        (l.description || "").toLowerCase().includes(searchQuery)
+      );
+    }
+    return res;
+  }, [leaves, selectedEmployee, employeeFilterShowsAll, searchQuery]);
   const effectiveShowEntryValue =
     selectedShowEntries || showEntriesOptions[0].value;
   const selectedRange =
