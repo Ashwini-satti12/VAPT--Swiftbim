@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import ArrowDown from "../../assets/TechnicalDirector/ep_arrow-down-bold.svg";
 
@@ -17,6 +18,7 @@ interface AttendanceEntry {
 }
 
 export default function TrackerPM() {
+  const [searchParams] = useSearchParams();
   const [list, setList] = useState<AttendanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -273,6 +275,15 @@ export default function TrackerPM() {
         if (minutesFromMidnight < start || minutesFromMidnight >= end)
           return false;
       }
+    }
+
+    const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+    if (searchQuery) {
+      const matches = [
+        item.full_name,
+        item.employee_id
+      ].some(f => (f || "").toLowerCase().includes(searchQuery));
+      if (!matches) return false;
     }
 
     return true;
