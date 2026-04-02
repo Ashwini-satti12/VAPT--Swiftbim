@@ -366,8 +366,12 @@ export default function ProjectsPM() {
     let cancelled = false;
     setPmTaskStatsLoading(true);
 
-    const source = searchParams.get("source") || "In House";
-    const statsApi = source === "Outsource" ? `/api/vendors/vendor-projects/${projectId}/module-progress` : `/api/projects/${projectId}/module-progress`;
+    const isOutsource =
+      selectedProjectForView?.source === "Outsource" ||
+      searchParams.get("source") === "Outsource";
+    const statsApi = isOutsource
+      ? `/api/vendors/vendor-projects/${projectId}/module-progress`
+      : `/api/projects/${projectId}/module-progress`;
 
     api
       .get<{
@@ -396,7 +400,12 @@ export default function ProjectsPM() {
     return () => {
       cancelled = true;
     };
-  }, [showProjectView, selectedProjectForView?.id, searchParams]);
+  }, [
+    showProjectView,
+    selectedProjectForView?.id,
+    selectedProjectForView?.source,
+    searchParams,
+  ]);
 
   const fetchMilestones = (projectId: number) => {
     setMilestonesLoading(true);
@@ -507,6 +516,10 @@ export default function ProjectsPM() {
     tasks: r.tasks != null ? String(r.tasks) : undefined,
     document_attachment: r.document_attachment != null ? String(r.document_attachment) : undefined,
     budget_ceiling: r.budget_ceiling != null ? String(r.budget_ceiling) : undefined,
+    source:
+      r.source != null && String(r.source) !== "undefined"
+        ? (String(r.source) as "In House" | "Outsource")
+        : undefined,
   });
 
   // Deep-link support: keep project view on refresh using ?projectId=
@@ -535,19 +548,47 @@ export default function ProjectsPM() {
       setShowProjectView(true);
     }
 
-    const source = searchParams.get("source") || "In House";
-    const baseApi = source === "Outsource" ? "/api/vendors/vendor-projects" : "/api/projects";
+    const urlSource = searchParams.get("source");
+    if (loading && !existingProject && !urlSource) {
+      return;
+    }
+
+    const useVendor =
+      existingProject?.source === "Outsource" || urlSource === "Outsource";
+    const baseApi = useVendor
+      ? "/api/vendors/vendor-projects"
+      : "/api/projects";
 
     api
       .get<Record<string, unknown>>(`${baseApi}/${id}`)
-      .then(({ data }) => setSelectedProjectForView(mapApiProjectToProject(data)))
+      .then(({ data }) => {
+        const mapped = mapApiProjectToProject(data);
+        if (!mapped.source) {
+          mapped.source = useVendor ? "Outsource" : "In House";
+        }
+        setSelectedProjectForView(mapped);
+      })
       .catch(() => {
+        if (!useVendor && !existingProject && !urlSource) {
+          api
+            .get<Record<string, unknown>>(`/api/vendors/vendor-projects/${id}`)
+            .then(({ data }) => {
+              const mapped = mapApiProjectToProject(data);
+              mapped.source = "Outsource";
+              setSelectedProjectForView(mapped);
+            })
+            .catch(() => {
+              setSearchParams({}, { replace: true });
+              setShowProjectView(false);
+            });
+          return;
+        }
         if (!existingProject) {
           setSearchParams({}, { replace: true });
           setShowProjectView(false);
         }
       });
-  }, [searchParams, list, setSearchParams]);
+  }, [searchParams, list, loading, setSearchParams]);
 
   if (loading) {
     return (
